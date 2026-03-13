@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import dotenv from 'dotenv';
+
 import { db } from './db';
 import { authHandler } from './modules/auth';
 import { studentRoutes } from './modules/students/routes';
@@ -15,7 +15,7 @@ import { usersRoutes } from './modules/users/routes';
 import pagesRoutes from './modules/pages';
 import menusRoutes from './modules/menus';
 
-dotenv.config();
+
 
 const app = express();
 const PORT = process.env.PORT || 3001;
