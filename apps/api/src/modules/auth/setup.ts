@@ -22,14 +22,18 @@ export const setupAdmin = async (req: any, res: any) => {
       },
     });
 
-    // Manually set the role to admin in the database if needed
-    // (Better Auth plugins might handle this if configured, but let's be sure)
-    await auth.api.updateUser({
-        body: {
-            email: "admin@mandalotim.id",
-            role: "admin"
-        }
-    });
+    if (!adminUser) {
+        throw new Error("Failed to create user object");
+    }
+
+    // Use DB directly to set the role to ensure it works and fix TS error
+    import { eq } from "drizzle-orm";
+    import { user as userTable } from "../../db/schema";
+    import { db as database } from "../../db";
+
+    await database.update(userTable)
+        .set({ role: "admin" })
+        .where(eq(userTable.email, "admin@mandalotim.id"));
 
     res.json({ 
       message: "Admin created successfully!", 
