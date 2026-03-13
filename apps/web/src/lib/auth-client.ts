@@ -2,8 +2,11 @@
 import { createAuthClient } from "better-auth/react"
 import { adminClient } from "better-auth/client/plugins"
 
+const apiBase = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+const authBase = apiBase.replace(/\/api$/, "");
+
 export const authClient = createAuthClient({
-    baseURL: import.meta.env.VITE_AUTH_URL || "http://localhost:3001",
+    baseURL: authBase,
     plugins: [
         adminClient(),
     ],
