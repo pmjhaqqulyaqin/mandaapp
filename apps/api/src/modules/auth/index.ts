@@ -41,8 +41,9 @@ export const auth = betterAuth({
     errorURL: (process.env.FRONTEND_URL || "http://localhost:5173") + "/login",
   },
   trustedOrigins: [
-    process.env.FRONTEND_URL || "http://localhost:5173",
+    (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, ""),
     "http://localhost:5174",
+    ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
   ],
   user: {
     additionalFields: {
