@@ -29,7 +29,7 @@ export const useSiteSettings = () => {
 
   const settingsMap = useMemo(() => {
     const map: Record<string, string> = {};
-    if (queryAll.data) {
+    if (Array.isArray(queryAll.data)) {
       queryAll.data.forEach((s: any) => {
         if (s.value) map[s.key] = s.value;
       });
