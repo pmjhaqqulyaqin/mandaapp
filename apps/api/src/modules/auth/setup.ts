@@ -39,20 +39,16 @@ export const setupAdmin = async (req: any, res: any) => {
       throw new Error(`User created but failed to set role. This usually means the 'user' table is missing. Error: ${dbError.message}`);
     }
 
-    console.log('Setup complete!');
-    res.json({ 
-      message: "Admin created successfully!", 
-      email: "admin@mandalotim.id",
-      password: "PasswordAdmin123!" 
-    });
   } catch (error: any) {
-    console.error("Setup Admin Full Error:", error);
+    console.error("Setup Admin Full Error Object:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    
     // Return more descriptive error
     res.status(500).json({ 
       message: "Failed to create admin", 
-      error: error.message || "Unknown error",
-      details: error.stack ? "Check server logs for stack trace" : undefined,
-      hint: error.message?.includes('relation "user" does not exist') ? "Database tables are missing. Please run db:push." : "Better Auth initialization failed."
+      error: error.message || "No message",
+      code: error.code || error.status || "no_code",
+      hint: error.message?.includes('relation "user" does not exist') ? "Database tables are missing." : "Better Auth configuration issue (URL or Secret).",
+      debug_received_url: process.env.BETTER_AUTH_URL
     });
   }
 };
