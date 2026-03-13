@@ -1,3 +1,6 @@
+import { eq } from "drizzle-orm";
+import { user as userTable } from "../../db/schema";
+import { db as database } from "../../db";
 import { auth } from "./index";
 
 export const setupAdmin = async (req: any, res: any) => {
@@ -26,11 +29,7 @@ export const setupAdmin = async (req: any, res: any) => {
         throw new Error("Failed to create user object");
     }
 
-    // Use DB directly to set the role to ensure it works and fix TS error
-    import { eq } from "drizzle-orm";
-    import { user as userTable } from "../../db/schema";
-    import { db as database } from "../../db";
-
+    // Use DB directly to set the role to ensure it works
     await database.update(userTable)
         .set({ role: "admin" })
         .where(eq(userTable.email, "admin@mandalotim.id"));
