@@ -4,11 +4,34 @@ import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
 
-console.log('--- IMPORTS COMPLETED ---');
+console.log('--- BASIC IMPORTS COMPLETED ---');
 
 import { db } from './db';
 import { authHandler } from './modules/auth';
-// ... rest remains roughly the same but with logs
+import { studentRoutes } from './modules/students/routes';
+import { newsRoutes } from './modules/news/routes';
+import { schedulesRoutes } from './modules/schedules/routes';
+import { cardsRoutes } from './modules/cards/routes';
+import { galleryRoutes } from './modules/gallery/routes';
+import { contactsRoutes } from './modules/contacts/routes';
+import { settingsRoutes } from './modules/settings/routes';
+import { usersRoutes } from './modules/users/routes';
+import pagesRoutes from './modules/pages';
+import menusRoutes from './modules/menus';
+import { setupAdmin } from './modules/auth/setup';
+import { systemRoutes } from './modules/system/routes';
+
+console.log('--- MODULE IMPORTS COMPLETED ---');
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+console.log('--- STARTING SERVER ---');
+console.log('PORT:', PORT);
+console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
+console.log('BETTER_AUTH_URL:', process.env.BETTER_AUTH_URL);
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -18,7 +41,6 @@ app.use(cors({
       'http://localhost:5174',
     ].filter(Boolean) as string[];
 
-    // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin) || /https:\/\/.*vercel\.app$/.test(origin)) {
@@ -30,13 +52,12 @@ app.use(cors({
   credentials: true
 }));
 
-// Auth handler: use app.all() NOT app.use() — app.use() strips the mount path
-// from req.url, breaking Better Auth's internal route matching for OAuth callbacks
-app.get("/api/auth/setup-admin", setupAdmin);
-app.all("/api/auth/*", authHandler);
-
 app.use(express.json({ limit: '50mb' }));
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
+
+// Auth routes
+app.get("/api/auth/setup-admin", setupAdmin);
+app.all("/api/auth/*", authHandler);
 
 // API Routes
 app.use("/api/students", studentRoutes);
@@ -49,7 +70,6 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/pages", pagesRoutes);
 app.use("/api/menus", menusRoutes);
-import { systemRoutes } from './modules/system/routes';
 app.use("/api/system", systemRoutes);
 
 app.get('/health', (req, res) => {
