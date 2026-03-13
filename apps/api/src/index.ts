@@ -15,6 +15,7 @@ import { settingsRoutes } from './modules/settings/routes';
 import { usersRoutes } from './modules/users/routes';
 import pagesRoutes from './modules/pages';
 import menusRoutes from './modules/menus';
+import { setupAdmin } from './modules/auth/setup';
 
 dotenv.config();
 
@@ -45,6 +46,7 @@ app.use(cors({
 
 // Auth handler: use app.all() NOT app.use() — app.use() strips the mount path
 // from req.url, breaking Better Auth's internal route matching for OAuth callbacks
+app.get("/api/auth/setup-admin", setupAdmin);
 app.all("/api/auth/*", authHandler);
 
 app.use(express.json({ limit: '50mb' }));
