@@ -4,19 +4,20 @@ import { db as database } from "../../db";
 import { auth } from "./index";
 
 export const setupAdmin = async (req: any, res: any) => {
+  console.log('--- SETUP ADMIN TRIGGERED ---');
   try {
-    // Check if any admin already exists to prevent multiple admins
+    // Check if any admin already exists
     const users = await auth.api.listUsers({
-        query: {
-            limit: 1
-        }
+        query: { limit: 1 }
     });
+    console.log('Users found:', users?.users?.length);
 
     if (users && users.users.length > 0) {
+      console.log('Admin already exists, skipping.');
       return res.status(400).json({ message: "Admin already exists or database is not empty." });
     }
 
-    // Create the admin user using Better Auth API
+    console.log('Creating admin user...');
     const adminUser = await auth.api.signUpEmail({
       body: {
         email: "admin@mandalotim.id",
@@ -28,12 +29,13 @@ export const setupAdmin = async (req: any, res: any) => {
     if (!adminUser) {
         throw new Error("Failed to create user object");
     }
+    console.log('User created, updating role...');
 
-    // Use DB directly to set the role to ensure it works
     await database.update(userTable)
         .set({ role: "admin" })
         .where(eq(userTable.email, "admin@mandalotim.id"));
 
+    console.log('Setup complete!');
     res.json({ 
       message: "Admin created successfully!", 
       email: "admin@mandalotim.id",

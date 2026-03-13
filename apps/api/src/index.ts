@@ -24,6 +24,11 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+console.log('--- STARTING SERVER ---');
+console.log('PORT:', PORT);
+console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
+console.log('BETTER_AUTH_URL:', process.env.BETTER_AUTH_URL);
+
 app.use(cors({
   origin: (origin, callback) => {
     const allowedOrigins = [
