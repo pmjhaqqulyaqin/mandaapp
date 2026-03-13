@@ -1,10 +1,7 @@
-console.log('--- SERVER INITIALIZING ---');
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
-
-console.log('--- BASIC IMPORTS COMPLETED ---');
 
 import { db } from './db';
 import { authHandler } from './modules/auth';
@@ -18,21 +15,12 @@ import { settingsRoutes } from './modules/settings/routes';
 import { usersRoutes } from './modules/users/routes';
 import pagesRoutes from './modules/pages';
 import menusRoutes from './modules/menus';
-import { setupAdmin } from './modules/auth/setup';
-import { checkDatabase } from './modules/auth/db-check';
 import { systemRoutes } from './modules/system/routes';
-
-console.log('--- MODULE IMPORTS COMPLETED ---');
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-
-console.log('--- STARTING SERVER ---');
-console.log('PORT:', PORT);
-console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
-console.log('BETTER_AUTH_URL:', process.env.BETTER_AUTH_URL);
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -56,9 +44,7 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
-// Auth routes
-app.get("/api/auth/setup-admin", setupAdmin);
-app.get("/api/auth/db-check", checkDatabase);
+// Auth handler
 app.all("/api/auth/*", authHandler);
 
 // API Routes
