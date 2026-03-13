@@ -29,11 +29,15 @@ export const setupAdmin = async (req: any, res: any) => {
     if (!adminUser) {
         throw new Error("Failed to create user object");
     }
-    console.log('User created, updating role...');
-
-    await database.update(userTable)
-        .set({ role: "admin" })
-        .where(eq(userTable.email, "admin@mandalotim.id"));
+    // Use DB directly to set the role to ensure it works
+    try {
+      await database.update(userTable)
+          .set({ role: "admin" })
+          .where(eq(userTable.email, "admin@mandalotim.id"));
+    } catch (dbError: any) {
+      console.error("Database Update Error (Tables might be missing):", dbError);
+      throw new Error(`User created but failed to set role. This usually means the 'user' table is missing. Error: ${dbError.message}`);
+    }
 
     console.log('Setup complete!');
     res.json({ 
@@ -42,7 +46,13 @@ export const setupAdmin = async (req: any, res: any) => {
       password: "PasswordAdmin123!" 
     });
   } catch (error: any) {
-    console.error("Setup Admin Error:", error);
-    res.status(500).json({ message: "Failed to create admin", error: error.message });
+    console.error("Setup Admin Full Error:", error);
+    // Return more descriptive error
+    res.status(500).json({ 
+      message: "Failed to create admin", 
+      error: error.message || "Unknown error",
+      details: error.stack ? "Check server logs for stack trace" : undefined,
+      hint: error.message?.includes('relation "user" does not exist') ? "Database tables are missing. Please run db:push." : "Better Auth initialization failed."
+    });
   }
 };
