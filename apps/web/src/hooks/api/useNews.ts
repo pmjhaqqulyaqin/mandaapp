@@ -35,9 +35,12 @@ export const useNews = () => {
     },
   });
 
+  const safeData = Array.isArray(queryAll.data) ? queryAll.data : [];
+  const safeAdminData = Array.isArray(queryAllAdmin.data) ? queryAllAdmin.data : [];
+
   return {
-    queryAll,
-    queryAllAdmin,
+    queryAll: { ...queryAll, data: safeData },
+    queryAllAdmin: { ...queryAllAdmin, data: safeAdminData },
     createMutation,
     updateMutation,
     deleteMutation,

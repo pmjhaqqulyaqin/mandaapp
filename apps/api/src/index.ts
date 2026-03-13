@@ -19,6 +19,7 @@ import { usersRoutes } from './modules/users/routes';
 import pagesRoutes from './modules/pages';
 import menusRoutes from './modules/menus';
 import { setupAdmin } from './modules/auth/setup';
+import { checkDatabase } from './modules/auth/db-check';
 import { systemRoutes } from './modules/system/routes';
 
 console.log('--- MODULE IMPORTS COMPLETED ---');
@@ -57,6 +58,7 @@ app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
 // Auth routes
 app.get("/api/auth/setup-admin", setupAdmin);
+app.get("/api/auth/db-check", checkDatabase);
 app.all("/api/auth/*", authHandler);
 
 // API Routes

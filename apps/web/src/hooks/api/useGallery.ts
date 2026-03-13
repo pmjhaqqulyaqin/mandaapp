@@ -30,8 +30,10 @@ export const useGallery = () => {
     },
   });
 
+  const safeData = Array.isArray(queryAll.data) ? queryAll.data : [];
+
   return {
-    queryAll,
+    queryAll: { ...queryAll, data: safeData },
     createMutation,
     updateMutation,
     deleteMutation,
