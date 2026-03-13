@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import dotenv from 'dotenv';
 
 import { db } from './db';
 import { authHandler } from './modules/auth';
@@ -14,6 +15,8 @@ import { settingsRoutes } from './modules/settings/routes';
 import { usersRoutes } from './modules/users/routes';
 import pagesRoutes from './modules/pages';
 import menusRoutes from './modules/menus';
+
+dotenv.config();
 
 
 
