@@ -65,7 +65,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const { data } = await authClient.getSession();
         if (data?.user) {
-          setUser(parseUser(data.user));
+          const parsedUser = parseUser(data.user);
+          setUser(parsedUser);
+          localStorage.setItem('mandalotim_user', JSON.stringify(parsedUser));
         }
       } catch (error) {
         console.error('Failed to fetch session:', error);
@@ -90,7 +92,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data?.user) {
-        setUser(parseUser(data.user));
+        const parsedUser = parseUser(data.user);
+        setUser(parsedUser);
+        localStorage.setItem('mandalotim_user', JSON.stringify(parsedUser));
       }
     } finally {
       setIsLoading(false);
@@ -104,6 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Logout error:', error);
     } finally {
       setUser(null);
+      localStorage.removeItem('mandalotim_user');
     }
   }, []);
 
@@ -111,7 +116,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data } = await authClient.getSession();
       if (data?.user) {
-        setUser(parseUser(data.user));
+        const parsedUser = parseUser(data.user);
+        setUser(parsedUser);
+        localStorage.setItem('mandalotim_user', JSON.stringify(parsedUser));
       }
     } catch (error) {
       console.error('Failed to refresh session:', error);
