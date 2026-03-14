@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 export interface HeaderProps {
   schoolName?: string;
@@ -28,6 +28,9 @@ export const Header = ({
   dynamicMenus = [],
   mapUrl,
 }: HeaderProps) => {
+  const location = useLocation();
+  const isHomePage = location.pathname === '/';
+  
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -208,8 +211,10 @@ export const Header = ({
           <Link
             to="/"
             onClick={(e) => {
-              e.preventDefault();
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              if (isHomePage) {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
             }}
             style={{
               display: 'flex',
@@ -259,7 +264,10 @@ export const Header = ({
                     to={menuItem.url}
                     onClick={(e) => {
                       if (menuItem.url === '/') {
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        if (isHomePage) {
+                          e.preventDefault();
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
                       } else if (menuItem.url.startsWith('#')) {
                         // handled naturally or optionally smooth scrolled
                       }
@@ -319,8 +327,10 @@ export const Header = ({
                   key={item.label}
                   to={item.to}
                   onClick={item.scrollToTop ? (e: React.MouseEvent) => {
-                    e.preventDefault();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    if (isHomePage) {
+                      e.preventDefault();
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
                   } : undefined}
                   className="text-gray-700 dark:text-gray-300 hover:bg-green-50 hover:text-green-700 dark:hover:bg-green-900/30 dark:hover:text-green-400 transition-colors"
                   style={{
