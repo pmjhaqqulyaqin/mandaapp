@@ -64,7 +64,28 @@ export const DashboardPages = () => {
     toolbarAdaptive: false,
     zIndex: 1000,
     uploader: {
-      insertImageAsBase64URI: true
+      url: `${import.meta.env.VITE_API_URL}/system/upload/image`,
+      format: 'json',
+      path: 'data.url',
+      process: (res: any) => {
+        return {
+          files: [res.data.url],
+          path: res.data.url,
+          baseurl: '',
+          error: res.error,
+          msg: res.message
+        };
+      },
+      defaultHandlerSuccess: function(this: any, data: any) {
+        this.selection.insertImage(data.files[0]);
+      },
+      prepareData: (formData: any) => {
+        // Jodit uses 'files' by default, but our backend expects 'image'
+        const file = formData.get('files[0]');
+        formData.delete('files[0]');
+        formData.append('image', file);
+        return formData;
+      }
     },
     buttons: [
       {

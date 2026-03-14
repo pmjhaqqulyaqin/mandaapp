@@ -30,3 +30,29 @@ export const uploadUpdatePackage = async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const uploadImageHandler = async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const protocol = req.protocol;
+    const host = req.get('host');
+    // Ensure protocol matches the environment (https for production)
+    const effectiveProtocol = host?.includes('localhost') ? protocol : 'https';
+    const fileUrl = `${effectiveProtocol}://${host}/uploads/${req.file.filename}`;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        url: fileUrl,
+        name: req.file.originalname,
+        size: req.file.size
+      }
+    });
+  } catch (error: any) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Failed to upload image', details: error.message });
+  }
+};
