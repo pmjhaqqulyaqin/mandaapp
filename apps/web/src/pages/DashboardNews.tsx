@@ -209,7 +209,7 @@ export const DashboardNews = () => {
       'ul', 'ol', '|',
       'align', 'outdent', 'indent', '|',
       'table', 'link', 'image', 'video', 'file', '|',
-      'hr', 'symbol', 'fullsize', 'source', '|',
+      'hr', 'symbols', 'fullsize', 'source', '|',
       'undo', 'redo'
     ],
     theme: 'default'
