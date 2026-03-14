@@ -41,10 +41,10 @@ export function Modal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity z-[51]"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity z-[2001]"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -57,7 +57,7 @@ export function Modal({
         aria-labelledby="modal-title"
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          'relative z-[52] w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-background-dark p-6 text-left shadow-2xl transition-all sm:my-8 border border-border-light dark:border-border-dark',
+          'relative z-[2002] w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-background-dark p-6 text-left shadow-2xl transition-all sm:my-8 border border-border-light dark:border-border-dark',
           className
         )}
       >

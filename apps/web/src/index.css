@@ -10,3 +10,134 @@
     font-family: 'Space Grotesk', system-ui, sans-serif;
   }
 }
+
+/* Smart Art Graphics Styles */
+.smart-art-process {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: rgba(var(--primary-rgb), 0.05);
+  border-radius: 1rem;
+  overflow-x: auto;
+}
+
+.smart-art-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 120px;
+  text-align: center;
+}
+
+.smart-art-step-box {
+  width: 100%;
+  padding: 1rem;
+  background: white;
+  border: 2px solid var(--primary);
+  border-radius: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.dark .smart-art-step-box {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.smart-art-arrow {
+  font-size: 1.5rem;
+  color: var(--text-secondary);
+}
+
+.smart-art-cycle {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  padding: 2rem;
+  position: relative;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.smart-art-cycle-item {
+  width: 150px;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  font-weight: bold;
+  text-align: center;
+  padding: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(var(--primary-rgb), 0.3);
+}
+
+.smart-art-hierarchy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 1.5rem;
+}
+
+.smart-art-node {
+  padding: 0.75rem 1.5rem;
+  background: #f8fafc;
+  border: 1px solid var(--border-light);
+  border-radius: 0.5rem;
+  font-weight: 500;
+  position: relative;
+}
+
+.dark .smart-art-node {
+  background: #262626;
+  border-color: var(--border-dark);
+  color: #e5e5e5;
+}
+
+.smart-art-node::after {
+  content: '';
+  position: absolute;
+  bottom: -2rem;
+  left: 50%;
+  width: 2px;
+  height: 2rem;
+  background: var(--border-light);
+}
+
+.smart-art-node:last-child::after {
+  display: none;
+}
+
+.smart-art-relation {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  position: relative;
+}
+
+.smart-art-circle {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: rgba(var(--primary-rgb), 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  mix-blend-mode: multiply;
+  color: white;
+  font-weight: bold;
+  position: absolute;
+}
+
+.smart-art-circle-1 { left: 20%; }
+.smart-art-circle-2 { right: 20%; }
+

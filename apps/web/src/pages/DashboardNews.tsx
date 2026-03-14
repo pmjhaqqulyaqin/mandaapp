@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { Button, Input, Badge, DataTable, Skeleton } from '@mandaapp/ui';
+import { Button, Input, Badge, DataTable, Skeleton, Modal } from '@mandaapp/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { type NewsItem, type AnnouncementCategory } from '../types/news';
 import { useNews } from '../hooks/api/useNews';
@@ -12,6 +12,7 @@ export const DashboardNews = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSmartArtModalOpen, setIsSmartArtModalOpen] = useState(false);
   const [editingNewsId, setEditingNewsId] = useState<string | null>(null);
   
   const { user } = useAuth();
@@ -169,6 +170,45 @@ export const DashboardNews = () => {
     }
   };
 
+  const SMART_ART_TEMPLATES = [
+    {
+      id: 'process',
+      title: 'Process Graphic',
+      description: 'Diagram alur proses horizontal dengan panah.',
+      icon: '→',
+      html: '<div class="smart-art-process"><div class="smart-art-step"><div class="smart-art-step-box">Langkah 1</div></div><div class="smart-art-arrow">→</div><div class="smart-art-step"><div class="smart-art-step-box">Langkah 2</div></div><div class="smart-art-arrow">→</div><div class="smart-art-step"><div class="smart-art-step-box">Langkah 3</div></div></div>'
+    },
+    {
+      id: 'cycle',
+      title: 'Cycle Graphic',
+      description: 'Diagram siklus berputar untuk proses berkelanjutan.',
+      icon: '↻',
+      html: '<div class="smart-art-cycle"><div class="smart-art-cycle-item">Fase 1</div><div class="smart-art-cycle-item">Fase 2</div><div class="smart-art-cycle-item">Fase 4</div><div class="smart-art-cycle-item">Fase 3</div></div>'
+    },
+    {
+      id: 'hierarchy',
+      title: 'Hierarchy Graphic',
+      description: 'Struktur organisasi atau hirarki bertingkat.',
+      icon: '⊥',
+      html: '<div class="smart-art-hierarchy"><div class="smart-art-node">Pimpinan Utama</div><div class="smart-art-node">Manajer Divisi</div><div class="smart-art-node">Staff Pelaksana</div></div>'
+    },
+    {
+      id: 'relation',
+      title: 'Relationship Graphic',
+      description: 'Hubungan antar konsep atau entitas.',
+      icon: '○',
+      html: '<div class="smart-art-relation"><div class="smart-art-circle smart-art-circle-1">Konsep A</div><div class="smart-art-circle smart-art-circle-2">Konsep B</div></div>'
+    }
+  ];
+
+  const handleInsertSmartArt = (html: string) => {
+    if (editor.current) {
+      // @ts-ignore
+      editor.current.selection.insertHTML(html);
+      setIsSmartArtModalOpen(false);
+    }
+  };
+
   const joditConfig = useMemo(() => ({
     readonly: false,
     placeholder: 'Write your announcement here...',
@@ -209,6 +249,12 @@ export const DashboardNews = () => {
       'ul', 'ol', '|',
       'align', 'outdent', 'indent', '|',
       'table', 'link', 'image', 'video', 'file', '|',
+      {
+        name: 'smartArt',
+        iconURL: 'https://cdn-icons-png.flaticon.com/512/3593/3593452.png',
+        tooltip: 'Insert Smart Art Graphic',
+        exec: () => setIsSmartArtModalOpen(true)
+      },
       'hr', 'symbols', 'fullsize', 'source', '|',
       'undo', 'redo'
     ],
@@ -436,6 +482,36 @@ export const DashboardNews = () => {
           </button>
         </div>
       </div>
+      {/* Smart Art Modal */}
+      <Modal
+        isOpen={isSmartArtModalOpen}
+        onClose={() => setIsSmartArtModalOpen(false)}
+        title="Pilih Smart Art Graphic"
+        description="Pilih grafik profesional untuk memvisualisasikan data Anda."
+        className="max-w-2xl"
+      >
+        <div className="grid grid-cols-2 gap-4">
+          {SMART_ART_TEMPLATES.map((item) => (
+            <div 
+              key={item.id}
+              onClick={() => handleInsertSmartArt(item.html)}
+              className="group cursor-pointer border border-border-light dark:border-border-dark rounded-xl p-4 hover:border-primary hover:bg-primary/5 transition-all"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-[#262626] rounded-lg text-xl group-hover:bg-primary group-hover:text-white transition-colors">
+                  {item.icon}
+                </div>
+                <h4 className="font-semibold text-text-primary dark:text-text-darkPrimary">
+                  {item.title}
+                </h4>
+              </div>
+              <p className="text-xs text-text-secondary">
+                {item.description}
+              </p>
+            </div>
+          ))}
+        </div>
+      </Modal>
     </div>
   );
 };
