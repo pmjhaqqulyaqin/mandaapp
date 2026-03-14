@@ -43,9 +43,11 @@ export class NewsController {
       // Fallback: read X-User-Id header (for mock auth from frontend)
       if (!userId) {
         userId = req.headers["x-user-id"] as string;
+        if (userId) console.log("[Auth] Fallback to X-User-Id:", userId);
       }
 
       if (!userId) {
+        console.warn("[Auth] Unauthorized attempt to create news");
         res.status(401).json({ error: "Unauthorized. Please log in." });
         return;
       }
@@ -65,6 +67,32 @@ export class NewsController {
 
   static async update(req: Request, res: Response) {
     try {
+      let userId: string | undefined;
+
+      // Try to get user session from better-auth first
+      try {
+        const session = await auth.api.getSession({
+          headers: fromNodeHeaders(req.headers),
+        });
+        if (session) {
+          userId = session.user.id;
+        }
+      } catch {
+        // Session lookup failed, will try fallback
+      }
+
+      // Fallback: read X-User-Id header (for mock auth from frontend)
+      if (!userId) {
+        userId = req.headers["x-user-id"] as string;
+        if (userId) console.log("[Auth] Fallback to X-User-Id (update):", userId);
+      }
+
+      if (!userId) {
+        console.warn("[Auth] Unauthorized attempt to update news");
+        res.status(401).json({ error: "Unauthorized. Please log in." });
+        return;
+      }
+
       const news = await NewsService.updateNews(req.params.id, req.body);
       res.json(news);
     } catch (error) {

@@ -48,6 +48,21 @@ export class GalleryController {
 
   static async update(req: Request, res: Response) {
     try {
+      let userId: string | undefined;
+      try {
+        const session = await auth.api.getSession({
+          headers: fromNodeHeaders(req.headers),
+        });
+        if (session) userId = session.user.id;
+      } catch {
+        // Session lookup failed
+      }
+      if (!userId) userId = req.headers["x-user-id"] as string;
+
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized. Please log in." });
+      }
+
       const image = await GalleryService.updateImage(req.params.id, req.body);
       res.json(image);
     } catch (error: any) {
