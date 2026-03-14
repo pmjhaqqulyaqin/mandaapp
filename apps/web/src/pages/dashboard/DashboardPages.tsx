@@ -19,6 +19,21 @@ export const DashboardPages = () => {
       color: 'inherit',
     },
     disablePlugins: ['add-new-line'],
+    zIndex: 1000,
+    uploader: {
+      insertImageAsBase64URI: true
+    },
+    buttons: [
+      'source', '|',
+      'bold', 'strikethrough', 'underline', 'italic', '|',
+      'ul', 'ol', '|',
+      'outdent', 'indent', '|',
+      'font', 'fontsize', 'brush', 'paragraph', '|',
+      'image', 'file', 'video', 'table', 'link', '|',
+      'align', 'undo', 'redo', '|',
+      'hr', 'eraser', 'copyformat', '|',
+      'symbol', 'fullsize'
+    ],
   }), []);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -343,13 +358,21 @@ size="xl"
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
         Isi Konten Manual (Fallback)
       </label>
-      <div className="text-gray-900 rounded-md overflow-hidden bg-white border border-gray-200">
+      <div className="text-gray-900 rounded-md overflow-hidden bg-white border border-gray-200 jodit-editor-container">
         <JoditEditor
           ref={editorRef}
           value={formData.content}
           config={editorConfig}
           onBlur={newContent => setFormData({ ...formData, content: newContent })}
         />
+        <style>{`
+          .jodit-editor-container .jodit-container {
+             overflow: visible !important;
+          }
+          .jodit-editor-container .jodit-popup-container {
+            z-index: 1001 !important;
+          }
+        `}</style>
       </div>
       <p className="text-[10px] text-gray-500">Hanya tampil jika tidak ada "Visual Section" di atas.</p>
     </div>

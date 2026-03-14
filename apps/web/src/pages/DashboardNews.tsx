@@ -181,18 +181,22 @@ export const DashboardNews = () => {
     showCharsCounter: true,
     showWordsCounter: true,
     showXPathInStatusbar: false,
+    zIndex: 1000,
+    uploader: {
+      insertImageAsBase64URI: true
+    },
     buttons: [
       'source', '|',
       'bold', 'strikethrough', 'underline', 'italic', '|',
       'ul', 'ol', '|',
       'outdent', 'indent', '|',
       'font', 'fontsize', 'brush', 'paragraph', '|',
-      'image', 'video', 'table', 'link', '|',
+      'image', 'file', 'video', 'table', 'link', '|',
       'align', 'undo', 'redo', '|',
       'hr', 'eraser', 'copyformat', '|',
       'symbol', 'fullsize'
     ],
-    theme: 'default' // Can be adjusted dynamically based on dark mode if needed
+    theme: 'default'
   };
 
   return (
@@ -327,6 +331,13 @@ export const DashboardNews = () => {
                 }
                 .jodit-editor-container .jodit-workplace {
                   min-height: 500px !important;
+                }
+                /* Ensure popups are not clipped */
+                .jodit-editor-container .jodit-container {
+                   overflow: visible !important;
+                }
+                .jodit-editor-container .jodit-popup-container {
+                  z-index: 1001 !important;
                 }
                 /* Sticky Toolbar */
                 .jodit-editor-container .jodit-toolbar__box {
