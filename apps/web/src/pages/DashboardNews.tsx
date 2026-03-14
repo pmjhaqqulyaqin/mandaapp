@@ -181,7 +181,8 @@ export const DashboardNews = () => {
     showCharsCounter: true,
     showWordsCounter: true,
     showXPathInStatusbar: false,
-    zIndex: 1000,
+    zIndex: 2000,
+    activeButtonsInReadOnly: ['fullsize', 'print'],
     uploader: {
       insertImageAsBase64URI: true
     },
@@ -196,7 +197,6 @@ export const DashboardNews = () => {
       'hr', 'eraser', 'copyformat', '|',
       'symbol', 'fullsize'
     ],
-    theme: 'default'
   };
 
   return (
@@ -332,18 +332,20 @@ export const DashboardNews = () => {
                 .jodit-editor-container .jodit-workplace {
                   min-height: 500px !important;
                 }
-                /* Ensure popups are not clipped */
-                .jodit-editor-container .jodit-container {
-                   overflow: visible !important;
+                /* Global fix for Jodit popups in drawers */
+                :global(.jodit-popup-container), 
+                :global(.jodit-dialog__box) {
+                  z-index: 9999 !important;
                 }
-                .jodit-editor-container .jodit-popup-container {
-                  z-index: 1001 !important;
+                /* Ensure popups are not clipped by the internal container */
+                .jodit-container {
+                   overflow: visible !important;
                 }
                 /* Sticky Toolbar */
                 .jodit-editor-container .jodit-toolbar__box {
                   position: sticky !important;
                   top: 0 !important;
-                  z-index: 50 !important;
+                  z-index: 100 !important;
                   background-color: var(--bg-surface);
                   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
                 }

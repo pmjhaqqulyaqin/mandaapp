@@ -19,7 +19,7 @@ export const DashboardPages = () => {
       color: 'inherit',
     },
     disablePlugins: ['add-new-line'],
-    zIndex: 1000,
+    zIndex: 2000,
     uploader: {
       insertImageAsBase64URI: true
     },
@@ -223,7 +223,6 @@ export const DashboardPages = () => {
 isOpen={isModalOpen}
 onClose={() => setIsModalOpen(false)}
 title={editingId ? 'Edit Halaman' : 'Tambah Halaman Baru'}
-size="xl"
 >
 <form onSubmit={handleSubmit} className="space-y-6">
   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -330,7 +329,7 @@ size="xl"
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono text-gray-400">#{idx + 1}</span>
                 <span className="font-bold text-gray-900 dark:text-gray-100">{section.type}</span>
-                <Badge variant="outline" size="sm" className="text-[10px]">Section Block</Badge>
+                <Badge variant="outline" className="text-[10px]">Section Block</Badge>
               </div>
               <p className="text-[10px] text-gray-500">Akan dirender menggunakan komponen sistem.</p>
             </div>
@@ -369,8 +368,12 @@ size="xl"
           .jodit-editor-container .jodit-container {
              overflow: visible !important;
           }
-          .jodit-editor-container .jodit-popup-container {
-            z-index: 1001 !important;
+          /* Ensure dialogs and popups are above everything */
+          body > .jodit-popup-container,
+          body > .jodit-dialog__box,
+          .jodit-popup-container,
+          .jodit-dialog__box {
+            z-index: 9999 !important;
           }
         `}</style>
       </div>
@@ -391,7 +394,6 @@ size="xl"
   isOpen={showSectionPicker}
   onClose={() => setShowSectionPicker(false)}
   title="Pilih Bagian Halaman"
-  size="lg"
 >
   <SectionPicker onSelect={handleAddSection} />
 </Modal>
