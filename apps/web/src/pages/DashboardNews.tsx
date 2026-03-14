@@ -182,15 +182,14 @@ export const DashboardNews = () => {
     },
     toolbarSticky: true,
     toolbarStickyOffset: 0,
-    toolbarAdaptive: false, // Professional Word-like ribbon
+    toolbarAdaptive: false,
     showCharsCounter: true,
     showWordsCounter: true,
     showXPathInStatusbar: false,
     askBeforePasteHTML: false,
     askBeforePasteFromWord: false,
     zIndex: 1000,
-    // Use the form container as the popup parent to fix the "corner positioning" bug
-    popupContainer: '#news-editor-wrapper',
+    // popupContainer: 'body' is the default, which works correctly when parent has no transform
     uploader: {
       insertImageAsBase64URI: true
     },
@@ -292,8 +291,11 @@ export const DashboardNews = () => {
         onClick={() => setIsModalOpen(false)} 
       />
       
-      {/* Drawer Panel */}
-      <div className={`fixed top-0 right-0 bottom-0 z-[70] w-full max-w-[800px] sm:max-w-[70%] bg-white dark:bg-[#121212] shadow-2xl transition-transform duration-300 transform flex flex-col ${isModalOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      {/* Drawer Panel - Using 'right' instead of 'transform' to avoid containing block issues that break Jodit positioning */}
+      <div 
+        className={`fixed top-0 bottom-0 z-[70] w-full max-w-[800px] sm:max-w-[70%] bg-white dark:bg-[#121212] shadow-2xl transition-all duration-300 flex flex-col`}
+        style={{ right: isModalOpen ? '0' : '-100%' }}
+      >
         
         {/* Drawer Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-border-light dark:border-border-dark shrink-0">
@@ -333,7 +335,7 @@ export const DashboardNews = () => {
                 <span className="text-xs text-text-secondary font-normal">Use the toolbar to format, add images, or tables</span>
               </label>
               
-              <div className="flex-1 bg-white dark:bg-[#1a1a1a] text-text-primary dark:text-text-darkPrimary rounded-lg border border-border-light dark:border-border-dark jodit-editor-container" id="news-editor-wrapper">
+              <div className="flex-1 bg-white dark:bg-[#1a1a1a] text-text-primary dark:text-text-darkPrimary rounded-lg border border-border-light dark:border-border-dark jodit-editor-container">
                 <JoditEditor
                   ref={editor}
                   value={formData.content || ''}
@@ -355,17 +357,13 @@ export const DashboardNews = () => {
                   background-color: #f8fafc !important;
                   padding: 4px !important;
                 }
-                /* Fix Popup Visibility */
-                #news-editor-wrapper {
-                  position: relative !important;
-                  overflow: visible !important;
-                }
-                #news-editor-wrapper .jodit-container {
+                /* Ensure editor content is visible within the drawer */
+                .jodit-editor-container .jodit-container {
                    overflow: visible !important;
                 }
-                /* Ensure popups are localized within the relative wrapper */
-                .jodit-popup-container {
-                  z-index: 10000 !important;
+                /* Global popup styling */
+                :global(.jodit-popup-container) {
+                   z-index: 10001 !important;
                 }
                 /* Dark mode adjustments for Jodit */
                 .dark .jodit-editor-container .jodit-toolbar__box {

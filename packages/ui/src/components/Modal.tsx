@@ -57,7 +57,7 @@ export function Modal({
         aria-labelledby="modal-title"
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          'relative z-[52] w-full max-w-lg max-h-[90vh] transform overflow-y-auto rounded-2xl bg-white dark:bg-background-dark p-6 text-left shadow-2xl transition-all sm:my-8 border border-border-light dark:border-border-dark',
+          'relative z-[52] w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-background-dark p-6 text-left shadow-2xl transition-all sm:my-8 border border-border-light dark:border-border-dark',
           className
         )}
       >

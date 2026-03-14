@@ -23,7 +23,6 @@ export const DashboardPages = () => {
     toolbarSticky: true,
     toolbarAdaptive: false,
     zIndex: 1000,
-    popupContainer: '#pages-editor-wrapper',
     uploader: {
       insertImageAsBase64URI: true
     },
@@ -369,7 +368,7 @@ title={editingId ? 'Edit Halaman' : 'Tambah Halaman Baru'}
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
         Isi Konten Manual (Fallback)
       </label>
-      <div className="text-gray-900 rounded-md overflow-hidden bg-white border border-gray-200 jodit-editor-container" id="pages-editor-wrapper">
+      <div className="text-gray-900 rounded-md overflow-hidden bg-white border border-gray-200 jodit-editor-container">
         <JoditEditor
           ref={editorRef}
           value={formData.content}
@@ -377,16 +376,12 @@ title={editingId ? 'Edit Halaman' : 'Tambah Halaman Baru'}
           onBlur={newContent => setFormData({ ...formData, content: newContent })}
         />
         <style>{`
-          #pages-editor-wrapper {
-            position: relative !important;
-            overflow: visible !important;
-          }
-          #pages-editor-wrapper .jodit-container {
+          .jodit-container {
              overflow: visible !important;
           }
-          .jodit-popup-container,
-          .jodit-dialog__box {
-            z-index: 10000 !important;
+          :global(.jodit-popup-container),
+          :global(.jodit-dialog__box) {
+            z-index: 10001 !important;
           }
           .jodit-toolbar__box {
              background-color: #f8fafc !important;
