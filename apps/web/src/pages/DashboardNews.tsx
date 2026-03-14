@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Button, Input, Badge, DataTable, Skeleton } from '@mandaapp/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { type NewsItem, type AnnouncementCategory } from '../types/news';
 import { useNews } from '../hooks/api/useNews';
 import JoditEditor from 'jodit-react';
-import { useRef } from 'react';
+
 export const DashboardNews = () => {
   const { queryAllAdmin, createMutation, updateMutation, deleteMutation } = useNews();
   const allNews: NewsItem[] = queryAllAdmin.data || [];
@@ -169,35 +169,52 @@ export const DashboardNews = () => {
     }
   };
 
-  const joditConfig = {
+  const joditConfig = useMemo(() => ({
     readonly: false,
     placeholder: 'Write your announcement here...',
-    height: '100%',
+    height: 600,
+    minHeight: 400,
     style: {
       background: 'transparent',
-      color: 'inherit'
+      color: 'inherit',
+      fontFamily: 'Inter, sans-serif',
+      fontSize: '14px'
     },
-    toolbarSticky: false,
+    toolbarSticky: true,
+    toolbarStickyOffset: 0,
+    toolbarAdaptive: false, // Professional Word-like ribbon
     showCharsCounter: true,
     showWordsCounter: true,
     showXPathInStatusbar: false,
-    zIndex: 2000,
-    activeButtonsInReadOnly: ['fullsize', 'print'],
+    askBeforePasteHTML: false,
+    askBeforePasteFromWord: false,
+    zIndex: 1000,
+    // Use the form container as the popup parent to fix the "corner positioning" bug
+    popupContainer: '#news-editor-wrapper',
     uploader: {
       insertImageAsBase64URI: true
     },
     buttons: [
-      'source', '|',
-      'bold', 'strikethrough', 'underline', 'italic', '|',
+      {
+        name: 'font',
+        list: {
+          'Inter,sans-serif': 'Inter',
+          'Space Grotesk,sans-serif': 'Heading',
+          'Arial,Helvetica,sans-serif': 'Arial',
+          'Georgia,serif': 'Georgia',
+          'Courier New,Courier,monospace': 'Monospace'
+        }
+      },
+      'fontsize', 'brush', 'paragraph', '|',
+      'bold', 'italic', 'underline', 'strikethrough', 'eraser', '|',
       'ul', 'ol', '|',
-      'outdent', 'indent', '|',
-      'font', 'fontsize', 'brush', 'paragraph', '|',
-      'image', 'file', 'video', 'table', 'link', '|',
-      'align', 'undo', 'redo', '|',
-      'hr', 'eraser', 'copyformat', '|',
-      'symbol', 'fullsize'
+      'align', 'outdent', 'indent', '|',
+      'table', 'link', 'image', 'video', 'file', '|',
+      'hr', 'symbol', 'fullsize', 'source', '|',
+      'undo', 'redo'
     ],
-  };
+    theme: 'default'
+  }), []);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -316,7 +333,7 @@ export const DashboardNews = () => {
                 <span className="text-xs text-text-secondary font-normal">Use the toolbar to format, add images, or tables</span>
               </label>
               
-              <div className="flex-1 bg-white dark:bg-[#1a1a1a] text-text-primary dark:text-text-darkPrimary rounded-lg border border-border-light dark:border-border-dark jodit-editor-container">
+              <div className="flex-1 bg-white dark:bg-[#1a1a1a] text-text-primary dark:text-text-darkPrimary rounded-lg border border-border-light dark:border-border-dark jodit-editor-container" id="news-editor-wrapper">
                 <JoditEditor
                   ref={editor}
                   value={formData.content || ''}
@@ -330,24 +347,25 @@ export const DashboardNews = () => {
                   border: none !important;
                 }
                 .jodit-editor-container .jodit-workplace {
-                  min-height: 500px !important;
+                  min-height: 400px !important;
                 }
-                /* Global fix for Jodit popups in drawers */
-                :global(.jodit-popup-container), 
-                :global(.jodit-dialog__box) {
-                  z-index: 9999 !important;
+                /* Professional Toolbar Styling */
+                .jodit-editor-container .jodit-toolbar__box {
+                  border-bottom: 1px solid var(--border-light) !important;
+                  background-color: #f8fafc !important;
+                  padding: 4px !important;
                 }
-                /* Ensure popups are not clipped by the internal container */
-                .jodit-container {
+                /* Fix Popup Visibility */
+                #news-editor-wrapper {
+                  position: relative !important;
+                  overflow: visible !important;
+                }
+                #news-editor-wrapper .jodit-container {
                    overflow: visible !important;
                 }
-                /* Sticky Toolbar */
-                .jodit-editor-container .jodit-toolbar__box {
-                  position: sticky !important;
-                  top: 0 !important;
-                  z-index: 100 !important;
-                  background-color: var(--bg-surface);
-                  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+                /* Ensure popups are localized within the relative wrapper */
+                .jodit-popup-container {
+                  z-index: 10000 !important;
                 }
                 /* Dark mode adjustments for Jodit */
                 .dark .jodit-editor-container .jodit-toolbar__box {
@@ -361,7 +379,7 @@ export const DashboardNews = () => {
                   background-color: #3f3f3f !important;
                 }
                 .dark .jodit-editor-container .jodit-wysiwyg {
-                  background-color: #1a1a1a !important;
+                  background-color: #121212 !important;
                   color: #e5e5e5 !important;
                 }
                 .dark .jodit-editor-container .jodit-status-bar {

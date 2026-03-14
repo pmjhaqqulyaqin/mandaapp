@@ -17,22 +17,34 @@ export const DashboardPages = () => {
     style: {
       background: 'transparent',
       color: 'inherit',
+      fontFamily: 'Inter, sans-serif',
+      fontSize: '14px'
     },
-    disablePlugins: ['add-new-line'],
-    zIndex: 2000,
+    toolbarSticky: true,
+    toolbarAdaptive: false,
+    zIndex: 1000,
+    popupContainer: '#pages-editor-wrapper',
     uploader: {
       insertImageAsBase64URI: true
     },
     buttons: [
-      'source', '|',
-      'bold', 'strikethrough', 'underline', 'italic', '|',
+      {
+        name: 'font',
+        list: {
+          'Inter,sans-serif': 'Inter',
+          'Space Grotesk,sans-serif': 'Heading',
+          'Arial,Helvetica,sans-serif': 'Arial',
+          'Georgia,serif': 'Georgia',
+          'Courier New,Courier,monospace': 'Monospace'
+        }
+      },
+      'fontsize', 'brush', 'paragraph', '|',
+      'bold', 'italic', 'underline', 'strikethrough', 'eraser', '|',
       'ul', 'ol', '|',
-      'outdent', 'indent', '|',
-      'font', 'fontsize', 'brush', 'paragraph', '|',
-      'image', 'file', 'video', 'table', 'link', '|',
-      'align', 'undo', 'redo', '|',
-      'hr', 'eraser', 'copyformat', '|',
-      'symbol', 'fullsize'
+      'align', 'outdent', 'indent', '|',
+      'table', 'link', 'image', 'video', 'file', '|',
+      'hr', 'symbol', 'fullsize', 'source', '|',
+      'undo', 'redo'
     ],
   }), []);
 
@@ -357,7 +369,7 @@ title={editingId ? 'Edit Halaman' : 'Tambah Halaman Baru'}
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
         Isi Konten Manual (Fallback)
       </label>
-      <div className="text-gray-900 rounded-md overflow-hidden bg-white border border-gray-200 jodit-editor-container">
+      <div className="text-gray-900 rounded-md overflow-hidden bg-white border border-gray-200 jodit-editor-container" id="pages-editor-wrapper">
         <JoditEditor
           ref={editorRef}
           value={formData.content}
@@ -365,15 +377,22 @@ title={editingId ? 'Edit Halaman' : 'Tambah Halaman Baru'}
           onBlur={newContent => setFormData({ ...formData, content: newContent })}
         />
         <style>{`
-          .jodit-editor-container .jodit-container {
+          #pages-editor-wrapper {
+            position: relative !important;
+            overflow: visible !important;
+          }
+          #pages-editor-wrapper .jodit-container {
              overflow: visible !important;
           }
-          /* Ensure dialogs and popups are above everything */
-          body > .jodit-popup-container,
-          body > .jodit-dialog__box,
           .jodit-popup-container,
           .jodit-dialog__box {
-            z-index: 9999 !important;
+            z-index: 10000 !important;
+          }
+          .jodit-toolbar__box {
+             background-color: #f8fafc !important;
+          }
+          .dark .jodit-toolbar__box {
+             background-color: #1a1a1a !important;
           }
         `}</style>
       </div>
