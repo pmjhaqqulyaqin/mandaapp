@@ -234,6 +234,11 @@ export const DashboardNews = () => {
       url: `${import.meta.env.VITE_API_URL}/system/upload/image`,
       format: 'json',
       path: 'data.url',
+      withCredentials: true,
+      headers: {
+        'X-User-Id': localStorage.getItem('mandalotim_user') ? JSON.parse(localStorage.getItem('mandalotim_user')!).id : ''
+      },
+      insertImageAsBase64URI: false,
       process: (res: any) => {
         return {
           files: [res.data.url],
