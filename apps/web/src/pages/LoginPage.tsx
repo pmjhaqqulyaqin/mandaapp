@@ -21,6 +21,7 @@ export const LoginPage = () => {
       const errorMessages: Record<string, string> = {
         'invalid_code': 'Kode autentikasi tidak valid. Silakan coba lagi.',
         'state_not_found': 'Sesi autentikasi expired. Silakan coba lagi.',
+        'state_mismatch': 'Terjadi masalah sinkronisasi (state mismatch). Pastikan jam sistem Anda benar, atau coba gunakan Mode Incognito.',
         'oauth_provider_not_found': 'Provider OAuth tidak ditemukan.',
         'unable_to_get_user_info': 'Gagal mendapatkan informasi dari Google.',
         'email_not_found': 'Email tidak ditemukan dari akun Google Anda.',

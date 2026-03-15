@@ -15,6 +15,10 @@ import {
   studentRole,
 } from "./permissions";
 
+if (!process.env.BETTER_AUTH_SECRET) {
+  console.warn("[AUTH WARNING] BETTER_AUTH_SECRET is not set in environment variables!");
+}
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -81,6 +85,7 @@ export const auth = betterAuth({
     defaultCookieAttributes: {
       sameSite: "None",
       secure: true,
+      httpOnly: true,
     }
   }
 });

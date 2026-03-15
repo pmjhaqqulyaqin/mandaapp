@@ -22,6 +22,19 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Cookie logging for debugging
+app.use((req, res, next) => {
+  if (req.path.includes('/api/auth')) {
+    console.log(`[AUTH DEBUG] ${req.method} ${req.path}`);
+    console.log(`[AUTH DEBUG] Cookies:`, req.headers.cookie ? 'Present' : 'None');
+    if (req.headers.cookie) {
+      const cookies = req.headers.cookie.split(';').map(c => c.trim().split('=')[0]);
+      console.log(`[AUTH DEBUG] Cookie Names:`, cookies);
+    }
+  }
+  next();
+});
+
 // Trust proxy is required for 'Secure' cookies to work when running behind 
 // Railway's or Vercel's lead balancer/reverse proxy
 app.set('trust proxy', true);
