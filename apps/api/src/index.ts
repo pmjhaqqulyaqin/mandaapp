@@ -24,7 +24,7 @@ const PORT = process.env.PORT || 3001;
 
 // Trust proxy is required for 'Secure' cookies to work when running behind 
 // Railway's or Vercel's lead balancer/reverse proxy
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 
 app.use(cors({
   origin: (origin, callback) => {

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { authClient } from '../lib/auth-client';
 import { Button, Input } from '@mandaapp/ui';
 
 export const LoginPage = () => {
@@ -121,16 +120,10 @@ export const LoginPage = () => {
         {/* Google Login */}
         <button
           type="button"
-          onClick={async () => {
-            try {
-              await authClient.signIn.social({
-                provider: "google",
-                callbackURL: window.location.origin + "/select-role",
-                errorCallbackURL: window.location.origin + "/login",
-              });
-            } catch (err) {
-              setError('Gagal login dengan Google');
-            }
+          onClick={() => {
+            const apiBase = (import.meta.env.VITE_API_URL || "http://localhost:3001/api").replace(/\/api$/, "");
+            const callbackURL = window.location.origin + "/select-role";
+            window.location.href = `${apiBase}/api/auth/social/signIn/google?callbackURL=${encodeURIComponent(callbackURL)}`;
           }}
           className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-[#111] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors text-sm font-medium text-text-primary dark:text-text-darkPrimary"
         >
