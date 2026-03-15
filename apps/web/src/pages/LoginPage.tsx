@@ -28,7 +28,7 @@ export const LoginPage = () => {
         'no_code': 'Gagal mendapatkan kode dari Google.',
         'invalid_callback_request': 'Permintaan callback tidak valid.',
       };
-      setError(errorMessages[oauthError] || 'Login dengan Google gagal. Silakan coba lagi.');
+      setError(errorMessages[oauthError] || `Login dengan Google gagal (${oauthError}). Silakan coba lagi.`);
       // Clean up URL
       searchParams.delete('error');
       searchParams.delete('error_description');

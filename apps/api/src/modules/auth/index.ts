@@ -44,6 +44,8 @@ export const auth = betterAuth({
   },
   trustedOrigins: [
     (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, ""),
+    "https://mandaapp-web-theta.vercel.app",
+    "http://localhost:5173",
     "http://localhost:5174",
     ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
   ],
