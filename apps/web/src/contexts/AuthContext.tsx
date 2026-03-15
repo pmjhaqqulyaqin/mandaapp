@@ -56,7 +56,19 @@ const STAFF_ROLES: UserRole[] = [
 ];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    // Optimistically load user from localStorage to prevent logout on refresh
+    const savedUser = localStorage.getItem('mandalotim_user');
+    if (savedUser) {
+      try {
+        return JSON.parse(savedUser);
+      } catch (e) {
+        console.error('Failed to parse saved user:', e);
+        return null;
+      }
+    }
+    return null;
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch current session on mount
@@ -68,9 +80,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const parsedUser = parseUser(data.user);
           setUser(parsedUser);
           localStorage.setItem('mandalotim_user', JSON.stringify(parsedUser));
+        } else {
+          // If no session is found, clear the user and localStorage
+          setUser(null);
+          localStorage.removeItem('mandalotim_user');
         }
       } catch (error) {
         console.error('Failed to fetch session:', error);
+        // On error, we might want to keep the local user state for a bit 
+        // to handle transient network issues, or clear it if it's a 401
       } finally {
         setIsLoading(false);
       }
@@ -119,6 +137,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const parsedUser = parseUser(data.user);
         setUser(parsedUser);
         localStorage.setItem('mandalotim_user', JSON.stringify(parsedUser));
+      } else {
+        setUser(null);
+        localStorage.removeItem('mandalotim_user');
       }
     } catch (error) {
       console.error('Failed to refresh session:', error);
