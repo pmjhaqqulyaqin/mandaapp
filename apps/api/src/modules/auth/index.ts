@@ -74,6 +74,12 @@ export const auth = betterAuth({
         "Akun Anda telah diblokir. Silakan hubungi administrator jika Anda merasa ini adalah kesalahan.",
     }),
   ],
+  advanced: {
+    cookieOptions: {
+      sameSite: "None", // Required for cross-domain sessions (vercel.app -> railway.app)
+      secure: true,     // Must be true when sameSite is "None"
+    }
+  }
 });
 
 // Create Express handler for better-auth (initialized once)
