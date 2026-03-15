@@ -34,7 +34,7 @@ export const auth = betterAuth({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
       prompt: "select_account",
-      redirectURI: (process.env.BETTER_AUTH_URL || "http://localhost:3001") + "/api/auth/callback/google",
+      redirectURI: (process.env.BETTER_AUTH_URL || "http://localhost:3001").replace(/\/api\/auth$/, "") + "/api/auth/callback/google",
     },
   },
   onAPIError: {
