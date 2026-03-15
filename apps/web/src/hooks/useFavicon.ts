@@ -20,7 +20,9 @@ export const useFavicon = () => {
     
     if (!targetPath) return;
 
-    const finalUrl = targetPath.startsWith('/') ? `${SERVER_BASE}${targetPath}` : targetPath;
+    const finalUrl = targetPath.startsWith('/') && !targetPath.startsWith('data:') 
+      ? `${SERVER_BASE}${targetPath}` 
+      : targetPath;
 
     let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
     if (!link) {
@@ -28,7 +30,13 @@ export const useFavicon = () => {
       link.rel = 'icon';
       document.head.appendChild(link);
     }
-    link.type = targetPath.endsWith('.ico') ? 'image/x-icon' : 'image/png';
+    // Set type based on data URI or extension
+    if (targetPath.startsWith('data:')) {
+      const match = targetPath.match(/data:(image\/[^;]+);/);
+      link.type = match ? match[1] : 'image/png';
+    } else {
+      link.type = targetPath.endsWith('.ico') ? 'image/x-icon' : 'image/png';
+    }
     link.href = finalUrl;
   }, [get, isLoading]);
 };
