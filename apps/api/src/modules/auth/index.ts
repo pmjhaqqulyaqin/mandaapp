@@ -77,9 +77,10 @@ export const auth = betterAuth({
   ],
   advanced: {
     useSecureCookies: true,
+    crossDomain: true, // Crucial for cross-domain cookie handling
     defaultCookieAttributes: {
-      sameSite: "None", // Required for cross-domain sessions (vercel.app -> railway.app)
-      secure: true,     // Must be true when sameSite is "None"
+      sameSite: "None",
+      secure: true,
     }
   }
 });
