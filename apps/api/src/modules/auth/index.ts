@@ -28,13 +28,15 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3001",
+  baseURL: (process.env.BETTER_AUTH_URL || "http://localhost:3001").replace(/\/$/, "").endsWith("/api/auth") 
+    ? (process.env.BETTER_AUTH_URL || "http://localhost:3001").replace(/\/$/, "")
+    : `${(process.env.BETTER_AUTH_URL || "http://localhost:3001").replace(/\/$/, "")}/api/auth`,
+
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
       prompt: "select_account",
-      redirectURI: (process.env.BETTER_AUTH_URL || "http://localhost:3001").replace(/\/api\/auth$/, "") + "/api/auth/callback/google",
     },
   },
   onAPIError: {
