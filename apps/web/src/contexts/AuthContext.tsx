@@ -69,26 +69,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     return null;
   });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => {
+    // If we have a saved user, we can show the UI immediately while verifying in background
+    return !localStorage.getItem('mandalotim_user');
+  });
 
   // Fetch current session on mount
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const { data } = await authClient.getSession();
+        const { data, error } = await authClient.getSession();
+        
+        if (error) {
+          console.error('Failed to fetch session (error):', error);
+          // Don't log out on error, could be a temporary network issue
+          return;
+        }
+
         if (data?.user) {
           const parsedUser = parseUser(data.user);
           setUser(parsedUser);
           localStorage.setItem('mandalotim_user', JSON.stringify(parsedUser));
         } else {
-          // If no session is found, clear the user and localStorage
+          // Explicitly no session returned by the server
           setUser(null);
           localStorage.removeItem('mandalotim_user');
         }
       } catch (error) {
-        console.error('Failed to fetch session:', error);
-        // On error, we might want to keep the local user state for a bit 
-        // to handle transient network issues, or clear it if it's a 401
+        console.error('Failed to fetch session (exception):', error);
       } finally {
         setIsLoading(false);
       }

@@ -13,6 +13,9 @@ const authBase = apiBase.replace(/\/api$/, "");
 
 export const authClient = createAuthClient({
     baseURL: authBase,
+    fetchOptions: {
+        credentials: "include", // Required for cross-origin cookies (e.g. localhost:5173 -> localhost:3001)
+    },
     plugins: [
         adminClient(),
     ],
