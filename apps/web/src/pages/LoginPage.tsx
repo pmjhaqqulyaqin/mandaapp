@@ -126,8 +126,8 @@ export const LoginPage = () => {
             const authBase = apiBase.endsWith("/api") ? apiBase + "/auth" : apiBase + "/api/auth";
             const callbackURL = window.location.origin + "/select-role";
             
-            // Standard Better Auth initiation path (kebab-case)
-            window.location.href = `${authBase}/sign-in/social/google?callbackURL=${encodeURIComponent(callbackURL)}`;
+            // Standard Better Auth initiation path (use lowercase /login)
+            window.location.href = `${authBase}/login/social/google?callbackURL=${encodeURIComponent(callbackURL)}`;
           }}
           className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-[#111] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors text-sm font-medium text-text-primary dark:text-text-darkPrimary"
         >
