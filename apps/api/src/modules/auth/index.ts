@@ -28,7 +28,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  baseURL: (process.env.BETTER_AUTH_URL || "http://localhost:3001").replace(/\/$/, "").replace(/\/api\/auth$/, "") + "/api/auth",
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3001/api/auth",
 
   socialProviders: {
     google: {
@@ -41,12 +41,11 @@ export const auth = betterAuth({
     errorURL: (process.env.FRONTEND_URL || "http://localhost:5173") + "/login",
   },
   trustedOrigins: [
-    (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, ""),
     "https://mandaapp-web-theta.vercel.app",
     "http://localhost:5173",
     "http://localhost:5174",
-    ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
-  ],
+    (process.env.FRONTEND_URL || "").replace(/\/$/, ""),
+  ].filter(Boolean),
   user: {
     additionalFields: {
       role: {
