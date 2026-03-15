@@ -123,7 +123,8 @@ export const LoginPage = () => {
           onClick={() => {
             const apiBase = (import.meta.env.VITE_API_URL || "http://localhost:3001/api").replace(/\/api$/, "");
             const callbackURL = window.location.origin + "/select-role";
-            window.location.href = `${apiBase}/api/auth/social/signIn/google?callbackURL=${encodeURIComponent(callbackURL)}`;
+            // Correct path for Better Auth is signIn/social/google
+            window.location.href = `${apiBase}/api/auth/signIn/social/google?callbackURL=${encodeURIComponent(callbackURL)}`;
           }}
           className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-[#111] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors text-sm font-medium text-text-primary dark:text-text-darkPrimary"
         >

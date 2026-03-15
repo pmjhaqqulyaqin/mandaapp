@@ -28,9 +28,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  baseURL: (process.env.BETTER_AUTH_URL || "http://localhost:3001").replace(/\/$/, "").endsWith("/api/auth") 
-    ? (process.env.BETTER_AUTH_URL || "http://localhost:3001").replace(/\/$/, "")
-    : `${(process.env.BETTER_AUTH_URL || "http://localhost:3001").replace(/\/$/, "")}/api/auth`,
+  baseURL: (process.env.BETTER_AUTH_URL || "http://localhost:3001").replace(/\/$/, "").replace(/\/api\/auth$/, "") + "/api/auth",
 
   socialProviders: {
     google: {
