@@ -3,7 +3,9 @@ import { Button, Input, Modal, Skeleton, DataTable } from '@mandaapp/ui';
 import { useGallery } from '../hooks/api/useGallery';
 import { useAuth } from '../contexts/AuthContext';
 import { CameraCapture } from '../components/CameraCapture';
-import { Camera, X } from 'lucide-react';
+import { galleryService } from '../lib/services/gallery';
+import { API_BASE_URL } from '../lib/api';
+import { Camera, X, Loader2 } from 'lucide-react';
 
 interface GalleryImage {
   id: string;
@@ -21,6 +23,11 @@ export const DashboardGallery = () => {
   const { queryAll, createMutation, updateMutation, deleteMutation } = useGallery();
   const allImages: GalleryImage[] = queryAll.data || [];
   const isLoading = queryAll.isLoading;
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Derive server base URL (remove /api suffix)
+  const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
+  const resolveUrl = (url: string) => url.startsWith('/') ? `${SERVER_BASE}${url}` : url;
 
   const { user } = useAuth();
   const canManageGallery = STAFF_ROLES.includes(user?.role || '');
@@ -52,7 +59,7 @@ export const DashboardGallery = () => {
     } catch { return dateStr; }
   };
 
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('Hanya file gambar yang diperbolehkan.');
       return;
@@ -61,16 +68,20 @@ export const DashboardGallery = () => {
       alert('Ukuran gambar maksimal 10MB.');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const base64 = e.target?.result as string;
+
+    setIsUploading(true);
+    try {
+      const { url } = await galleryService.upload(file);
       setFormData(prev => ({
         ...prev,
-        url: base64,
+        url,
         title: prev.title || file.name.replace(/\.[^/.]+$/, ''),
       }));
-    };
-    reader.readAsDataURL(file);
+    } catch (error: any) {
+      alert(`Gagal mengupload gambar: ${error.message}`);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -125,7 +136,7 @@ export const DashboardGallery = () => {
           className="w-16 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 cursor-pointer border border-border-light dark:border-border-dark"
           onClick={() => setPreviewImage(row)}
         >
-          <img src={row.url} alt={row.title} className="w-full h-full object-cover" />
+          <img src={resolveUrl(row.url)} alt={row.title} className="w-full h-full object-cover" />
         </div>
       ),
     },
@@ -237,7 +248,7 @@ export const DashboardGallery = () => {
             {formData.url ? (
               <div className="relative group">
                 <div className="w-full aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-border-light dark:border-border-dark">
-                  <img src={formData.url} alt="Preview" className="w-full h-full object-cover" />
+                  <img src={resolveUrl(formData.url)} alt="Preview" className="w-full h-full object-cover" />
                 </div>
                 <button
                   type="button"
@@ -302,7 +313,21 @@ export const DashboardGallery = () => {
                     </button>
                   </div>
                   <CameraCapture 
-                    onCapture={(base64) => setFormData(prev => ({ ...prev, url: base64, title: prev.title || `Foto_${new Date().getTime()}` }))}
+                    onCapture={async (base64) => {
+                      setIsUploading(true);
+                      try {
+                        // Convert base64 to blob for upload
+                        const res = await fetch(base64);
+                        const blob = await res.blob();
+                        const { url } = await galleryService.upload(blob);
+                        setFormData(prev => ({ ...prev, url, title: prev.title || `Foto_${new Date().getTime()}` }));
+                        setShowCamera(false);
+                      } catch (error: any) {
+                        alert(`Gagal menyimpan foto: ${error.message}`);
+                      } finally {
+                        setIsUploading(false);
+                      }
+                    }}
                     onClose={() => setShowCamera(false)}
                   />
                 </div>
@@ -326,8 +351,18 @@ export const DashboardGallery = () => {
             <button type="button" className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" onClick={() => setIsModalOpen(false)}>
               Batal
             </button>
-            <button type="button" onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors disabled:opacity-50">
-              {(createMutation.isPending || updateMutation.isPending) ? 'Menyimpan...' : 'Simpan'}
+            <button 
+              type="button" 
+              onClick={handleSubmit} 
+              disabled={createMutation.isPending || updateMutation.isPending || isUploading} 
+              className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {(createMutation.isPending || updateMutation.isPending || isUploading) ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : 'Simpan'}
             </button>
           </div>
         </div>
@@ -337,7 +372,7 @@ export const DashboardGallery = () => {
       <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title={previewImage?.title || ''} description={previewImage?.description || ''}>
         <div className="py-2">
           {previewImage && (
-            <img src={previewImage.url} alt={previewImage.title} className="w-full rounded-xl" />
+            <img src={resolveUrl(previewImage.url)} alt={previewImage.title} className="w-full rounded-xl" />
           )}
         </div>
       </Modal>

@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Instagram, Facebook, Twitter, MessageCircle, Share2 } from 'lucide-react';
 
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
+const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
+
+const resolveUrl = (url: string) => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('/')) return `${SERVER_BASE}${url}`;
+  return url;
+};
+
 const galleryItems = [
   {
     id: 1,
@@ -163,9 +173,9 @@ export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
               className="group relative overflow-hidden rounded-2xl aspect-video bg-gray-200 dark:bg-gray-800 animate-in fade-in zoom-in duration-500 cursor-pointer"
             >
               <img
-                src={item.imageUrl}
+                src={resolveUrl(item.imageUrl)}
                 alt={item.title}
-                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
@@ -188,10 +198,11 @@ export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
+                          const absoluteImageUrl = resolveUrl(item.imageUrl);
                           const shareData = {
                             title: item.title,
                             text: `Lihat foto galeri "${item.title}" di MANDALOTIM!`,
-                            url: item.imageUrl, // Fallback to image URL
+                            url: absoluteImageUrl,
                           };
                           
                           navigator.share(shareData).catch((err) => {
@@ -209,7 +220,8 @@ export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(item.imageUrl)}`, '_blank');
+                            const absoluteImageUrl = resolveUrl(item.imageUrl);
+                            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(absoluteImageUrl)}`, '_blank');
                           }}
                           className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
                           title="Bagikan ke Facebook"
@@ -220,7 +232,8 @@ export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            const text = `Lihat galeri "${item.title}" di MANDALOTIM: ${item.imageUrl}`;
+                            const absoluteImageUrl = resolveUrl(item.imageUrl);
+                            const text = `Lihat galeri "${item.title}" di MANDALOTIM: ${absoluteImageUrl}`;
                             window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
                           }}
                           className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
@@ -232,7 +245,8 @@ export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigator.clipboard.writeText(item.imageUrl).then(() => {
+                            const absoluteImageUrl = resolveUrl(item.imageUrl);
+                            navigator.clipboard.writeText(absoluteImageUrl).then(() => {
                               // We could use a toast here, but alert is the simplest for now
                               alert('Tautan gambar berhasil disalin!');
                             });

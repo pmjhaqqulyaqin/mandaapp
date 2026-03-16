@@ -4,7 +4,7 @@ import { auth } from "../auth";
 import { fromNodeHeaders } from "better-auth/node";
 
 export class GalleryController {
-  static async getAll(req: Request, res: Response) {
+  static async getImages(req: Request, res: Response) {
     try {
       const images = await GalleryService.getImages();
       res.json(images);
@@ -13,7 +13,7 @@ export class GalleryController {
     }
   }
 
-  static async create(req: Request, res: Response) {
+  static async createImage(req: Request, res: Response) {
     try {
       let userId: string | undefined;
       try {
@@ -37,7 +37,7 @@ export class GalleryController {
     }
   }
 
-  static async delete(req: Request, res: Response) {
+  static async deleteImage(req: Request, res: Response) {
     try {
       await GalleryService.deleteImage(req.params.id);
       res.status(204).send();
@@ -46,7 +46,7 @@ export class GalleryController {
     }
   }
 
-  static async update(req: Request, res: Response) {
+  static async updateImage(req: Request, res: Response) {
     try {
       let userId: string | undefined;
       try {
@@ -59,15 +59,23 @@ export class GalleryController {
       }
       if (!userId) userId = req.headers["x-user-id"] as string;
 
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized. Please log in." });
-      }
-
       const image = await GalleryService.updateImage(req.params.id, req.body);
       res.json(image);
     } catch (error: any) {
       console.error("Gallery update error:", error);
       res.status(500).json({ error: "Failed to update gallery image", details: error?.message || String(error) });
+    }
+  }
+
+  static async uploadImage(req: Request, res: Response) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      const url = `/uploads/${req.file.filename}`;
+      res.json({ url });
+    } catch (error: any) {
+      res.status(500).json({ error: "Upload failed", details: error?.message });
     }
   }
 }
