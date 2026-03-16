@@ -126,7 +126,7 @@ export const LoginPage = () => {
               const { signIn } = await import('../lib/auth-client');
               await signIn.social({
                 provider: "google",
-                callbackURL: "/select-role",
+                callbackURL: window.location.origin + "/select-role",
               });
             } catch (err: any) {
               setError(err?.message || 'Gagal memulai login Google. Silakan coba lagi.');

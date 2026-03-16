@@ -35,11 +35,17 @@ app.all("/api/auth/*", (req, res, next) => {
 app.use((req, res, next) => {
   if (req.path.includes('/api/auth')) {
     console.log(`[AUTH DEBUG] ${req.method} ${req.path}`);
-    console.log(`[AUTH DEBUG] Cookies:`, req.headers.cookie ? 'Present' : 'None');
-    if (req.headers.cookie) {
-      const cookies = req.headers.cookie.split(';').map(c => c.trim().split('=')[0]);
-      console.log(`[AUTH DEBUG] Cookie Names:`, cookies);
-    }
+    console.log(`[AUTH DEBUG] Incoming Cookies:`, req.headers.cookie ? 'Present' : 'None');
+    
+    // Intercept outgoing headers to log Set-Cookie
+    const originalEnd = res.end;
+    res.end = function(chunk: any, encoding?: any, cb?: any) {
+      const setCookie = res.getHeader('set-cookie');
+      if (setCookie) {
+        console.log(`[AUTH DEBUG] Outgoing Set-Cookie:`, Array.isArray(setCookie) ? setCookie.join(', ') : setCookie);
+      }
+      return originalEnd.call(this, chunk, encoding, cb);
+    } as any;
   }
   next();
 });
