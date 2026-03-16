@@ -25,6 +25,8 @@ const PORT = process.env.PORT || 3001;
 // Diagnostic logging for auth routes
 app.all("/api/auth/*", (req, res, next) => {
   console.log(`[AUTH REQUEST] ${req.method} ${req.url}`);
+  console.log(`[AUTH PATH] ${req.path}`);
+  console.log(`[AUTH ORIGINAL URL] ${req.originalUrl}`);
   console.log(`[AUTH DEBUG] ENV BETTER_AUTH_URL: ${process.env.BETTER_AUTH_URL}`);
   next();
 });

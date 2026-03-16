@@ -32,7 +32,14 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  baseURL: (process.env.BETTER_AUTH_URL || "http://localhost:3001").replace(/\/$/, "").replace(/\/api\/auth$/, "") + "/api/auth",
+  baseURL: (() => {
+    const rawUrl = process.env.BETTER_AUTH_URL || "http://localhost:3001";
+    // Ensure it doesn't end with /api/auth or /
+    const cleanUrl = rawUrl.replace(/\/$/, "").replace(/\/api\/auth$/, "");
+    const finalUrl = cleanUrl + "/api/auth";
+    console.log(`[AUTH CONFIG] Calculated baseURL: ${finalUrl}`);
+    return finalUrl;
+  })(),
 
   socialProviders: {
     google: {
