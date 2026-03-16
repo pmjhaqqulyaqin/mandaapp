@@ -39,7 +39,7 @@ app.use((req, res, next) => {
     
     // Intercept outgoing headers to log Set-Cookie
     const originalEnd = res.end;
-    res.end = function(chunk: any, encoding?: any, cb?: any) {
+    res.end = function(this: any, chunk: any, encoding?: any, cb?: any) {
       const setCookie = res.getHeader('set-cookie');
       if (setCookie) {
         console.log(`[AUTH DEBUG] Outgoing Set-Cookie:`, Array.isArray(setCookie) ? setCookie.join(', ') : setCookie);
