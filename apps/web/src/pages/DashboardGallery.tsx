@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import { Button, Input, Modal, Skeleton, DataTable } from '@mandaapp/ui';
 import { useGallery } from '../hooks/api/useGallery';
 import { useAuth } from '../contexts/AuthContext';
+import { CameraCapture } from '../components/CameraCapture';
+import { Camera, X } from 'lucide-react';
 
 interface GalleryImage {
   id: string;
@@ -35,6 +37,7 @@ export const DashboardGallery = () => {
   const [formData, setFormData] = useState({ url: '', title: '', description: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredImages = images.filter(img =>
@@ -264,6 +267,44 @@ export const DashboardGallery = () => {
                     Klik atau seret gambar ke sini
                   </p>
                   <p className="text-xs text-text-secondary mt-1">PNG, JPG, WEBP (maks. 10MB)</p>
+                </div>
+                <div className="flex items-center gap-2 w-full px-6">
+                  <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+                  <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">ATAU</span>
+                  <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); setShowCamera(true); }}
+                  className="bg-white dark:bg-transparent border-gray-300 dark:border-gray-600 hover:border-primary hover:text-primary transition-all"
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  Gunakan Kamera
+                </Button>
+              </div>
+            )}
+            
+            {showCamera && (
+              <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="bg-white dark:bg-background-dark p-6 rounded-2xl w-full max-w-lg shadow-2xl border border-border-light dark:border-border-dark animate-in zoom-in-95 duration-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
+                      <Camera className="w-5 h-5 text-primary" />
+                      Ambil Foto
+                    </h3>
+                    <button 
+                      onClick={() => setShowCamera(false)}
+                      className="text-text-secondary hover:text-text-primary transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <CameraCapture 
+                    onCapture={(base64) => setFormData(prev => ({ ...prev, url: base64, title: prev.title || `Foto_${new Date().getTime()}` }))}
+                    onClose={() => setShowCamera(false)}
+                  />
                 </div>
               </div>
             )}
