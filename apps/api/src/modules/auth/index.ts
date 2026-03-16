@@ -34,10 +34,9 @@ export const auth = betterAuth({
   },
   baseURL: (() => {
     const rawUrl = process.env.BETTER_AUTH_URL || "http://localhost:3001";
-    // Ensure it doesn't end with /api/auth or /
-    const cleanUrl = rawUrl.replace(/\/$/, "").replace(/\/api\/auth$/, "");
-    const finalUrl = cleanUrl + "/api/auth";
-    console.log(`[AUTH CONFIG] Calculated baseURL: ${finalUrl}`);
+    // baseURL should be the root URL of the backend, Better Auth adds /api/auth by default
+    const finalUrl = rawUrl.replace(/\/$/, "").replace(/\/api\/auth$/, "");
+    console.log(`[AUTH CONFIG] Final baseURL: ${finalUrl}`);
     return finalUrl;
   })(),
 

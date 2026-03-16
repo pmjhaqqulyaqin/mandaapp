@@ -26,8 +26,8 @@ const PORT = process.env.PORT || 3001;
 app.all("/api/auth/*", (req, res, next) => {
   console.log(`[AUTH REQUEST] ${req.method} ${req.url}`);
   console.log(`[AUTH PATH] ${req.path}`);
-  console.log(`[AUTH ORIGINAL URL] ${req.originalUrl}`);
-  console.log(`[AUTH DEBUG] ENV BETTER_AUTH_URL: ${process.env.BETTER_AUTH_URL}`);
+  console.log(`[AUTH HEADERS] Protocol: ${req.protocol}, X-Forwarded-Proto: ${req.headers['x-forwarded-proto']}, Origin: ${req.headers.origin}`);
+  console.log(`[AUTH DEBUG] Cookies Present:`, !!req.headers.cookie);
   next();
 });
 
