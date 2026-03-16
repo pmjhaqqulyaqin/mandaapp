@@ -77,9 +77,21 @@ interface GallerySectionProps {
 
 export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
   const [canShare, setCanShare] = useState(false);
+  const [openShareId, setOpenShareId] = useState<string | number | null>(null);
 
   useEffect(() => {
     setCanShare(!!navigator.share);
+  }, []);
+
+  const toggleShare = useCallback((e: React.MouseEvent, id: string | number) => {
+    e.stopPropagation();
+    setOpenShareId(prev => prev === id ? null : id);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = () => setOpenShareId(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
   }, []);
   const allItems = items && items.length > 0 ? items : galleryItems;
   const [filter, setFilter] = useState('All');
@@ -192,84 +204,99 @@ export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
                     </p>
                   </div>
                   
-                  <div className="flex flex-col gap-2 shrink-0">
-                    {canShare ? (
-                      // Modern Web Share API (Mobile/Modern Browsers)
-                      <button 
-                        onClick={(e) => {
+                  <div className="flex flex-col gap-2 shrink-0 relative">
+                    <button 
+                      onClick={(e) => {
+                        if (canShare) {
                           e.stopPropagation();
                           const absoluteImageUrl = resolveUrl(item.imageUrl);
-                          const shareData = {
+                          navigator.share({
                             title: item.title,
                             text: `Lihat foto galeri "${item.title}" di MANDALOTIM!`,
                             url: absoluteImageUrl,
-                          };
-                          
-                          navigator.share(shareData).catch((err) => {
-                            console.error('Error sharing:', err);
-                          });
-                        }}
-                        className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shadow-lg transition-all transform hover:scale-110 active:scale-95"
-                        title="Bagikan"
+                          }).catch(err => console.error('Error sharing:', err));
+                        } else {
+                          toggleShare(e, item.id);
+                        }
+                      }}
+                      className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shadow-lg transition-all transform hover:scale-110 active:scale-95"
+                      title="Bagikan"
+                    >
+                      <Share2 size={20} />
+                    </button>
+
+                    {!canShare && openShareId === item.id && (
+                      <div 
+                        className="absolute right-full mr-3 bottom-0 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-800 p-2 min-w-[160px] animate-in slide-in-from-right-2 fade-in duration-200 z-50"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <Share2 size={20} />
-                      </button>
-                    ) : (
-                      // Smart Fallbacks (Desktop/Legacy)
-                      <>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const absoluteImageUrl = resolveUrl(item.imageUrl);
-                            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(absoluteImageUrl)}`, '_blank');
-                          }}
-                          className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
-                          title="Bagikan ke Facebook"
-                        >
-                          <Facebook size={16} />
-                        </button>
-
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const absoluteImageUrl = resolveUrl(item.imageUrl);
-                            const text = `Lihat galeri "${item.title}" di MANDALOTIM: ${absoluteImageUrl}`;
-                            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
-                          }}
-                          className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
-                          title="Bagikan ke WhatsApp"
-                        >
-                          <MessageCircle size={16} />
-                        </button>
-
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const absoluteImageUrl = resolveUrl(item.imageUrl);
-                            navigator.clipboard.writeText(absoluteImageUrl).then(() => {
-                              // We could use a toast here, but alert is the simplest for now
-                              alert('Tautan gambar berhasil disalin!');
-                            });
-                          }}
-                          className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
-                          title="Salin Tautan"
-                        >
-                          <Share2 size={16} />
-                        </button>
-
-                        {socialLinks?.instagram && (
-                          <a 
-                            href={socialLinks.instagram} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
-                            title="Instagram Sekolah"
+                        <div className="flex flex-col gap-1">
+                          <button 
+                            onClick={() => {
+                              const absoluteImageUrl = resolveUrl(item.imageUrl);
+                              window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(absoluteImageUrl)}`, '_blank');
+                              setOpenShareId(null);
+                            }}
+                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-left"
                           >
-                            <Instagram size={16} />
-                          </a>
-                        )}
-                      </>
+                            <Facebook size={16} className="text-[#1877F2]" />
+                            Facebook
+                          </button>
+
+                          <button 
+                            onClick={() => {
+                              const absoluteImageUrl = resolveUrl(item.imageUrl);
+                              const text = `Lihat galeri "${item.title}" di MANDALOTIM: ${absoluteImageUrl}`;
+                              window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+                              setOpenShareId(null);
+                            }}
+                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-left"
+                          >
+                            <MessageCircle size={16} className="text-[#25D366]" />
+                            WhatsApp
+                          </button>
+
+                          <button 
+                            onClick={() => {
+                              const absoluteImageUrl = resolveUrl(item.imageUrl);
+                              const text = `Lihat galeri "${item.title}" di MANDALOTIM!`;
+                              window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(absoluteImageUrl)}&text=${encodeURIComponent(text)}`, '_blank');
+                              setOpenShareId(null);
+                            }}
+                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-left"
+                          >
+                            <Twitter size={16} className="text-[#1DA1F2]" />
+                            Twitter (X)
+                          </button>
+
+                          {socialLinks?.instagram && (
+                            <a 
+                              href={socialLinks.instagram} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                            >
+                              <Instagram size={16} className="text-[#E4405F]" />
+                              Instagram
+                            </a>
+                          )}
+
+                          <div className="h-px bg-gray-100 dark:bg-gray-800 my-1"></div>
+
+                          <button 
+                            onClick={() => {
+                              const absoluteImageUrl = resolveUrl(item.imageUrl);
+                              navigator.clipboard.writeText(absoluteImageUrl);
+                              alert('Tautan gambar berhasil disalin!');
+                              setOpenShareId(null);
+                            }}
+                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-left"
+                          >
+                            <Share2 size={16} className="text-gray-500" />
+                            Salin Tautan
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
