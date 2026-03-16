@@ -56,6 +56,15 @@ export const LandingPage = () => {
   const logoRaw = get('logo_url');
   const resolvedLogo = logoRaw ? (logoRaw.startsWith('/') ? `${SERVER_BASE}${logoRaw}` : logoRaw) : undefined;
 
+  // Social links for Gallery
+  const socialLinks = {
+    facebook: get('facebook_url'),
+    instagram: get('instagram_url'),
+    twitter: get('twitter_url'),
+    youtube: get('youtube_url'),
+    tiktok: get('tiktok_url'),
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <HeaderWithSettings />
@@ -63,7 +72,7 @@ export const LandingPage = () => {
         <HeroSection />
         <NewsSection items={newsItems} onReadMore={(id) => navigate(`/news/${id}`)} />
         <QuickLinksSection />
-        <GallerySection items={galleryItems} />
+        <GallerySection items={galleryItems} socialLinks={socialLinks} />
         <ContactSection
           onSubmit={(data) => contactsService.submit(data)}
           schoolName={get('school_name') || undefined}

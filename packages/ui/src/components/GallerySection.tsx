@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Instagram, Facebook, Twitter } from 'lucide-react';
 
 const galleryItems = [
   {
@@ -55,9 +56,16 @@ interface GallerySectionItem {
 
 interface GallerySectionProps {
   items?: GallerySectionItem[];
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    youtube?: string;
+    tiktok?: string;
+  };
 }
 
-export const GallerySection = ({ items }: GallerySectionProps) => {
+export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
   const allItems = items && items.length > 0 ? items : galleryItems;
   const [filter, setFilter] = useState('All');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -156,15 +164,60 @@ export const GallerySection = ({ items }: GallerySectionProps) => {
                 loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-                <span className="inline-block px-2.5 py-1 bg-primary/90 text-white text-xs font-semibold rounded-md mb-2 w-fit">
-                  {item.category}
-                </span>
-                <h3 className="text-xl font-heading font-bold text-white mb-1">
-                  {item.title}
-                </h3>
-                <p className="text-sm text-gray-200 line-clamp-2">
-                  {item.description}
-                </p>
+                <div className="flex justify-between items-end w-full gap-4">
+                  <div className="flex-1 min-w-0">
+                    <span className="inline-block px-2.5 py-1 bg-primary/90 text-white text-xs font-semibold rounded-md mb-2 w-fit">
+                      {item.category}
+                    </span>
+                    <h3 className="text-xl font-heading font-bold text-white mb-1 truncate">
+                      {item.title}
+                    </h3>
+                    <p className="text-sm text-gray-200 line-clamp-2">
+                      {item.description}
+                    </p>
+                  </div>
+                  
+                  {socialLinks && (
+                    <div className="flex flex-col gap-2 shrink-0">
+                      {socialLinks.instagram && (
+                        <a 
+                          href={socialLinks.instagram} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white transition-colors"
+                          title="Instagram"
+                        >
+                          <Instagram size={16} />
+                        </a>
+                      )}
+                      {socialLinks.facebook && (
+                        <a 
+                          href={socialLinks.facebook} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white transition-colors"
+                          title="Facebook"
+                        >
+                          <Facebook size={16} />
+                        </a>
+                      )}
+                      {socialLinks.twitter && (
+                        <a 
+                          href={socialLinks.twitter} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white transition-colors"
+                          title="Twitter"
+                        >
+                          <Twitter size={16} />
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}
