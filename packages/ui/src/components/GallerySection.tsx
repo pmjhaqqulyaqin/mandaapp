@@ -66,6 +66,11 @@ interface GallerySectionProps {
 }
 
 export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
+  const [canShare, setCanShare] = useState(false);
+
+  useEffect(() => {
+    setCanShare(!!navigator.share);
+  }, []);
   const allItems = items && items.length > 0 ? items : galleryItems;
   const [filter, setFilter] = useState('All');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -178,69 +183,79 @@ export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
                   </div>
                   
                   <div className="flex flex-col gap-2 shrink-0">
-                    {/* Share to Facebook */}
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const shareUrl = window.location.origin + (typeof item.id === 'string' ? `/gallery/${item.id}` : '');
-                        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(item.imageUrl)}`, '_blank');
-                      }}
-                      className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
-                      title="Bagikan ke Facebook"
-                    >
-                      <Facebook size={16} />
-                    </button>
-
-                    {/* Share to Twitter/X */}
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const text = `Lihat galeri "${item.title}" di MANDALOTIM!`;
-                        window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(item.imageUrl)}&text=${encodeURIComponent(text)}`, '_blank');
-                      }}
-                      className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
-                      title="Bagikan ke Twitter"
-                    >
-                      <Twitter size={16} />
-                    </button>
-
-                    {/* Share to WhatsApp */}
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const text = `Lihat galeri "${item.title}" di MANDALOTIM: ${item.imageUrl}`;
-                        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
-                      }}
-                      className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
-                      title="Bagikan ke WhatsApp"
-                    >
-                      <MessageCircle size={16} />
-                    </button>
-
-                    {/* Copy Link / Profile Link */}
-                    {socialLinks?.instagram ? (
-                      <a 
-                        href={socialLinks.instagram} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
-                        title="Instagram Sekolah"
-                      >
-                        <Instagram size={16} />
-                      </a>
-                    ) : (
+                    {canShare ? (
+                      // Modern Web Share API (Mobile/Modern Browsers)
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigator.clipboard.writeText(item.imageUrl);
-                          alert('Tautan gambar berhasil disalin!');
+                          const shareData = {
+                            title: item.title,
+                            text: `Lihat foto galeri "${item.title}" di MANDALOTIM!`,
+                            url: item.imageUrl, // Fallback to image URL
+                          };
+                          
+                          navigator.share(shareData).catch((err) => {
+                            console.error('Error sharing:', err);
+                          });
                         }}
-                        className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
-                        title="Salin Tautan Gambar"
+                        className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shadow-lg transition-all transform hover:scale-110 active:scale-95"
+                        title="Bagikan"
                       >
-                        <Share2 size={16} />
+                        <Share2 size={20} />
                       </button>
+                    ) : (
+                      // Smart Fallbacks (Desktop/Legacy)
+                      <>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(item.imageUrl)}`, '_blank');
+                          }}
+                          className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
+                          title="Bagikan ke Facebook"
+                        >
+                          <Facebook size={16} />
+                        </button>
+
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const text = `Lihat galeri "${item.title}" di MANDALOTIM: ${item.imageUrl}`;
+                            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+                          }}
+                          className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
+                          title="Bagikan ke WhatsApp"
+                        >
+                          <MessageCircle size={16} />
+                        </button>
+
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(item.imageUrl).then(() => {
+                              // We could use a toast here, but alert is the simplest for now
+                              alert('Tautan gambar berhasil disalin!');
+                            });
+                          }}
+                          className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
+                          title="Salin Tautan"
+                        >
+                          <Share2 size={16} />
+                        </button>
+
+                        {socialLinks?.instagram && (
+                          <a 
+                            href={socialLinks.instagram} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
+                            title="Instagram Sekolah"
+                          >
+                            <Instagram size={16} />
+                          </a>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
