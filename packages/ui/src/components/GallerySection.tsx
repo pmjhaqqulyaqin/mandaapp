@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Instagram, Facebook, Twitter } from 'lucide-react';
+import { Instagram, Facebook, Twitter, MessageCircle, Share2 } from 'lucide-react';
 
 const galleryItems = [
   {
@@ -177,46 +177,72 @@ export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
                     </p>
                   </div>
                   
-                  {socialLinks && (
-                    <div className="flex flex-col gap-2 shrink-0">
-                      {socialLinks.instagram && (
-                        <a 
-                          href={socialLinks.instagram} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white transition-colors"
-                          title="Instagram"
-                        >
-                          <Instagram size={16} />
-                        </a>
-                      )}
-                      {socialLinks.facebook && (
-                        <a 
-                          href={socialLinks.facebook} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white transition-colors"
-                          title="Facebook"
-                        >
-                          <Facebook size={16} />
-                        </a>
-                      )}
-                      {socialLinks.twitter && (
-                        <a 
-                          href={socialLinks.twitter} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white transition-colors"
-                          title="Twitter"
-                        >
-                          <Twitter size={16} />
-                        </a>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex flex-col gap-2 shrink-0">
+                    {/* Share to Facebook */}
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const shareUrl = window.location.origin + (typeof item.id === 'string' ? `/gallery/${item.id}` : '');
+                        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(item.imageUrl)}`, '_blank');
+                      }}
+                      className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
+                      title="Bagikan ke Facebook"
+                    >
+                      <Facebook size={16} />
+                    </button>
+
+                    {/* Share to Twitter/X */}
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const text = `Lihat galeri "${item.title}" di MANDALOTIM!`;
+                        window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(item.imageUrl)}&text=${encodeURIComponent(text)}`, '_blank');
+                      }}
+                      className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
+                      title="Bagikan ke Twitter"
+                    >
+                      <Twitter size={16} />
+                    </button>
+
+                    {/* Share to WhatsApp */}
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const text = `Lihat galeri "${item.title}" di MANDALOTIM: ${item.imageUrl}`;
+                        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+                      }}
+                      className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
+                      title="Bagikan ke WhatsApp"
+                    >
+                      <MessageCircle size={16} />
+                    </button>
+
+                    {/* Copy Link / Profile Link */}
+                    {socialLinks?.instagram ? (
+                      <a 
+                        href={socialLinks.instagram} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
+                        title="Instagram Sekolah"
+                      >
+                        <Instagram size={16} />
+                      </a>
+                    ) : (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(item.imageUrl);
+                          alert('Tautan gambar berhasil disalin!');
+                        }}
+                        className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center text-white transition-all transform hover:scale-110"
+                        title="Salin Tautan Gambar"
+                      >
+                        <Share2 size={16} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
