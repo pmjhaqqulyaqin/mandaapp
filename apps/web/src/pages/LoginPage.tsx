@@ -58,7 +58,7 @@ export const LoginPage = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background-light dark:bg-background-dark p-4 transition-colors duration-300">
-      <div className="w-full max-w-md p-8 bg-white dark:bg-[#0A0A0A] border border-border-light dark:border-border-dark rounded-xl shadow-sm hover:shadow-md transition-shadow">
+      <div className="w-full max-w-md p-6 sm:p-8 bg-white dark:bg-[#0A0A0A] border border-border-light dark:border-border-dark rounded-xl shadow-sm hover:shadow-md transition-shadow">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-heading font-bold tracking-tight text-primary mb-2">MANDALOTIM</h1>
           <p className="text-text-secondary">Masuk ke akun Anda</p>
