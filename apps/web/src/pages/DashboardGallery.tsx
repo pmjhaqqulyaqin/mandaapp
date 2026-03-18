@@ -334,22 +334,22 @@ export const DashboardGallery = () => {
 
       {/* Camera Fullscreen Overlay */}
       {showCamera && (
-        <div className="fixed inset-0 z-[2100] flex items-center justify-center sm:p-4 bg-black animate-in fade-in duration-200">
-          <div className="bg-black w-full h-full sm:max-w-lg sm:h-auto sm:rounded-2xl sm:shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
+        <div className="fixed inset-0 z-[2100] flex items-center justify-center sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-black w-full h-full sm:max-w-4xl sm:h-[80vh] sm:rounded-2xl sm:border sm:border-gray-800 sm:shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
             {/* On desktop, keep a prominent header. On mobile, the CameraCapture has an overlay close button. */}
-            <div className="hidden sm:flex items-center justify-between p-4 bg-white dark:bg-background-dark border-b border-border-light dark:border-border-dark">
-              <h3 className="text-lg font-semibold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
+            <div className="hidden sm:flex items-center justify-between p-4 bg-[#111] border-b border-gray-800">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                 <Camera className="w-5 h-5 text-primary" />
                 Ambil Foto
               </h3>
               <button 
                 onClick={() => setShowCamera(false)}
-                className="text-text-secondary hover:text-text-primary transition-colors"
+                className="text-gray-400 hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="flex-1 flex flex-col bg-black">
+            <div className="flex-1 flex flex-col bg-black min-h-0 relative">
               <CameraCapture 
                 onCapture={async (base64) => {
                   setIsUploading(true);
