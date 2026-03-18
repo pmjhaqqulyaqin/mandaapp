@@ -29,6 +29,7 @@ export interface PrintableCardSettings {
   schoolAddress?: string;
   termsText?: string;
   schoolLogoUrl?: string;
+  headmasterSignatureUrl?: string;
   academicYear: string;
   showQrCode: boolean;
 }
@@ -86,8 +87,8 @@ export const PrintableStudentCard = ({
   orientation,
   scale = 1,
 }: PrintableStudentCardProps) => {
-  const qrUrl = settings.showQrCode
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=mandalotim:student:${student.nisn}`
+  const barcodeUrl = settings.showQrCode
+    ? `https://bwipjs-api.metafloor.com/?bcid=code128&text=${student.nisn || '0000000000'}&scale=2&height=10&includetext`
     : null;
 
   // KTP dimensions in mm: 85.6 x 54mm
@@ -112,6 +113,13 @@ export const PrintableStudentCard = ({
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
+    flexShrink: 0,
+  };
+
+  const wrapperStyle: React.CSSProperties = {
+    width: `${cardWidth * scale}px`,
+    height: `${cardHeight * scale}px`,
+    position: 'relative',
     flexShrink: 0,
   };
 
@@ -210,7 +218,6 @@ export const PrintableStudentCard = ({
                   )}
                </div>
 
-               {/* Barcode/QR Placeholder */}
                <div style={{
                  border: `2px solid ${textColor}`,
                  borderRadius: '4px',
@@ -222,10 +229,11 @@ export const PrintableStudentCard = ({
                  letterSpacing: '3px',
                  color: textColor,
                  fontSize: '12px',
-                 backgroundColor: 'white'
+                 backgroundColor: 'white',
+                 overflow: 'hidden'
                }}>
-                 {qrUrl ? (
-                   <img src={qrUrl} alt="QR" style={{ height: '32px', width: '32px' }} />
+                 {barcodeUrl ? (
+                   <img src={barcodeUrl} alt="Barcode" style={{ height: '100%', width: '100%', objectFit: 'contain' }} />
                  ) : (
                    'BARCODE'
                  )}
@@ -251,12 +259,16 @@ export const PrintableStudentCard = ({
                    Any City, {formatDate(new Date().toISOString())}<br/>
                    Kepala Sekolah
                  </div>
-                 {/* Fake Signature Vector or Image */}
-                 <div style={{ height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '4px 0', opacity: 0.8 }}>
-                    <svg width="120" height="40" viewBox="0 0 200 60" fill="none">
-                      <path d="M20 50 C40 30, 60 10, 80 40 S 120 70, 160 30" stroke={textColor} strokeWidth="3" fill="none" strokeLinecap="round" />
-                      <path d="M40 40 L180 20" stroke={textColor} strokeWidth="2" fill="none" opacity="0.5" />
-                    </svg>
+                 {/* Signature Vector or Image */}
+                 <div style={{ height: '40px', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center', margin: '4px 0', opacity: settings.headmasterSignatureUrl ? 1 : 0.8 }}>
+                    {settings.headmasterSignatureUrl ? (
+                      <img src={settings.headmasterSignatureUrl} alt="Tanda Tangan" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+                    ) : (
+                      <svg width="120" height="40" viewBox="0 0 200 60" fill="none">
+                        <path d="M20 50 C40 30, 60 10, 80 40 S 120 70, 160 30" stroke={textColor} strokeWidth="3" fill="none" strokeLinecap="round" />
+                        <path d="M40 40 L180 20" stroke={textColor} strokeWidth="2" fill="none" opacity="0.5" />
+                      </svg>
+                    )}
                  </div>
                  <div style={{ fontSize: '14px', color: textColor, fontWeight: 700, textTransform: 'uppercase' }}>
                    NAMA KEPALA SEKOLAH
@@ -313,11 +325,15 @@ export const PrintableStudentCard = ({
   // We return a fragment containing both front and back cards if printing, or just front/back components in preview
   return (
     <>
-      <div style={containerStyle} className="printable-card-front" id={`card-front-${student.nisn}`}>
-        <FrontSide />
+      <div style={wrapperStyle}>
+        <div style={containerStyle} className="printable-card-front" id={`card-front-${student.nisn}`}>
+          <FrontSide />
+        </div>
       </div>
-      <div style={backContainerStyle} className="printable-card-back break-before-page" id={`card-back-${student.nisn}`}>
-        <BackSide />
+      <div style={{ ...wrapperStyle, marginTop: '24px' }}>
+        <div style={backContainerStyle} className="printable-card-back break-before-page" id={`card-back-${student.nisn}`}>
+          <BackSide />
+        </div>
       </div>
     </>
   );

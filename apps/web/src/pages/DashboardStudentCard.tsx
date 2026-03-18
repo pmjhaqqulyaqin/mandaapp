@@ -44,6 +44,7 @@ export const DashboardStudentCard = () => {
     schoolAddress: cardSettings.schoolAddress || defaultCardSettings.schoolAddress,
     schoolSubtitle: cardSettings.schoolSubtitle || defaultCardSettings.schoolSubtitle,
     termsText: cardSettings.termsText || defaultCardSettings.termsText,
+    headmasterSignatureUrl: cardSettings.headmasterSignatureUrl || '',
   });
 
   // Keep editing state in sync if data loads later
@@ -54,6 +55,7 @@ export const DashboardStudentCard = () => {
         schoolAddress: cardSettingsQuery.data.schoolAddress || defaultCardSettings.schoolAddress,
         schoolSubtitle: cardSettingsQuery.data.schoolSubtitle || defaultCardSettings.schoolSubtitle,
         termsText: cardSettingsQuery.data.termsText || defaultCardSettings.termsText,
+        headmasterSignatureUrl: cardSettingsQuery.data.headmasterSignatureUrl || '',
       });
       setSelectedTemplate(cardSettingsQuery.data.selectedTemplate || defaultCardSettings.selectedTemplate);
       setOrientation(cardSettingsQuery.data.orientation || defaultCardSettings.orientation);
@@ -141,10 +143,14 @@ export const DashboardStudentCard = () => {
 
   const handleFormSubmit = (data: StudentFormData) => {
     if (!selectedStudent) return;
+    const toastId = toast.loading('Menyimpan perubahan identitas...');
     updateStudent.mutate({ id: selectedStudent.id, data }, {
       onSuccess: () => {
+        toast.success('Identitas berhasil disimpan!', { id: toastId });
         setSelectedStudent((prev) => prev ? { ...prev, ...data } : null);
-      }
+        studentsQuery.refetch();
+      },
+      onError: () => toast.error('Gagal menyimpan perubahan identitas', { id: toastId })
     });
   };
 
@@ -303,6 +309,7 @@ export const DashboardStudentCard = () => {
                             schoolAddress: editingSettings.schoolAddress,
                             termsText: editingSettings.termsText,
                             schoolLogoUrl: globalLogoUrl || cardSettings.schoolLogoUrl,
+                            headmasterSignatureUrl: editingSettings.headmasterSignatureUrl,
                             academicYear: cardSettings.academicYear,
                             showQrCode: cardSettings.showQrCode,
                           }}
@@ -466,6 +473,15 @@ export const DashboardStudentCard = () => {
                       placeholder="1. Kartu ini adalah identitas resmi..."
                     />
                   </div>
+                  <div className="md:col-span-2 mt-4 pt-4 border-t border-border-light dark:border-border-dark">
+                    <label className="block text-xs font-semibold text-text-secondary mb-3">Tanda Tangan Kepala Sekolah (PNG Transparan)</label>
+                    <div className="w-48">
+                      <PhotoUploader
+                        currentPhotoUrl={editingSettings.headmasterSignatureUrl || ''}
+                        onPhotoChange={(url) => setEditingSettings({...editingSettings, headmasterSignatureUrl: url})}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -479,6 +495,7 @@ export const DashboardStudentCard = () => {
                 <CardTemplateSelector
                   selectedTemplate={selectedTemplate}
                   orientation={orientation}
+                  schoolLogoUrl={globalLogoUrl || cardSettings.schoolLogoUrl}
                   onTemplateChange={setSelectedTemplate}
                   onOrientationChange={setOrientation}
                 />

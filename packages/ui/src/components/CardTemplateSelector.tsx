@@ -10,6 +10,7 @@ import {
 export interface CardTemplateSelectorProps {
   selectedTemplate: CardTemplateName;
   orientation: CardOrientation;
+  schoolLogoUrl?: string;
   onTemplateChange: (template: CardTemplateName) => void;
   onOrientationChange: (orientation: CardOrientation) => void;
 }
@@ -33,6 +34,7 @@ const previewSettings = {
 export const CardTemplateSelector = ({
   selectedTemplate,
   orientation,
+  schoolLogoUrl,
   onTemplateChange,
   onOrientationChange,
 }: CardTemplateSelectorProps) => {
@@ -106,7 +108,7 @@ export const CardTemplateSelector = ({
                 <PrintableStudentCard
                   student={previewStudent}
                   template={tmpl}
-                  settings={previewSettings}
+                  settings={{ ...previewSettings, schoolLogoUrl }}
                   orientation={orientation}
                   scale={0.65}
                 />
