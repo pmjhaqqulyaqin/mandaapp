@@ -4,6 +4,7 @@ import { Badge } from '@mandaapp/ui';
 import { useNews } from '../hooks/api/useNews';
 import { FooterWithSettings } from '../components/FooterWithSettings';
 import { HeaderWithSettings } from '../components/HeaderWithSettings';
+import { Helmet } from 'react-helmet-async';
 
 export const NewsDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -122,6 +123,10 @@ export const NewsDetailPage = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#050505] transition-colors duration-300">
+      <Helmet>
+        <title>{article ? article.title : 'Memuat Berita...'} - MAN 2 Lombok Timur</title>
+        <meta name="description" content={article ? article.title : 'Berita terbaru dari MAN 2 Lombok Timur'} />
+      </Helmet>
       <HeaderWithSettings />
 
       <main className="flex-1 w-full relative">
@@ -297,7 +302,7 @@ export const NewsDetailPage = () => {
                           <Link key={n.id} to={`/news/${n.id}`} className="flex gap-3 group items-center">
                             {nImg && (
                               <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-gray-100 dark:bg-gray-800">
-                                <img src={nImg} alt={n.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                                <img src={nImg} alt={n.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                               </div>
                             )}
                             <div className="flex-1 min-w-0 flex flex-col justify-center">
@@ -329,7 +334,7 @@ export const NewsDetailPage = () => {
                           <Link key={n.id} to={`/news/${n.id}`} className="flex gap-3 group items-center">
                             {nImg && (
                               <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-gray-100 dark:bg-gray-800">
-                                <img src={nImg} alt={n.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                                <img src={nImg} alt={n.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                               </div>
                             )}
                             <div className="flex-1 min-w-0 flex flex-col justify-center">

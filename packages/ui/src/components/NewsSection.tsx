@@ -96,7 +96,7 @@ export const NewsSection = ({ items, onReadMore }: NewsSectionProps) => {
                   {/* Thumbnail Gambar Utama Berita */}
                   {news.imageUrl && (
                     <div className="w-full aspect-video mb-4 rounded-xl overflow-hidden shrink-0 bg-gray-100 dark:bg-gray-800">
-                      <img src={news.imageUrl} alt={news.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 ease-in-out" />
+                      <img src={news.imageUrl} alt={news.title} loading="lazy" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 ease-in-out" />
                     </div>
                   )}
                   {/* Intisari Berita */}

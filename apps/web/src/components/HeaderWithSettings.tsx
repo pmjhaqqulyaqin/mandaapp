@@ -8,7 +8,7 @@ const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
 
 /** Header pre-wired with settings from the API */
 export const HeaderWithSettings = () => {
-  const { get } = useSiteSettings();
+  const { get, isLoading: settingsLoading } = useSiteSettings();
   const { queryAll: queryAllMenus } = useMenus();
   const navigate = useNavigate();
   const logoUrl = get('logo_url');
@@ -50,7 +50,7 @@ export const HeaderWithSettings = () => {
 
   const lat = get('latitude');
   const lng = get('longitude');
-  const schoolName = get('school_name') || 'SMK Manda App';
+  const schoolName = get('school_name') || 'MAN 2 Lombok Timur';
   
   let mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(schoolName + (fullAddress ? ' ' + fullAddress : ''))}`;
   if (lat && lng) {
@@ -67,6 +67,7 @@ export const HeaderWithSettings = () => {
       onSearch={handleSearch}
       dynamicMenus={dynamicMenuTree}
       mapUrl={mapUrl}
+      isLoading={settingsLoading || queryAllMenus.isLoading}
     />
   );
 };

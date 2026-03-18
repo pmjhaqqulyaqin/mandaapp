@@ -16,6 +16,8 @@ export interface HeaderProps {
   dynamicMenus?: any[];
   /** URL to open when the address is clicked */
   mapUrl?: string;
+  /** Whether the header content is loading */
+  isLoading?: boolean;
 }
 
 export const Header = ({
@@ -27,6 +29,7 @@ export const Header = ({
   onSearch,
   dynamicMenus = [],
   mapUrl,
+  isLoading = false,
 }: HeaderProps) => {
   const location = useLocation();
   const isHomePage = location.pathname === '/';
@@ -225,24 +228,30 @@ export const Header = ({
               cursor: 'pointer',
             }}
           >
-            {logoUrl && (
+            {isLoading ? (
+              <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse" />
+            ) : logoUrl ? (
               <img
                 src={logoUrl}
                 alt="Logo"
                 style={{ width: '32px', height: '32px', objectFit: 'contain' }}
               />
+            ) : null}
+            {isLoading ? (
+              <div className="h-6 w-32 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
+            ) : (
+              <span
+                style={{
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  fontFamily: '"Space Grotesk", system-ui, sans-serif',
+                  color: '#0f7b5f',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                {schoolName}
+              </span>
             )}
-            <span
-              style={{
-                fontSize: '18px',
-                fontWeight: 700,
-                fontFamily: '"Space Grotesk", system-ui, sans-serif',
-                color: '#0f7b5f',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              {schoolName}
-            </span>
           </Link>
 
           {/* Spacer for Tablet/Mobile to keep things balanced if needed */}
