@@ -45,20 +45,44 @@ export const SystemUpdateCenter = () => {
     setUpdateStep('uploading');
     setUploadProgress(0);
 
+    // Simulate progress for smooth UX while waiting for backend
+    let currentProgress = 0;
+    const progressInterval = setInterval(() => {
+      setUpdateStep(prevStep => {
+        currentProgress += (100 - currentProgress) * 0.15; // smooth ease out
+        if (currentProgress > 95) currentProgress = 95;
+        setUploadProgress(Math.round(currentProgress));
+        
+        // Auto transition to processing text if it takes a while
+        if (currentProgress > 50 && prevStep === 'uploading') {
+          return 'processing';
+        }
+        return prevStep;
+      });
+    }, 800);
+
     try {
       const result = await uploadUpdate.mutateAsync({ 
         file: selectedFile, 
         onProgress: (p) => {
-          setUploadProgress(p);
+          // Map real browser upload to 0-50%
+          const mapped = Math.round(p * 0.5);
+          if (mapped > currentProgress) {
+            currentProgress = mapped;
+            setUploadProgress(mapped);
+          }
           if (p === 100) setUpdateStep('processing');
         }
       });
       
+      clearInterval(progressInterval);
+      setUploadProgress(100);
       setUpdateStep('done');
       toast.success(result.message || 'Sistem berhasil diperbarui!', { duration: 5000 });
       setSelectedFile(null);
       getStatus.refetch();
     } catch (e: any) {
+      clearInterval(progressInterval);
       setUpdateStep('idle');
       setUploadProgress(0);
       const errorMessage = e?.response?.data?.error || e.message || 'Gagal memasang update. Periksa koneksi atau file ZIP.';
