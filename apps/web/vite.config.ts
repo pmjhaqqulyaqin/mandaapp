@@ -10,4 +10,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    assetsDir: '', // Output assets directly to root, bypassing extraction bugs
+  },
 });
