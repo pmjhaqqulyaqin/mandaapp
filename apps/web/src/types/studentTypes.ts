@@ -30,6 +30,8 @@ export interface CardSettings {
   schoolName: string;
   schoolSubtitle: string;
   schoolLogoUrl?: string;
+  schoolAddress?: string;
+  termsText?: string;
   academicYear: string;
   selectedTemplate: CardTemplateName;
   orientation: CardOrientation;

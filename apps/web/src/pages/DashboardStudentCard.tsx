@@ -7,20 +7,26 @@ import {
   PhotoUploader,
   StudentIdentityForm,
   CardTemplateSelector,
+  Button,
   type CardTemplateName,
   type CardOrientation,
   type StudentFormData,
 } from '@mandaapp/ui';
+import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { mockStudents, defaultCardSettings } from '../data/mockStudents';
 import type { StudentProfile } from '../types/studentTypes';
 import { useStudents } from '../hooks/api/useStudents';
 import { useCards } from '../hooks/api/useCards';
+import { useSiteSettings } from '../hooks/api/useSettings';
 
 export const DashboardStudentCard = () => {
   const { user } = useAuth();
   const { queryAll: studentsQuery, updateMutation: updateStudent } = useStudents();
-  const { querySettings: cardSettingsQuery } = useCards();
+  const { querySettings: cardSettingsQuery, updateSettingsMutation } = useCards();
+  const { get: getSiteSetting } = useSiteSettings();
+  
+  const globalLogoUrl = getSiteSetting('site_logo', '');
 
   const studentList: StudentProfile[] = studentsQuery.data?.length ? studentsQuery.data : mockStudents;
   const cardSettings = cardSettingsQuery.data || defaultCardSettings;
@@ -31,6 +37,28 @@ export const DashboardStudentCard = () => {
   // Card settings state
   const [selectedTemplate, setSelectedTemplate] = useState<CardTemplateName>(cardSettings.selectedTemplate || defaultCardSettings.selectedTemplate);
   const [orientation, setOrientation] = useState<CardOrientation>(cardSettings.orientation || defaultCardSettings.orientation);
+  
+  // Custom text for header and terms
+  const [editingSettings, setEditingSettings] = useState({
+    schoolName: cardSettings.schoolName || defaultCardSettings.schoolName,
+    schoolAddress: cardSettings.schoolAddress || defaultCardSettings.schoolAddress,
+    schoolSubtitle: cardSettings.schoolSubtitle || defaultCardSettings.schoolSubtitle,
+    termsText: cardSettings.termsText || defaultCardSettings.termsText,
+  });
+
+  // Keep editing state in sync if data loads later
+  useEffect(() => {
+    if (cardSettingsQuery.data) {
+      setEditingSettings({
+        schoolName: cardSettingsQuery.data.schoolName || defaultCardSettings.schoolName,
+        schoolAddress: cardSettingsQuery.data.schoolAddress || defaultCardSettings.schoolAddress,
+        schoolSubtitle: cardSettingsQuery.data.schoolSubtitle || defaultCardSettings.schoolSubtitle,
+        termsText: cardSettingsQuery.data.termsText || defaultCardSettings.termsText,
+      });
+      setSelectedTemplate(cardSettingsQuery.data.selectedTemplate || defaultCardSettings.selectedTemplate);
+      setOrientation(cardSettingsQuery.data.orientation || defaultCardSettings.orientation);
+    }
+  }, [cardSettingsQuery.data]);
 
   // Student data
   const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
@@ -71,16 +99,35 @@ export const DashboardStudentCard = () => {
       <html>
       <head>
         <title>Cetak Kartu Pelajar</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Inter', sans-serif; }
+          body { font-family: 'Inter', sans-serif; background: #fff; }
+          .printable-card-front, .printable-card-back {
+             box-shadow: none !important;
+             border: none !important;
+             margin: 0 !important;
+             page-break-after: always;
+             break-after: page;
+          }
+          .printable-card-back:last-child { page-break-after: auto; break-after: auto; }
+          .card-wrapper { 
+             display: flex; 
+             flex-direction: column;
+             gap: 0;
+          }
           @media print {
             body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             @page { size: ${orientation === 'horizontal' ? '85.6mm 54mm' : '54mm 85.6mm'}; margin: 0; }
+            
+            /* Remove scaling for print as dimensions are physical CSS pixels mapped to paper */
+            .printable-card-front, .printable-card-back {
+               transform: scale(0.5) !important;
+               transform-origin: top left;
+               width: 646px !important;
+               height: 408px !important;
+            }
           }
-          .card-wrapper { page-break-after: always; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-          .card-wrapper:last-child { page-break-after: auto; }
         </style>
       </head>
       <body>
@@ -97,6 +144,23 @@ export const DashboardStudentCard = () => {
     updateStudent.mutate({ id: selectedStudent.id, data }, {
       onSuccess: () => {
         setSelectedStudent((prev) => prev ? { ...prev, ...data } : null);
+      }
+    });
+  };
+
+  const handleSaveSettings = () => {
+    const toastId = toast.loading('Menyimpan pengaturan kartu...');
+    updateSettingsMutation.mutate({
+      ...cardSettings,
+      ...editingSettings,
+      selectedTemplate,
+      orientation,
+    }, {
+      onSuccess: () => {
+        toast.success('Pengaturan kartu berhasil disimpan!', { id: toastId });
+      },
+      onError: () => {
+        toast.error('Gagal menyimpan pengaturan.', { id: toastId });
       }
     });
   };
@@ -213,10 +277,13 @@ export const DashboardStudentCard = () => {
               )}
 
               {/* Card Preview */}
-              <div className="flex flex-col items-center gap-6">
-                <div className="bg-gray-50 dark:bg-[#0a0a0a] p-8 rounded-xl border border-border-light dark:border-border-dark flex items-center justify-center">
-                  <div ref={printRef}>
-                    <div className="card-wrapper">
+              <div className="flex flex-col items-center gap-6 w-full">
+                <div className="bg-gray-50 dark:bg-[#0a0a0a] p-4 sm:p-8 rounded-xl border border-border-light dark:border-border-dark w-full overflow-hidden flex justify-center">
+                  <div ref={printRef} className="max-w-full overflow-x-auto pb-6 custom-scrollbar" style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div 
+                      className="card-wrapper origin-top flex flex-col items-center gap-6"
+                      style={{ transform: 'scale(min(1, max(0.45, calc(100vw / 800))))' }}
+                    >
                       {selectedStudent && (
                         <PrintableStudentCard
                           student={{
@@ -226,18 +293,21 @@ export const DashboardStudentCard = () => {
                             birthPlace: selectedStudent.birthPlace,
                             birthDate: selectedStudent.birthDate,
                             gender: selectedStudent.gender,
+                            address: selectedStudent.address,
                             photoUrl: photoUrl || selectedStudent.photoUrl,
                           }}
                           template={template}
                           settings={{
-                            schoolName: cardSettings.schoolName,
-                            schoolSubtitle: cardSettings.schoolSubtitle,
-                            schoolLogoUrl: cardSettings.schoolLogoUrl,
+                            schoolName: editingSettings.schoolName,
+                            schoolSubtitle: editingSettings.schoolSubtitle,
+                            schoolAddress: editingSettings.schoolAddress,
+                            termsText: editingSettings.termsText,
+                            schoolLogoUrl: globalLogoUrl || cardSettings.schoolLogoUrl,
                             academicYear: cardSettings.academicYear,
                             showQrCode: cardSettings.showQrCode,
                           }}
                           orientation={orientation}
-                          scale={2}
+                          scale={1}
                         />
                       )}
                     </div>
@@ -350,19 +420,78 @@ export const DashboardStudentCard = () => {
 
           {/* ===== SETTINGS TAB (Admin only) ===== */}
           {activeTab === 'settings' && isAdmin && (
-            <div className="bg-white dark:bg-background-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm">
-              <h3 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary mb-6 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
-                </svg>
-                Pengaturan Layout Kartu
-              </h3>
-              <CardTemplateSelector
-                selectedTemplate={selectedTemplate}
-                orientation={orientation}
-                onTemplateChange={setSelectedTemplate}
-                onOrientationChange={setOrientation}
-              />
+            <div className="bg-white dark:bg-background-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm space-y-8">
+              <div>
+                <h3 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary mb-4 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                    <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                  </svg>
+                  Teks Kop Sekolah & Ketentuan
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-text-secondary mb-1">Nama Sekolah</label>
+                    <input 
+                      type="text" 
+                      value={editingSettings.schoolName || ''}
+                      onChange={e => setEditingSettings({...editingSettings, schoolName: e.target.value})}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-[#111] focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-text-secondary mb-1">Website / Kontak (Subtitle)</label>
+                    <input 
+                      type="text" 
+                      value={editingSettings.schoolSubtitle || ''}
+                      onChange={e => setEditingSettings({...editingSettings, schoolSubtitle: e.target.value})}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-[#111] focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-text-secondary mb-1">Alamat Lengkap</label>
+                    <input 
+                      type="text" 
+                      value={editingSettings.schoolAddress || ''}
+                      onChange={e => setEditingSettings({...editingSettings, schoolAddress: e.target.value})}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-[#111] focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-text-secondary mb-1">Teks Bagian Belakang (Ketentuan Penggunaan)</label>
+                    <textarea 
+                      rows={5}
+                      value={editingSettings.termsText || ''}
+                      onChange={e => setEditingSettings({...editingSettings, termsText: e.target.value})}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-[#111] focus:border-primary outline-none leading-relaxed"
+                      placeholder="1. Kartu ini adalah identitas resmi..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border-light dark:border-border-dark">
+                <h3 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary mb-6 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  Pengaturan Layout Kartu
+                </h3>
+                <CardTemplateSelector
+                  selectedTemplate={selectedTemplate}
+                  orientation={orientation}
+                  onTemplateChange={setSelectedTemplate}
+                  onOrientationChange={setOrientation}
+                />
+              </div>
+
+              <div className="flex justify-end mt-6">
+                <Button 
+                   onClick={handleSaveSettings}
+                   disabled={updateSettingsMutation.isPending}
+                >
+                  {updateSettingsMutation.isPending ? 'Menyimpan...' : 'Simpan Pengaturan'}
+                </Button>
+              </div>
             </div>
           )}
 
