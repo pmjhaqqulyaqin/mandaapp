@@ -1,7 +1,8 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Button } from '@mandaapp/ui';
-import { RefreshCw, Crop, X } from 'lucide-react';
-import Cropper from 'react-easy-crop';
+import { RefreshCw, Crop as CropIcon, X } from 'lucide-react';
+import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css'; // Don't forget the CSS for the cropper
 
 interface CameraCaptureProps {
   onCapture: (base64: string) => void;
@@ -9,31 +10,28 @@ interface CameraCaptureProps {
 }
 
 // Helper to draw off-screen canvas and extract cropped image
-const getCroppedImg = async (imageSrc: string, pixelCrop: any) => {
-  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = (error) => reject(error);
-    img.src = imageSrc;
-  });
-
+const getCroppedImg = (image: HTMLImageElement, pixelCrop: PixelCrop): string => {
   const canvas = document.createElement('canvas');
+  const scaleX = image.naturalWidth / image.width;
+  const scaleY = image.naturalHeight / image.height;
+  
+  // Set actual size in memory (scaled to original resolution)
+  canvas.width = Math.floor(pixelCrop.width * scaleX);
+  canvas.height = Math.floor(pixelCrop.height * scaleY);
   const ctx = canvas.getContext('2d');
-  if (!ctx) return null;
-
-  canvas.width = pixelCrop.width;
-  canvas.height = pixelCrop.height;
+  
+  if (!ctx) return '';
 
   ctx.drawImage(
     image,
-    pixelCrop.x,
-    pixelCrop.y,
-    pixelCrop.width,
-    pixelCrop.height,
+    pixelCrop.x * scaleX,
+    pixelCrop.y * scaleY,
+    pixelCrop.width * scaleX,
+    pixelCrop.height * scaleY,
     0,
     0,
-    pixelCrop.width,
-    pixelCrop.height
+    canvas.width,
+    canvas.height
   );
 
   return canvas.toDataURL('image/jpeg', 0.9);
@@ -43,14 +41,21 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Cropper State
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  // react-image-crop State
+  const [crop, setCrop] = useState<Crop>({
+    unit: '%',
+    width: 80,
+    height: 80,
+    x: 10,
+    y: 10
+  });
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
 
   const startCamera = useCallback(async () => {
     try {
@@ -102,6 +107,10 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose
         const dataUrl = canvas.toDataURL('image/jpeg', 1.0);
         setCapturedImage(dataUrl);
         stopCamera();
+        
+        // Reset crop for new image
+        setCrop({ unit: '%', width: 80, height: 80, x: 10, y: 10 });
+        setCompletedCrop(null);
       }
     }
   };
@@ -111,27 +120,26 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose
     startCamera();
   };
 
-  const onCropComplete = useCallback((_croppedArea: any, croppedAreaPixels: any) => {
-    setCroppedAreaPixels(croppedAreaPixels);
-  }, []);
-
-  const confirmPhoto = async () => {
-    if (capturedImage && croppedAreaPixels) {
+  const confirmPhoto = () => {
+    if (capturedImage && imgRef.current && completedCrop?.width && completedCrop?.height) {
       try {
-        const finalImage = await getCroppedImg(capturedImage, croppedAreaPixels);
+        const finalImage = getCroppedImg(imgRef.current, completedCrop);
         if (finalImage) {
           onCapture(finalImage);
         }
       } catch (e) {
         console.error("Failed to crop image", e);
       }
+    } else if (capturedImage) {
+      // Fallback if no crop was made, just return original
+      onCapture(capturedImage);
     }
   };
 
   // If we have an image, show the Cropper, otherwise show Camera preview
   return (
     <div className="flex flex-col h-full w-full">
-      <div className="relative flex-1 bg-black rounded-lg overflow-hidden border border-border-light dark:border-[#222]">
+      <div className="relative flex-1 bg-black rounded-lg overflow-hidden flex items-center justify-center border border-border-light dark:border-[#222]">
         
         {/* State 1: LIVE CAMERA VIEW */}
         {!capturedImage ? (
@@ -184,23 +192,26 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose
             )}
           </>
         ) : (
-          /* State 2: CROPPER WIDGET */
-          <div className="absolute inset-0 bg-black">
-            <Cropper
-              image={capturedImage}
-              crop={crop}
-              zoom={zoom}
-              aspect={4 / 3} // Common photo aspect ratio, adjust if needed
-              onCropChange={setCrop}
-              onCropComplete={onCropComplete}
-              onZoomChange={setZoom}
-              classes={{
-                containerClassName: 'h-full w-full',
-              }}
-            />
-            {/* Zoom Control Overlay Overlay */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-2">
-              <span className="text-white text-xs font-medium">Geser untuk memotong, cubit untuk perbesar</span>
+          /* State 2: RESIZING CROPPER WIDGET */
+          <div className="w-full h-full flex flex-col pt-12 items-center justify-center bg-black p-4 relative">
+             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-md rounded-full px-4 py-2 z-10">
+              <span className="text-white text-xs font-medium">Tarik sudut kotak untuk memotong</span>
+            </div>
+            
+            <div className="max-h-full max-w-full overflow-hidden flex items-center justify-center">
+              <ReactCrop
+                crop={crop}
+                onChange={(_, percentCrop) => setCrop(percentCrop)}
+                onComplete={(c) => setCompletedCrop(c)}
+                className="max-h-full max-w-full"
+              >
+                <img 
+                  ref={imgRef}
+                  src={capturedImage} 
+                  alt="Captured" 
+                  className="max-h-[70vh] w-auto object-contain"
+                />
+              </ReactCrop>
             </div>
           </div>
         )}
@@ -210,13 +221,13 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose
 
       {/* Action Buttons */}
       {capturedImage && (
-        <div className="flex gap-3 mt-4">
-          <Button onClick={retakePhoto} variant="outline" className="flex-1 border-border-light dark:border-border-dark py-6 sm:py-2">
+        <div className="flex gap-3 mt-4 px-4 sm:px-0 pb-4 sm:pb-0">
+          <Button onClick={retakePhoto} variant="outline" className="flex-1 border-border-light dark:border-[#333] text-gray-300 py-6 sm:py-2 hover:bg-white/10">
             <RefreshCw className="w-5 h-5 mr-2" />
             Ulangi
           </Button>
           <Button onClick={confirmPhoto} className="flex-1 bg-primary hover:bg-primary/90 text-white shadow-lg py-6 sm:py-2">
-            <Crop className="w-5 h-5 mr-2" />
+            <CropIcon className="w-5 h-5 mr-2" />
             Selesai Edit
           </Button>
         </div>
