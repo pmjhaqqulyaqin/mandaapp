@@ -45,7 +45,7 @@ export const checkForUpdates = async () => {
       hasUpdate: remoteVersion !== currentVersion,
       releaseNotes: latestRelease.body || "Pembaruan GitHub ditemukan.",
       updateType: 'System',
-      downloadUrl: latestRelease.assets.find((a: any) => a.name.endsWith('.zip'))?.url || null
+      downloadUrl: latestRelease.assets.find((a: any) => a.name.endsWith('.zip'))?.browser_download_url || null
     };
   } catch (error: any) {
     console.error('Check updates failed:', error.message);
@@ -127,9 +127,6 @@ export const syncGithubUpdate = async () => {
       url: updateInfo.downloadUrl,
       method: 'GET',
       responseType: 'stream',
-      headers: {
-        'Accept': 'application/octet-stream' // Required by GitHub API for downloading assets
-      } // If it's a private repo, we would need to pass Auth header here. Since it's public, it's fine.
     });
 
     const writer = fs.createWriteStream(tempFilePath);
