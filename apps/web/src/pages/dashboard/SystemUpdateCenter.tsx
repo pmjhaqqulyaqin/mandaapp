@@ -12,7 +12,8 @@ import {
   Activity, 
   Clock,
   History,
-  Info
+  Info,
+  Download
 } from 'lucide-react';
 
 export const SystemUpdateCenter = () => {
@@ -22,6 +23,8 @@ export const SystemUpdateCenter = () => {
   const [isRollbackConfirmOpen, setIsRollbackConfirmOpen] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [updateStep, setUpdateStep] = useState<'idle' | 'uploading' | 'processing' | 'done'>('idle');
+  const [syncProgress, setSyncProgress] = useState(0);
+  const [syncStep, setSyncStep] = useState<'idle' | 'downloading' | 'processing' | 'done'>('idle');
 
   const status = getStatus.data;
   const updateInfo = checkUpdates.data;
@@ -104,15 +107,39 @@ export const SystemUpdateCenter = () => {
   };
 
   const executeGithubSync = async () => {
-    const toastId = toast.loading('Memulai sinkronisasi dari GitHub...');
+    setSyncStep('downloading');
+    setSyncProgress(0);
+
+    // Simulate progress for smooth UX while waiting for backend
+    let currentProgress = 0;
+    const progressInterval = setInterval(() => {
+      setSyncStep(prevStep => {
+        currentProgress += (100 - currentProgress) * 0.15; // smooth ease out
+        if (currentProgress > 95) currentProgress = 95;
+        setSyncProgress(Math.round(currentProgress));
+        
+        // Auto transition to processing text if it takes a while
+        if (currentProgress > 60 && prevStep === 'downloading') {
+          return 'processing';
+        }
+        return prevStep;
+      });
+    }, 800);
+
     try {
       const result = await syncGithub.mutateAsync();
-      toast.success(result.message || 'Sinkronisasi GitHub berhasil!', { id: toastId, duration: 5000 });
+      clearInterval(progressInterval);
+      setSyncProgress(100);
+      setSyncStep('done');
+      toast.success(result.message || 'Sinkronisasi GitHub berhasil!', { duration: 5000 });
       getStatus.refetch();
       checkUpdates.refetch();
     } catch (e: any) {
+      clearInterval(progressInterval);
+      setSyncStep('idle');
+      setSyncProgress(0);
       const errorMessage = e?.response?.data?.error || e.message || 'Gagal sinkronisasi dari GitHub.';
-      toast.error(errorMessage, { id: toastId, duration: 6000 });
+      toast.error(errorMessage, { duration: 6000 });
     }
   };
 
@@ -178,24 +205,61 @@ export const SystemUpdateCenter = () => {
                 <p className="text-sm text-gray-500">Memeriksa pembaruan...</p>
               </div>
             ) : updateInfo?.hasUpdate ? (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
-                  <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Versi Baru Tersedia</span>
-                  <Badge className="bg-emerald-500 hover:bg-emerald-600">{updateInfo.latestVersion}</Badge>
+              syncStep === 'idle' ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
+                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Versi Baru Tersedia</span>
+                    <Badge className="bg-emerald-500 hover:bg-emerald-600">{updateInfo.latestVersion}</Badge>
+                  </div>
+                  <div className="bg-white dark:bg-[#1a1a1a] p-3 rounded-lg text-xs text-gray-500 border border-gray-100 dark:border-[#222]">
+                    <p className="font-semibold mb-1">Release Notes:</p>
+                    {updateInfo.releaseNotes}
+                  </div>
+                  <Button 
+                     className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50" 
+                     variant="primary"
+                     onClick={executeGithubSync}
+                     disabled={syncGithub.isPending}
+                  >
+                    Mulai Sync Sekarang
+                  </Button>
                 </div>
-                <div className="bg-white dark:bg-[#1a1a1a] p-3 rounded-lg text-xs text-gray-500 border border-gray-100 dark:border-[#222]">
-                  <p className="font-semibold mb-1">Release Notes:</p>
-                  {updateInfo.releaseNotes}
+              ) : (
+                <div className="p-6 bg-gray-50 dark:bg-[#0a0a0a] rounded-xl border border-gray-200 dark:border-[#222] space-y-6">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600 dark:text-gray-400 font-medium">
+                      {syncStep === 'downloading' ? 'Mengunduh sistem...' : 
+                       syncStep === 'processing' ? 'Memasang update...' : 'Selesai!'}
+                    </span>
+                    <span className="text-primary font-bold">{syncStep === 'done' ? '100' : syncProgress}%</span>
+                  </div>
+                  
+                  <div className="w-full h-3 bg-gray-200 dark:bg-[#1a1a1a] rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary transition-all duration-300 ease-out flex items-center justify-center"
+                      style={{ width: `${syncStep === 'done' ? 100 : syncProgress}%` }}
+                    >
+                      <div className="w-full h-full bg-white/20 animate-pulse" />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between text-xs">
+                    <div className={`flex items-center gap-1 ${syncProgress > 0 ? 'text-primary' : 'text-gray-400'}`}>
+                      <Download className="w-3 h-3" /> Unduh
+                    </div>
+                    <div className={`flex items-center gap-1 ${syncStep === 'processing' || syncStep === 'done' ? 'text-primary' : 'text-gray-400'}`}>
+                      <RefreshCcw className={`w-3 h-3 ${syncStep === 'processing' ? 'animate-spin' : ''}`} /> Ekstraksi
+                    </div>
+                    <div className={`flex items-center gap-1 ${syncStep === 'done' ? 'text-emerald-500' : 'text-gray-400'}`}>
+                      <CheckCircle2 className="w-3 h-3" /> Selesai
+                    </div>
+                  </div>
+                  
+                  {syncStep === 'done' && (
+                     <Button size="sm" className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => window.location.reload()}>Muat Ulang Halaman</Button>
+                  )}
                 </div>
-                <Button 
-                   className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50" 
-                   variant="primary"
-                   onClick={executeGithubSync}
-                   disabled={syncGithub.isPending}
-                >
-                  {syncGithub.isPending ? 'Sedang Menyinkronkan...' : 'Mulai Sync Sekarang'}
-                </Button>
-              </div>
+              )
             ) : (
               <div className="text-center space-y-3">
                 <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto text-emerald-600">
