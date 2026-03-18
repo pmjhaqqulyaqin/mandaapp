@@ -297,42 +297,6 @@ export const DashboardGallery = () => {
               </div>
             )}
             
-            {showCamera && (
-              <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                <div className="bg-white dark:bg-background-dark p-6 rounded-2xl w-full max-w-lg shadow-2xl border border-border-light dark:border-border-dark animate-in zoom-in-95 duration-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
-                      <Camera className="w-5 h-5 text-primary" />
-                      Ambil Foto
-                    </h3>
-                    <button 
-                      onClick={() => setShowCamera(false)}
-                      className="text-text-secondary hover:text-text-primary transition-colors"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <CameraCapture 
-                    onCapture={async (base64) => {
-                      setIsUploading(true);
-                      try {
-                        // Convert base64 to blob for upload
-                        const res = await fetch(base64);
-                        const blob = await res.blob();
-                        const { url } = await galleryService.upload(blob);
-                        setFormData(prev => ({ ...prev, url, title: prev.title || `Foto_${new Date().getTime()}` }));
-                        setShowCamera(false);
-                      } catch (error: any) {
-                        alert(`Gagal menyimpan foto: ${error.message}`);
-                      } finally {
-                        setIsUploading(false);
-                      }
-                    }}
-                    onClose={() => setShowCamera(false)}
-                  />
-                </div>
-              </div>
-            )}
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium text-text-primary dark:text-text-darkPrimary">Judul *</label>
@@ -367,6 +331,47 @@ export const DashboardGallery = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Camera Fullscreen Overlay */}
+      {showCamera && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 bg-black animate-in fade-in duration-200">
+          <div className="bg-black w-full h-full sm:max-w-lg sm:h-auto sm:rounded-2xl sm:shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
+            {/* On desktop, keep a prominent header. On mobile, the CameraCapture has an overlay close button. */}
+            <div className="hidden sm:flex items-center justify-between p-4 bg-white dark:bg-background-dark border-b border-border-light dark:border-border-dark">
+              <h3 className="text-lg font-semibold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
+                <Camera className="w-5 h-5 text-primary" />
+                Ambil Foto
+              </h3>
+              <button 
+                onClick={() => setShowCamera(false)}
+                className="text-text-secondary hover:text-text-primary transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 flex flex-col bg-black">
+              <CameraCapture 
+                onCapture={async (base64) => {
+                  setIsUploading(true);
+                  try {
+                    // Convert base64 to blob for upload
+                    const res = await fetch(base64);
+                    const blob = await res.blob();
+                    const { url } = await galleryService.upload(blob);
+                    setFormData(prev => ({ ...prev, url, title: prev.title || `Foto_${new Date().getTime()}` }));
+                    setShowCamera(false);
+                  } catch (error: any) {
+                    alert(`Gagal menyimpan foto: ${error.message}`);
+                  } finally {
+                    setIsUploading(false);
+                  }
+                }}
+                onClose={() => setShowCamera(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Preview Modal */}
       <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title={previewImage?.title || ''} description={previewImage?.description || ''}>
