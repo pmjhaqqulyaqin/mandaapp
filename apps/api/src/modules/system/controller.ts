@@ -31,6 +31,15 @@ export const uploadUpdatePackage = async (req: Request, res: Response) => {
   }
 };
 
+export const rollbackUpdatePackage = async (req: Request, res: Response) => {
+  try {
+    const result = await systemService.rollbackUpdatePackage();
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export const uploadImageHandler = async (req: Request, res: Response) => {
   try {
     if (!req.file) {

@@ -1,157 +1,350 @@
 import { useState } from 'react';
-import { Button, Badge, MetricCard } from '@mandaapp/ui';
+import { Button, Badge, MetricCard, Modal } from '@mandaapp/ui';
 import { useSystem } from '../../hooks/api/useSystem';
 import { toast } from 'sonner';
+import { 
+  ShieldCheck, 
+  RefreshCcw, 
+  Upload, 
+  AlertTriangle, 
+  CheckCircle2, 
+  Github, 
+  Activity, 
+  Clock,
+  History,
+  Info
+} from 'lucide-react';
 
 export const SystemUpdateCenter = () => {
-  const { getStatus, checkUpdates, uploadUpdate } = useSystem();
+  const { getStatus, checkUpdates, uploadUpdate, rollbackUpdate } = useSystem();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUpdateConfirmOpen, setIsUpdateConfirmOpen] = useState(false);
+  const [isRollbackConfirmOpen, setIsRollbackConfirmOpen] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [updateStep, setUpdateStep] = useState<'idle' | 'uploading' | 'processing' | 'done'>('idle');
 
   const status = getStatus.data;
   const updateInfo = checkUpdates.data;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+      const file = e.target.files[0];
+      if (!file.name.endsWith('.zip')) {
+        toast.error('Hanya file .zip yang diperbolehkan.');
+        return;
+      }
+      setSelectedFile(file);
+      setUpdateStep('idle');
+      setUploadProgress(0);
     }
   };
 
-  const handleManualUpdate = async () => {
+  const executeManualUpdate = async () => {
     if (!selectedFile) return;
+    setIsUpdateConfirmOpen(false);
+    setUpdateStep('uploading');
+    setUploadProgress(0);
+
     try {
-      await uploadUpdate.mutateAsync(selectedFile);
-      toast.success('Paket update berhasil diupload! Sistem akan segera memproses.');
+      const result = await uploadUpdate.mutateAsync({ 
+        file: selectedFile, 
+        onProgress: (p) => {
+          setUploadProgress(p);
+          if (p === 100) setUpdateStep('processing');
+        }
+      });
+      
+      setUpdateStep('done');
+      toast.success(result.message || 'Sistem berhasil diperbarui!', { duration: 5000 });
       setSelectedFile(null);
-    } catch (e) {
-      toast.error('Gagal mengupload paket update.');
+      getStatus.refetch();
+    } catch (e: any) {
+      setUpdateStep('idle');
+      setUploadProgress(0);
+      const errorMessage = e?.response?.data?.error || e.message || 'Gagal memasang update. Periksa koneksi atau file ZIP.';
+      toast.error(errorMessage, { duration: 6000 });
+      console.error('Update Manual Error:', e);
+    }
+  };
+
+  const executeRollback = async () => {
+    setIsRollbackConfirmOpen(false);
+    const toastId = toast.loading('Sedang mengembalikan versi sistem (Rollback)...');
+    try {
+      const result = await rollbackUpdate.mutateAsync();
+      toast.success(result.message || 'Rollback berhasil! Sistem kembali ke versi sebelumnya.', { id: toastId });
+      getStatus.refetch();
+    } catch (e: any) {
+      toast.error(e.message || 'Gagal melakukan rollback. Backup mungkin tidak ditemukan.', { id: toastId });
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 pb-20">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pusat Update Sistem</h1>
-          <p className="text-gray-500 dark:text-gray-400">Kelola pembaruan aplikasi secara online maupun manual.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            Pusat Update Sistem
+            <ShieldCheck className="w-6 h-6 text-primary" />
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400">Kelola integritas dan pembaruan aplikasi MandaApp.</p>
         </div>
-        <Badge variant="outline" className="px-3 py-1">
-          Server Status: {getStatus.isLoading ? 'Checking...' : 'Online'}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 border-emerald-200">
+            <Activity className="w-3 h-3 mr-1" />
+            Server: {getStatus.isLoading ? '...' : (getStatus.data?.writable ? 'Ready' : 'Connected')}
+          </Badge>
+          <Button variant="ghost" size="sm" onClick={() => getStatus.refetch()} disabled={getStatus.isRefetching}>
+            <RefreshCcw className={`w-4 h-4 ${getStatus.isRefetching ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <MetricCard
           title="Versi Saat Ini"
-          value={status?.version || '...'}
-          icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v10"/><path d="M18.4 4.6a10 10 0 1 1-12.8 0"/></svg>}
-          trend={{ value: '0.1', isPositive: true }}
-          trendLabel="Latest"
+          value={status?.version || '1.0.0'}
+          icon={<Clock className="text-primary" />}
+          trend={{ value: 'Latest', isPositive: true }}
         />
         <MetricCard
           title="Lingkungan"
-          value={status?.environment?.toUpperCase() || '...'}
-          icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>}
+          value={status?.environment?.toUpperCase() || 'PRODUCTION'}
+          icon={<ShieldCheck className="text-emerald-500" />}
         />
         <MetricCard
           title="Uptime Sistem"
           value={`${Math.floor((status?.uptime || 0) / 3600)} Jam`}
-          icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
+          icon={<Activity className="text-amber-500" />}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Method 1: GitHub Sync */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-3-7-3"/></svg>
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900 dark:text-white text-lg">Online Update (GitHub)</h3>
-              <p className="text-xs text-gray-500">Sinkronisasi otomatis dengan repository pusat.</p>
+        {/* Method 1: online sync placeholder */}
+        <div className="bg-white dark:bg-[#111] rounded-2xl shadow-sm border border-gray-200 dark:border-[#222] p-6 space-y-4 flex flex-col">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                <Github className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 dark:text-white text-lg">Online Update (GitHub)</h3>
+                <p className="text-xs text-gray-500">Sinkronisasi kode dari repositori pusat.</p>
+              </div>
             </div>
           </div>
 
-          <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700">
+          <div className="flex-1 flex flex-col justify-center p-6 bg-gray-50 dark:bg-[#0a0a0a] rounded-xl border border-dashed border-gray-200 dark:border-[#222]">
             {checkUpdates.isLoading ? (
-              <p className="text-sm text-gray-500">Memeriksa update dari GitHub...</p>
+              <div className="text-center space-y-2">
+                <RefreshCcw className="w-8 h-8 mx-auto text-primary animate-spin" />
+                <p className="text-sm text-gray-500">Memeriksa pembaruan...</p>
+              </div>
             ) : updateInfo?.hasUpdate ? (
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Tersedia Versi Baru:</span>
-                  <Badge variant="success">{updateInfo.latestVersion}</Badge>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
+                  <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Versi Baru Tersedia</span>
+                  <Badge className="bg-emerald-500 hover:bg-emerald-600">{updateInfo.latestVersion}</Badge>
                 </div>
-                <p className="text-xs text-gray-500 leading-relaxed">
+                <div className="bg-white dark:bg-[#1a1a1a] p-3 rounded-lg text-xs text-gray-500 border border-gray-100 dark:border-[#222]">
+                  <p className="font-semibold mb-1">Release Notes:</p>
                   {updateInfo.releaseNotes}
-                </p>
-                <Button className="w-full" disabled>
-                  Update Sekarang (Otomatis)
+                </div>
+                <Button className="w-full bg-primary hover:bg-primary/90" variant="primary">
+                  Mulai Sync Sekarang
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                <span className="text-sm font-medium">Sistem Anda sudah mutakhir!</span>
+              <div className="text-center space-y-3">
+                <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto text-emerald-600">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 dark:text-white">Sistem Mutakhir</h4>
+                  <p className="text-xs text-gray-500 mt-1">Versi {status?.version || '1.0.0'} adalah versi terbaru saat ini.</p>
+                </div>
               </div>
             )}
           </div>
           
-          <p className="text-[10px] text-gray-400">Update online memerlukan koneksi internet dan akses ke repositori GitHub MandaApp.</p>
+          <div className="flex items-center gap-2 text-[10px] text-gray-400">
+            <Info className="w-3 h-3" />
+            <span>Memerlukan akses GitHub Personal Access Token di setting server.</span>
+          </div>
         </div>
 
-        {/* Method 2: Manual Package */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900 dark:text-white text-lg">Manual Update (Zip)</h3>
-              <p className="text-xs text-gray-500">Upload file *.zip secara manual (Offline/Private).</p>
-            </div>
-          </div>
-
+        {/* Method 2: Manual ZIP Package */}
+        <div className="bg-white dark:bg-[#111] rounded-2xl shadow-sm border border-gray-200 dark:border-[#222] p-6 space-y-4 flex flex-col justify-between">
           <div className="space-y-4">
-            <div className="flex items-center justify-center w-full">
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <svg className="w-8 h-8 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                  <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                    <span className="font-semibold text-emerald-600">Klik untuk upload</span> package update
-                  </p>
-                  <p className="text-xs text-gray-400">ZIP (MAX. 50MB)</p>
-                </div>
-                <input type="file" className="hidden" accept=".zip" onChange={handleFileChange} />
-              </label>
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-primary/10 text-primary rounded-xl">
+                <Upload className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 dark:text-white text-lg">Manual Update (Zip)</h3>
+                <p className="text-xs text-gray-500">Upload package dist.zip untuk update instan.</p>
+              </div>
             </div>
 
-            {selectedFile && (
-              <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg">
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                  <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300 truncate">{selectedFile.name}</span>
+            <div className="space-y-4">
+              {updateStep === 'idle' ? (
+                <div className="flex items-center justify-center w-full">
+                  <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-200 dark:border-[#222] rounded-xl cursor-pointer bg-gray-50 dark:bg-[#0a0a0a] hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-all group">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <div className="p-3 bg-white dark:bg-[#111] rounded-full shadow-sm mb-3 group-hover:scale-110 transition-transform">
+                        <Upload className="w-6 h-6 text-gray-400 group-hover:text-primary" />
+                      </div>
+                      <p className="mb-1 text-sm text-gray-700 dark:text-gray-300">
+                        <span className="font-semibold text-primary">Klik untuk unggah</span> paket update
+                      </p>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">dist.zip (Max 50MB)</p>
+                    </div>
+                    <input type="file" className="hidden" accept=".zip" onChange={handleFileChange} />
+                  </label>
                 </div>
-                <Button size="sm" onClick={handleManualUpdate} disabled={uploadUpdate.isPending}>
-                  {uploadUpdate.isPending ? 'Mendekompresi...' : 'Pasang Update'}
-                </Button>
-              </div>
-            )}
+              ) : (
+                <div className="p-6 bg-gray-50 dark:bg-[#0a0a0a] rounded-xl border border-gray-200 dark:border-[#222] space-y-6">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600 dark:text-gray-400 font-medium">
+                      {updateStep === 'uploading' ? 'Mengunggah file...' : 
+                       updateStep === 'processing' ? 'Mengekstrak paket...' : 'Selesai!'}
+                    </span>
+                    <span className="text-primary font-bold">{updateStep === 'done' ? '100' : uploadProgress}%</span>
+                  </div>
+                  
+                  <div className="w-full h-3 bg-gray-200 dark:bg-[#1a1a1a] rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary transition-all duration-300 ease-out flex items-center justify-center"
+                      style={{ width: `${updateStep === 'done' ? 100 : uploadProgress}%` }}
+                    >
+                      <div className="w-full h-full bg-white/20 animate-pulse" />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between text-xs">
+                    <div className={`flex items-center gap-1 ${uploadProgress > 0 ? 'text-primary' : 'text-gray-400'}`}>
+                      <Upload className="w-3 h-3" /> Upload
+                    </div>
+                    <div className={`flex items-center gap-1 ${updateStep === 'processing' || updateStep === 'done' ? 'text-primary' : 'text-gray-400'}`}>
+                      <RefreshCcw className={`w-3 h-3 ${updateStep === 'processing' ? 'animate-spin' : ''}`} /> Ekstraksi
+                    </div>
+                    <div className={`flex items-center gap-1 ${updateStep === 'done' ? 'text-emerald-500' : 'text-gray-400'}`}>
+                      <CheckCircle2 className="w-3 h-3" /> Verifikasi
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedFile && updateStep === 'idle' && (
+                <div className="p-4 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="p-2 bg-primary/20 rounded-lg text-primary">
+                      <History className="w-4 h-4" />
+                    </div>
+                    <div className="overflow-hidden">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{selectedFile.name}</p>
+                      <p className="text-[10px] text-gray-500">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB - Siap Kirim</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedFile(null)}>Batal</Button>
+                    <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => setIsUpdateConfirmOpen(true)}>
+                      Mulai Update
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-          <p className="text-[10px] text-gray-400">Versi manual sangat berguna jika server tidak memiliki akses internet langsung.</p>
+          
+          <div className="pt-4 border-t border-gray-100 dark:border-[#222] flex flex-col gap-3">
+            {updateStep === 'done' && (
+               <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/20 p-3 rounded-xl flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400">
+                 <CheckCircle2 className="w-4 h-4" />
+                 Update Berhasil! Refresh halaman untuk melihat perubahan.
+                 <Button size="sm" variant="ghost" className="ml-auto" onClick={() => window.location.reload()}>Refresh</Button>
+               </div>
+            )}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <History className="w-4 h-4 text-gray-400" />
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Punya kendala setelah update?</span>
+              </div>
+              <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-amber-600 border-amber-200 hover:bg-amber-50 dark:border-amber-900/30 dark:hover:bg-amber-900/10"
+                  onClick={() => setIsRollbackConfirmOpen(true)}
+              >
+                <RefreshCcw className="w-3 h-3 mr-2" />
+                Rollback ke Backup
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-6 flex gap-4">
-        <div className="bg-amber-100 dark:bg-amber-900/40 p-3 h-fit rounded-xl text-amber-600 dark:text-amber-400">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+      <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/20 rounded-2xl p-6 flex gap-4">
+        <div className="bg-amber-100 dark:bg-amber-900/20 p-3 h-fit rounded-xl text-amber-600">
+          <AlertTriangle className="w-6 h-6" />
         </div>
         <div className="space-y-1">
-          <h4 className="font-bold text-amber-900 dark:text-amber-100">Catatan Keamanan Sistem</h4>
-          <p className="text-sm text-amber-800 dark:text-amber-200/80 leading-relaxed">
-            Pembaruan sistem melibatkan penggantian file core aplikasi. Pastikan Anda telah melakukan backup database sebelum menjalankan update besar. Jika update gagal, Anda dapat mengembalikan sistem melalui repository GitHub atau paket backup manual.
+          <h4 className="font-bold text-amber-900 dark:text-amber-100">Protokol Keamanan & Backup</h4>
+          <p className="text-sm text-amber-800 dark:text-amber-200/70 leading-relaxed">
+            Sistem Update Center menggunakan skrip bridge yang aman. Setiap pembaruan yang Anda pasang akan secara otomatis membuat cadangan (backup) di server Dewahoster. Jika terjadi kegagalan pemuatan halaman setelah update, gunakan fitur <strong>Rollback</strong> untuk mengembalikan kondisi sistem dalam sekejap.
           </p>
         </div>
       </div>
+
+      {/* Confirmation Modals */}
+      <Modal 
+        isOpen={isUpdateConfirmOpen} 
+        onClose={() => setIsUpdateConfirmOpen(false)}
+        title="Konfirmasi Pembaruan Sistem"
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/20 rounded-xl">
+             <p className="text-sm text-amber-900 dark:text-amber-100 font-medium">
+                Peringatan: Proses ini akan menimpa file frontend Anda di server Dewahoster.
+             </p>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Sistem akan mengunggah file ZIP dan mengekstraknya di Dewahoster. Proses ini biasanya memakan waktu 30-60 detik tergantung besar file. Lanjutkan?
+          </p>
+          <div className="flex gap-2 justify-end">
+            <Button variant="ghost" onClick={() => setIsUpdateConfirmOpen(false)}>Batal</Button>
+            <Button onClick={executeManualUpdate} disabled={uploadUpdate.isPending}>
+              Mulai Upload & Install
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal 
+        isOpen={isRollbackConfirmOpen} 
+        onClose={() => setIsRollbackConfirmOpen(false)}
+        title="Kembalikan Versi (Rollback)?"
+      >
+        <div className="space-y-4">
+          <div className="p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/20 rounded-xl flex gap-3">
+             <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+             <p className="text-sm text-red-900 dark:text-red-100 font-medium">
+                Sistem akan kembali ke kondisi cadangan (*backup*) terakhir yang tersimpan.
+             </p>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Gunakan fitur ini hanya jika versi saat ini mengalami error atau tidak bisa diakses. Perubahan terbaru yang belum di-backup akan hilang.
+          </p>
+          <div className="flex gap-2 justify-end">
+            <Button variant="ghost" onClick={() => setIsRollbackConfirmOpen(false)}>Batal</Button>
+            <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={executeRollback} disabled={rollbackUpdate.isPending}>
+              {rollbackUpdate.isPending ? 'Proses Rollback...' : 'Ya, Rollback Sekarang'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
+
+

@@ -8,7 +8,15 @@ const router = Router();
 
 // Configure storage
 const storage = multer.diskStorage({
-  destination: 'uploads/',
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    import('fs').then(fs => {
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    });
+  },
   filename: (req, file, cb) => {
     const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
     cb(null, uniqueName);
@@ -20,6 +28,7 @@ const upload = multer({ storage });
 router.get('/status', systemController.getSystemStatus);
 router.get('/check-updates', systemController.checkForUpdates);
 router.post('/upload-update', upload.single('package'), systemController.uploadUpdatePackage);
+router.post('/rollback', systemController.rollbackUpdatePackage);
 
 // Generic image upload for Jodit/Editor
 router.post('/upload/image', upload.single('image'), systemController.uploadImageHandler);

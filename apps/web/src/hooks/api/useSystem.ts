@@ -25,13 +25,29 @@ export const useSystem = () => {
   });
 
   const uploadUpdate = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async ({ file, onProgress }: { file: File, onProgress?: (pct: number) => void }) => {
       const formData = new FormData();
       formData.append('package', file);
-      const { data } = await api.post('/system/upload-update', formData);
+      
+      const { data } = await api.post('/system/upload-update', formData, { 
+        timeout: 180000, // Increase to 3 mins for slow uploads
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total && onProgress) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            onProgress(percentCompleted);
+          }
+        }
+      });
       return data;
     },
   });
 
-  return { getStatus, checkUpdates, uploadUpdate };
+  const rollbackUpdate = useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post('/system/rollback', {}, { timeout: 60000 });
+      return data;
+    },
+  });
+
+  return { getStatus, checkUpdates, uploadUpdate, rollbackUpdate };
 };
