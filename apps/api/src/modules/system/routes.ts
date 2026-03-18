@@ -27,6 +27,7 @@ const upload = multer({ storage });
 
 router.get('/status', systemController.getSystemStatus);
 router.get('/check-updates', systemController.checkForUpdates);
+router.post('/sync-github', systemController.syncGithubUpdate);
 router.post('/upload-update', upload.single('package'), systemController.uploadUpdatePackage);
 router.post('/rollback', systemController.rollbackUpdatePackage);
 

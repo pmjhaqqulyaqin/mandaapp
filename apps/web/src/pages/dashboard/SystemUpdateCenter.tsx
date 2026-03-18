@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export const SystemUpdateCenter = () => {
-  const { getStatus, checkUpdates, uploadUpdate, rollbackUpdate } = useSystem();
+  const { getStatus, checkUpdates, uploadUpdate, rollbackUpdate, syncGithub } = useSystem();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUpdateConfirmOpen, setIsUpdateConfirmOpen] = useState(false);
   const [isRollbackConfirmOpen, setIsRollbackConfirmOpen] = useState(false);
@@ -103,6 +103,19 @@ export const SystemUpdateCenter = () => {
     }
   };
 
+  const executeGithubSync = async () => {
+    const toastId = toast.loading('Memulai sinkronisasi dari GitHub...');
+    try {
+      const result = await syncGithub.mutateAsync();
+      toast.success(result.message || 'Sinkronisasi GitHub berhasil!', { id: toastId, duration: 5000 });
+      getStatus.refetch();
+      checkUpdates.refetch();
+    } catch (e: any) {
+      const errorMessage = e?.response?.data?.error || e.message || 'Gagal sinkronisasi dari GitHub.';
+      toast.error(errorMessage, { id: toastId, duration: 6000 });
+    }
+  };
+
   return (
     <div className="space-y-6 pb-20">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -174,8 +187,13 @@ export const SystemUpdateCenter = () => {
                   <p className="font-semibold mb-1">Release Notes:</p>
                   {updateInfo.releaseNotes}
                 </div>
-                <Button className="w-full bg-primary hover:bg-primary/90" variant="primary">
-                  Mulai Sync Sekarang
+                <Button 
+                   className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50" 
+                   variant="primary"
+                   onClick={executeGithubSync}
+                   disabled={syncGithub.isPending}
+                >
+                  {syncGithub.isPending ? 'Sedang Menyinkronkan...' : 'Mulai Sync Sekarang'}
                 </Button>
               </div>
             ) : (

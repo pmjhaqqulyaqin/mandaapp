@@ -10,6 +10,15 @@ export const getSystemStatus = async (req: Request, res: Response) => {
   }
 };
 
+export const syncGithubUpdate = async (req: Request, res: Response) => {
+  try {
+    const result = await systemService.syncGithubUpdate();
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export const checkForUpdates = async (req: Request, res: Response) => {
   try {
     const updateInfo = await systemService.checkForUpdates();

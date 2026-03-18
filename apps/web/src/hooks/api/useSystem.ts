@@ -49,5 +49,12 @@ export const useSystem = () => {
     },
   });
 
-  return { getStatus, checkUpdates, uploadUpdate, rollbackUpdate };
+  const syncGithub = useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post('/system/sync-github', {}, { timeout: 300000 }); // 5 minutes max
+      return data;
+    },
+  });
+
+  return { getStatus, checkUpdates, uploadUpdate, rollbackUpdate, syncGithub };
 };

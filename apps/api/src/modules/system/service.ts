@@ -2,35 +2,56 @@ import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
 import FormData from 'form-data';
-
-// Mock version for now - in real world this might come from package.json or a version file
-const CURRENT_VERSION = '1.0.0';
-
-export const getSystemStatus = async () => {
-  return {
-    version: CURRENT_VERSION,
-    environment: process.env.NODE_ENV || 'development',
-    uptime: process.uptime(),
-    lastUpdate: null, // Hardcoded for now
-  };
-};
-
-export const checkForUpdates = async () => {
-  // Simulating an API call to GitHub or an update server
-  const remoteVersion = '1.1.0';
-  
-  return {
-    currentVersion: CURRENT_VERSION as string,
-    latestVersion: remoteVersion as string,
-    hasUpdate: (remoteVersion as string) !== (CURRENT_VERSION as string),
-    releaseNotes: "Update besar Phase 1 & 2 telah dirilis! Menambahkan fitur Section Builder dan Unified Update Center.",
-    updateType: 'System'
-  };
-};
+import { pipeline } from 'stream/promises';
 
 // Target Frontend URL host in production
 const DEWAHOSTER_URL = process.env.FRONTEND_URL || 'https://mandalotim.sch.id';
 const UPDATE_SECRET = process.env.UPDATE_SECRET || 'MandaApp_Secret_Key_Update_2026!';
+const GITHUB_REPO = 'pmjhaqqulyaqin/mandaapp';
+
+export const getSystemStatus = async () => {
+  let currentVersion = '1.0.0';
+  try {
+    const versionRes = await axios.get(`${DEWAHOSTER_URL}/version.json?t=${Date.now()}`);
+    if (versionRes.data?.version) currentVersion = versionRes.data.version;
+  } catch (e) {
+    // silently fallback to 1.0.0
+  }
+
+  return {
+    version: currentVersion,
+    environment: process.env.NODE_ENV || 'development',
+    uptime: process.uptime(),
+    lastUpdate: null,
+  };
+};
+
+export const checkForUpdates = async () => {
+  try {
+    const status = await getSystemStatus();
+    const currentVersion = status.version;
+
+    const ghRes = await axios.get(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
+      headers: { 'Accept': 'application/vnd.github.v3+json' },
+      timeout: 10000
+    });
+
+    const latestRelease = ghRes.data;
+    const remoteVersion = latestRelease.tag_name.replace(/^v/, '');
+
+    return {
+      currentVersion: currentVersion,
+      latestVersion: remoteVersion,
+      hasUpdate: remoteVersion !== currentVersion,
+      releaseNotes: latestRelease.body || "Pembaruan GitHub ditemukan.",
+      updateType: 'System',
+      downloadUrl: latestRelease.assets.find((a: any) => a.name.endsWith('.zip'))?.url || null
+    };
+  } catch (error: any) {
+    console.error('Check updates failed:', error.message);
+    throw new Error('Gagal memeriksa pembaruan dari GitHub: ' + (error.response?.data?.message || error.message));
+  }
+};
 
 export const processUpdatePackage = async (filePath: string) => {
   try {
@@ -86,5 +107,41 @@ export const rollbackUpdatePackage = async () => {
   } catch (error: any) {
     console.error('Rollback bridge failed:', error.response?.data || error.message);
     throw new Error(error.response?.data?.error || 'Sedang tidak ada backup untuk di-rollback atau terjadi kegagalan.');
+  }
+};
+
+export const syncGithubUpdate = async () => {
+  try {
+    const updateInfo = await checkForUpdates();
+    if (!updateInfo.downloadUrl) {
+      throw new Error('Tidak ada file .zip yang dilampirkan pada Release GitHub terbaru.');
+    }
+
+    const tempDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+    
+    const tempFilePath = path.join(tempDir, `github-update-${Date.now()}.zip`);
+
+    console.log('Downloading GitHub Asset:', updateInfo.downloadUrl);
+    const downloadRes = await axios({
+      url: updateInfo.downloadUrl,
+      method: 'GET',
+      responseType: 'stream',
+      headers: {
+        'Accept': 'application/octet-stream' // Required by GitHub API for downloading assets
+      } // If it's a private repo, we would need to pass Auth header here. Since it's public, it's fine.
+    });
+
+    const writer = fs.createWriteStream(tempFilePath);
+    await pipeline(downloadRes.data, writer);
+
+    // Forward the downloaded zip directly through the existing pipeline
+    const result = await processUpdatePackage(tempFilePath);
+    return {
+      ...result,
+      message: 'Sukses! Aplikasi berhasil disinkronisasi dengan GitHub Release terbaru.'
+    };
+  } catch (error: any) {
+    throw new Error('Gagal sinkronisasi GitHub: ' + (error.response?.data?.message || error.message));
   }
 };
