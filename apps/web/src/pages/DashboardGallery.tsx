@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { CameraCapture } from '../components/CameraCapture';
 import { galleryService } from '../lib/services/gallery';
 import { API_BASE_URL } from '../lib/api';
-import { Camera, X, Loader2 } from 'lucide-react';
+import { Camera, X, Loader2, Edit2, Trash2 } from 'lucide-react';
 
 interface GalleryImage {
   id: string;
@@ -160,24 +160,22 @@ export const DashboardGallery = () => {
     ...(canManageGallery ? [{
       header: '',
       accessorKey: (row: GalleryImage) => (
-        <div className="flex justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-primary hover:text-primary/80"
+        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
             onClick={() => handleEdit(row)}
+            className="text-blue-500 hover:text-blue-700" 
+            title="Edit Gambar"
           >
-            Edit
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-red-500 hover:text-red-600 dark:hover:text-red-400"
+            <Edit2 size={16} />
+          </button>
+          <button
             onClick={() => handleDelete(row.id)}
             disabled={deleteMutation.isPending}
+            className="text-red-500 hover:text-red-700 disabled:opacity-50"
+            title="Hapus Gambar"
           >
-            Hapus
-          </Button>
+            <Trash2 size={16} />
+          </button>
         </div>
       ),
       className: 'text-right',
