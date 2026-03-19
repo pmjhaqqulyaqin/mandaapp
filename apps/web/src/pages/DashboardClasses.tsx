@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Card } from '@mandaapp/ui/src/components/Card';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { apiClient } from '../lib/api';
 
@@ -38,7 +37,7 @@ export const DashboardClasses = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-6">
+        <div className="bg-white dark:bg-[#111] rounded-2xl shadow-sm border border-gray-200 dark:border-[#222] p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Daftar Jurusan</h2>
             <Button size="sm">Tambah Jurusan</Button>
@@ -51,9 +50,9 @@ export const DashboardClasses = () => {
               {majors.length === 0 && <li className="text-gray-400 text-sm">Belum ada jurusan</li>}
             </ul>
           )}
-        </Card>
+        </div>
 
-        <Card className="p-6">
+        <div className="bg-white dark:bg-[#111] rounded-2xl shadow-sm border border-gray-200 dark:border-[#222] p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Daftar Kelas</h2>
             <Button size="sm">Tambah Kelas</Button>
@@ -69,7 +68,7 @@ export const DashboardClasses = () => {
               {classes.length === 0 && <li className="text-gray-400 text-sm">Belum ada kelas</li>}
             </ul>
           )}
-        </Card>
+        </div>
       </div>
     </div>
   );

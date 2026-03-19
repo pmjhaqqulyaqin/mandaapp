@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Card } from '@mandaapp/ui/src/components/Card';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { Input } from '@mandaapp/ui/src/components/Input';
 import { useAuth } from '../contexts/AuthContext';
@@ -88,7 +87,7 @@ export const DashboardStudents = () => {
         </div>
       </div>
 
-      <Card>
+      <div className="bg-white dark:bg-[#111] rounded-2xl shadow-sm border border-gray-200 dark:border-[#222] overflow-hidden">
         <div className="p-4 border-b border-gray-100 dark:border-[#2a2a2a] flex items-center justify-between">
           <Input placeholder="Cari NISN atau Nama..." className="max-w-xs" />
         </div>
@@ -125,7 +124,7 @@ export const DashboardStudents = () => {
             </div>
           )}
         </div>
-      </Card>
+      </div>
     </div>
   );
 };
