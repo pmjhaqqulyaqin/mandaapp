@@ -10,6 +10,7 @@ export const DashboardStudents = () => {
   const { user } = useAuth();
   const [students, setStudents] = useState<any[]>([]);
   const [classesList, setClassesList] = useState<any[]>([]);
+  const [majorsList, setMajorsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ show: false, percent: 0 });
   
@@ -29,7 +30,17 @@ export const DashboardStudents = () => {
   useEffect(() => {
     fetchStudents();
     fetchClasses();
+    fetchMajors();
   }, [user]);
+
+  const fetchMajors = async () => {
+    try {
+      const mjrData = await apiClient<any[]>('/majors');
+      setMajorsList(mjrData);
+    } catch (e) {
+      console.error('Failed to fetch majors');
+    }
+  };
 
   const fetchClasses = async () => {
     try {
@@ -237,9 +248,10 @@ export const DashboardStudents = () => {
                 onChange={e => setFormData({...formData, className: e.target.value})}
               >
                 <option value="">-- Pilih Kelas --</option>
-                {classesList.map(c => (
-                  <option key={c.id} value={c.name}>{c.name}</option>
-                ))}
+                {classesList.map(c => {
+                  const majorName = majorsList.find(m => m.id === c.majorId)?.name || 'Tanpa Jurusan';
+                  return <option key={c.id} value={c.name}>{c.name} {majorName}</option>;
+                })}
               </select>
             </div>
             <div className="space-y-1">
