@@ -8,17 +8,17 @@ import { SettingsService } from "../settings/service";
 
 // All available menu keys
 const ALL_MENU_KEYS = [
-  "overview", "news", "calendar", "student-card",
+  "overview", "news", "calendar", "student-card", "students", "classes",
   "gallery", "contacts", "pages", "menus", "settings", "users", "updates",
 ];
 
 // Default permissions: which menus each role gets when no config exists
 const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
   admin: ALL_MENU_KEYS,
-  kepala_madrasah: ["overview", "news", "calendar", "student-card", "gallery", "contacts"],
-  wakil_kepala: ["overview", "news", "calendar", "student-card", "gallery", "contacts"],
+  kepala_madrasah: ["overview", "news", "calendar", "student-card", "students", "classes", "gallery", "contacts"],
+  wakil_kepala: ["overview", "news", "calendar", "student-card", "students", "classes", "gallery", "contacts"],
   kepala_unit: ["overview", "news", "calendar", "student-card", "gallery", "contacts"],
-  wali_kelas: ["overview", "news", "calendar", "student-card", "gallery"],
+  wali_kelas: ["overview", "news", "calendar", "student-card", "students", "gallery"],
   pembina_ekstra: ["overview", "news", "calendar", "student-card", "gallery"],
   guru: ["overview", "news", "calendar", "student-card"],
   student: ["overview", "calendar", "student-card"],
