@@ -62,16 +62,21 @@ export const DashboardEmployees = () => {
     }, 300);
 
     try {
-      const res = await apiClient<{message:string}>('/employees/upload', {
+      const res = await fetch(`${API_BASE_URL}/employees/upload`, {
         method: 'POST',
         body: uploadData
-      } as any);
+      });
+      
+      const responseData = await res.json();
+      if (!res.ok) {
+        throw new Error(responseData.error || responseData.message || 'Gagal import.');
+      }
       
       clearInterval(progressInterval);
       setUploadProgress({ show: true, percent: 100 });
       
       setTimeout(() => {
-        alert(res.message || 'Import berhasil!');
+        alert(responseData.message || 'Import berhasil!');
         setUploadProgress({ show: false, percent: 0 });
         fetchEmployees();
       }, 500);
