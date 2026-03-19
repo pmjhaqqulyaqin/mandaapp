@@ -15,11 +15,13 @@ export async function apiClient<T>(
   const savedUser = localStorage.getItem('mandalotim_user');
   const userId = savedUser ? JSON.parse(savedUser)?.id : undefined;
 
+  const isFormData = customConfig.body instanceof FormData;
+
   const config: RequestInit = {
     method: data ? "POST" : "GET",
     body: data ? JSON.stringify(data) : undefined,
     headers: {
-      "Content-Type": data ? "application/json" : "application/json",
+      ...(!isFormData && { "Content-Type": "application/json" }),
       ...(userId ? { "X-User-Id": userId } : {}),
       ...headers,
     },
