@@ -15,7 +15,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient, API_BASE_URL } from '../lib/api';
-import { mockStudents, defaultCardSettings } from '../data/mockStudents';
+import { defaultCardSettings } from '../data/mockStudents';
 import type { StudentProfile } from '../types/studentTypes';
 import { useStudents } from '../hooks/api/useStudents';
 import { useCards } from '../hooks/api/useCards';
@@ -38,7 +38,7 @@ export const DashboardStudentCard = () => {
   const SERVER_BASE_URL = API_BASE_URL.replace(/\/api$/, '');
   const getFullUrl = (url?: string) => url?.startsWith('/') ? `${SERVER_BASE_URL}${url}` : (url || '');
 
-  const studentList: StudentProfile[] = studentsQuery.data?.data || [];
+  const studentList: StudentProfile[] = Array.isArray(studentsQuery.data) ? studentsQuery.data : [];
   const cardSettings = cardSettingsQuery.data || defaultCardSettings;
   const isLoadingData = studentsQuery.isLoading || cardSettingsQuery.isLoading;
 
@@ -112,7 +112,7 @@ export const DashboardStudentCard = () => {
 
   const template = CARD_TEMPLATES[selectedTemplate];
   const isAdmin = user?.role === 'admin';
-  const isTeacher = user?.role === 'teacher';
+  const isTeacher = user?.role === 'guru';
   const isStudent = user?.role === 'student';
 
   const uniqueClasses = Array.from(new Set(studentList.map((s: StudentProfile) => s.className))).sort();
@@ -199,10 +199,10 @@ export const DashboardStudentCard = () => {
   };
 
   const tabs: { key: typeof activeTab; label: string; roles: string[] }[] = [
-    { key: 'preview', label: 'Preview Kartu', roles: ['student', 'teacher', 'admin'] },
-    { key: 'edit', label: 'Edit Identitas', roles: ['student', 'teacher', 'admin'] },
+    { key: 'preview', label: 'Preview Kartu', roles: ['student', 'guru', 'admin'] },
+    { key: 'edit', label: 'Edit Identitas', roles: ['student', 'guru', 'admin'] },
     { key: 'settings', label: 'Pengaturan Layout', roles: ['admin'] },
-    { key: 'batch', label: 'Cetak Batch', roles: ['admin', 'teacher'] },
+    { key: 'batch', label: 'Cetak Batch', roles: ['admin', 'guru'] },
   ];
 
   const visibleTabs = tabs.filter((t) => t.roles.includes(user?.role || 'student'));
