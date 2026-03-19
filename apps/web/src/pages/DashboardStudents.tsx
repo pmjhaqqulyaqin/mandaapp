@@ -16,6 +16,7 @@ export const DashboardStudents = () => {
   
   // Add Student State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     fullName: '',
     nisn: '',
@@ -108,17 +109,38 @@ export const DashboardStudents = () => {
     }
   };
 
+  const handleEditClick = (student: any) => {
+    setFormData({
+      fullName: student.fullName || '',
+      nisn: student.nisn || '',
+      nis: student.nis || '',
+      className: student.className || '',
+      gender: student.gender || '',
+      birthPlace: student.birthPlace || '',
+      birthDate: student.birthDate ? student.birthDate.split('T')[0] : '',
+      address: student.address || ''
+    });
+    setEditId(student.id);
+    setIsAddModalOpen(true);
+  };
+
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await apiClient('/students', { method: 'POST', data: formData });
-      alert('Siswa berhasil ditambahkan!');
+      if (editId) {
+        await apiClient(`/students/${editId}`, { method: 'PUT', data: formData });
+        alert('Data siswa berhasil diupdate!');
+      } else {
+        await apiClient('/students', { method: 'POST', data: formData });
+        alert('Siswa berhasil ditambahkan!');
+      }
       setIsAddModalOpen(false);
+      setEditId(null);
       setFormData({ fullName: '', nisn: '', nis: '', className: '', gender: '', birthPlace: '', birthDate: '', address: '' });
       fetchStudents();
     } catch (error: any) {
-      alert('Gagal menambah siswa: ' + error.message);
+      alert(`Gagal ${editId ? 'mengupdate' : 'menambah'} siswa: ` + error.message);
     } finally {
       setLoading(false);
     }
@@ -177,13 +199,22 @@ export const DashboardStudents = () => {
           <Button variant="outline" className="flex items-center gap-2 text-primary border-primary hover:bg-primary/10">
             <Printer size={18} /> Cetak Kartu
           </Button>
-          <Button className="flex items-center gap-2" onClick={() => setIsAddModalOpen(true)}>
+          <Button className="flex items-center gap-2" onClick={() => {
+            setEditId(null);
+            setFormData({ fullName: '', nisn: '', nis: '', className: '', gender: '', birthPlace: '', birthDate: '', address: '' });
+            setIsAddModalOpen(true);
+          }}>
             <UserPlus size={18} /> Tambah Siswa
           </Button>
         </div>
       </div>
 
       <div className="bg-white dark:bg-[#111] rounded-2xl shadow-sm border border-gray-200 dark:border-[#222] overflow-hidden">
+        {uploadProgress.show && (
+          <div className="w-full bg-gray-200 dark:bg-[#333] h-1.5">
+            <div className="bg-primary h-1.5 transition-all duration-300" style={{ width: `${uploadProgress.percent}%` }} />
+          </div>
+        )}
         <div className="p-4 border-b border-gray-100 dark:border-[#2a2a2a] flex items-center justify-between">
           <Input placeholder="Cari NISN atau Nama..." className="max-w-xs" />
         </div>
@@ -204,10 +235,16 @@ export const DashboardStudents = () => {
                     <tr key={student.id} className="group border-b border-gray-50 dark:border-[#222]">
                       <td className="py-3 px-4">{student.fullName || '-'}</td>
                       <td className="py-3 px-4">{student.nisn}</td>
-                      <td className="py-3 px-4">{student.className || '-'}</td>
+                      <td className="py-3 px-4">
+                        {(() => {
+                          const classObj = classesList.find(c => c.id === student.classId);
+                          const majorName = classObj ? majorsList.find(m => m.id === classObj.majorId)?.name : '';
+                          return classObj ? (majorName ? `${classObj.name} - ${majorName}` : classObj.name) : (student.className || '-');
+                        })()}
+                      </td>
                       <td className="py-3 px-4 text-center">
                         <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => {}} className="text-blue-500 hover:text-blue-700" title="Edit Siswa"><Edit2 size={16} /></button>
+                          <button onClick={() => handleEditClick(student)} className="text-blue-500 hover:text-blue-700" title="Edit Siswa"><Edit2 size={16} /></button>
                           <button onClick={() => handleDelete(student.id, student.fullName)} className="text-red-500 hover:text-red-700" title="Hapus Siswa"><Trash2 size={16} /></button>
                         </div>
                       </td>
@@ -225,7 +262,7 @@ export const DashboardStudents = () => {
         </div>
       </div>
 
-      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Tambah Data Siswa Spesifik">
+      <Modal isOpen={isAddModalOpen} onClose={() => { setIsAddModalOpen(false); setEditId(null); }} title={editId ? "Edit Data Siswa" : "Tambah Data Siswa Spesifik"}>
         <form onSubmit={handleAddSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
@@ -280,7 +317,7 @@ export const DashboardStudents = () => {
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-4 border-t border-gray-100 dark:border-[#222]">
-            <Button type="button" variant="ghost" onClick={() => setIsAddModalOpen(false)}>Batal</Button>
+            <Button type="button" variant="ghost" onClick={() => { setIsAddModalOpen(false); setEditId(null); }}>Batal</Button>
             <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={loading}>
               {loading ? 'Menyimpan...' : 'Simpan Siswa'}
             </Button>
