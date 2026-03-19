@@ -15,6 +15,16 @@ export class StudentService {
     return results[0] || null;
   }
 
+  static async createStudent(data: any) {
+    const results = await db.insert(studentProfiles).values(data).returning();
+    return results[0];
+  }
+
+  static async bulkCreateStudents(data: any[]) {
+    const results = await db.insert(studentProfiles).values(data).returning();
+    return results;
+  }
+
   static async updateStudent(id: string, data: any) {
     const results = await db.update(studentProfiles).set(data).where(eq(studentProfiles.id, id)).returning();
     return results[0];

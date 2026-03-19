@@ -17,6 +17,8 @@ import { DashboardSettings } from './pages/DashboardSettings';
 import { DashboardUsers } from './pages/DashboardUsers';
 import { DashboardPages } from './pages/dashboard/DashboardPages';
 import { DashboardMenus } from './pages/dashboard/DashboardMenus';
+import { DashboardStudents } from './pages/DashboardStudents';
+import { DashboardClasses } from './pages/DashboardClasses';
 import { SelectRolePage } from './pages/SelectRolePage';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -56,6 +58,8 @@ function App() {
           <Route path="contacts" element={<DashboardContacts />} />
           <Route path="settings" element={<DashboardSettings />} />
           <Route path="users" element={<DashboardUsers />} />
+          <Route path="students" element={<DashboardStudents />} />
+          <Route path="classes" element={<DashboardClasses />} />
           <Route path="pages" element={<DashboardPages />} />
           <Route path="menus" element={<DashboardMenus />} />
           <Route path="updates" element={<SystemUpdateCenter />} />

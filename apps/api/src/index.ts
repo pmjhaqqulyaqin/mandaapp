@@ -16,6 +16,8 @@ import { usersRoutes } from './modules/users/routes';
 import pagesRoutes from './modules/pages';
 import menusRoutes from './modules/menus';
 import { systemRoutes } from './modules/system/routes';
+import majorsRoutes from './modules/majors/routes';
+import classesRoutes from './modules/classes/routes';
 
 dotenv.config();
 
@@ -92,6 +94,8 @@ app.use("/api/users", usersRoutes);
 app.use("/api/pages", pagesRoutes);
 app.use("/api/menus", menusRoutes);
 app.use("/api/system", systemRoutes);
+app.use("/api/majors", majorsRoutes);
+app.use("/api/classes", classesRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

@@ -53,17 +53,39 @@ export const verification = pgTable("verification", {
 				});
 
 // Core Entities
+export const majors = pgTable("majors", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 150 }).notNull(),
+  code: varchar("code", { length: 50 }).unique().notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const classes = pgTable("classes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 50 }).notNull(),
+  majorId: uuid("major_id").references(() => majors.id).notNull(),
+  homeroomTeacherId: text("homeroom_teacher_id").references(() => user.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
 export const studentProfiles = pgTable("student_profiles", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id").references(() => user.id).notNull(),
+  userId: text("user_id").references(() => user.id), // Made nullable for bulk import
+  fullName: varchar("full_name", { length: 255 }), // Added for standalone student data
+  nis: varchar("nis", { length: 50 }),
   nisn: varchar("nisn", { length: 50 }).unique().notNull(),
-  className: varchar("class_name", { length: 50 }).notNull(),
+  classId: uuid("class_id").references(() => classes.id),
+  className: varchar("class_name", { length: 50 }), // Kept for legacy compatibility
   birthPlace: varchar("birth_place", { length: 100 }),
   birthDate: date("birth_date"),
   gender: varchar("gender", { length: 20 }), // Laki-laki, Perempuan
   address: text("address"),
   photoUrl: varchar("photo_url", { length: 255 }),
-  status: varchar("status", { length: 20 }).default("active")
+  status: varchar("status", { length: 20 }).default("active"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
 });
 
 export const identityRevisions = pgTable("identity_revisions", {

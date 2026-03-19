@@ -14,6 +14,8 @@ import {
   FileText,
   ListTree,
   Settings as SettingsIcon,
+  Users,
+  BookOpen,
 } from 'lucide-react';
 
 // All menu items definition with their route paths and icons
@@ -55,6 +57,13 @@ const ALL_MENU_ITEMS = [
     group: 'main',
   },
   {
+    key: 'students',
+    label: 'Data Siswa',
+    href: '/dashboard/students',
+    icon: <Users size={18} />,
+    group: 'main',
+  },
+  {
     key: 'contacts',
     label: 'Pesan Kontak',
     href: '/dashboard/contacts',
@@ -80,6 +89,13 @@ const ALL_MENU_ITEMS = [
     label: 'Pengaturan Sistem',
     href: '/dashboard/settings',
     icon: <SettingsIcon size={18} />,
+    group: 'system',
+  },
+  {
+    key: 'classes',
+    label: 'Kelas & Jurusan',
+    href: '/dashboard/classes',
+    icon: <BookOpen size={18} />,
     group: 'system',
   },
   {
@@ -113,6 +129,8 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'settings': 'settings',
   'users': 'users',
   'updates': 'updates',
+  'students': 'students',
+  'classes': 'classes',
 };
 
 const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
