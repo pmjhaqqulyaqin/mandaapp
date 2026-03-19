@@ -3,7 +3,7 @@ import { Button } from '@mandaapp/ui/src/components/Button';
 import { Input } from '@mandaapp/ui/src/components/Input';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Upload, Printer, Download } from 'lucide-react';
+import { UserPlus, Upload, Printer, Download, Edit2, Trash2 } from 'lucide-react';
 import { apiClient, API_BASE_URL } from '../lib/api';
 
 export const DashboardStudents = () => {
@@ -113,6 +113,20 @@ export const DashboardStudents = () => {
     }
   };
 
+  const handleDelete = async (id: string, name: string) => {
+    if(!window.confirm(`Yakin ingin menghapus data siswa ${name}?`)) return;
+    setLoading(true);
+    try {
+      await apiClient(`/students/${id}`, { method: 'DELETE' });
+      alert('Data siswa berhasil dihapus.');
+      fetchStudents();
+    } catch (error: any) {
+      alert('Gagal menghapus siswa: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const downloadTemplate = () => {
     window.location.href = `${API_BASE_URL}/students/template`;
   };
@@ -181,7 +195,10 @@ export const DashboardStudents = () => {
                       <td className="py-3 px-4">{student.nisn}</td>
                       <td className="py-3 px-4">{student.className || '-'}</td>
                       <td className="py-3 px-4 text-center">
-                        <Button variant="ghost" size="sm">Edit</Button>
+                        <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => {}} className="text-blue-500 hover:text-blue-700" title="Edit Siswa"><Edit2 size={16} /></button>
+                          <button onClick={() => handleDelete(student.id, student.fullName)} className="text-red-500 hover:text-red-700" title="Hapus Siswa"><Trash2 size={16} /></button>
+                        </div>
                       </td>
                     </tr>
                   ))}

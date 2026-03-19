@@ -4,6 +4,7 @@ import { usePages } from '../../hooks/api/usePages';
 import { toast } from 'sonner';
 import JoditEditor from 'jodit-react';
 import { PhotoUploader } from '@mandaapp/ui';
+import { FileText, Plus, Search, Eye, MoreVertical, AlertTriangle, Edit2, Trash2 } from 'lucide-react';
 
 export const DashboardPages = () => {
   const { queryAll, createMutation, updateMutation, deleteMutation } = usePages();
@@ -280,7 +281,7 @@ export const DashboardPages = () => {
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {pages.map((p) => (
-                <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                <tr key={p.id} className="border-b last:border-0 hover:bg-gray-50 dark:hover:bg-[#151515] transition-colors group">
                   <td className="p-4 text-gray-900 dark:text-gray-100 font-medium">
                     {p.title}
                   </td>
@@ -292,10 +293,24 @@ export const DashboardPages = () => {
               {p.status}
             </Badge>
           </td>
-          <td className="p-4 text-right space-x-2">
-            <Button variant="outline" size="sm" onClick={() => openEditModal(p)}>Edit</Button>
-            <Button variant="outline" color="danger" size="sm" onClick={() => handleDelete(p.id)}>Hapus</Button>
-          </td>
+          <td className="p-4 text-right">
+          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+            <button 
+              onClick={() => openEditModal(p)} 
+              className="text-blue-500 hover:text-blue-700" 
+              title="Edit Halaman"
+            >
+              <Edit2 size={16} />
+            </button>
+            <button 
+              onClick={() => handleDelete(p.id)} 
+              className="text-red-500 hover:text-red-700 disabled:opacity-50"
+              title="Hapus Halaman"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        </td>
         </tr>
       ))}
     </tbody>

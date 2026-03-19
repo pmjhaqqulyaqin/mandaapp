@@ -3,6 +3,7 @@ import { Button, Input, Modal, Badge } from '@mandaapp/ui';
 import { useMenus } from '../../hooks/api/useMenus';
 import { usePages } from '../../hooks/api/usePages';
 import { toast } from 'sonner';
+import { Edit2, Trash2 } from 'lucide-react';
 
 export const DashboardMenus = () => {
   const { queryAll, createMutation, updateMutation, deleteMutation } = useMenus();
@@ -129,9 +130,23 @@ export const DashboardMenus = () => {
             {m.isActive ? 'Aktif' : 'Non-aktif'}
           </Badge>
         </td>
-        <td className="p-4 text-right space-x-2">
-          <Button variant="outline" size="sm" onClick={() => openEditModal(m)}>Edit</Button>
-          <Button variant="outline" color="danger" size="sm" onClick={() => handleDelete(m.id)}>Hapus</Button>
+        <td className="p-4 text-right">
+          <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button 
+              onClick={() => openEditModal(m)} 
+              className="text-blue-500 hover:text-blue-700" 
+              title="Edit Menu"
+            >
+              <Edit2 size={16} />
+            </button>
+            <button 
+              onClick={() => handleDelete(m.id)} 
+              className="text-red-500 hover:text-red-700 disabled:opacity-50"
+              title="Hapus Menu"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
         </td>
       </tr>
     );

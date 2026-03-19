@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { type NewsItem, type AnnouncementCategory } from '../types/news';
 import { useNews } from '../hooks/api/useNews';
 import JoditEditor from 'jodit-react';
+import { Edit2, Trash2 } from 'lucide-react';
 
 export const DashboardNews = () => {
   const { queryAllAdmin, createMutation, updateMutation, deleteMutation } = useNews();
@@ -91,10 +92,8 @@ export const DashboardNews = () => {
     ...(canManageNews ? [{
       header: '',
       accessorKey: (row: NewsItem) => (
-        <div className="flex justify-end gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm"
+        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button 
             onClick={() => {
               setEditingNewsId(row.id);
               setFormData({
@@ -105,18 +104,19 @@ export const DashboardNews = () => {
               });
               setIsModalOpen(true);
             }}
+            className="text-blue-500 hover:text-blue-700"
+            title="Edit Berita"
           >
-            Edit
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-red-500 hover:text-red-600 dark:hover:text-red-400"
+            <Edit2 size={16} />
+          </button>
+          <button 
             onClick={() => deleteMutation.mutate(row.id)}
             disabled={deleteMutation.isPending}
+            className="text-red-500 hover:text-red-700 disabled:opacity-50"
+            title="Hapus Berita"
           >
-            Delete
-          </Button>
+            <Trash2 size={16} />
+          </button>
         </div>
       ),
       className: 'text-right'
