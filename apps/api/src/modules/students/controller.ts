@@ -15,25 +15,66 @@ export class StudentController {
 
   static async downloadTemplate(req: Request, res: Response) {
     try {
-      const headers = ['NamaSiswa', 'NISN', 'NIS', 'Kelas', 'TempatLahir', 'TanggalLahir', 'JenisKelamin', 'Alamat'];
-      const data = [
-        ['Budi Santoso', '1234567890', '1001', 'X RPL 1', 'Jakarta', '2008-01-01', 'Laki-laki', 'Jl. Merdeka No 1'],
-        ['Andi Suryadi', '0987654321', '1002', 'X TKJ 2', 'Bandung', '2008-05-12', 'Laki-laki', 'Jl. Sudirman 55']
-      ];
-      const worksheet = xlsx.utils.aoa_to_sheet([headers, ...data]);
-      
-      // Auto-size columns conceptually
-      const wscols = headers.map(h => ({ wch: Math.max(h.length, 15) }));
-      worksheet['!cols'] = wscols;
+      const ExcelJS = require('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('DataSiswa');
 
-      const workbook = xlsx.utils.book_new();
-      xlsx.utils.book_append_sheet(workbook, worksheet, 'DataSiswa');
-      
-      const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-      
-      res.setHeader('Content-Disposition', 'attachment; filename="template_data_siswa.xlsx"');
+      worksheet.columns = [
+        { header: 'NamaSiswa', key: 'fullName', width: 25 },
+        { header: 'NISN', key: 'nisn', width: 20 },
+        { header: 'NIS', key: 'nis', width: 15 },
+        { header: 'Kelas', key: 'className', width: 20 },
+        { header: 'TempatLahir', key: 'birthPlace', width: 20 },
+        { header: 'TanggalLahir', key: 'birthDate', width: 15 },
+        { header: 'JenisKelamin', key: 'gender', width: 15 },
+        { header: 'Alamat', key: 'address', width: 30 }
+      ];
+
+      // Fetch dynamic class names from DB
+      const classes = await require('../classes/service').ClassService.getAllClasses();
+      const classNames = classes.map((c: any) => c.name);
+
+      // Create a hidden sheet to store the dropdown list values cleanly (bypassing 255char limit)
+      const listSheet = workbook.addWorksheet('SystemData', { state: 'hidden' });
+      classNames.forEach((name: string, idx: number) => {
+        listSheet.getCell(`A${idx + 1}`).value = name;
+      });
+
+      // Apply Data Validation loops for first 500 rows
+      for (let i = 2; i <= 500; i++) {
+        // Gender Dropdown
+        worksheet.getCell(`G${i}`).dataValidation = {
+          type: 'list',
+          allowBlank: true,
+          formulae: ['"Laki-laki,Perempuan"']
+        };
+
+        // Class Dropdown (if there are classes)
+        if (classNames.length > 0) {
+           worksheet.getCell(`D${i}`).dataValidation = {
+             type: 'list',
+             allowBlank: true,
+             formulae: [`SystemData!$A$1:$A$${classNames.length}`]
+           };
+        }
+      }
+
+      worksheet.addRow({
+        fullName: 'Budi Santoso',
+        nisn: '1234567890',
+        nis: '1001',
+        className: classNames[0] || '',
+        birthPlace: 'Jakarta',
+        birthDate: '2008-01-01',
+        gender: 'Laki-laki',
+        address: 'Jl. Merdeka No 1'
+      });
+
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.send(buffer);
+      res.setHeader('Content-Disposition', 'attachment; filename="template_data_siswa.xlsx"');
+      
+      await workbook.xlsx.write(res);
+      res.end();
     } catch (error: any) {
       res.status(500).json({ error: "Failed to generate template", details: error.message });
     }

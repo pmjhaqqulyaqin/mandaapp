@@ -9,6 +9,7 @@ import { apiClient, API_BASE_URL } from '../lib/api';
 export const DashboardStudents = () => {
   const { user } = useAuth();
   const [students, setStudents] = useState<any[]>([]);
+  const [classesList, setClassesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ show: false, percent: 0 });
   
@@ -27,7 +28,17 @@ export const DashboardStudents = () => {
 
   useEffect(() => {
     fetchStudents();
+    fetchClasses();
   }, [user]);
+
+  const fetchClasses = async () => {
+    try {
+      const clsData = await apiClient<any[]>('/classes');
+      setClassesList(clsData);
+    } catch (e) {
+      console.error('Failed to fetch classes');
+    }
+  };
 
   const fetchStudents = async () => {
     setLoading(true);
@@ -203,11 +214,28 @@ export const DashboardStudents = () => {
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium">Kelas</label>
-              <Input placeholder="X MIPA 1" value={formData.className} onChange={e => setFormData({...formData, className: e.target.value})} />
+              <select 
+                className="w-full flex h-10 w-full rounded-md border border-input bg-background dark:bg-background-dark dark:border-border-dark px-3 py-2 text-sm text-text-primary dark:text-text-darkPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                value={formData.className} 
+                onChange={e => setFormData({...formData, className: e.target.value})}
+              >
+                <option value="">-- Pilih Kelas --</option>
+                {classesList.map(c => (
+                  <option key={c.id} value={c.name}>{c.name}</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium">Jenis Kelamin</label>
-              <Input placeholder="Laki-laki/Perempuan" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})} />
+              <select 
+                className="w-full flex h-10 w-full rounded-md border border-input bg-background dark:bg-background-dark dark:border-border-dark px-3 py-2 text-sm text-text-primary dark:text-text-darkPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                value={formData.gender} 
+                onChange={e => setFormData({...formData, gender: e.target.value})}
+              >
+                <option value="">-- Pilih --</option>
+                <option value="Laki-laki">Laki-laki</option>
+                <option value="Perempuan">Perempuan</option>
+              </select>
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium">Tempat Lahir</label>
