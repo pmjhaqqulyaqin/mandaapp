@@ -16,6 +16,7 @@ import {
   Settings as SettingsIcon,
   Users,
   BookOpen,
+  UserSquare2,
 } from 'lucide-react';
 
 // All menu items definition with their route paths and icons
@@ -61,6 +62,13 @@ const ALL_MENU_ITEMS = [
     label: 'Kelas & Jurusan',
     href: '/dashboard/classes',
     icon: <BookOpen size={18} />,
+    group: 'main',
+  },
+  {
+    key: 'employees',
+    label: 'Data Pegawai',
+    href: '/dashboard/employees',
+    icon: <UserSquare2 size={18} />,
     group: 'main',
   },
   {
@@ -131,6 +139,7 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'updates': 'updates',
   'students': 'students',
   'classes': 'classes',
+  'employees': 'employees',
 };
 
 const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');

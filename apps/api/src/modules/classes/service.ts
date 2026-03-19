@@ -1,10 +1,22 @@
 import { db } from "../../db";
-import { classes, majors } from "../../db/schema";
+import { classes, employees } from "../../db/schema";
 import { eq } from "drizzle-orm";
 
 export class ClassService {
   static async getAllClasses() {
-    return db.select().from(classes);
+    const results = await db
+      .select({
+        id: classes.id,
+        name: classes.name,
+        majorId: classes.majorId,
+        homeroomTeacherId: classes.homeroomTeacherId,
+        homeroomTeacherName: employees.name,
+        createdAt: classes.createdAt,
+        updatedAt: classes.updatedAt
+      })
+      .from(classes)
+      .leftJoin(employees, eq(classes.homeroomTeacherId, employees.id));
+    return results;
   }
 
   static async getClassById(id: string) {

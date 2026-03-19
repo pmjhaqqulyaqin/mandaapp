@@ -61,11 +61,29 @@ export const majors = pgTable("majors", {
   updatedAt: timestamp("updated_at").defaultNow()
 });
 
+export const employees = pgTable("employees", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => user.id), // Nullable for bulk imports or non-login employees
+  type: varchar("type", { length: 50 }).notNull(), // 'Guru' or 'Tenaga Kependidikan'
+  name: varchar("name", { length: 150 }).notNull(),
+  nip: varchar("nip", { length: 50 }).unique().notNull(), // NIP/NUPTK/No. Identitas
+  rank: varchar("rank", { length: 50 }), // Pangkat
+  grade: varchar("grade", { length: 50 }), // Golongan
+  position: varchar("position", { length: 100 }), // Nama Jabatan
+  gender: varchar("gender", { length: 20 }), // Laki-laki, Perempuan
+  birthPlace: varchar("birth_place", { length: 100 }),
+  birthDate: date("birth_date"),
+  task: varchar("task", { length: 100 }), // Tugas / Guru Mapel apa
+  status: varchar("status", { length: 20 }).default("active"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
 export const classes = pgTable("classes", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 50 }).notNull(),
   majorId: uuid("major_id").references(() => majors.id).notNull(),
-  homeroomTeacherId: text("homeroom_teacher_id").references(() => user.id),
+  homeroomTeacherId: uuid("homeroom_teacher_id").references(() => employees.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });

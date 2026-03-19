@@ -18,6 +18,7 @@ import menusRoutes from './modules/menus';
 import { systemRoutes } from './modules/system/routes';
 import majorsRoutes from './modules/majors/routes';
 import classesRoutes from './modules/classes/routes';
+import employeesRoutes from './modules/employees/routes';
 
 dotenv.config();
 
@@ -96,6 +97,7 @@ app.use("/api/menus", menusRoutes);
 app.use("/api/system", systemRoutes);
 app.use("/api/majors", majorsRoutes);
 app.use("/api/classes", classesRoutes);
+app.use("/api/employees", employeesRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

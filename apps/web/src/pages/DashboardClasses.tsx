@@ -8,6 +8,7 @@ import { Edit2, Trash2 } from 'lucide-react';
 export const DashboardClasses = () => {
   const [classes, setClasses] = useState<any[]>([]);
   const [majors, setMajors] = useState<any[]>([]);
+  const [teachers, setTeachers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   // States for Adding/Editing Major
@@ -17,7 +18,7 @@ export const DashboardClasses = () => {
 
   // States for Adding/Editing Class
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
-  const [classForm, setClassForm] = useState({ id: '', name: '', majorId: '' });
+  const [classForm, setClassForm] = useState({ id: '', name: '', majorId: '', homeroomTeacherId: '' });
   const [isEditingClass, setIsEditingClass] = useState(false);
 
   useEffect(() => {
@@ -27,14 +28,16 @@ export const DashboardClasses = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [clsRes, mjrRes] = await Promise.all([
+      const [clsRes, mjrRes, tchRes] = await Promise.all([
         apiClient<any[]>('/classes'),
-        apiClient<any[]>('/majors')
+        apiClient<any[]>('/majors'),
+        apiClient<any[]>('/employees?type=Guru')
       ]);
       setClasses(clsRes);
       setMajors(mjrRes);
+      setTeachers(tchRes);
     } catch (error) {
-      console.error('Failed to fetch classes or majors', error);
+      console.error('Failed to fetch data', error);
     } finally {
       setLoading(false);
     }
@@ -88,10 +91,10 @@ export const DashboardClasses = () => {
   const openClassModal = (cls?: any) => {
     if (cls) {
       setIsEditingClass(true);
-      setClassForm({ id: cls.id, name: cls.name, majorId: cls.majorId });
+      setClassForm({ id: cls.id, name: cls.name, majorId: cls.majorId, homeroomTeacherId: cls.homeroomTeacherId || '' });
     } else {
       setIsEditingClass(false);
-      setClassForm({ id: '', name: '', majorId: '' });
+      setClassForm({ id: '', name: '', majorId: '', homeroomTeacherId: '' });
     }
     setIsClassModalOpen(true);
   };
@@ -99,12 +102,15 @@ export const DashboardClasses = () => {
   const handeSubmitClass = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    const dataToSend = { ...classForm };
+    if (!dataToSend.homeroomTeacherId) delete (dataToSend as any).homeroomTeacherId;
+
     try {
       if (isEditingClass) {
-        await apiClient(`/classes/${classForm.id}`, { method: 'PUT', data: { name: classForm.name, majorId: classForm.majorId } });
+        await apiClient(`/classes/${classForm.id}`, { method: 'PUT', data: dataToSend });
         alert('Kelas berhasil diperbarui!');
       } else {
-        await apiClient('/classes', { method: 'POST', data: { name: classForm.name, majorId: classForm.majorId } });
+        await apiClient('/classes', { method: 'POST', data: dataToSend });
         alert('Kelas berhasil ditambahkan!');
       }
       setIsClassModalOpen(false);
@@ -172,7 +178,7 @@ export const DashboardClasses = () => {
                 <li key={c.id} className="p-3 border rounded-lg flex justify-between items-center group">
                   <div>
                     <span className="block">{c.name}</span>
-                    <span className="text-xs text-gray-500">Wali: {c.homeroomTeacherId || 'Belum di-assign'}</span>
+                    <span className="text-xs text-gray-500">Wali: {c.homeroomTeacherName || 'Belum di-assign'}</span>
                   </div>
                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => openClassModal(c)} className="text-blue-500 hover:text-blue-700"><Edit2 size={16} /></button>
@@ -209,13 +215,26 @@ export const DashboardClasses = () => {
             <label className="text-sm font-medium">Pilih Jurusan*</label>
             <select 
               required
-              className="w-full flex h-10 w-full rounded-md border border-input bg-background dark:bg-background-dark dark:border-border-dark px-3 py-2 text-sm text-text-primary dark:text-text-darkPrimary ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full flex h-10 w-full rounded-md border border-input bg-background dark:bg-background-dark dark:border-border-dark px-3 py-2 text-sm text-text-primary dark:text-text-darkPrimary ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
               value={classForm.majorId} 
               onChange={e => setClassForm({ ...classForm, majorId: e.target.value })}
             >
               <option value="" disabled>Pilih Jurusan...</option>
               {majors.map(m => (
                 <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Wali Kelas (Opsional)</label>
+            <select 
+              className="w-full flex h-10 w-full rounded-md border border-input bg-background dark:bg-background-dark dark:border-border-dark px-3 py-2 text-sm text-text-primary dark:text-text-darkPrimary ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+              value={classForm.homeroomTeacherId} 
+              onChange={e => setClassForm({ ...classForm, homeroomTeacherId: e.target.value })}
+            >
+              <option value="">-- Kosongkan (Belum ada) --</option>
+              {teachers.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
           </div>
