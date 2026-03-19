@@ -40,6 +40,13 @@ export class StudentService {
     return results[0];
   }
 
+  static async deleteStudent(id: string) {
+    // Cascade delete any identity revisions first
+    await db.delete(identityRevisions).where(eq(identityRevisions.studentProfileId, id));
+    const results = await db.delete(studentProfiles).where(eq(studentProfiles.id, id)).returning();
+    return results[0];
+  }
+
   static async createRevisionRequest(data: any) {
     const results = await db.insert(identityRevisions).values(data).returning();
     return results[0];

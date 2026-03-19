@@ -170,6 +170,16 @@ export class StudentController {
     }
   }
 
+  static async delete(req: Request, res: Response) {
+    try {
+      const deleted = await StudentService.deleteStudent(req.params.id);
+      if (!deleted) return res.status(404).json({ error: "Not found" });
+      res.json({ message: "Student deleted successfully", data: deleted });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete student" });
+    }
+  }
+
   static async createRevision(req: Request, res: Response) {
     try {
       const revision = await StudentService.createRevisionRequest(req.body);
