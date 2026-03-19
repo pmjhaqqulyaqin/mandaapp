@@ -10,6 +10,7 @@ export const DashboardStudents = () => {
   const { user } = useAuth();
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ show: false, percent: 0 });
   
   // Add Student State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -47,22 +48,40 @@ export const DashboardStudents = () => {
     if (!file) return;
 
     setLoading(true);
+    setUploadProgress({ show: true, percent: 10 });
     const formData = new FormData();
     formData.append('file', file);
+
+    // Simulated progress leading up to 90%
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => ({ 
+        show: true, 
+        percent: prev.percent >= 90 ? 90 : prev.percent + 15 
+      }));
+    }, 300);
 
     try {
       const res = await apiClient<{message:string}>('/students/upload', {
         method: 'POST',
         body: formData
       } as any);
-      alert(res.message || 'Import berhasil!');
-      fetchStudents();
+      
+      clearInterval(progressInterval);
+      setUploadProgress({ show: true, percent: 100 });
+      
+      setTimeout(() => {
+        alert(res.message || 'Import berhasil!');
+        setUploadProgress({ show: false, percent: 0 });
+        fetchStudents();
+      }, 500);
+      
     } catch (error: any) {
+      clearInterval(progressInterval);
+      setUploadProgress({ show: false, percent: 0 });
       console.error('Failed to import', error);
       alert('Gagal import: ' + (error.response?.data?.error || error.message));
     } finally {
       setLoading(false);
-      // reset file input
       e.target.value = '';
     }
   };

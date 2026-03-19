@@ -41,10 +41,14 @@ export class StudentController {
 
   static async create(req: Request, res: Response) {
     try {
+      // Sanitize empty strings that break postgres date columns
+      if (req.body.birthDate === '') req.body.birthDate = null;
+      if (req.body.classId === '') req.body.classId = null;
+
       const student = await StudentService.createStudent(req.body);
       res.status(201).json(student);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to create student" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to create student" });
     }
   }
 

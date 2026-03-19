@@ -16,12 +16,22 @@ export class StudentService {
   }
 
   static async createStudent(data: any) {
-    const results = await db.insert(studentProfiles).values(data).returning();
+    const results = await db.insert(studentProfiles)
+      .values(data)
+      .onConflictDoUpdate({
+        target: studentProfiles.nisn,
+        set: data
+      })
+      .returning();
     return results[0];
   }
 
   static async bulkCreateStudents(data: any[]) {
-    const results = await db.insert(studentProfiles).values(data).returning();
+    // Gracefully ignore duplicates in bulk
+    const results = await db.insert(studentProfiles)
+      .values(data)
+      .onConflictDoNothing({ target: studentProfiles.nisn })
+      .returning();
     return results;
   }
 

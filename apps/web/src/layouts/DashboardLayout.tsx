@@ -57,6 +57,13 @@ const ALL_MENU_ITEMS = [
     group: 'main',
   },
   {
+    key: 'classes',
+    label: 'Kelas & Jurusan',
+    href: '/dashboard/classes',
+    icon: <BookOpen size={18} />,
+    group: 'main',
+  },
+  {
     key: 'students',
     label: 'Data Siswa',
     href: '/dashboard/students',
@@ -89,13 +96,6 @@ const ALL_MENU_ITEMS = [
     label: 'Pengaturan Sistem',
     href: '/dashboard/settings',
     icon: <SettingsIcon size={18} />,
-    group: 'system',
-  },
-  {
-    key: 'classes',
-    label: 'Kelas & Jurusan',
-    href: '/dashboard/classes',
-    icon: <BookOpen size={18} />,
     group: 'system',
   },
   {
