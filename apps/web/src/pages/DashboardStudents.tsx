@@ -190,7 +190,7 @@ export const DashboardStudents = () => {
                 </thead>
                 <tbody>
                   {students.map(student => (
-                    <tr key={student.id} className="border-b border-gray-50 dark:border-[#222]">
+                    <tr key={student.id} className="group border-b border-gray-50 dark:border-[#222]">
                       <td className="py-3 px-4">{student.fullName || '-'}</td>
                       <td className="py-3 px-4">{student.nisn}</td>
                       <td className="py-3 px-4">{student.className || '-'}</td>

@@ -39,7 +39,7 @@ export function DataTable<T>({
         <tbody className="divide-y divide-border-light dark:divide-border-dark bg-white dark:bg-background-dark">
           {data.length > 0 ? (
             data.map((row) => (
-              <tr key={keyExtractor(row)} className="hover:bg-gray-50 dark:hover:bg-[#1a1a1a]/50 transition-colors">
+              <tr key={keyExtractor(row)} className="group hover:bg-gray-50 dark:hover:bg-[#1a1a1a]/50 transition-colors">
                 {columns.map((col, i) => (
                   <td key={i} className={cn('px-6 py-4 whitespace-nowrap text-text-primary dark:text-text-darkPrimary', col.className)}>
                     {typeof col.accessorKey === 'function'
