@@ -25,7 +25,7 @@ export const DashboardStudentCard = () => {
   const { user } = useAuth();
   const { queryAll: studentsQuery, updateMutation: updateStudent } = useStudents();
   const { querySettings: cardSettingsQuery, updateSettingsMutation } = useCards();
-  const { get: getSiteSetting } = useSiteSettings();
+  const { get: getSiteSetting, isLoading: isSiteSettingsLoading } = useSiteSettings();
   
   const globalLogoUrl = getSiteSetting('logo_url', '');
   const globalSchoolName = getSiteSetting('school_name', '');
@@ -40,7 +40,7 @@ export const DashboardStudentCard = () => {
 
   const studentList: StudentProfile[] = Array.isArray(studentsQuery.data) ? studentsQuery.data : [];
   const cardSettings = cardSettingsQuery.data || defaultCardSettings;
-  const isLoadingData = studentsQuery.isLoading || cardSettingsQuery.isLoading;
+  const isLoadingData = studentsQuery.isLoading || cardSettingsQuery.isLoading || isSiteSettingsLoading;
 
   const [activeTab, setActiveTab] = useState<'preview' | 'edit' | 'settings' | 'batch'>('preview');
 
