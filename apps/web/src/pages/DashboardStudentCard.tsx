@@ -14,6 +14,7 @@ import {
 } from '@mandaapp/ui';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
+import { apiClient } from '../lib/api';
 import { mockStudents, defaultCardSettings } from '../data/mockStudents';
 import type { StudentProfile } from '../types/studentTypes';
 import { useStudents } from '../hooks/api/useStudents';
@@ -61,6 +62,21 @@ export const DashboardStudentCard = () => {
       setOrientation(cardSettingsQuery.data.orientation || defaultCardSettings.orientation);
     }
   }, [cardSettingsQuery.data]);
+
+  const [classesList, setClassesList] = useState<any[]>([]);
+  const [majorsList, setMajorsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    apiClient<any[]>('/classes').then(setClassesList).catch(() => {});
+    apiClient<any[]>('/majors').then(setMajorsList).catch(() => {});
+  }, [user]);
+
+  const getClassWithMajor = (className: string) => {
+    const classObj = classesList.find(c => c.name === className);
+    if (!classObj) return className;
+    const majorName = majorsList.find(m => m.id === classObj.majorId)?.name || '';
+    return majorName ? `${className} - ${majorName}` : className;
+  };
 
   // Student data
   const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
@@ -258,7 +274,7 @@ export const DashboardStudentCard = () => {
                     >
                       <option value="all">Semua Kelas</option>
                       {uniqueClasses.map((c) => (
-                        <option key={c} value={c}>{c}</option>
+                        <option key={c} value={c}>{getClassWithMajor(c as string)}</option>
                       ))}
                     </select>
                   </div>
@@ -274,7 +290,7 @@ export const DashboardStudentCard = () => {
                     >
                       {filteredStudents.map((s: StudentProfile) => (
                         <option key={s.id} value={s.id}>
-                          {s.name} — {s.className}
+                          {s.fullName || s.name} — {getClassWithMajor(s.className)}
                         </option>
                       ))}
                     </select>
@@ -293,7 +309,7 @@ export const DashboardStudentCard = () => {
                       {selectedStudent && (
                         <PrintableStudentCard
                           student={{
-                            name: selectedStudent.name,
+                            name: selectedStudent.fullName || selectedStudent.name,
                             nisn: selectedStudent.nisn,
                             className: selectedStudent.className,
                             birthPlace: selectedStudent.birthPlace,
@@ -399,7 +415,7 @@ export const DashboardStudentCard = () => {
                     >
                       {studentList.map((s: StudentProfile) => (
                         <option key={s.id} value={s.id}>
-                          {s.name} — {s.className}
+                          {s.fullName || s.name} — {getClassWithMajor(s.className)}
                         </option>
                       ))}
                     </select>
@@ -531,7 +547,7 @@ export const DashboardStudentCard = () => {
                   >
                     <option value="all">Semua Kelas</option>
                     {uniqueClasses.map((c) => (
-                      <option key={c} value={c}>{c}</option>
+                      <option key={c} value={c}>{getClassWithMajor(c as string)}</option>
                     ))}
                   </select>
                   <button
@@ -586,7 +602,7 @@ export const DashboardStudentCard = () => {
                   <div key={s.id} className="card-wrapper">
                     <PrintableStudentCard
                       student={{
-                        name: s.name,
+                        name: s.fullName || s.name,
                         nisn: s.nisn,
                         className: s.className,
                         birthPlace: s.birthPlace,
