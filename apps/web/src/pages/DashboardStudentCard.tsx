@@ -14,7 +14,7 @@ import {
 } from '@mandaapp/ui';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
-import { apiClient } from '../lib/api';
+import { apiClient, API_BASE_URL } from '../lib/api';
 import { mockStudents, defaultCardSettings } from '../data/mockStudents';
 import type { StudentProfile } from '../types/studentTypes';
 import { useStudents } from '../hooks/api/useStudents';
@@ -27,9 +27,18 @@ export const DashboardStudentCard = () => {
   const { querySettings: cardSettingsQuery, updateSettingsMutation } = useCards();
   const { get: getSiteSetting } = useSiteSettings();
   
-  const globalLogoUrl = getSiteSetting('site_logo', '');
+  const globalLogoUrl = getSiteSetting('logo_url', '');
+  const globalSchoolName = getSiteSetting('school_name', '');
+  const globalSchoolAddress = getSiteSetting('address', '');
+  const globalSchoolPhone = getSiteSetting('phone', '');
+  const globalSchoolEmail = getSiteSetting('email', '');
+  const globalHeadmasterName = getSiteSetting('principal_name', '');
+  const globalHeadmasterNip = getSiteSetting('principal_nip', '');
 
-  const studentList: StudentProfile[] = studentsQuery.data?.length ? studentsQuery.data : mockStudents;
+  const SERVER_BASE_URL = API_BASE_URL.replace(/\/api$/, '');
+  const getFullUrl = (url?: string) => url?.startsWith('/') ? `${SERVER_BASE_URL}${url}` : (url || '');
+
+  const studentList: StudentProfile[] = studentsQuery.data?.data || [];
   const cardSettings = cardSettingsQuery.data || defaultCardSettings;
   const isLoadingData = studentsQuery.isLoading || cardSettingsQuery.isLoading;
 
@@ -94,8 +103,10 @@ export const DashboardStudentCard = () => {
       } else {
         setSelectedStudent(studentList[0]);
       }
+    } else if (studentList.length === 0 && !isLoadingData) {
+      setSelectedStudent(null);
     }
-  }, [user, studentList, selectedStudent]);
+  }, [user, studentList, selectedStudent, isLoadingData]);
 
   const isLoading = isLoadingData || !selectedStudent;
 
@@ -320,12 +331,16 @@ export const DashboardStudentCard = () => {
                           }}
                           template={template}
                           settings={{
-                            schoolName: editingSettings.schoolName,
+                            schoolName: globalSchoolName || cardSettings.schoolName,
                             schoolSubtitle: editingSettings.schoolSubtitle,
-                            schoolAddress: editingSettings.schoolAddress,
+                            schoolAddress: globalSchoolAddress || cardSettings.schoolAddress,
+                            schoolPhone: globalSchoolPhone,
+                            schoolEmail: globalSchoolEmail,
+                            headmasterName: globalHeadmasterName,
+                            headmasterNip: globalHeadmasterNip,
                             termsText: editingSettings.termsText,
-                            schoolLogoUrl: globalLogoUrl || cardSettings.schoolLogoUrl,
-                            headmasterSignatureUrl: editingSettings.headmasterSignatureUrl,
+                            schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
+                            headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
                             academicYear: cardSettings.academicYear,
                             showQrCode: cardSettings.showQrCode,
                           }}
@@ -451,31 +466,17 @@ export const DashboardStudentCard = () => {
                   </svg>
                   Teks Kop Sekolah & Ketentuan
                 </h3>
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4 text-sm text-primary flex items-start gap-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                  <div>Data Nama Sekolah, Alamat, Logo, Kontak dan Nama Kepala Sekolah terhubung otomatis dari <strong>Pengaturan Sistem</strong>. Anda dapat mengedit sisanya di bawah ini.</div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-text-secondary mb-1">Nama Sekolah</label>
-                    <input 
-                      type="text" 
-                      value={editingSettings.schoolName || ''}
-                      onChange={e => setEditingSettings({...editingSettings, schoolName: e.target.value})}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-[#111] focus:border-primary outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-text-secondary mb-1">Website / Kontak (Subtitle)</label>
+                    <label className="block text-xs font-semibold text-text-secondary mb-1">Website / Kontak Alternatif (Subtitle)</label>
                     <input 
                       type="text" 
                       value={editingSettings.schoolSubtitle || ''}
                       onChange={e => setEditingSettings({...editingSettings, schoolSubtitle: e.target.value})}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-[#111] focus:border-primary outline-none"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-semibold text-text-secondary mb-1">Alamat Lengkap</label>
-                    <input 
-                      type="text" 
-                      value={editingSettings.schoolAddress || ''}
-                      onChange={e => setEditingSettings({...editingSettings, schoolAddress: e.target.value})}
                       className="w-full px-3 py-2 text-sm rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-[#111] focus:border-primary outline-none"
                     />
                   </div>
@@ -493,7 +494,7 @@ export const DashboardStudentCard = () => {
                     <label className="block text-xs font-semibold text-text-secondary mb-3">Tanda Tangan Kepala Sekolah (PNG Transparan)</label>
                     <div className="w-48">
                       <PhotoUploader
-                        currentPhotoUrl={editingSettings.headmasterSignatureUrl || ''}
+                        currentPhotoUrl={getFullUrl(editingSettings.headmasterSignatureUrl) || ''}
                         onPhotoChange={(url) => setEditingSettings({...editingSettings, headmasterSignatureUrl: url})}
                       />
                     </div>
@@ -511,7 +512,7 @@ export const DashboardStudentCard = () => {
                 <CardTemplateSelector
                   selectedTemplate={selectedTemplate}
                   orientation={orientation}
-                  schoolLogoUrl={globalLogoUrl || cardSettings.schoolLogoUrl}
+                  schoolLogoUrl={getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl)}
                   onTemplateChange={setSelectedTemplate}
                   onOrientationChange={setOrientation}
                 />
@@ -612,9 +613,16 @@ export const DashboardStudentCard = () => {
                       }}
                       template={template}
                       settings={{
-                        schoolName: cardSettings.schoolName,
+                        schoolName: globalSchoolName || cardSettings.schoolName,
                         schoolSubtitle: cardSettings.schoolSubtitle,
-                        schoolLogoUrl: cardSettings.schoolLogoUrl,
+                        schoolAddress: globalSchoolAddress || cardSettings.schoolAddress,
+                        schoolPhone: globalSchoolPhone,
+                        schoolEmail: globalSchoolEmail,
+                        headmasterName: globalHeadmasterName,
+                        headmasterNip: globalHeadmasterNip,
+                        termsText: cardSettings.termsText,
+                        schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
+                        headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
                         academicYear: cardSettings.academicYear,
                         showQrCode: cardSettings.showQrCode,
                       }}
