@@ -32,7 +32,10 @@ export class StudentController {
 
       // Fetch dynamic class names from DB
       const classes = await require('../classes/service').ClassService.getAllClasses();
-      const classNames = classes.map((c: any) => c.name);
+      const classNames = classes.map((c: any) => {
+        const major = c.majorName || c.majorCode || '';
+        return major ? `${c.name} - ${major}` : c.name;
+      });
 
       // Create a hidden sheet to store the dropdown list values cleanly (bypassing 255char limit)
       const listSheet = workbook.addWorksheet('SystemData', { state: 'hidden' });
@@ -104,6 +107,9 @@ export class StudentController {
       const worksheet = workbook.Sheets[sheetName];
       const data: any[] = xlsx.utils.sheet_to_json(worksheet);
 
+      // Fetch classes to map dropdown value back to classId
+      const classesData = await require('../classes/service').ClassService.getAllClasses();
+
       const mappedData = data.map((row) => {
         let parsedDate: string | null = null;
         const rawDate = row['Tanggal Lahir'] || row.TanggalLahir;
@@ -114,11 +120,19 @@ export class StudentController {
           }
         }
 
+        const rawClassName = String(row.Kelas || row.NamaKelas || '').trim();
+        const matchedClass = classesData.find((c: any) => {
+          const major = c.majorName || c.majorCode || '';
+          const dropdownValue = major ? `${c.name} - ${major}` : c.name;
+          return dropdownValue === rawClassName || c.name === rawClassName;
+        });
+
         return {
           fullName: row.Nama || row.NamaSiswa || row.Name,
           nisn: String(row.NISN || ''),
           nis: String(row.NIS || ''),
-          className: row.Kelas || row.NamaKelas,
+          classId: matchedClass ? matchedClass.id : null,
+          className: matchedClass ? matchedClass.name : rawClassName.substring(0, 50),
           birthPlace: row['Tempat Lahir'] || row.TempatLahir,
           birthDate: parsedDate,
           gender: row['Jenis Kelamin'] || row.JenisKelamin || row.Gender,

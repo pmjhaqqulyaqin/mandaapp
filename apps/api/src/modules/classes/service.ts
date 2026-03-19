@@ -1,5 +1,5 @@
 import { db } from "../../db";
-import { classes, employees } from "../../db/schema";
+import { classes, employees, majors } from "../../db/schema";
 import { eq } from "drizzle-orm";
 
 export class ClassService {
@@ -9,13 +9,16 @@ export class ClassService {
         id: classes.id,
         name: classes.name,
         majorId: classes.majorId,
+        majorName: majors.name,
+        majorCode: majors.code,
         homeroomTeacherId: classes.homeroomTeacherId,
         homeroomTeacherName: employees.name,
         createdAt: classes.createdAt,
         updatedAt: classes.updatedAt
       })
       .from(classes)
-      .leftJoin(employees, eq(classes.homeroomTeacherId, employees.id));
+      .leftJoin(employees, eq(classes.homeroomTeacherId, employees.id))
+      .leftJoin(majors, eq(classes.majorId, majors.id));
     return results;
   }
 
