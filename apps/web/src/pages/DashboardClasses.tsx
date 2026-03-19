@@ -11,7 +11,7 @@ export const DashboardClasses = () => {
 
   // States for Adding Major
   const [isMajorModalOpen, setIsMajorModalOpen] = useState(false);
-  const [majorForm, setMajorForm] = useState({ name: '', code: '' });
+  const [majorForm, setMajorForm] = useState({ name: '' });
 
   // States for Adding Class
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
@@ -44,7 +44,7 @@ export const DashboardClasses = () => {
       await apiClient('/majors', { method: 'POST', data: majorForm });
       alert('Jurusan berhasil ditambahkan!');
       setIsMajorModalOpen(false);
-      setMajorForm({ name: '', code: '' });
+      setMajorForm({ name: '' });
       fetchData();
     } catch (error: any) {
       alert('Gagal menambah jurusan: ' + error.message);
@@ -87,7 +87,7 @@ export const DashboardClasses = () => {
           {loading ? <p className="text-gray-500">Memuat...</p> : (
             <ul className="space-y-2">
               {majors.map(m => (
-                <li key={m.id} className="p-3 border rounded-lg flex justify-between">{m.name} ({m.code})</li>
+                <li key={m.id} className="p-3 border rounded-lg flex justify-between">{m.name}</li>
               ))}
               {majors.length === 0 && <li className="text-gray-400 text-sm">Belum ada jurusan</li>}
             </ul>
@@ -119,10 +119,6 @@ export const DashboardClasses = () => {
             <label className="text-sm font-medium">Nama Jurusan*</label>
             <Input required placeholder="Rekayasa Perangkat Lunak" value={majorForm.name} onChange={e => setMajorForm({ ...majorForm, name: e.target.value })} />
           </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Kode Singkatan*</label>
-            <Input required placeholder="RPL" value={majorForm.code} onChange={e => setMajorForm({ ...majorForm, code: e.target.value })} />
-          </div>
           <div className="flex justify-end gap-2 pt-4 border-t border-gray-100 dark:border-[#222]">
             <Button type="button" variant="ghost" onClick={() => setIsMajorModalOpen(false)}>Batal</Button>
             <Button type="submit" disabled={loading}>{loading ? 'Menyimpan...' : 'Simpan Jurusan'}</Button>
@@ -146,7 +142,7 @@ export const DashboardClasses = () => {
             >
               <option value="" disabled>Pilih Jurusan...</option>
               {majors.map(m => (
-                <option key={m.id} value={m.id}>{m.name} ({m.code})</option>
+                <option key={m.id} value={m.id}>{m.name}</option>
               ))}
             </select>
           </div>
