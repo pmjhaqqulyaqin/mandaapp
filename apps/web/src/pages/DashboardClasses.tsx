@@ -177,7 +177,9 @@ export const DashboardClasses = () => {
               {classes.map(c => (
                 <li key={c.id} className="p-3 border rounded-lg flex justify-between items-center group">
                   <div>
-                    <span className="block">{c.name}</span>
+                    <span className="block font-medium text-text-primary dark:text-text-darkPrimary">
+                      {c.name} <span className="font-normal text-text-secondary text-sm">({majors.find(m => m.id === c.majorId)?.name || 'Tanpa Jurusan'})</span>
+                    </span>
                     <span className="text-xs text-gray-500">Wali: {c.homeroomTeacherName || 'Belum di-assign'}</span>
                   </div>
                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
