@@ -12,8 +12,16 @@ export class MajorService {
     return results[0] || null;
   }
 
-  static async createMajor(data: { name: string; code: string }) {
-    const results = await db.insert(majors).values(data).returning();
+  static async createMajor(data: { name: string; code?: string }) {
+    if (!data.code && data.name) {
+      if (data.name.length <= 2 && !isNaN(Number(data.name))) {
+         data.code = `M${data.name}`; // e.g. "1" -> "M1" to avoid unique issues
+      } else {
+         data.code = data.name.split(' ').map((w: string) => w.charAt(0)).join('').toUpperCase();
+         if (data.code.length < 2) data.code += Math.floor(Math.random() * 1000);
+      }
+    }
+    const results = await db.insert(majors).values(data as any).returning();
     return results[0];
   }
 
