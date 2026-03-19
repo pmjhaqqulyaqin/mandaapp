@@ -13,6 +13,32 @@ export class StudentController {
     }
   }
 
+  static async downloadTemplate(req: Request, res: Response) {
+    try {
+      const headers = ['NamaSiswa', 'NISN', 'NIS', 'Kelas', 'TempatLahir', 'TanggalLahir', 'JenisKelamin', 'Alamat'];
+      const data = [
+        ['Budi Santoso', '1234567890', '1001', 'X RPL 1', 'Jakarta', '2008-01-01', 'Laki-laki', 'Jl. Merdeka No 1'],
+        ['Andi Suryadi', '0987654321', '1002', 'X TKJ 2', 'Bandung', '2008-05-12', 'Laki-laki', 'Jl. Sudirman 55']
+      ];
+      const worksheet = xlsx.utils.aoa_to_sheet([headers, ...data]);
+      
+      // Auto-size columns conceptually
+      const wscols = headers.map(h => ({ wch: Math.max(h.length, 15) }));
+      worksheet['!cols'] = wscols;
+
+      const workbook = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(workbook, worksheet, 'DataSiswa');
+      
+      const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      
+      res.setHeader('Content-Disposition', 'attachment; filename="template_data_siswa.xlsx"');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to generate template", details: error.message });
+    }
+  }
+
   static async create(req: Request, res: Response) {
     try {
       const student = await StudentService.createStudent(req.body);

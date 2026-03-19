@@ -1,14 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { Input } from '@mandaapp/ui/src/components/Input';
+import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Upload, Printer } from 'lucide-react';
-import { apiClient } from '../lib/api';
+import { UserPlus, Upload, Printer, Download } from 'lucide-react';
+import { apiClient, API_BASE_URL } from '../lib/api';
 
 export const DashboardStudents = () => {
   const { user } = useAuth();
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // Add Student State
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    fullName: '',
+    nisn: '',
+    nis: '',
+    className: '',
+    gender: '',
+    birthPlace: '',
+    birthDate: '',
+    address: ''
+  });
 
   useEffect(() => {
     fetchStudents();
@@ -53,6 +67,26 @@ export const DashboardStudents = () => {
     }
   };
 
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await apiClient('/students', { method: 'POST', data: formData });
+      alert('Siswa berhasil ditambahkan!');
+      setIsAddModalOpen(false);
+      setFormData({ fullName: '', nisn: '', nis: '', className: '', gender: '', birthPlace: '', birthDate: '', address: '' });
+      fetchStudents();
+    } catch (error: any) {
+      alert('Gagal menambah siswa: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    window.location.href = `${API_BASE_URL}/students/template`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -73,6 +107,13 @@ export const DashboardStudents = () => {
           <Button 
             variant="outline" 
             className="flex items-center gap-2"
+            onClick={downloadTemplate}
+          >
+            <Download size={18} /> Download Template
+          </Button>
+          <Button 
+            variant="outline" 
+            className="flex items-center gap-2"
             onClick={() => document.getElementById('excel-upload')?.click()}
             disabled={loading}
           >
@@ -81,7 +122,7 @@ export const DashboardStudents = () => {
           <Button variant="outline" className="flex items-center gap-2 text-primary border-primary hover:bg-primary/10">
             <Printer size={18} /> Cetak Kartu
           </Button>
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2" onClick={() => setIsAddModalOpen(true)}>
             <UserPlus size={18} /> Tambah Siswa
           </Button>
         </div>
@@ -125,6 +166,51 @@ export const DashboardStudents = () => {
           )}
         </div>
       </div>
+
+      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Tambah Data Siswa Spesifik">
+        <form onSubmit={handleAddSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Nama Lengkap*</label>
+              <Input required placeholder="Budi Santoso" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">NISN*</label>
+              <Input required placeholder="1234567890" value={formData.nisn} onChange={e => setFormData({...formData, nisn: e.target.value})} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">NIS</label>
+              <Input placeholder="1001" value={formData.nis} onChange={e => setFormData({...formData, nis: e.target.value})} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Kelas</label>
+              <Input placeholder="X MIPA 1" value={formData.className} onChange={e => setFormData({...formData, className: e.target.value})} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Jenis Kelamin</label>
+              <Input placeholder="Laki-laki/Perempuan" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Tempat Lahir</label>
+              <Input placeholder="Jakarta" value={formData.birthPlace} onChange={e => setFormData({...formData, birthPlace: e.target.value})} />
+            </div>
+            <div className="col-span-2 space-y-1">
+              <label className="text-sm font-medium">Tanggal Lahir</label>
+              <Input type="date" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} />
+            </div>
+            <div className="col-span-2 space-y-1">
+              <label className="text-sm font-medium">Alamat</label>
+              <Input placeholder="Jl. Raya..." value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-4 border-t border-gray-100 dark:border-[#222]">
+            <Button type="button" variant="ghost" onClick={() => setIsAddModalOpen(false)}>Batal</Button>
+            <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={loading}>
+              {loading ? 'Menyimpan...' : 'Simpan Siswa'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
