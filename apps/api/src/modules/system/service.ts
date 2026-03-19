@@ -31,8 +31,21 @@ export const checkForUpdates = async () => {
     const status = await getSystemStatus();
     const currentVersion = status.version;
 
-    const ghRes = await axios.get(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
-      headers: { 'Accept': 'application/vnd.github.v3+json' },
+    const headers: any = { 
+      'Accept': 'application/vnd.github.v3+json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    };
+    
+    // Optional: Personal Access Token if provided in env
+    if (process.env.GITHUB_TOKEN) {
+      headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+    }
+
+    // Append ?t=Date.now() to trick caching mechanisms
+    const ghRes = await axios.get(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest?t=${Date.now()}`, {
+      headers,
       timeout: 10000
     });
 
