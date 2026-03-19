@@ -26,6 +26,8 @@ export class EmployeeController {
   static async create(req: Request, res: Response) {
     try {
       if (req.body.birthDate === '') req.body.birthDate = null;
+      if (req.body.id === '') delete req.body.id;
+      if (req.body.userId === '') delete req.body.userId;
       const data = await EmployeeService.createEmployee(req.body);
       res.status(201).json(data);
     } catch (error: any) {
@@ -36,6 +38,8 @@ export class EmployeeController {
   static async update(req: Request, res: Response) {
     try {
       if (req.body.birthDate === '') req.body.birthDate = null;
+      if (req.body.id === '' || req.body.id) delete req.body.id; // Never update ID column
+      if (req.body.userId === '') delete req.body.userId;
       const data = await EmployeeService.updateEmployee(req.params.id, req.body);
       if (!data) return res.status(404).json({ error: "Pegawai not found" });
       res.json(data);
