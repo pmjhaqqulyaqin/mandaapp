@@ -104,16 +104,27 @@ export class StudentController {
       const worksheet = workbook.Sheets[sheetName];
       const data: any[] = xlsx.utils.sheet_to_json(worksheet);
 
-      const mappedData = data.map((row) => ({
-        fullName: row.Nama || row.NamaSiswa || row.Name,
-        nisn: String(row.NISN || ''),
-        nis: String(row.NIS || ''),
-        className: row.Kelas || row.NamaKelas,
-        birthPlace: row['Tempat Lahir'] || row.TempatLahir,
-        birthDate: row['Tanggal Lahir'] || row.TanggalLahir ? new Date(row['Tanggal Lahir'] || row.TanggalLahir).toISOString() : null,
-        gender: row['Jenis Kelamin'] || row.JenisKelamin || row.Gender,
-        address: row.Alamat || row.Address
-      })).filter((r) => r.nisn); // Only insert valid rows with NISN
+      const mappedData = data.map((row) => {
+        let parsedDate: string | null = null;
+        const rawDate = row['Tanggal Lahir'] || row.TanggalLahir;
+        if (rawDate) {
+          const d = new Date(rawDate);
+          if (!isNaN(d.getTime())) {
+            parsedDate = d.toISOString();
+          }
+        }
+
+        return {
+          fullName: row.Nama || row.NamaSiswa || row.Name,
+          nisn: String(row.NISN || ''),
+          nis: String(row.NIS || ''),
+          className: row.Kelas || row.NamaKelas,
+          birthPlace: row['Tempat Lahir'] || row.TempatLahir,
+          birthDate: parsedDate,
+          gender: row['Jenis Kelamin'] || row.JenisKelamin || row.Gender,
+          address: row.Alamat || row.Address
+        };
+      }).filter((r) => r.nisn && r.nisn.trim() !== ''); // Only insert valid rows with NISN
 
       if (mappedData.length === 0) {
         return res.status(400).json({ error: "No valid data found in Excel. Ensure column NISN exists." });

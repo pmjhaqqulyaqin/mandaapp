@@ -65,18 +65,29 @@ export class EmployeeController {
       const sheetName = workbook.SheetNames[0];
       const data = xlsx.utils.sheet_to_json<any>(workbook.Sheets[sheetName]);
 
-      const mappedData = data.map((row) => ({
-        type: row.JenisPegawai || row.Type || 'Guru',
-        name: row.Nama || row.Name,
-        nip: String(row.NIP || row.NUPTK || ''),
-        rank: row.Pangkat || row.Rank || '',
-        grade: String(row.Golongan || row.Grade || ''),
-        position: row.Jabatan || row.Position || '',
-        gender: row['Jenis Kelamin'] || row.JenisKelamin || row.Gender,
-        birthPlace: row['Tempat Lahir'] || row.TempatLahir,
-        birthDate: row['Tanggal Lahir'] || row.TanggalLahir ? new Date(row['Tanggal Lahir'] || row.TanggalLahir).toISOString() : null,
-        task: row['Tugas Kepegawaian'] || row.TugasKepegawaian || row.Task || '',
-      })).filter((r) => r.nip && r.name); // NIP and Name required
+      const mappedData = data.map((row) => {
+        let parsedDate: string | null = null;
+        const rawDate = row['Tanggal Lahir'] || row.TanggalLahir;
+        if (rawDate) {
+          const d = new Date(rawDate);
+          if (!isNaN(d.getTime())) {
+            parsedDate = d.toISOString();
+          }
+        }
+
+        return {
+          type: row.JenisPegawai || row.Type || 'Guru',
+          name: row.Nama || row.Name,
+          nip: String(row.NIP || row.NUPTK || ''),
+          rank: row.Pangkat || row.Rank || '',
+          grade: String(row.Golongan || row.Grade || ''),
+          position: row.Jabatan || row.Position || '',
+          gender: row['Jenis Kelamin'] || row.JenisKelamin || row.Gender,
+          birthPlace: row['Tempat Lahir'] || row.TempatLahir,
+          birthDate: parsedDate,
+          task: row['Tugas Kepegawaian'] || row.TugasKepegawaian || row.Task || '',
+        };
+      }).filter((r) => r.nip && r.name && r.nip.trim() !== ''); // NIP and Name required and not empty
 
       if(mappedData.length === 0) return res.status(400).json({ error: "Data is empty or missing required fields (NIP, Nama)." });
 
