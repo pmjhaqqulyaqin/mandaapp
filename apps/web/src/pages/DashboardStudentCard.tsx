@@ -24,7 +24,7 @@ import { useCards } from '../hooks/api/useCards';
 import { useSiteSettings } from '../hooks/api/useSettings';
 import { CameraCapture } from '../components/CameraCapture';
 import { galleryService } from '../lib/services/gallery';
-import { Edit2, Image as ImageIcon, Camera, X, Loader2 } from 'lucide-react';
+import { Edit2, Image as ImageIcon, Camera, X, Loader2, Eye } from 'lucide-react';
 
 export const DashboardStudentCard = () => {
   const { user } = useAuth();
@@ -203,6 +203,16 @@ export const DashboardStudentCard = () => {
             title="Ubah Foto Profil"
           >
             <ImageIcon className="w-4 h-4" />
+          </button>
+          <button 
+            onClick={() => { 
+              setSelectedStudent(row); 
+              setActiveTab('preview');
+            }}
+            className="text-amber-500 hover:text-amber-700 transition-colors p-1"
+            title="Preview Kartu Pelajar"
+          >
+            <Eye className="w-4 h-4" />
           </button>
         </div>
       ),
@@ -552,9 +562,13 @@ export const DashboardStudentCard = () => {
                  )}
                </div>
 
-               <div className="overflow-x-auto">
-                 <DataTable data={filteredStudents} columns={editTabColumns} keyExtractor={(s) => s.id} />
-               </div>
+               <DataTable 
+                 data={filteredStudents} 
+                 columns={editTabColumns} 
+                 keyExtractor={(s) => s.id} 
+                 compact
+                 className="max-h-[calc(100vh-280px)]"
+               />
             </div>
           )}
 
