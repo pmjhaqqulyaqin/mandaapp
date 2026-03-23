@@ -281,10 +281,90 @@ export const PrintableStudentCard = ({
   };
 
   const VerticalFront = () => {
-          </div>
+    const headerColor = template?.primaryColor || '#3b1c9e'; // Default to deep purple if classic
+    const textColor = '#111827';
+    const kemenagLogoUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
+    const barcodeText = `${student.nisn}`;
+    const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(barcodeText)}&scale=3&height=12&includetext=false`;
 
-          {/* Bottom decorative shape */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, width: '250px', height: '30px', background: template?.secondaryColor || '#88be4f', borderTopRightRadius: '30px' }}></div>
+    const DotsMatrix = ({ color }: { color: string }) => (
+      <svg width="40" height="40" viewBox="0 0 40 40" fill={color}>
+        {[0, 10, 20, 30].map(x => [0, 10, 20, 30].map(y => (
+          <circle key={`${x}-${y}`} cx={x+4} cy={y+4} r="2.5" />
+        )))}
+      </svg>
+    );
+
+    return (
+      <div style={{ width: '100%', height: '100%', position: 'relative', backgroundColor: '#fcfcfc' }}>
+        {/* HEADER */}
+        <div style={{ width: '100%', height: '180px', backgroundColor: headerColor, borderBottomLeftRadius: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 10 }}>
+           {/* Yellow Top Pill */}
+           <div style={{ position: 'absolute', top: 0, left: 0, width: '140px', height: '24px', backgroundColor: '#facc15', borderBottomRightRadius: '12px' }}></div>
+           
+           {/* Yellow Dots Top Right */}
+           <div style={{ position: 'absolute', top: '15px', right: '15px', opacity: 0.8 }}>
+             <DotsMatrix color="#facc15" />
+           </div>
+
+           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '0 25px', width: '100%', marginTop: '10px' }}>
+              <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '65px', height: '65px', objectFit: 'contain' }} />
+              <div style={{ flex: 1, textAlign: 'center', color: '#ffffff' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.5px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
+                <div style={{ fontSize: '19px', fontWeight: 800, margin: '4px 0', letterSpacing: '0.5px' }}>{settings.schoolName || 'MADRASAH ALIYAH NEGERI'}</div>
+                <div style={{ fontSize: '10px', fontWeight: 400, opacity: 0.9 }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
+              </div>
+              {settings.schoolLogoUrl ? (
+                <img src={settings.schoolLogoUrl} alt="Logo" style={{ width: '70px', height: '70px', objectFit: 'contain' }} />
+              ) : <div style={{ width: '70px' }} />}
+           </div>
+        </div>
+
+        {/* BODY */}
+        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', height: 'calc(100% - 210px)' }}>
+           
+           {/* Title Area with Dots */}
+           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '15px' }}>
+              <div style={{ opacity: 0.8 }}><DotsMatrix color={headerColor} /></div>
+              <h2 style={{ fontSize: '26px', color: textColor, fontWeight: 900, textAlign: 'center', lineHeight: 1.1, flex: 1 }}>
+                KARTU IDENTITAS<br/>PELAJAR
+              </h2>
+           </div>
+
+           {/* Photo */}
+           <div style={{ width: '170px', height: '230px', backgroundColor: '#e2e8f0', borderRadius: '4px', border: `3px solid ${headerColor}`, overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', marginBottom: '20px' }}>
+             {student.photoUrl ? (
+               <img src={student.photoUrl} alt="Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+             ) : (
+               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '48px', color: '#94a3b8' }}>
+                 {student.name.charAt(0)}
+               </div>
+             )}
+           </div>
+
+           {/* Data Grid */}
+           <div style={{ width: '85%', display: 'grid', gridTemplateColumns: '120px 15px 1fr', gap: '12px', fontSize: '16px', color: textColor, fontWeight: 700, marginBottom: '25px' }}>
+              <div>Nama</div><div>:</div><div style={{ fontWeight: 500 }}>{student.name}</div>
+              <div>NIS/NISN</div><div>:</div><div style={{ fontWeight: 500 }}>{student.nisn}</div>
+              <div>Tanggal Lahir</div><div>:</div><div style={{ fontWeight: 500 }}>{formatDate(student.birthDate)}</div>
+              <div>Alamat</div><div>:</div><div style={{ fontWeight: 500, lineHeight: 1.2 }}>{student.address || '-'}</div>
+           </div>
+
+           {/* Barcode */}
+           <div style={{ marginTop: 'auto', marginBottom: '10px', height: '40px', width: '100%', display: 'flex', justifyContent: 'center' }}>
+             <img src={barcodeUrl} alt="Barcode" style={{ height: '100%', width: '220px', objectFit: 'fill' }} />
+           </div>
+        </div>
+
+        {/* FOOTER */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '30px', backgroundColor: headerColor, zIndex: 10 }}></div>
+        <div style={{ position: 'absolute', bottom: '30px', right: '15px', opacity: 0.8 }}><DotsMatrix color={headerColor} /></div>
+        
+        {/* Yellow Diagonal Stripes Graphic */}
+        <div style={{ position: 'absolute', bottom: '30px', left: '15px', width: '120px', height: '40px', display: 'flex', gap: '4px' }}>
+           {[1,2,3,4].map(i => (
+             <div key={i} style={{ width: '25px', height: '100%', backgroundColor: '#facc15', transform: 'skewX(-30deg)' }}></div>
+           ))}
         </div>
       </div>
     );
