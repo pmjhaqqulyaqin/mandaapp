@@ -42,7 +42,7 @@ export default {
         }
       },
       animation: {
-        'pan-slow': 'pan 40s linear infinite',
+        'pan-slow': 'pan 80s ease-in-out infinite',
       }
     },
   },
