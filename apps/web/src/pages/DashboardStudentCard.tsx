@@ -155,7 +155,25 @@ export const DashboardStudentCard = () => {
           }
           @media print {
             body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            @page { size: A4 portrait; margin: 8mm; }
+            @page { size: A4 portrait; margin: 0 !important; }
+            .a4-print-page {
+               width: 210mm;
+               height: 297mm;
+               padding: 10mm 5mm;
+               page-break-after: always;
+               break-after: page;
+               box-sizing: border-box;
+               display: flex;
+               flex-wrap: wrap;
+               align-content: flex-start;
+               justify-content: center;
+               gap: 4px;
+               overflow: hidden;
+            }
+            .a4-print-page:last-child {
+               page-break-after: auto;
+               break-after: auto;
+            }
           }
         </style>
       </head>
@@ -632,83 +650,88 @@ export const DashboardStudentCard = () => {
 
               {/* Hidden print area for batch */}
               <div ref={printRef} className="hidden">
-                
-                {/* Front Sides Grid */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
-                  {studentsToPrint.map((s) => (
-                    <div key={`front-${s.id}`} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                      <PrintableStudentCard
-                        student={{
-                          name: s.fullName || s.name,
-                          nisn: s.nisn,
-                          className: s.className,
-                          birthPlace: s.birthPlace,
-                          birthDate: s.birthDate,
-                          gender: s.gender,
-                          photoUrl: s.photoUrl,
-                        }}
-                        template={template}
-                        settings={{
-                          schoolName: globalSchoolName || cardSettings.schoolName,
-                          schoolSubtitle: cardSettings.schoolSubtitle,
-                          schoolAddress: globalSchoolAddress || cardSettings.schoolAddress,
-                          schoolPhone: globalSchoolPhone,
-                          schoolEmail: globalSchoolEmail,
-                          headmasterName: globalHeadmasterName,
-                          headmasterNip: globalHeadmasterNip,
-                          termsText: cardSettings.termsText,
-                          schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
-                          headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
-                          academicYear: cardSettings.academicYear,
-                          showQrCode: cardSettings.showQrCode,
-                        }}
-                        orientation={orientation}
-                        scale={0.45}
-                        side="front"
-                      />
+                {Array.from({ length: Math.ceil(studentsToPrint.length / 10) }).map((_, pageIndex) => {
+                  const chunk = studentsToPrint.slice(pageIndex * 10, (pageIndex + 1) * 10);
+                  return (
+                    <div key={`front-page-${pageIndex}`} className="a4-print-page">
+                      {chunk.map((s) => (
+                        <div key={`front-${s.id}`} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                          <PrintableStudentCard
+                            student={{
+                              name: s.fullName || s.name,
+                              nisn: s.nisn,
+                              className: s.className,
+                              birthPlace: s.birthPlace,
+                              birthDate: s.birthDate,
+                              gender: s.gender,
+                              photoUrl: s.photoUrl,
+                            }}
+                            template={template}
+                            settings={{
+                              schoolName: globalSchoolName || cardSettings.schoolName,
+                              schoolSubtitle: cardSettings.schoolSubtitle,
+                              schoolAddress: globalSchoolAddress || cardSettings.schoolAddress,
+                              schoolPhone: globalSchoolPhone,
+                              schoolEmail: globalSchoolEmail,
+                              headmasterName: globalHeadmasterName,
+                              headmasterNip: globalHeadmasterNip,
+                              termsText: cardSettings.termsText,
+                              schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
+                              headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
+                              academicYear: cardSettings.academicYear,
+                              showQrCode: cardSettings.showQrCode,
+                            }}
+                            orientation={orientation}
+                            scale={0.5}
+                            side="front"
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-
-                {/* Page Break between Fronts and Backs */}
-                <div style={{ pageBreakBefore: 'always', breakBefore: 'page' }}></div>
+                  );
+                })}
 
                 {/* Back Sides Grid */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
-                  {studentsToPrint.map((s) => (
-                    <div key={`back-${s.id}`} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                      <PrintableStudentCard
-                        student={{
-                          name: s.fullName || s.name,
-                          nisn: s.nisn,
-                          className: s.className,
-                          birthPlace: s.birthPlace,
-                          birthDate: s.birthDate,
-                          gender: s.gender,
-                          photoUrl: s.photoUrl,
-                        }}
-                        template={template}
-                        settings={{
-                          schoolName: globalSchoolName || cardSettings.schoolName,
-                          schoolSubtitle: cardSettings.schoolSubtitle,
-                          schoolAddress: globalSchoolAddress || cardSettings.schoolAddress,
-                          schoolPhone: globalSchoolPhone,
-                          schoolEmail: globalSchoolEmail,
-                          headmasterName: globalHeadmasterName,
-                          headmasterNip: globalHeadmasterNip,
-                          termsText: cardSettings.termsText,
-                          schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
-                          headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
-                          academicYear: cardSettings.academicYear,
-                          showQrCode: cardSettings.showQrCode,
-                        }}
-                        orientation={orientation}
-                        scale={0.45}
-                        side="back"
-                      />
+                {Array.from({ length: Math.ceil(studentsToPrint.length / 10) }).map((_, pageIndex) => {
+                  const chunk = studentsToPrint.slice(pageIndex * 10, (pageIndex + 1) * 10);
+                  return (
+                    <div key={`back-page-${pageIndex}`} className="a4-print-page">
+                      {chunk.map((s) => (
+                        <div key={`back-${s.id}`} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                          <PrintableStudentCard
+                            student={{
+                              name: s.fullName || s.name,
+                              nisn: s.nisn,
+                              className: s.className,
+                              birthPlace: s.birthPlace,
+                              birthDate: s.birthDate,
+                              gender: s.gender,
+                              photoUrl: s.photoUrl,
+                            }}
+                            template={template}
+                            settings={{
+                              schoolName: globalSchoolName || cardSettings.schoolName,
+                              schoolSubtitle: cardSettings.schoolSubtitle,
+                              schoolAddress: globalSchoolAddress || cardSettings.schoolAddress,
+                              schoolPhone: globalSchoolPhone,
+                              schoolEmail: globalSchoolEmail,
+                              headmasterName: globalHeadmasterName,
+                              headmasterNip: globalHeadmasterNip,
+                              termsText: cardSettings.termsText,
+                              schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
+                              headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
+                              academicYear: cardSettings.academicYear,
+                              showQrCode: cardSettings.showQrCode,
+                            }}
+                            orientation={orientation}
+                            scale={0.5}
+                            side="back"
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
             </div>
           )}
