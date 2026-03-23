@@ -110,6 +110,12 @@ export const DashboardStudentCard = () => {
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
   const previewContainerRef = useRef<HTMLDivElement>(null);
+  
+  const [mainPreviewScale, setMainPreviewScale] = useState(1);
+  const [mainPreviewHeight, setMainPreviewHeight] = useState(600);
+  const mainPreviewContainerRef = useRef<HTMLDivElement>(null);
+  const mainPreviewInnerRef = useRef<HTMLDivElement>(null);
+
   const [showCamera, setShowCamera] = useState(false);
   const [editingStudent, setEditingStudent] = useState<StudentProfile | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string>('');
@@ -147,6 +153,35 @@ export const DashboardStudentCard = () => {
       return () => observer.disconnect();
     }
   }, [isPreviewModalOpen, orientation]);
+
+  useEffect(() => {
+    if (activeTab === 'preview') {
+      let outerObserver: ResizeObserver | null = null;
+      let innerObserver: ResizeObserver | null = null;
+      
+      if (mainPreviewContainerRef.current) {
+        outerObserver = new ResizeObserver((entries) => {
+          const { width } = entries[0].contentRect;
+          const baseWidth = orientation === 'horizontal' ? 860 : 550;
+          const newScale = Math.min(1, (width - 32) / baseWidth);
+          setMainPreviewScale(newScale > 0 ? newScale : 1);
+        });
+        outerObserver.observe(mainPreviewContainerRef.current);
+      }
+      
+      if (mainPreviewInnerRef.current) {
+        innerObserver = new ResizeObserver((entries) => {
+          setMainPreviewHeight(entries[0].contentRect.height);
+        });
+        innerObserver.observe(mainPreviewInnerRef.current);
+      }
+      
+      return () => {
+        outerObserver?.disconnect();
+        innerObserver?.disconnect();
+      };
+    }
+  }, [activeTab, orientation, selectedStudent, editingSettings, cardSettings]);
 
   const isLoading = isLoadingData || !selectedStudent;
 
@@ -477,43 +512,65 @@ export const DashboardStudentCard = () => {
 
               {/* Card Preview */}
               <div className="flex flex-col items-center gap-6 w-full">
-                <div className="bg-gray-50 dark:bg-[#0a0a0a] p-4 sm:p-8 rounded-xl border border-border-light dark:border-border-dark w-full overflow-hidden flex justify-center">
-                  <div ref={printRef} className="max-w-full overflow-x-auto pb-6 custom-scrollbar" style={{ display: 'flex', justifyContent: 'center' }}>
+                <div 
+                  ref={mainPreviewContainerRef}
+                  className="bg-gray-50 dark:bg-[#0a0a0a] p-4 sm:p-8 rounded-xl border border-border-light dark:border-border-dark w-full overflow-hidden flex justify-center custom-scrollbar"
+                >
+                  {/* Bounding Box wrapper to eliminate flex-centering clipping */}
+                  <div 
+                    style={{ 
+                      width: `${(orientation === 'horizontal' ? 860 : 550) * mainPreviewScale}px`,
+                      height: `${mainPreviewHeight * mainPreviewScale}px`,
+                      overflow: 'hidden',
+                      transition: 'height 0.2s ease-out'
+                    }}
+                  >
                     <div 
-                      className="card-wrapper origin-top flex flex-col items-center gap-6"
-                      style={{ transform: 'scale(min(1, max(0.45, calc(100vw / 800))))' }}
+                      style={{ 
+                        transform: `scale(${mainPreviewScale})`, 
+                        transformOrigin: 'top left',
+                        width: `${orientation === 'horizontal' ? 860 : 550}px`
+                      }} 
                     >
-                      {selectedStudent && (
-                        <PrintableStudentCard
-                          student={{
-                            name: selectedStudent.fullName || selectedStudent.name,
-                            nisn: selectedStudent.nisn,
-                            className: selectedStudent.className,
-                            birthPlace: selectedStudent.birthPlace,
-                            birthDate: selectedStudent.birthDate,
-                            gender: selectedStudent.gender,
-                            address: selectedStudent.address,
-                            photoUrl: photoUrl || selectedStudent.photoUrl,
-                          }}
-                          template={template}
-                          settings={{
-                            schoolName: globalSchoolName || cardSettings.schoolName,
-                            schoolSubtitle: editingSettings.schoolSubtitle,
-                            schoolAddress: globalSchoolAddress || cardSettings.schoolAddress,
-                            schoolPhone: globalSchoolPhone,
-                            schoolEmail: globalSchoolEmail,
-                            headmasterName: globalHeadmasterName,
-                            headmasterNip: globalHeadmasterNip,
-                            termsText: editingSettings.termsText,
-                            schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
-                            headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
-                            academicYear: cardSettings.academicYear,
-                            showQrCode: cardSettings.showQrCode,
-                          }}
-                          orientation={orientation}
-                          scale={1}
-                        />
-                      )}
+                      {/* Print bounds exclude scaling! */}
+                      <div ref={printRef} className="card-outer-wrapper">
+                        <div 
+                          ref={mainPreviewInnerRef}
+                          className="card-wrapper flex flex-col items-center gap-6"
+                        >
+                          {selectedStudent && (
+                            <PrintableStudentCard
+                              student={{
+                                name: selectedStudent.fullName || selectedStudent.name,
+                                nisn: selectedStudent.nisn,
+                                className: selectedStudent.className,
+                                birthPlace: selectedStudent.birthPlace,
+                                birthDate: selectedStudent.birthDate,
+                                gender: selectedStudent.gender,
+                                address: selectedStudent.address,
+                                photoUrl: photoUrl || selectedStudent.photoUrl,
+                              }}
+                              template={template}
+                              settings={{
+                                schoolName: globalSchoolName || cardSettings.schoolName,
+                                schoolSubtitle: editingSettings.schoolSubtitle,
+                                schoolAddress: globalSchoolAddress || cardSettings.schoolAddress,
+                                schoolPhone: globalSchoolPhone,
+                                schoolEmail: globalSchoolEmail,
+                                headmasterName: globalHeadmasterName,
+                                headmasterNip: globalHeadmasterNip,
+                                termsText: editingSettings.termsText,
+                                schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
+                                headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
+                                academicYear: cardSettings.academicYear,
+                                showQrCode: cardSettings.showQrCode,
+                              }}
+                              orientation={orientation}
+                              scale={1}
+                            />
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
