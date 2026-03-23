@@ -161,12 +161,12 @@ export const HeroSection = ({ logoUrl, schoolName }: HeroSectionProps) => {
           <img 
             src={logoUrl} 
             alt="School Logo" 
-            className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 mb-4 object-contain animate-fade-in-up" 
+            className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mb-2 sm:mb-3 object-contain animate-fade-in-up" 
             style={{ filter: 'drop-shadow(0px 0px 20px rgba(255, 255, 255, 0.5))' }}
           />
         )}
         <h1 
-          className="text-white font-heading font-black text-center text-3xl sm:text-4xl md:text-5xl lg:text-6xl px-4 animate-fade-in-up"
+          className="text-white font-heading font-black text-center text-xl sm:text-2xl md:text-3xl lg:text-4xl px-4 animate-fade-in-up md:tracking-tight"
           style={{ 
             textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(0, 150, 255, 0.4)',
             animationDelay: '0.2s'
