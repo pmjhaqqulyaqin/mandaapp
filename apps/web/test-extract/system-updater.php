@@ -106,9 +106,36 @@ try {
         exit;
     }
 
-    if ($action === 'update') {
-        if (!isset($_FILES['package'])) throw new Exception("File ZIP tidak ditemukan.");
-        $tmpZipPath = $_FILES['package']['tmp_name'];
+    if ($action === 'update' || $action === 'download_update') {
+        $tmpZipPath = '';
+        
+        if ($action === 'update') {
+            if (!isset($_FILES['package'])) throw new Exception("File ZIP tidak ditemukan.");
+            $tmpZipPath = $_FILES['package']['tmp_name'];
+        } else if ($action === 'download_update') {
+            $json = json_decode(file_get_contents('php://input'), true);
+            if (!isset($json['url'])) throw new Exception("URL download tidak ditemukan.");
+            $downloadUrl = $json['url'];
+            
+            // Download using cURL memory safe stream
+            $tmpZipPath = $TEMP_DIR . 'downloaded_update.zip';
+            $fp = fopen($tmpZipPath, 'w+');
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $downloadUrl);
+            curl_setopt($ch, CURLOPT_FILE, $fp);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+            curl_exec($ch);
+            if (curl_errno($ch)) {
+                throw new Exception(curl_error($ch));
+            }
+            curl_close($ch);
+            fclose($fp);
+            
+            if (!file_exists($tmpZipPath) || filesize($tmpZipPath) === 0) {
+               throw new Exception("Gagal mendownload ZIP.");
+            }
+        }
 
         // 1. Backup
         $timestamp = time();
@@ -120,31 +147,27 @@ try {
         // 2. Extract
         $zip = new ZipArchive;
         if ($zip->open($tmpZipPath) === TRUE) {
-            deleteDir($TEMP_DIR);
-            @mkdir($TEMP_DIR, 0755, true);
-            $zip->extractTo($TEMP_DIR);
+            $extractTarget = $TEMP_DIR . 'extract/';
+            @mkdir($extractTarget, 0755, true);
+            $zip->extractTo($extractTarget);
             $zip->close();
             
             // 3. Robust Folder Detection
-            // Sometimes the ZIP contains a folder named 'dist' or 'build', sometimes it's direct.
-            $sourceDir = $TEMP_DIR;
-            $items = array_diff(scandir($TEMP_DIR), array('..', '.'));
+            $sourceDir = $extractTarget;
+            $items = array_diff(scandir($extractTarget), array('..', '.'));
             
-            // If there's only one directory inside the ZIP, look into it
             if (count($items) === 1) {
-                $possibleDir = $TEMP_DIR . reset($items);
+                $possibleDir = $extractTarget . reset($items);
                 if (is_dir($possibleDir)) {
                     $sourceDir = $possibleDir . '/';
                 }
-            } else if (is_dir($TEMP_DIR . 'dist')) {
-                $sourceDir = $TEMP_DIR . 'dist/';
+            } else if (is_dir($extractTarget . 'dist')) {
+                $sourceDir = $extractTarget . 'dist/';
             }
 
-            // Guard: check if index.html exists in detected source
             if (!file_exists($sourceDir . 'index.html')) {
-                // Try searching for index.html recursively if not found in root or dist
                 $found = false;
-                $it = new RecursiveDirectoryIterator($TEMP_DIR);
+                $it = new RecursiveDirectoryIterator($extractTarget);
                 foreach(new RecursiveIteratorIterator($it) as $file) {
                     if ($file->getFilename() === 'index.html') {
                         $sourceDir = dirname($file->getPathname()) . '/';

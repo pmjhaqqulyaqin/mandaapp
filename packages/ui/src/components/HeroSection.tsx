@@ -123,17 +123,12 @@ export const HeroSection = ({ logoUrl, schoolName }: HeroSectionProps) => {
       
       {/* --- DYNAMIC SKY WINDOW (55% HEIGHT) --- */}
       <div className="absolute top-0 left-0 w-full h-[55%] z-[1] overflow-hidden">
-        {/* Layer 1: Sky Backdrop */}
-        <div className={`absolute inset-0 z-[1] bg-gradient-to-b ${getSkyGradient()} transition-colors duration-3000`}>
-          <div 
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-60 mix-blend-overlay"
-            style={{ backgroundImage: "url('/Gambar Langit manda.png')" }}
-          ></div>
-        </div>
+        {/* Layer 0: Sky Gradient Base */}
+        <div className={`absolute inset-0 z-0 bg-gradient-to-b ${getSkyGradient()} transition-colors duration-3000`}></div>
 
         {/* Layer 1.5: Stars */}
         {!isDaytime && (
-          <div className="absolute inset-0 z-[2] opacity-60">
+          <div className="absolute inset-0 z-[1] opacity-60">
              {[...Array(60)].map((_, i) => (
                <div 
                  key={i}
@@ -153,7 +148,7 @@ export const HeroSection = ({ logoUrl, schoolName }: HeroSectionProps) => {
 
         {/* Layer 2: Celestial Bodies (Moves behind building but within sky window) */}
         <div 
-          className="absolute z-[5] pointer-events-none transition-all duration-[2000ms] ease-out flex items-center justify-center -translate-x-1/2"
+          className="absolute z-[2] pointer-events-none transition-all duration-[2000ms] ease-out flex items-center justify-center -translate-x-1/2"
           style={{ 
             top: isDaytime ? sunTop : moonTop, 
             left: isDaytime ? sunLeft : moonLeft,
@@ -183,6 +178,14 @@ export const HeroSection = ({ logoUrl, schoolName }: HeroSectionProps) => {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Layer 3: Sky Backdrop Image (Contains Trees & Mountains) positioned over sun/moon */}
+        <div className="absolute inset-0 z-[3] pointer-events-none">
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-60 mix-blend-overlay"
+            style={{ backgroundImage: "url('/Gambar Langit manda.png')" }}
+          ></div>
         </div>
       </div>
 
