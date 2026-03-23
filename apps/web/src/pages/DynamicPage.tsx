@@ -15,6 +15,7 @@ import { useNews } from '../hooks/api/useNews';
 import { useGallery } from '../hooks/api/useGallery';
 import { useSiteSettings } from '../hooks/api/useSettings';
 import { contactsService } from '../lib/services/contacts';
+import { PublicCetakKartu } from './PublicCetakKartu';
 
 interface LayoutSection {
   type: 'Hero' | 'Features' | 'Gallery' | 'News' | 'Stats' | 'QuickLinks' | 'Contact' | 'HTML';
@@ -169,8 +170,12 @@ export const DynamicPage = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex flex-col">
       <HeaderWithSettings />
-      {layout.length > 0 ? renderLayout() : renderDefaultContent()}
+      {slug === 'cetak-kartu-pelajar' 
+         ? <PublicCetakKartu /> 
+         : (layout.length > 0 ? renderLayout() : renderDefaultContent())
+      }
       <FooterWithSettings />
     </div>
   );
 };
+

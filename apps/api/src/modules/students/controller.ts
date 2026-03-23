@@ -206,4 +206,34 @@ export class StudentController {
       res.status(500).json({ error: "Failed to update revision status" });
     }
   }
+
+  static async publicSearch(req: Request, res: Response) {
+    try {
+      const { fullName, birthPlace, birthDate } = req.body;
+      if (!fullName || !birthPlace || !birthDate) {
+        return res.status(400).json({ error: "Kolom Nama Lengkap, Tempat Lahir, dan Tanggal Lahir harus diisi." });
+      }
+
+      const student = await StudentService.publicSearchStudent(fullName, birthPlace, birthDate);
+      if (!student) {
+        return res.status(404).json({ error: "Data siswa tidak ditemukan. Pastikan ejaan nama dan tanggal lahir sudah persis sama dengan data sekolah." });
+      }
+
+      // Return only safe necessary data for card printing
+      res.json({
+        id: student.id,
+        fullName: student.fullName,
+        nisn: student.nisn,
+        nis: student.nis,
+        className: student.className,
+        birthPlace: student.birthPlace,
+        birthDate: student.birthDate,
+        gender: student.gender,
+        address: student.address,
+        photoUrl: student.photoUrl,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Terjadi kesalahan pada server saat mencari data." });
+    }
+  }
 }

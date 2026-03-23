@@ -60,4 +60,16 @@ export class StudentService {
     const results = await db.update(identityRevisions).set({ status }).where(eq(identityRevisions.id, id)).returning();
     return results[0];
   }
+
+  static async publicSearchStudent(fullName: string, birthPlace: string, birthDate: string) {
+    const { ilike, and, eq } = require('drizzle-orm');
+    const results = await db.select().from(studentProfiles).where(
+      and(
+        ilike(studentProfiles.fullName, fullName.trim()),
+        ilike(studentProfiles.birthPlace, birthPlace.trim()),
+        eq(studentProfiles.birthDate, birthDate)
+      )
+    ).limit(1);
+    return results[0] || null;
+  }
 }
