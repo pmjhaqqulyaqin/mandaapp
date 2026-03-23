@@ -150,22 +150,7 @@ export const HeroSection = () => {
         <div className={`absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none`}></div>
       </div>
 
-        {/* Kept buttons positioned at the center-bottom */}
-        <div className="flex flex-col md:flex-row gap-4 justify-center items-center pb-8 md:pb-12 w-full max-w-sm md:max-w-none mx-auto">
-          <a 
-            href="/login" 
-            className="px-8 py-4 sm:py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary-hover hover:-translate-y-1 active:scale-95 transition-all duration-300 shadow-lg shadow-primary/30 w-full sm:w-auto text-base sm:text-sm flex items-center justify-center gap-2 min-h-[52px] sm:min-h-[44px]"
-          >
-            Get Started Today
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-          </a>
-          <a 
-            href="#features" 
-            className="px-8 py-4 sm:py-3 bg-white/10 text-white border border-white/20 rounded-xl font-bold hover:bg-white/20 hover:-translate-y-1 active:scale-95 transition-all duration-300 w-full sm:w-auto text-base sm:text-sm backdrop-blur-md flex items-center justify-center min-h-[52px] sm:min-h-[44px]"
-          >
-            View Features
-          </a>
-        </div>
+        {/* Removed CTA buttons at user request */}
     </section>
   );
 };
