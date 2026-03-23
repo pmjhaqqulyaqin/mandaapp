@@ -155,7 +155,7 @@ export const DashboardStudentCard = () => {
           }
           @media print {
             body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            @page { size: A4 portrait; margin: 10mm; }
+            @page { size: A4 portrait; margin: 8mm; }
           }
         </style>
       </head>
@@ -663,7 +663,7 @@ export const DashboardStudentCard = () => {
                           showQrCode: cardSettings.showQrCode,
                         }}
                         orientation={orientation}
-                        scale={0.48}
+                        scale={0.45}
                         side="front"
                       />
                     </div>
@@ -703,7 +703,7 @@ export const DashboardStudentCard = () => {
                           showQrCode: cardSettings.showQrCode,
                         }}
                         orientation={orientation}
-                        scale={0.48}
+                        scale={0.45}
                         side="back"
                       />
                     </div>
