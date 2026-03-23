@@ -130,28 +130,24 @@ export const syncGithubUpdate = async () => {
       throw new Error('Tidak ada file .zip yang dilampirkan pada Release GitHub terbaru.');
     }
 
-    const tempDir = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+    console.log('Forwarding GitHub Asset URL to Dewahoster:', updateInfo.downloadUrl);
     
-    const tempFilePath = path.join(tempDir, `github-update-${Date.now()}.zip`);
-
-    console.log('Downloading GitHub Asset:', updateInfo.downloadUrl);
-    const downloadRes = await axios({
-      url: updateInfo.downloadUrl,
-      method: 'GET',
-      responseType: 'stream',
+    const targetUrl = `${DEWAHOSTER_URL}/system-updater.php?action=download_update`;
+    const response = await axios.post(targetUrl, { url: updateInfo.downloadUrl }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${UPDATE_SECRET}`,
+      },
+      timeout: 120000 // 2 minutes timeout for remote download & extract
     });
 
-    const writer = fs.createWriteStream(tempFilePath);
-    await pipeline(downloadRes.data, writer);
-
-    // Forward the downloaded zip directly through the existing pipeline
-    const result = await processUpdatePackage(tempFilePath);
     return {
-      ...result,
-      message: 'Sukses! Aplikasi berhasil disinkronisasi dengan GitHub Release terbaru.'
+      success: true,
+      message: response.data?.message || 'Sukses! Aplikasi berhasil disinkronisasi dengan GitHub Release terbaru.',
+      targetVersion: updateInfo.latestVersion
     };
   } catch (error: any) {
-    throw new Error('Gagal sinkronisasi GitHub: ' + (error.response?.data?.message || error.message));
+    console.error('GitHub Sync Bridge Failed:', error.response?.data || error.message);
+    throw new Error('Gagal sinkronisasi GitHub: ' + (error.response?.data?.error || error.response?.data?.message || error.message));
   }
 };
