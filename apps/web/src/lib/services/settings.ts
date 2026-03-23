@@ -16,10 +16,15 @@ export const settingsService = {
   uploadLogo: async (file: File): Promise<{ url: string }> => {
     const formData = new FormData();
     formData.append('logo', file);
-    const response = await fetch(`${API_BASE_URL}/settings/upload-logo`, {
+    
+    const uploadTarget = window.location.hostname === 'localhost' 
+      ? `${API_BASE_URL}/settings/upload-logo` 
+      : `${window.location.origin}/image-uploader.php`;
+
+    const response = await fetch(uploadTarget, {
       method: 'POST',
       body: formData,
-      credentials: 'include',
+      credentials: 'omit',
     });
     if (!response.ok) throw new Error('Upload failed');
     return response.json();
@@ -27,10 +32,15 @@ export const settingsService = {
   uploadFavicon: async (file: File): Promise<{ url: string }> => {
     const formData = new FormData();
     formData.append('favicon', file);
-    const response = await fetch(`${API_BASE_URL}/settings/upload-favicon`, {
+
+    const uploadTarget = window.location.hostname === 'localhost' 
+      ? `${API_BASE_URL}/settings/upload-favicon` 
+      : `${window.location.origin}/image-uploader.php`;
+
+    const response = await fetch(uploadTarget, {
       method: 'POST',
       body: formData,
-      credentials: 'include',
+      credentials: 'omit',
     });
     if (!response.ok) throw new Error('Upload failed');
     return response.json();

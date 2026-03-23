@@ -12,13 +12,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 $uploadDir = __DIR__ . '/uploads/';
 if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
 
-if (!isset($_FILES['image'])) {
+if (empty($_FILES)) {
     http_response_code(400);
-    echo json_encode(['error' => 'No image uploaded']);
+    echo json_encode(['error' => 'No file uploaded']);
     exit;
 }
 
-$file = $_FILES['image'];
+$fileKey = array_key_first($_FILES);
+$file = $_FILES[$fileKey];
 $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
 

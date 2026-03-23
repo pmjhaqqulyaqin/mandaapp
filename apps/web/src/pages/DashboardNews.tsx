@@ -231,21 +231,23 @@ export const DashboardNews = () => {
     zIndex: 1000,
     // popupContainer: 'body' is the default, which works correctly when parent has no transform
     uploader: {
-      url: `${import.meta.env.VITE_API_URL}/system/upload/image`,
+      url: window.location.hostname === 'localhost' 
+        ? `${import.meta.env.VITE_API_URL}/system/upload/image`
+        : `${window.location.origin}/image-uploader.php`,
       format: 'json',
-      path: 'data.url',
       withCredentials: true,
       headers: {
         'X-User-Id': localStorage.getItem('mandalotim_user') ? JSON.parse(localStorage.getItem('mandalotim_user')!).id : ''
       },
       insertImageAsBase64URI: false,
       process: (res: any) => {
+        const fileUrl = res.url || (res.data && res.data.url) || '';
         return {
-          files: [res.data.url],
-          path: res.data.url,
+          files: [fileUrl],
+          path: fileUrl,
           baseurl: '',
           error: res.error,
-          msg: res.message
+          msg: res.message || (res.success ? '' : 'Upload failed')
         };
       },
       defaultHandlerSuccess: function(this: any, data: any) {

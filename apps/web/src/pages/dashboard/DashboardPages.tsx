@@ -4,7 +4,7 @@ import { usePages } from '../../hooks/api/usePages';
 import { toast } from 'sonner';
 import JoditEditor from 'jodit-react';
 import { PhotoUploader } from '@mandaapp/ui';
-import { FileText, Plus, Search, Eye, MoreVertical, AlertTriangle, Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2 } from 'lucide-react';
 
 export const DashboardPages = () => {
   const { queryAll, createMutation, updateMutation, deleteMutation } = usePages();
@@ -65,21 +65,23 @@ export const DashboardPages = () => {
     toolbarAdaptive: false,
     zIndex: 1000,
     uploader: {
-      url: `${import.meta.env.VITE_API_URL}/system/upload/image`,
+      url: window.location.hostname === 'localhost' 
+        ? `${import.meta.env.VITE_API_URL}/system/upload/image`
+        : `${window.location.origin}/image-uploader.php`,
       format: 'json',
-      path: 'data.url',
       withCredentials: true,
       headers: {
         'X-User-Id': localStorage.getItem('mandalotim_user') ? JSON.parse(localStorage.getItem('mandalotim_user')!).id : ''
       },
       insertImageAsBase64URI: false,
       process: (res: any) => {
+        const fileUrl = res.url || (res.data && res.data.url) || '';
         return {
-          files: [res.data.url],
-          path: res.data.url,
+          files: [fileUrl],
+          path: fileUrl,
           baseurl: '',
           error: res.error,
-          msg: res.message
+          msg: res.message || (res.success ? '' : 'Upload failed')
         };
       },
       defaultHandlerSuccess: function(this: any, data: any) {
