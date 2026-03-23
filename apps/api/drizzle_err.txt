@@ -1,0 +1,3 @@
+﻿No config path provided, using default 'drizzle.config.ts'
+Reading config file 'D:\Antigravity\mandaapp\apps\api\drizzle.config.ts'
+Error please install required packages: 'drizzle-orm'

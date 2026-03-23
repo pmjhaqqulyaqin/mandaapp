@@ -60,6 +60,8 @@ export const DashboardStudentCard = () => {
     schoolSubtitle: cardSettings.schoolSubtitle || defaultCardSettings.schoolSubtitle,
     termsText: cardSettings.termsText || defaultCardSettings.termsText,
     headmasterSignatureUrl: cardSettings.headmasterSignatureUrl || '',
+    kemenagLogoUrl: cardSettings.kemenagLogoUrl || '',
+    schoolStampUrl: cardSettings.schoolStampUrl || '',
   });
 
   // Keep editing state in sync if data loads later
@@ -71,6 +73,8 @@ export const DashboardStudentCard = () => {
         schoolSubtitle: cardSettingsQuery.data.schoolSubtitle || defaultCardSettings.schoolSubtitle,
         termsText: cardSettingsQuery.data.termsText || defaultCardSettings.termsText,
         headmasterSignatureUrl: cardSettingsQuery.data.headmasterSignatureUrl || '',
+        kemenagLogoUrl: cardSettingsQuery.data.kemenagLogoUrl || '',
+        schoolStampUrl: cardSettingsQuery.data.schoolStampUrl || '',
       });
       setSelectedTemplate(cardSettingsQuery.data.selectedTemplate || defaultCardSettings.selectedTemplate);
       setOrientation(cardSettingsQuery.data.orientation || defaultCardSettings.orientation);
@@ -562,6 +566,8 @@ export const DashboardStudentCard = () => {
                                 termsText: editingSettings.termsText,
                                 schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
                                 headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
+                                kemenagLogoUrl: getFullUrl(editingSettings.kemenagLogoUrl),
+                                schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
                                 academicYear: cardSettings.academicYear,
                                 showQrCode: cardSettings.showQrCode,
                               }}
@@ -682,12 +688,34 @@ export const DashboardStudentCard = () => {
                     />
                   </div>
                   <div className="md:col-span-2 mt-4 pt-4 border-t border-border-light dark:border-border-dark">
-                    <label className="block text-xs font-semibold text-text-secondary mb-3">Tanda Tangan Kepala Sekolah (PNG Transparan)</label>
-                    <div className="w-48">
-                      <PhotoUploader
-                        currentPhotoUrl={getFullUrl(editingSettings.headmasterSignatureUrl) || ''}
-                        onPhotoChange={(url) => setEditingSettings({...editingSettings, headmasterSignatureUrl: url})}
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                      <div>
+                        <label className="block text-xs font-semibold text-text-secondary mb-3">Logo Kementerian (opsional)</label>
+                        <div className="w-full max-w-[200px]">
+                          <PhotoUploader
+                            currentPhotoUrl={getFullUrl(editingSettings.kemenagLogoUrl) || ''}
+                            onPhotoChange={(url) => setEditingSettings({...editingSettings, kemenagLogoUrl: url})}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-text-secondary mb-3">Tanda Tangan Kepsek (PNG Transparan)</label>
+                        <div className="w-full max-w-[200px]">
+                          <PhotoUploader
+                            currentPhotoUrl={getFullUrl(editingSettings.headmasterSignatureUrl) || ''}
+                            onPhotoChange={(url) => setEditingSettings({...editingSettings, headmasterSignatureUrl: url})}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-text-secondary mb-3">Stempel Sekolah (PNG Transparan)</label>
+                        <div className="w-full max-w-[200px]">
+                          <PhotoUploader
+                            currentPhotoUrl={getFullUrl(editingSettings.schoolStampUrl) || ''}
+                            onPhotoChange={(url) => setEditingSettings({...editingSettings, schoolStampUrl: url})}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -851,6 +879,8 @@ export const DashboardStudentCard = () => {
                               termsText: cardSettings.termsText,
                               schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
                               headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
+                              kemenagLogoUrl: getFullUrl(editingSettings.kemenagLogoUrl),
+                              schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
                               academicYear: cardSettings.academicYear,
                               showQrCode: cardSettings.showQrCode,
                             }}
@@ -893,6 +923,8 @@ export const DashboardStudentCard = () => {
                               termsText: cardSettings.termsText,
                               schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
                               headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
+                              kemenagLogoUrl: getFullUrl(editingSettings.kemenagLogoUrl),
+                              schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
                               academicYear: cardSettings.academicYear,
                               showQrCode: cardSettings.showQrCode,
                             }}
@@ -963,6 +995,8 @@ export const DashboardStudentCard = () => {
                       termsText: cardSettings.termsText,
                       schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
                       headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl || cardSettings.headmasterSignatureUrl),
+                      kemenagLogoUrl: getFullUrl(editingSettings.kemenagLogoUrl || cardSettings.kemenagLogoUrl),
+                      schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl || cardSettings.schoolStampUrl),
                       academicYear: cardSettings.academicYear,
                       showQrCode: cardSettings.showQrCode,
                     }}

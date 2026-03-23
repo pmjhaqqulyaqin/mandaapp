@@ -125,7 +125,11 @@ export const cardSettings = pgTable("card_settings", {
   selectedTemplate: varchar("selected_template", { length: 50 }).default("classic-blue"),
   orientation: varchar("orientation", { length: 20 }).default("vertical"),
   showQrCode: boolean("show_qr_code").default(true),
-  qrCodeContent: varchar("qr_code_content", { length: 50 }).default("nisn")
+  qrCodeContent: varchar("qr_code_content", { length: 50 }).default("nisn"),
+  termsText: text("terms_text"),
+  headmasterSignatureUrl: text("headmaster_signature_url"),
+  kemenagLogoUrl: text("kemenag_logo_url"),
+  schoolStampUrl: text("school_stamp_url")
 });
 
 export const newsAnnouncements = pgTable("news_announcements", {

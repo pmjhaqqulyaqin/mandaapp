@@ -35,6 +35,8 @@ export interface CardSettings {
   schoolAddress?: string;
   termsText?: string;
   headmasterSignatureUrl?: string;
+  kemenagLogoUrl?: string;
+  schoolStampUrl?: string;
   academicYear: string;
   selectedTemplate: CardTemplateName;
   orientation: CardOrientation;

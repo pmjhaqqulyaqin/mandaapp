@@ -35,6 +35,8 @@ export interface PrintableCardSettings {
   termsText?: string;
   schoolLogoUrl?: string;
   headmasterSignatureUrl?: string;
+  kemenagLogoUrl?: string;
+  schoolStampUrl?: string;
   academicYear: string;
   showQrCode: boolean;
 }
@@ -140,7 +142,7 @@ export const PrintableStudentCard = ({
   // --- HORIZONTAL DESIGN COMPONENTS ---
   // A dedicated set of renderers to match the exact newly requested "Formal" layout.
   const HorizontalFront = () => {
-    const kemenagLogoUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
+    const kemenagLogoUrl = settings.kemenagLogoUrl || "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
     const headerColor = template?.primaryColor || '#14425A';
     const textColor = '#111827';
     
@@ -205,7 +207,7 @@ export const PrintableStudentCard = ({
   };
 
   const HorizontalBack = () => {
-    const kemenagLogoUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
+    const kemenagLogoUrl = settings.kemenagLogoUrl || "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
     const headerColor = template?.primaryColor || '#14425A';
     const textColor = '#111827';
 
@@ -252,11 +254,14 @@ export const PrintableStudentCard = ({
            </div>
 
            {/* Signature Section */}
-           <div style={{ textAlign: 'center', width: '250px' }}>
-              <div style={{ fontSize: '20px', fontWeight: 800, marginBottom: '5px' }}>KEPALA MADRASAH</div>
-              <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+           <div style={{ textAlign: 'center', width: '250px', position: 'relative' }}>
+              {settings.schoolStampUrl && (
+                <img src={settings.schoolStampUrl} alt="Stempel Sekolah" style={{ position: 'absolute', top: '15px', left: '10px', width: '90px', height: '90px', objectFit: 'contain', opacity: 0.8, zIndex: 0 }} />
+              )}
+              <div style={{ fontSize: '20px', fontWeight: 800, marginBottom: '5px', position: 'relative', zIndex: 1 }}>KEPALA MADRASAH</div>
+              <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2 }}>
                  {settings.headmasterSignatureUrl ? (
-                   <img src={settings.headmasterSignatureUrl} alt="Tanda Tangan" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+                   <img src={settings.headmasterSignatureUrl} alt="Tanda Tangan" style={{ maxHeight: '100px', maxWidth: '100%', objectFit: 'contain', transform: 'scale(1.3)' }} />
                  ) : (
                    <svg width="150" height="50" viewBox="0 0 200 60" fill="none">
                      <path d="M20 50 C40 30, 60 10, 80 40 S 120 70, 160 30" stroke={textColor} strokeWidth="3" fill="none" strokeLinecap="round" />
@@ -283,7 +288,7 @@ export const PrintableStudentCard = ({
   const VerticalFront = () => {
     const headerColor = template?.primaryColor || '#3b1c9e'; // Default to deep purple if classic
     const textColor = '#111827';
-    const kemenagLogoUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
+    const kemenagLogoUrl = settings.kemenagLogoUrl || "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
     const barcodeText = `${student.nisn}`;
     const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(barcodeText)}&scale=3&height=12&includetext=false`;
 
@@ -373,7 +378,7 @@ export const PrintableStudentCard = ({
   const VerticalBack = () => {
     const headerColor = template?.primaryColor || '#3b1c9e';
     const textColor = '#111827';
-    const kemenagLogoUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
+    const kemenagLogoUrl = settings.kemenagLogoUrl || "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
     
     // Fallback terms matching the image specifically
     const termsTextRaw = settings.termsText || "Kartu wajib dipakai selama berada di lingkungan sekolah\nTidak boleh dipinjamkan kepada orang lain.\nJika hilang, segera lapor ke wali kelas.\nMenjaga kartu agar tidak rusak atau kotor.";
