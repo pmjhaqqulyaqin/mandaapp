@@ -20,6 +20,16 @@ export interface HeaderProps {
   isLoading?: boolean;
 }
 
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
+const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
+
+const resolveUrl = (url: string) => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('/')) return `${SERVER_BASE}${url}`;
+  return url;
+};
+
 export const Header = ({
   schoolName = 'MANDALOTIM',
   logoUrl,
@@ -96,8 +106,20 @@ export const Header = ({
   ]; // Kept as fallback if needed or reference
 
   // Helper to render dynamic icons based on name (basic fallback)
-  const renderIcon = (iconName?: string) => {
-    if (!iconName) return null;
+  const renderIcon = (iconStr?: string) => {
+    if (!iconStr) return null;
+    
+    // If it's a URL or path, render it as an image
+    if (iconStr.startsWith('http') || iconStr.startsWith('/')) {
+      return (
+        <img 
+          src={resolveUrl(iconStr)} 
+          alt="Menu Ikon" 
+          style={{ width: '20px', height: '20px', objectFit: 'contain' }} 
+        />
+      );
+    }
+
     // Just a generic icon if an icon name exists, since we can't dynamic import all Lucide icons easily without a map
     return (
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -105,6 +127,7 @@ export const Header = ({
       </svg>
     );
   };
+
 
   return (
     <header

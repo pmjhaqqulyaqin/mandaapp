@@ -3,7 +3,7 @@ import { Button, Input, Modal, Badge } from '@mandaapp/ui';
 import { useMenus } from '../../hooks/api/useMenus';
 import { usePages } from '../../hooks/api/usePages';
 import { toast } from 'sonner';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, ArrowUp, ArrowDown, Upload, Image as ImageIcon } from 'lucide-react';
 
 export const DashboardMenus = () => {
   const { queryAll, createMutation, updateMutation, deleteMutation } = useMenus();
@@ -23,6 +23,7 @@ export const DashboardMenus = () => {
     order: 0,
     isActive: true,
   });
+  const [uploadingIcon, setUploadingIcon] = useState(false);
 
   const resetForm = () => {
     setFormData({
@@ -87,6 +88,64 @@ export const DashboardMenus = () => {
     }
   };
 
+  const handleMove = async (menu: any, direction: 'up' | 'down') => {
+    // Find siblings
+    const siblings = menus.filter((m: any) => m.parentId === menu.parentId).sort((a: any, b: any) => a.order - b.order);
+    const currentIndex = siblings.findIndex((m: any) => m.id === menu.id);
+    
+    if (direction === 'up' && currentIndex > 0) {
+      const swap = siblings[currentIndex - 1];
+      try {
+        await Promise.all([
+          updateMutation.mutateAsync({ id: menu.id, data: { order: swap.order } }),
+          updateMutation.mutateAsync({ id: swap.id, data: { order: menu.order } })
+        ]);
+        toast.success('Urutan berhasil diubah');
+      } catch {
+        toast.error('Gagal mengubah urutan');
+      }
+    } else if (direction === 'down' && currentIndex < siblings.length - 1) {
+      const swap = siblings[currentIndex + 1];
+      try {
+        await Promise.all([
+          updateMutation.mutateAsync({ id: menu.id, data: { order: swap.order } }),
+          updateMutation.mutateAsync({ id: swap.id, data: { order: menu.order } })
+        ]);
+        toast.success('Urutan berhasil diubah');
+      } catch {
+        toast.error('Gagal mengubah urutan');
+      }
+    }
+  };
+
+  const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingIcon(true);
+    
+    const formDataObj = new FormData();
+    formDataObj.append('image', file);
+    
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const response = await fetch(`${apiUrl}/api/gallery/upload`, {
+        method: 'POST',
+        body: formDataObj
+      });
+      const data = await response.json();
+      if (data.url) {
+         setFormData({...formData, icon: data.url});
+         toast.success('Ikon berhasil diunggah');
+      } else {
+         toast.error('Gagal mendapatkan URL ikon');
+      }
+    } catch {
+       toast.error('Gagal mengunggah ikon');
+    } finally {
+       setUploadingIcon(false);
+    }
+  };
+
   // Helper to build a tree so we can display them nested visually
   const buildMenuTree = (menuList: any[]) => {
     const map = new Map();
@@ -131,7 +190,22 @@ export const DashboardMenus = () => {
           </Badge>
         </td>
         <td className="p-4 text-right">
-          <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex justify-end items-center gap-3 transition-opacity">
+            <button 
+               onClick={() => handleMove(m, 'up')}
+               className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+               title="Geser ke Atas"
+            >
+               <ArrowUp size={16} />
+            </button>
+            <button 
+               onClick={() => handleMove(m, 'down')}
+               className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+               title="Geser ke Bawah"
+            >
+               <ArrowDown size={16} />
+            </button>
+            <div className="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-1"></div>
             <button 
               onClick={() => openEditModal(m)} 
               className="text-blue-500 hover:text-blue-700" 
@@ -266,12 +340,39 @@ export const DashboardMenus = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Ikon (Opsional)
               </label>
-              <Input 
-                value={formData.icon} 
-                onChange={(e) => setFormData({ ...formData, icon: e.target.value })} 
-                placeholder="Contoh: Users, Book"
-              />
-              <p className="text-xs text-gray-500">Nama ikon Lucide (Cth: Users)</p>
+              <div className="flex items-center gap-2">
+                <Input 
+                  value={formData.icon} 
+                  onChange={(e) => setFormData({ ...formData, icon: e.target.value })} 
+                  placeholder="Contoh: Users atau /uploads/gbr.png"
+                  className="flex-1"
+                />
+                
+                <input 
+                  type="file" 
+                  id="icon-upload" 
+                  accept=".png,.jpg,.jpeg,.svg,.webp" 
+                  className="hidden" 
+                  onChange={handleIconUpload}
+                  disabled={uploadingIcon}
+                />
+                <label 
+                  htmlFor="icon-upload"
+                  className={`flex items-center justify-center gap-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition ${uploadingIcon ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {uploadingIcon ? <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div> : <Upload size={16} />}
+                  Upload
+                </label>
+              </div>
+
+              {formData.icon && (formData.icon.startsWith('/') || formData.icon.startsWith('http')) && (
+                 <div className="pt-2 flex items-center gap-2 text-sm text-gray-500">
+                    <span className="shrink-0"><ImageIcon size={14} /> Pratinjau:</span>
+                    <img src={formData.icon} alt="Ikon preview" className="w-6 h-6 object-contain rounded" />
+                 </div>
+              )}
+              
+              <p className="text-xs text-gray-500 mt-1">Nama ikon Lucide (Cth: Users) atau Upload foto PNG/SVG rasio 1:1.</p>
             </div>
 
             <div className="space-y-1">
