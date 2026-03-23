@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
-export const HeroSection = () => {
+export interface HeroSectionProps {
+  logoUrl?: string;
+  schoolName?: string;
+}
+
+export const HeroSection = ({ logoUrl, schoolName }: HeroSectionProps) => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -148,6 +153,27 @@ export const HeroSection = () => {
         style={{ backgroundImage: "url('/hero-building.png')" }}
       >
         <div className={`absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none`}></div>
+      </div>
+
+      {/* --- GLOWING FLOATING SCHOOL IDENTITY OVERLAY --- */}
+      <div className="absolute inset-0 z-[20] flex flex-col items-center justify-center pointer-events-none -translate-y-20 sm:-translate-y-28 md:-translate-y-36">
+        {logoUrl && (
+          <img 
+            src={logoUrl} 
+            alt="School Logo" 
+            className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 mb-4 object-contain animate-fade-in-up" 
+            style={{ filter: 'drop-shadow(0px 0px 20px rgba(255, 255, 255, 0.5))' }}
+          />
+        )}
+        <h1 
+          className="text-white font-heading font-black text-center text-3xl sm:text-4xl md:text-5xl lg:text-6xl px-4 animate-fade-in-up"
+          style={{ 
+            textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(0, 150, 255, 0.4)',
+            animationDelay: '0.2s'
+          }}
+        >
+          {schoolName || "MAN 2 LOMBOK TIMUR"}
+        </h1>
       </div>
 
         {/* Removed CTA buttons at user request */}

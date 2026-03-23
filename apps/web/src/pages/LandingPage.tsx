@@ -74,7 +74,10 @@ export const LandingPage = () => {
       </Helmet>
       <HeaderWithSettings />
       <main className="flex-1">
-        <HeroSection />
+        <HeroSection 
+          logoUrl={resolvedLogo} 
+          schoolName={get('school_name') || 'MAN 2 LOMBOK TIMUR'} 
+        />
         <NewsSection items={newsItems} onReadMore={(id) => navigate(`/news/${id}`)} />
         <QuickLinksSection />
         <GallerySection items={galleryItems} socialLinks={socialLinks} />
