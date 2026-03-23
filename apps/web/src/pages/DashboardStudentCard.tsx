@@ -44,7 +44,7 @@ export const DashboardStudentCard = () => {
   const getFullUrl = (url?: string) => url?.startsWith('/') ? `${SERVER_BASE_URL}${url}` : (url || '');
 
   const studentList: StudentProfile[] = Array.isArray(studentsQuery.data) ? studentsQuery.data : [];
-  const cardSettings = cardSettingsQuery.data || defaultCardSettings;
+  const cardSettings = cardSettingsQuery.data && Object.keys(cardSettingsQuery.data).length > 0 ? cardSettingsQuery.data : defaultCardSettings;
   const isLoadingData = studentsQuery.isLoading || cardSettingsQuery.isLoading || isSiteSettingsLoading;
 
   const [activeTab, setActiveTab] = useState<'preview' | 'edit' | 'settings' | 'batch'>('preview');
