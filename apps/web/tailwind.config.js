@@ -34,6 +34,16 @@ export default {
         sans: ['Inter', 'sans-serif'],
         heading: ['"Space Grotesk"', 'sans-serif'],
       },
+      keyframes: {
+        pan: {
+          '0%': { backgroundPosition: '0% 100%' },
+          '50%': { backgroundPosition: '100% 100%' },
+          '100%': { backgroundPosition: '0% 100%' },
+        }
+      },
+      animation: {
+        'pan-slow': 'pan 40s linear infinite',
+      }
     },
   },
   plugins: [],
