@@ -81,10 +81,13 @@ export const HeroSection = ({ logoUrl, schoolName }: HeroSectionProps) => {
     
     if (hijriDay <= 15) {
       // Day 1 to 15 (0 to -50)
-      rawOffset = -((hijriDay - 1) / 14) * moonBaseSize;
+      const progress = (hijriDay - 1) / 14; 
+      // Apply an exponential curve to keep crescents thin naturally early on
+      rawOffset = -(Math.pow(progress, 1.5) * moonBaseSize);
     } else {
       // Day 16 to 30 (50 to 0)
-      rawOffset = ((30 - hijriDay) / 15) * moonBaseSize;
+      const progress = (30 - hijriDay) / 15;
+      rawOffset = (Math.pow(progress, 1.5) * moonBaseSize);
     }
 
     // Tweak to ensure 'Full Moon' peaks perfectly flat at 50px
@@ -94,12 +97,13 @@ export const HeroSection = ({ logoUrl, schoolName }: HeroSectionProps) => {
 
     // Creating realistic transparent crescent using bright inset shadow
     // The base div will be transparent, so ONLY this bright sliver is visible!
-    moonShadow = `inset ${rawOffset}px 0px 4px 0px #E6E8E3, inset ${rawOffset * 1.1}px 0px 8px -2px #FFF`;
+    // Reduced blur to make the sliver sharper and more delicate
+    moonShadow = `inset ${rawOffset}px 0px 2px 0px #E6E8E3, inset ${rawOffset * 1.05}px 0px 6px -2px #FFF`;
     
     // Dynamic Glow intensity based on lunar exposure
     const exposure = Math.abs(rawOffset / moonBaseSize); // 0.0 (New) to 1.0 (Full)
-    const glowRadius = 10 + (exposure * 30); // 10px to 40px
-    const glowAlpha = 0.3 + (exposure * 0.5); // 0.3 to 0.8
+    const glowRadius = 8 + (exposure * 25); // 8px to 33px
+    const glowAlpha = 0.2 + (exposure * 0.4); // 0.2 to 0.6
     dropShadowFilter = `drop-shadow(0 0 ${glowRadius}px rgba(210, 230, 255, ${glowAlpha}))`;
   }
 
