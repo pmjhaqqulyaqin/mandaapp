@@ -8,6 +8,8 @@ import {
   StudentIdentityForm,
   CardTemplateSelector,
   Button,
+  Modal,
+  DataTable,
   type CardTemplateName,
   type CardOrientation,
   type StudentFormData,
@@ -20,6 +22,9 @@ import type { StudentProfile } from '../types/studentTypes';
 import { useStudents } from '../hooks/api/useStudents';
 import { useCards } from '../hooks/api/useCards';
 import { useSiteSettings } from '../hooks/api/useSettings';
+import { CameraCapture } from '../components/CameraCapture';
+import { galleryService } from '../lib/services/gallery';
+import { Edit2, Image as ImageIcon, Camera, X, Loader2 } from 'lucide-react';
 
 export const DashboardStudentCard = () => {
   const { user } = useAuth();
@@ -98,7 +103,14 @@ export const DashboardStudentCard = () => {
 
   // Student data
   const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
+  
+  // Edit Identity Tab State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<StudentProfile | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string>('');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   // Batch print state
   const [selectedClass, setSelectedClass] = useState<string>('all');
@@ -108,7 +120,7 @@ export const DashboardStudentCard = () => {
   useEffect(() => {
     if (studentList.length > 0 && !selectedStudent) {
       if (user?.role === 'student') {
-        const found = studentList.find((s: StudentProfile) => s.nisn === user?.nisn) || studentList[0];
+        const found = studentList.find((s: StudentProfile) => s.nisn === (user as any)?.nisn) || studentList[0];
         setSelectedStudent(found);
       } else {
         setSelectedStudent(studentList[0]);
@@ -128,6 +140,75 @@ export const DashboardStudentCard = () => {
   const uniqueClasses = Array.from(new Set(studentList.map((s: StudentProfile) => getStudentDisplayClass(s)))).sort();
   const filteredStudents = selectedClass === 'all' ? studentList : studentList.filter((s: StudentProfile) => getStudentDisplayClass(s) === selectedClass);
   const studentsToPrint = filteredStudents.filter(s => !unselectedIds.has(s.id));
+
+  const formatTableDate = (dateStr?: string) => {
+    if (!dateStr) return '-';
+    try {
+      return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch { return dateStr; }
+  };
+
+  const editTabColumns = [
+    {
+      header: 'No',
+      accessorKey: (row: StudentProfile) => <span className="text-text-secondary">{filteredStudents.indexOf(row) + 1}</span>,
+      className: 'w-16 text-center',
+    },
+    {
+      header: 'Nama Lengkap',
+      accessorKey: (row: StudentProfile) => <span className="font-medium text-text-primary dark:text-text-darkPrimary">{row.fullName || row.name}</span>,
+    },
+    {
+      header: 'NISN',
+      accessorKey: (row: StudentProfile) => <span className="text-text-secondary font-mono text-sm">{row.nisn}</span>,
+    },
+    {
+      header: 'Kelas',
+      accessorKey: (row: StudentProfile) => (
+        <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded-md">
+          {getStudentDisplayClass(row)}
+        </span>
+      ),
+    },
+    {
+      header: 'Tempat Lahir',
+      accessorKey: (row: StudentProfile) => <span className="text-sm text-text-secondary">{row.birthPlace || '-'}</span>,
+    },
+    {
+      header: 'Tanggal Lahir',
+      accessorKey: (row: StudentProfile) => <span className="text-sm text-text-secondary">{formatTableDate(row.birthDate)}</span>,
+    },
+    {
+      header: 'Alamat',
+      accessorKey: (row: StudentProfile) => <span className="text-sm text-text-secondary block truncate max-w-[150px]">{row.address || '-'}</span>,
+    },
+    {
+      header: 'Aksi',
+      accessorKey: (row: StudentProfile) => (
+        <div className="flex items-center justify-center gap-3">
+          <button 
+            onClick={() => { setEditingStudent(row); setIsEditModalOpen(true); }}
+            className="text-blue-500 hover:text-blue-700 transition-colors p-1"
+            title="Edit Identitas"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button 
+            onClick={() => { 
+              setEditingStudent(row); 
+              setPhotoUrl(''); 
+              setIsPhotoModalOpen(true); 
+            }}
+            className="text-emerald-500 hover:text-emerald-700 transition-colors p-1"
+            title="Ubah Foto Profil"
+          >
+            <ImageIcon className="w-4 h-4" />
+          </button>
+        </div>
+      ),
+      className: 'text-center',
+    },
+  ];
 
   const handlePrint = () => {
     const el = printRef.current;
@@ -187,16 +268,55 @@ export const DashboardStudentCard = () => {
   };
 
   const handleFormSubmit = (data: StudentFormData) => {
-    if (!selectedStudent) return;
+    if (!editingStudent) return;
     const toastId = toast.loading('Menyimpan perubahan identitas...');
-    updateStudent.mutate({ id: selectedStudent.id, data }, {
+    updateStudent.mutate({ id: editingStudent.id, data }, {
       onSuccess: () => {
         toast.success('Identitas berhasil disimpan!', { id: toastId });
-        setSelectedStudent((prev) => prev ? { ...prev, ...data } : null);
+        setIsEditModalOpen(false);
         studentsQuery.refetch();
+        if (selectedStudent && selectedStudent.id === editingStudent.id) {
+          setSelectedStudent(prev => prev ? { ...prev, ...data } : null);
+        }
       },
       onError: () => toast.error('Gagal menyimpan perubahan identitas', { id: toastId })
     });
+  };
+
+  const handleSavePhoto = async () => {
+    if (!editingStudent || !photoUrl) {
+       toast.error('Belum ada foto baru yang dipilih.');
+       return;
+    }
+    const toastId = toast.loading('Mengunggah dan menyimpan foto...');
+    setIsUploadingPhoto(true);
+    try {
+      let finalUrl = photoUrl;
+      // If it's a base64 string, upload it to the server
+      if (photoUrl.startsWith('data:image')) {
+        const res = await fetch(photoUrl);
+        const blob = await res.blob();
+        const uploaded = await galleryService.upload(blob);
+        finalUrl = uploaded.url;
+      }
+      
+      updateStudent.mutate({ id: editingStudent.id, data: { photoUrl: finalUrl } }, {
+        onSuccess: () => {
+          toast.success('Foto profil berhasil diperbarui!', { id: toastId });
+          setIsPhotoModalOpen(false);
+          setPhotoUrl('');
+          studentsQuery.refetch();
+          if (selectedStudent && selectedStudent.id === editingStudent.id) {
+            setSelectedStudent(prev => prev ? { ...prev, photoUrl: finalUrl } : null);
+          }
+        },
+        onError: () => toast.error('Gagal menyimpan foto profil', { id: toastId })
+      });
+    } catch (err: any) {
+      toast.error(`Gagal mengunggah foto: ${err.message}`, { id: toastId });
+    } finally {
+      setIsUploadingPhoto(false);
+    }
   };
 
   const handleSaveSettings = () => {
@@ -408,69 +528,33 @@ export const DashboardStudentCard = () => {
             </div>
           )}
 
-          {/* ===== EDIT TAB ===== */}
+          {/* ===== EDIT IDENTITAS TAB ===== */}
           {activeTab === 'edit' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Photo */}
-              <div className="bg-white dark:bg-background-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm">
-                <h3 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary mb-4 flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>
-                  </svg>
-                  Foto Profil
-                </h3>
-                <PhotoUploader
-                  currentPhotoUrl={photoUrl || selectedStudent?.photoUrl || ''}
-                  onPhotoChange={setPhotoUrl}
-                />
-              </div>
+            <div className="bg-white dark:bg-background-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm space-y-6">
+               <div className="flex items-center justify-between flex-wrap gap-4 border-b border-border-light dark:border-border-dark pb-4">
+                 <h3 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
+                   <Edit2 className="w-4 h-4 text-primary" />
+                   Manajemen Identitas Siswa
+                 </h3>
+                 {(isTeacher || isAdmin) && (
+                   <div className="flex items-center gap-3">
+                     <select
+                       value={selectedClass}
+                       onChange={(e) => setSelectedClass(e.target.value)}
+                       className="px-3 py-2 text-sm rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-[#111] text-text-primary dark:text-text-darkPrimary"
+                     >
+                       <option value="all">Semua Kelas</option>
+                       {uniqueClasses.map((c) => (
+                         <option key={c as string} value={c as string}>{c as string}</option>
+                       ))}
+                     </select>
+                   </div>
+                 )}
+               </div>
 
-              {/* Identity Form */}
-              <div className="lg:col-span-2 bg-white dark:bg-background-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm">
-                <h3 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary mb-4 flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-                  </svg>
-                  Data Identitas
-                </h3>
-
-                {/* Student selector for teacher/admin */}
-                {(isTeacher || isAdmin) && (
-                  <div className="mb-4 pb-4 border-b border-border-light dark:border-border-dark">
-                    <label className="block text-xs font-semibold text-text-secondary mb-1">Pilih Siswa</label>
-                    <select
-                      value={selectedStudent?.id || ''}
-                      onChange={(e) => {
-                        const s = studentList.find((st: StudentProfile) => st.id === e.target.value);
-                        if (s) setSelectedStudent(s);
-                      }}
-                      className="px-3 py-2 text-sm rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-[#111] text-text-primary dark:text-text-darkPrimary w-full max-w-xs"
-                    >
-                      {studentList.map((s: StudentProfile) => (
-                        <option key={s.id} value={s.id}>
-                          {s.fullName || s.name} — {getStudentDisplayClass(s)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {selectedStudent && (
-                  <StudentIdentityForm
-                    initialData={{
-                      name: selectedStudent.name,
-                      nisn: selectedStudent.nisn,
-                      className: selectedStudent.className,
-                      birthPlace: selectedStudent.birthPlace,
-                      birthDate: selectedStudent.birthDate,
-                      gender: selectedStudent.gender,
-                      address: selectedStudent.address,
-                    }}
-                    mode="edit"
-                    onSubmit={handleFormSubmit}
-                  />
-                )}
-              </div>
+               <div className="overflow-x-auto">
+                 <DataTable data={filteredStudents} columns={editTabColumns} keyExtractor={(s) => s.id} />
+               </div>
             </div>
           )}
 
@@ -736,6 +820,95 @@ export const DashboardStudentCard = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* --- EDIT IDENTITY MODAL --- */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit Identitas Siswa"
+        description={`Mengubah data profil untuk ${editingStudent?.fullName || editingStudent?.name}`}
+      >
+        <div className="py-2">
+          {editingStudent && (
+            <StudentIdentityForm
+              initialData={{
+                name: editingStudent.name,
+                nisn: editingStudent.nisn,
+                className: editingStudent.className,
+                birthPlace: editingStudent.birthPlace,
+                birthDate: editingStudent.birthDate,
+                gender: editingStudent.gender,
+                address: editingStudent.address || '',
+              }}
+              mode="edit"
+              onSubmit={handleFormSubmit}
+              disabled={updateStudent.isPending}
+            />
+          )}
+        </div>
+      </Modal>
+
+      {/* --- PHOTO MODAL --- */}
+      <Modal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        title="Ubah Foto Profil Siswa"
+        description={`Mengatur foto kartu pelajar untuk ${editingStudent?.fullName || editingStudent?.name}`}
+      >
+        <div className="py-4 space-y-6">
+          <div className="flex justify-center">
+             <PhotoUploader
+               currentPhotoUrl={photoUrl || (editingStudent?.photoUrl ? getFullUrl(editingStudent.photoUrl) : '')}
+               onPhotoChange={setPhotoUrl}
+               disabled={isUploadingPhoto}
+             />
+          </div>
+          <div className="flex justify-center -mt-2">
+             <Button type="button" variant="outline" size="sm" onClick={() => setShowCamera(true)} disabled={isUploadingPhoto}>
+               <Camera className="w-4 h-4 mr-2" /> Gunakan Kamera
+             </Button>
+          </div>
+          <div className="mt-6 pt-4 flex justify-end gap-3 border-t border-border-light dark:border-border-dark">
+             <button type="button" className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" onClick={() => setIsPhotoModalOpen(false)} disabled={isUploadingPhoto}>
+               Batal
+             </button>
+             <button
+               type="button"
+               onClick={handleSavePhoto}
+               disabled={!photoUrl || isUploadingPhoto}
+               className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors disabled:opacity-50 flex items-center gap-2"
+             >
+               {isUploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Simpan Foto'}
+             </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* --- CAMERA FULLSCREEN OVERLAY --- */}
+      {showCamera && (
+        <div className="fixed inset-0 z-[2100] flex items-center justify-center sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-black w-full h-full sm:max-w-4xl sm:h-[80vh] sm:rounded-2xl sm:border sm:border-gray-800 sm:shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
+            <div className="hidden sm:flex items-center justify-between p-4 bg-[#111] border-b border-gray-800">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Camera className="w-5 h-5 text-primary" />
+                Ambil Foto
+              </h3>
+              <button onClick={() => setShowCamera(false)} className="text-gray-400 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 flex flex-col bg-black min-h-0 relative">
+              <CameraCapture 
+                onCapture={(base64) => {
+                  setPhotoUrl(base64);
+                  setShowCamera(false);
+                }}
+                onClose={() => setShowCamera(false)}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
