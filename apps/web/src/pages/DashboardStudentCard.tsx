@@ -80,11 +80,20 @@ export const DashboardStudentCard = () => {
     apiClient<any[]>('/majors').then(setMajorsList).catch(() => {});
   }, [user]);
 
-  const getClassWithMajor = (className: string) => {
-    const classObj = classesList.find(c => c.name === className);
-    if (!classObj) return className;
-    const majorName = majorsList.find(m => m.id === classObj.majorId)?.name || '';
-    return majorName ? `${className} - ${majorName}` : className;
+  const getStudentDisplayClass = (student: StudentProfile) => {
+    if (student.classId) {
+      const classObj = classesList.find(c => c.id === student.classId);
+      if (classObj) {
+        const majorName = majorsList.find(m => m.id === classObj.majorId)?.name || '';
+        return majorName ? `${classObj.name} - ${majorName}` : classObj.name;
+      }
+    }
+    const classObj = classesList.find(c => c.name === student.className);
+    if (classObj) {
+      const majorName = majorsList.find(m => m.id === classObj.majorId)?.name || '';
+      return majorName ? `${student.className} - ${majorName}` : student.className;
+    }
+    return student.className || '-';
   };
 
   // Student data
@@ -115,8 +124,8 @@ export const DashboardStudentCard = () => {
   const isTeacher = user?.role === 'guru';
   const isStudent = user?.role === 'student';
 
-  const uniqueClasses = Array.from(new Set(studentList.map((s: StudentProfile) => s.className))).sort();
-  const filteredStudents = selectedClass === 'all' ? studentList : studentList.filter((s: StudentProfile) => s.className === selectedClass);
+  const uniqueClasses = Array.from(new Set(studentList.map((s: StudentProfile) => getStudentDisplayClass(s)))).sort();
+  const filteredStudents = selectedClass === 'all' ? studentList : studentList.filter((s: StudentProfile) => getStudentDisplayClass(s) === selectedClass);
 
   const handlePrint = () => {
     const el = printRef.current;
@@ -285,7 +294,7 @@ export const DashboardStudentCard = () => {
                     >
                       <option value="all">Semua Kelas</option>
                       {uniqueClasses.map((c) => (
-                        <option key={c} value={c}>{getClassWithMajor(c as string)}</option>
+                        <option key={c as string} value={c as string}>{c as string}</option>
                       ))}
                     </select>
                   </div>
@@ -301,7 +310,7 @@ export const DashboardStudentCard = () => {
                     >
                       {filteredStudents.map((s: StudentProfile) => (
                         <option key={s.id} value={s.id}>
-                          {s.fullName || s.name} — {getClassWithMajor(s.className)}
+                          {s.fullName || s.name} — {getStudentDisplayClass(s)}
                         </option>
                       ))}
                     </select>
@@ -430,7 +439,7 @@ export const DashboardStudentCard = () => {
                     >
                       {studentList.map((s: StudentProfile) => (
                         <option key={s.id} value={s.id}>
-                          {s.fullName || s.name} — {getClassWithMajor(s.className)}
+                          {s.fullName || s.name} — {getStudentDisplayClass(s)}
                         </option>
                       ))}
                     </select>
@@ -548,7 +557,7 @@ export const DashboardStudentCard = () => {
                   >
                     <option value="all">Semua Kelas</option>
                     {uniqueClasses.map((c) => (
-                      <option key={c} value={c}>{getClassWithMajor(c as string)}</option>
+                      <option key={c as string} value={c as string}>{c as string}</option>
                     ))}
                   </select>
                   <button
@@ -582,7 +591,7 @@ export const DashboardStudentCard = () => {
                         <td className="py-3 px-4 text-text-primary dark:text-text-darkPrimary font-medium">{s.name}</td>
                         <td className="py-3 px-4 text-text-secondary font-mono text-xs">{s.nisn}</td>
                         <td className="py-3 px-4">
-                          <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded-md">{s.className}</span>
+                          <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded-md">{getStudentDisplayClass(s)}</span>
                         </td>
                         <td className="py-3 px-4">
                           <span className={`px-2 py-1 text-xs font-medium rounded-md ${

@@ -4,6 +4,7 @@ export interface StudentProfile {
   fullName?: string;
   nisn: string;
   className: string;
+  classId?: string;
   birthPlace: string;
   birthDate: string;
   gender: 'Laki-laki' | 'Perempuan';

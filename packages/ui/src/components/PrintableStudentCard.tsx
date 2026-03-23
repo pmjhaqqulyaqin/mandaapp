@@ -27,6 +27,10 @@ export interface PrintableCardSettings {
   schoolName: string;
   schoolSubtitle: string;
   schoolAddress?: string;
+  schoolPhone?: string;
+  schoolEmail?: string;
+  headmasterName?: string;
+  headmasterNip?: string;
   termsText?: string;
   schoolLogoUrl?: string;
   headmasterSignatureUrl?: string;
@@ -87,8 +91,9 @@ export const PrintableStudentCard = ({
   orientation,
   scale = 1,
 }: PrintableStudentCardProps) => {
-  const barcodeUrl = settings.showQrCode
-    ? `https://bwipjs-api.metafloor.com/?bcid=code128&text=${student.nisn || '0000000000'}&scale=2&height=10&includetext`
+  const qrData = `NISN: ${student.nisn}\nNama: ${student.name}\nTTL: ${student.birthPlace}, ${formatDate(student.birthDate)}\nSekolah: ${settings.schoolName}`;
+  const qrUrl = settings.showQrCode !== false
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}`
     : null;
 
   // KTP dimensions in mm: 85.6 x 54mm
@@ -188,9 +193,9 @@ export const PrintableStudentCard = ({
                  {settings.schoolName}
                </h1>
                <div style={{ color: '#ffffff', fontSize: '13px', marginTop: '4px', opacity: 0.9, fontWeight: 500, lineHeight: 1.4 }}>
-                 {settings.schoolAddress?.split('|')[0] || '123 Anywhere St., Any City'}
+                 {settings.schoolAddress || '123 Anywhere St., Any City'}
                  <br />
-                 {settings.schoolAddress?.split('|')[1] || settings.schoolSubtitle}
+                 {settings.schoolPhone || settings.schoolSubtitle}
                </div>
             </div>
           </div>
@@ -221,21 +226,23 @@ export const PrintableStudentCard = ({
                <div style={{
                  border: `2px solid ${textColor}`,
                  borderRadius: '4px',
-                 height: '40px',
+                 height: '60px',
+                 width: '60px',
                  display: 'flex',
                  alignItems: 'center',
                  justifyContent: 'center',
                  fontWeight: 800,
-                 letterSpacing: '3px',
+                 letterSpacing: '1px',
                  color: textColor,
-                 fontSize: '12px',
+                 fontSize: '10px',
                  backgroundColor: 'white',
-                 overflow: 'hidden'
+                 overflow: 'hidden',
+                 alignSelf: isHorizontal ? 'center' : 'flex-start'
                }}>
-                 {barcodeUrl ? (
-                   <img src={barcodeUrl} alt="Barcode" style={{ height: '100%', width: '100%', objectFit: 'contain' }} />
+                 {qrUrl ? (
+                   <img src={qrUrl} alt="QR Code" style={{ height: '90%', width: '90%', objectFit: 'contain' }} />
                  ) : (
-                   'BARCODE'
+                   'QR CODE'
                  )}
                </div>
             </div>
@@ -246,7 +253,7 @@ export const PrintableStudentCard = ({
                  {student.name}
                </h2>
 
-               <div style={{ display: 'grid', gridTemplateColumns: '120px 10px 1fr', gap: '6px', fontSize: '14px', color: textColor, fontWeight: 600, flex: 1 }}>
+               <div style={{ display: 'grid', gridTemplateColumns: '120px 10px 1fr', gap: '4px', fontSize: '14px', color: textColor, fontWeight: 600, flex: 1, paddingBottom: '10px' }}>
                  <div>NIS/NISN</div><div>:</div><div>{student.nisn}</div>
                  <div>Jenis Kelamin</div><div>:</div><div>{student.gender}</div>
                  <div>T.T.L</div><div>:</div><div>{student.birthPlace}, {formatDate(student.birthDate)}</div>
@@ -254,13 +261,13 @@ export const PrintableStudentCard = ({
                </div>
 
                {/* Signature Area */}
-               <div style={{ alignSelf: 'flex-end', textAlign: 'center', marginTop: '-10px', marginRight: '10px' }}>
+               <div style={{ alignSelf: 'flex-end', textAlign: 'center', marginTop: '-35px', marginRight: '10px', position: 'relative', zIndex: 10 }}>
                  <div style={{ fontSize: '12px', color: '#334155', fontWeight: 600 }}>
                    Any City, {formatDate(new Date().toISOString())}<br/>
                    Kepala Sekolah
                  </div>
                  {/* Signature Vector or Image */}
-                 <div style={{ height: '40px', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center', margin: '4px 0', opacity: settings.headmasterSignatureUrl ? 1 : 0.8 }}>
+                 <div style={{ height: '40px', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center', margin: '2px 0 0 0', opacity: settings.headmasterSignatureUrl ? 1 : 0.8 }}>
                     {settings.headmasterSignatureUrl ? (
                       <img src={settings.headmasterSignatureUrl} alt="Tanda Tangan" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
                     ) : (
@@ -271,8 +278,13 @@ export const PrintableStudentCard = ({
                     )}
                  </div>
                  <div style={{ fontSize: '14px', color: textColor, fontWeight: 700, textTransform: 'uppercase' }}>
-                   NAMA KEPALA SEKOLAH
+                   {settings.headmasterName || '-'}
                  </div>
+                 {settings.headmasterNip && (
+                   <div style={{ fontSize: '12px', color: textColor, fontWeight: 600 }}>
+                     NIP. {settings.headmasterNip}
+                   </div>
+                 )}
                </div>
             </div>
           </div>

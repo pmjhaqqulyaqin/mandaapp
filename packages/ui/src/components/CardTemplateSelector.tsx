@@ -104,14 +104,16 @@ export const CardTemplateSelector = ({
               <div className="h-2.5 rounded-full mb-3 overflow-hidden" style={{ background: tmpl.headerGradient }} />
 
               {/* Mini Card Preview */}
-              <div className="flex justify-center mb-3" style={{ transform: 'scale(0.75)', transformOrigin: 'center' }}>
-                <PrintableStudentCard
-                  student={previewStudent}
-                  template={tmpl}
-                  settings={{ ...previewSettings, schoolLogoUrl }}
-                  orientation={orientation}
-                  scale={0.65}
-                />
+              <div className="flex justify-center items-center mb-3 overflow-hidden rounded-lg bg-gray-50/50 dark:bg-[#111] h-[220px] w-full relative">
+                <div style={{ transform: 'scale(0.32)', transformOrigin: 'center' }}>
+                  <PrintableStudentCard
+                    student={previewStudent}
+                    template={tmpl}
+                    settings={{ ...previewSettings, schoolLogoUrl }}
+                    orientation={orientation}
+                    scale={1}
+                  />
+                </div>
               </div>
 
               <h4 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary">{tmpl.name}</h4>
