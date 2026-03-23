@@ -4,6 +4,7 @@ import { useMenus } from '../../hooks/api/useMenus';
 import { usePages } from '../../hooks/api/usePages';
 import { toast } from 'sonner';
 import { Edit2, Trash2, ArrowUp, ArrowDown, Upload, Image as ImageIcon } from 'lucide-react';
+import { galleryService } from '../../lib/services/gallery';
 
 export const DashboardMenus = () => {
   const { queryAll, createMutation, updateMutation, deleteMutation } = useMenus();
@@ -123,24 +124,16 @@ export const DashboardMenus = () => {
     if (!file) return;
     setUploadingIcon(true);
     
-    const formDataObj = new FormData();
-    formDataObj.append('image', file);
-    
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || '';
-      const response = await fetch(`${apiUrl}/api/gallery/upload`, {
-        method: 'POST',
-        body: formDataObj
-      });
-      const data = await response.json();
-      if (data.url) {
+      const data = await galleryService.upload(file);
+      if (data && data.url) {
          setFormData({...formData, icon: data.url});
          toast.success('Ikon berhasil diunggah');
       } else {
          toast.error('Gagal mendapatkan URL ikon');
       }
-    } catch {
-       toast.error('Gagal mengunggah ikon');
+    } catch (err: any) {
+       toast.error(`Gagal mengunggah ikon: ${err.message || ''}`);
     } finally {
        setUploadingIcon(false);
     }
