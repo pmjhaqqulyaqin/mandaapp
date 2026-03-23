@@ -108,6 +108,8 @@ export const DashboardStudentCard = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [previewScale, setPreviewScale] = useState(1);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [editingStudent, setEditingStudent] = useState<StudentProfile | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string>('');
@@ -130,6 +132,21 @@ export const DashboardStudentCard = () => {
       setSelectedStudent(null);
     }
   }, [user, studentList, selectedStudent, isLoadingData]);
+
+  useEffect(() => {
+    if (isPreviewModalOpen && previewContainerRef.current) {
+      const observer = new ResizeObserver((entries) => {
+        const { width } = entries[0].contentRect;
+        // Approximate base widths of the card
+        const baseWidth = orientation === 'horizontal' ? 860 : 550;
+        // Keep scale smooth, maximum 1 (100%)
+        const newScale = Math.min(1, width / baseWidth);
+        setPreviewScale(newScale);
+      });
+      observer.observe(previewContainerRef.current);
+      return () => observer.disconnect();
+    }
+  }, [isPreviewModalOpen, orientation]);
 
   const isLoading = isLoadingData || !selectedStudent;
 
@@ -843,41 +860,61 @@ export const DashboardStudentCard = () => {
         onClose={() => setIsPreviewModalOpen(false)}
         title="Preview Kartu Pelajar"
         description={`Melihat tampilan kartu depan untuk ${selectedStudent?.fullName || selectedStudent?.name}`}
+        className="w-full max-w-[95vw] sm:max-w-2xl md:max-w-4xl lg:max-w-5xl"
       >
-        <div className="py-4 flex justify-center bg-gray-50 dark:bg-[#0a0a0a] rounded-xl border border-border-light dark:border-border-dark overflow-hidden mt-2 relative">
-           <div style={{ transform: 'scale(min(1, max(0.65, calc(100vw / 800))))', transformOrigin: 'top center' }} className="pb-4">
-              {selectedStudent && (
-                <PrintableStudentCard
-                  student={{
-                    name: selectedStudent.fullName || selectedStudent.name,
-                    nisn: selectedStudent.nisn,
-                    className: selectedStudent.className,
-                    birthPlace: selectedStudent.birthPlace,
-                    birthDate: selectedStudent.birthDate,
-                    gender: selectedStudent.gender,
-                    address: selectedStudent.address,
-                    photoUrl: selectedStudent.photoUrl,
-                  }}
-                  template={template}
-                  settings={{
-                    schoolName: globalSchoolName || cardSettings.schoolName,
-                    schoolSubtitle: cardSettings.schoolSubtitle,
-                    schoolAddress: globalSchoolAddress || cardSettings.schoolAddress,
-                    schoolPhone: globalSchoolPhone,
-                    schoolEmail: globalSchoolEmail,
-                    headmasterName: globalHeadmasterName,
-                    headmasterNip: globalHeadmasterNip,
-                    termsText: cardSettings.termsText,
-                    schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
-                    headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl || cardSettings.headmasterSignatureUrl),
-                    academicYear: cardSettings.academicYear,
-                    showQrCode: cardSettings.showQrCode,
-                  }}
-                  orientation={orientation}
-                  scale={1}
-                  side="front"
-                />
-              )}
+        <div 
+          ref={previewContainerRef}
+          className="p-4 sm:p-6 flex justify-center bg-gray-50 dark:bg-[#0a0a0a] rounded-xl border border-border-light dark:border-border-dark overflow-hidden mt-2"
+        >
+           {/* Wrap scaling layer to kill margin clipping out of flex center */}
+           <div 
+             style={{ 
+               width: `${(orientation === 'horizontal' ? 860 : 550) * previewScale}px`,
+               height: `${(orientation === 'horizontal' ? 550 : 860) * previewScale}px`,
+               overflow: 'hidden'
+             }}
+           >
+             <div 
+               style={{ 
+                 transform: `scale(${previewScale})`, 
+                 transformOrigin: 'top left',
+                 width: `${orientation === 'horizontal' ? 860 : 550}px`,
+                 height: `${orientation === 'horizontal' ? 550 : 860}px`
+               }} 
+             >
+                {selectedStudent && (
+                  <PrintableStudentCard
+                    student={{
+                      name: selectedStudent.fullName || selectedStudent.name,
+                      nisn: selectedStudent.nisn,
+                      className: selectedStudent.className,
+                      birthPlace: selectedStudent.birthPlace,
+                      birthDate: selectedStudent.birthDate,
+                      gender: selectedStudent.gender,
+                      address: selectedStudent.address,
+                      photoUrl: selectedStudent.photoUrl,
+                    }}
+                    template={template}
+                    settings={{
+                      schoolName: globalSchoolName || cardSettings.schoolName,
+                      schoolSubtitle: cardSettings.schoolSubtitle,
+                      schoolAddress: globalSchoolAddress || cardSettings.schoolAddress,
+                      schoolPhone: globalSchoolPhone,
+                      schoolEmail: globalSchoolEmail,
+                      headmasterName: globalHeadmasterName,
+                      headmasterNip: globalHeadmasterNip,
+                      termsText: cardSettings.termsText,
+                      schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
+                      headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl || cardSettings.headmasterSignatureUrl),
+                      academicYear: cardSettings.academicYear,
+                      showQrCode: cardSettings.showQrCode,
+                    }}
+                    orientation={orientation}
+                    scale={1}
+                    side="front"
+                  />
+                )}
+             </div>
            </div>
         </div>
         <div className="mt-6 flex justify-end">
