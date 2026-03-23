@@ -256,17 +256,30 @@ export const DashboardStudentCard = () => {
               setPhotoUrl(''); 
               setIsPhotoModalOpen(true); 
             }}
-            className="text-emerald-500 hover:text-emerald-700 transition-colors p-1"
-            title="Ubah Foto Profil"
+            className={`transition-colors p-1 ${
+              row.photoUrl 
+                ? 'text-emerald-500 hover:text-emerald-700' 
+                : 'text-gray-400 hover:text-emerald-500 dark:text-gray-500 dark:hover:text-emerald-400'
+            }`}
+            title={row.photoUrl ? "Ubah Foto Profil (Sudah Ada)" : "Upload Foto Profil (Belum Ada)"}
           >
-            <ImageIcon className="w-4 h-4" />
+            <div className="relative">
+              <ImageIcon className="w-4 h-4" />
+              {row.photoUrl && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border border-white dark:border-[#0a0a0a]"></div>
+              )}
+            </div>
           </button>
           <button 
             onClick={() => { 
               setSelectedStudent(row); 
               setIsPreviewModalOpen(true);
             }}
-            className="text-amber-500 hover:text-amber-700 transition-colors p-1"
+            className={`transition-colors p-1 ${
+              row.photoUrl 
+                ? 'text-blue-500 hover:text-blue-700' 
+                : 'text-amber-500 hover:text-amber-700'
+            }`}
             title="Preview Kartu Pelajar (Cepat)"
           >
             <Eye className="w-4 h-4" />
