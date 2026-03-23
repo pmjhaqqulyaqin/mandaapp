@@ -166,7 +166,7 @@ export const HeroSection = ({ logoUrl, schoolName }: HeroSectionProps) => {
           />
         )}
         <h1 
-          className="text-white font-heading font-black text-center text-lg sm:text-xl md:text-2xl lg:text-3xl px-4 animate-fade-in-up md:tracking-tight"
+          className="text-white font-heading font-black text-center text-xl sm:text-xl md:text-2xl lg:text-2xl px-4 animate-fade-in-up md:tracking-tight"
           style={{ 
             textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(0, 150, 255, 0.4)',
             animationDelay: '0.2s'
