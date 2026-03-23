@@ -55,18 +55,51 @@ export const HeroSection = ({ logoUrl, schoolName }: HeroSectionProps) => {
     moonTop = `${(normalizedNX * normalizedNX * 85) + 15}%`;
   }
 
-  // Moon Phase & Shadow
-  const dayOfMonth = currentTime.getDate();
-  const phaseProgress = (dayOfMonth % 30) / 30; 
-  let moonShadow = '';
-  if (!isDaytime) {
-    if (phaseProgress < 0.2 || phaseProgress > 0.8) {
-      const offset = phaseProgress < 0.2 ? -12 : 12;
-      moonShadow = `inset ${offset}px 0px 8px rgba(0,0,0,0.8)`;
-    } else if (phaseProgress < 0.4 || phaseProgress > 0.6) {
-      const offset = phaseProgress < 0.4 ? -6 : 6;
-      moonShadow = `inset ${offset}px 0px 6px rgba(0,0,0,0.5)`;
+  // --- MOON PHASE & HIJRI CALCULATIONS ---
+  const getHijriDay = (date: Date): number => {
+    try {
+      // The 'en-US' locale with the 'u-ca-islamic' calendar guarantees western-arabic numerals.
+      const formatter = new Intl.DateTimeFormat('en-US-u-ca-islamic', { day: 'numeric' });
+      const dayStr = formatter.format(date);
+      return parseInt(dayStr, 10) || 15;
+    } catch (e) {
+      // Fallback pseudo-lunar cycle if browser doesn't support the islamic calendar standard
+      return date.getDate() % 30 || 15;
     }
+  };
+
+  const hijriDay = getHijriDay(currentTime);
+  let moonShadow = '';
+  let moonGlow = '0 0 25px rgba(255,255,255,0.4)';
+  
+  if (!isDaytime) {
+    // Math: Translate Day 1->30 into Shadow Offset 50px -> -50px
+    // A positive offset casts shadow from the left (Waxing Phase)
+    // A negative offset casts shadow from the right (Waning Phase)
+    const moonBaseSize = 40; // Desktop size is 50, mobile 40. We use 50 for shadow math limits.
+    const maxShadow = 50; 
+    
+    // Day 1  = 50px (All black)
+    // Day 15 = 0px (Full Moon)
+    // Day 30 = -50px (All black from right)
+    let rawOffset = maxShadow - ((hijriDay - 1) / 29) * (maxShadow * 2);
+    
+    // Tweak to ensure 'Full Moon' peaks perfectly flat at 0 around days 14-15
+    if (hijriDay === 14 || hijriDay === 15) {
+        rawOffset = 0;
+    }
+
+    // Creating dual layered inset to mimic natural curved spherical terminator
+    // The background acts as the dark night sky intersecting the light.
+    const skyIntersectColor = 'rgba(11, 16, 38, 0.98)';
+    moonShadow = `inset ${rawOffset}px 0px 4px -2px ${skyIntersectColor}, inset ${rawOffset * 1.2}px 0px 10px ${skyIntersectColor}`;
+    
+    // Dynamic Glow intensity based on lunar exposure
+    // Full moons glow way more intensely than crescents
+    const exposure = 1 - Math.abs(rawOffset / maxShadow); // 0.0 (Dark) to 1.0 (Full)
+    const glowRadius = 15 + (exposure * 45); // Scales from 15px to 60px
+    const glowAlpha = 0.2 + (exposure * 0.4); // Scales from 0.2 opacity to 0.6
+    moonGlow = `0 0 ${glowRadius}px rgba(210, 230, 255, ${glowAlpha})`;
   }
 
   // --- STYLE CALCULATIONS ---
@@ -135,9 +168,13 @@ export const HeroSection = ({ logoUrl, schoolName }: HeroSectionProps) => {
               <div className="absolute -inset-10 bg-blue-400/5 blur-2xl rounded-full"></div>
               <div className="absolute -inset-6 bg-white/10 blur-xl rounded-full animate-pulse-slow"></div>
               <div 
-                 className="relative w-[40px] h-[40px] sm:w-[50px] sm:h-[50px] rounded-full bg-[#E6E8E3] shadow-[0_0_25px_rgba(255,255,255,0.4)] overflow-hidden"
-                 style={{ boxShadow: moonShadow ? `${moonShadow}, 0 0 25px rgba(255,255,255,0.4)` : '0 0 25px rgba(255,255,255,0.4)' }}
+                 className="relative w-[40px] h-[40px] sm:w-[50px] sm:h-[50px] rounded-full bg-[#E6E8E3] overflow-hidden"
+                 style={{ 
+                   boxShadow: moonShadow ? `${moonShadow}, ${moonGlow}` : moonGlow,
+                   transition: 'box-shadow 2s ease-in-out'
+                 }}
               >
+                {/* Surface Craters - Using opacity so they fade naturally under the deep shadow */}
                 <div className="absolute top-[20%] left-[25%] w-[8px] h-[8px] rounded-full bg-black/5"></div>
                 <div className="absolute top-[50%] left-[60%] w-[12px] h-[12px] rounded-full bg-black/5"></div>
                 <div className="absolute top-[70%] left-[30%] w-[6px] h-[6px] rounded-full bg-black/5"></div>
