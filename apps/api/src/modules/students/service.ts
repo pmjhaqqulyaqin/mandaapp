@@ -62,14 +62,17 @@ export class StudentService {
   }
 
   static async publicSearchStudent(fullName: string, birthPlace: string, birthDate: string) {
-    const { ilike, and, eq } = require('drizzle-orm');
+    const { ilike, and, sql } = require('drizzle-orm');
+    
+    // Use wildcards for forgiving string matching and SQL DATE() for robust date comparison
     const results = await db.select().from(studentProfiles).where(
       and(
-        ilike(studentProfiles.fullName, fullName.trim()),
-        ilike(studentProfiles.birthPlace, birthPlace.trim()),
-        eq(studentProfiles.birthDate, birthDate)
+        ilike(studentProfiles.fullName, `%${fullName.trim()}%`),
+        ilike(studentProfiles.birthPlace, `%${birthPlace.trim()}%`),
+        sql`DATE(${studentProfiles.birthDate}) = DATE(${birthDate})`
       )
     ).limit(1);
+    
     return results[0] || null;
   }
 }
