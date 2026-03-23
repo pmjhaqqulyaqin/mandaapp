@@ -386,21 +386,40 @@ export const DashboardStudentCard = () => {
     }
   };
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
     const toastId = toast.loading('Menyimpan pengaturan kartu...');
-    updateSettingsMutation.mutate({
-      ...cardSettings,
-      ...editingSettings,
-      selectedTemplate,
-      orientation,
-    }, {
-      onSuccess: () => {
-        toast.success('Pengaturan kartu berhasil disimpan!', { id: toastId });
-      },
-      onError: () => {
-        toast.error('Gagal menyimpan pengaturan.', { id: toastId });
+    
+    try {
+      const finalSettings = { ...editingSettings };
+      const keysToUpload = ['headmasterSignatureUrl', 'kemenagLogoUrl', 'schoolStampUrl'] as const;
+      
+      for (const key of keysToUpload) {
+        if (finalSettings[key] && finalSettings[key].startsWith('data:image')) {
+          const res = await fetch(finalSettings[key]);
+          const blob = await res.blob();
+          const uploaded = await galleryService.upload(blob);
+          if (uploaded?.url) {
+            finalSettings[key] = uploaded.url;
+          }
+        }
       }
-    });
+
+      updateSettingsMutation.mutate({
+        ...cardSettings,
+        ...finalSettings,
+        selectedTemplate,
+        orientation,
+      }, {
+        onSuccess: () => {
+          toast.success('Pengaturan kartu berhasil disimpan!', { id: toastId });
+        },
+        onError: () => {
+          toast.error('Gagal menyimpan pengaturan.', { id: toastId });
+        }
+      });
+    } catch (err: any) {
+      toast.error(`Gagal mengunggah gambar pengaturan: ${err.message}`, { id: toastId });
+    }
   };
 
   const tabs: { key: typeof activeTab; label: string; roles: string[] }[] = [

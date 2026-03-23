@@ -11,6 +11,12 @@ export const PhotoUploader = ({ currentPhotoUrl, onPhotoChange, disabled }: Phot
   const [preview, setPreview] = useState<string | null>(currentPhotoUrl || null);
   const [isDragOver, setIsDragOver] = useState(false);
 
+  React.useEffect(() => {
+    if (currentPhotoUrl !== undefined) {
+      setPreview(currentPhotoUrl || null);
+    }
+  }, [currentPhotoUrl]);
+
   const processFile = useCallback(
     (file: File) => {
       if (!file.type.startsWith('image/')) return;
