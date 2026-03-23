@@ -281,201 +281,201 @@ export const PrintableStudentCard = ({
   };
 
   const VerticalFront = () => {
-    const headerColor = template?.primaryColor || '#2b783f';
-    const darkAccent = template?.accentColor || '#1a4e28';
-    const textColor = '#0f172a';
+    const kemenagLogoUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
+    const headerColor = template?.primaryColor || '#4F14A0';
+    const textColor = '#0a0a0a';
     
+    // Barcode specifically configured for highly rigorous scanning.
+    const barcodeText = `${student.nisn}`;
+    const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(barcodeText)}&scale=3&height=12&includetext=false`;
+
+    const DotMatrix = ({ rows=4, cols=4, color=headerColor }) => (
+      <svg width={cols*14} height={rows*14} viewBox={`0 0 ${cols*14} ${rows*14}`}>
+         <defs>
+           <pattern id={`dots-${color}`} x="0" y="0" width="14" height="14" patternUnits="userSpaceOnUse">
+             <circle cx="3" cy="3" r="3" fill={color} />
+           </pattern>
+         </defs>
+         <rect x="0" y="0" width="100%" height="100%" fill={`url(#dots-${color})`} />
+      </svg>
+    );
+
     return (
-      <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-        {/* Background decorative wave (Optional) */}
-        <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, overflow: 'hidden', zIndex: 0, opacity: 0.05 }}>
-           <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
-              <path d="M0,50 Q25,30 50,50 T100,50 L100,100 L0,100 Z" fill={headerColor} />
-              <path d="M0,70 Q25,50 50,70 T100,70 L100,100 L0,100 Z" fill={darkAccent} />
-           </svg>
+      <div style={{ width: '100%', height: '100%', position: 'relative', backgroundColor: '#f8f9fa', display: 'flex', flexDirection: 'column' }}>
+        {/* HEADER */}
+        <div style={{ width: '100%', height: '180px', backgroundColor: headerColor, position: 'relative', overflow: 'hidden', borderBottom: '4px solid #facc15' }}>
+           {/* Top Background Ornaments */}
+           <div style={{ position: 'absolute', top: 0, left: 0, width: '60%', height: '35px', backgroundColor: '#e2e8f0', borderBottomRightRadius: '20px' }}></div>
+           <div style={{ position: 'absolute', top: '15px', left: '-10px', width: '200px', height: '20px', backgroundColor: '#facc15', borderRadius: '10px' }}></div>
+           <div style={{ position: 'absolute', top: '10px', right: '10px' }}>
+              <DotMatrix rows={4} cols={8} color="#facc15" />
+           </div>
+
+           {/* Core Header Content */}
+           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 30px', height: '100%', marginTop: '10px' }}>
+             <img src={kemenagLogoUrl} alt="Klogo" style={{ width: '70px', height: '70px', objectFit: 'contain' }} />
+             <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', padding: '0 15px' }}>
+               <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
+               <div style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px' }}>{settings.schoolName || 'MAN 2 LOMBOK TIMUR'}</div>
+               <div style={{ fontSize: '11px', fontWeight: 400, opacity: 0.9, lineHeight: 1.4 }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
+             </div>
+             {settings.schoolLogoUrl ? (
+               <img src={settings.schoolLogoUrl} alt="SLogo" style={{ width: '70px', height: '70px', objectFit: 'contain' }} />
+             ) : <div style={{ width: '70px' }} />}
+           </div>
         </div>
 
-        {/* Content Container */}
-        <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* BODY */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '30px 40px', position: 'relative' }}>
           
-          {/* HEADER ROW */}
-          <div style={{ display: 'flex', position: 'relative', height: '130px' }}>
-            {/* Logo Badge (Top Left overhang) */}
-            <div style={{ 
-              width: '120px', 
-              height: '140px', 
-              background: darkAccent, 
-              marginLeft: '30px',
-              borderBottomLeftRadius: '60px',
-              borderBottomRightRadius: '60px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 10,
-              boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
-              position: 'relative'
-            }}>
-               {settings.schoolLogoUrl ? (
-                 <img src={settings.schoolLogoUrl} alt="Logo" style={{ width: '80px', height: '80px', objectFit: 'contain', backgroundColor: 'white', borderRadius: '50%', border: '4px solid #facc15' }} />
+          <div style={{ position: 'absolute', top: '30px', left: '20px' }}>
+             <DotMatrix rows={5} cols={3} color={headerColor} />
+          </div>
+
+          <div style={{ textAlign: 'center', marginBottom: '25px', zIndex: 10 }}>
+             <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 900, color: '#0a0a0a', letterSpacing: '1px', lineHeight: 1.2 }}>
+               KARTU IDENTITAS<br/>PELAJAR
+             </h2>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '30px' }}>
+             <div style={{ width: '180px', height: '230px', border: `3px solid ${headerColor}`, padding: '0px', backgroundColor: '#ffffff', boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}>
+               {student.photoUrl ? (
+                 <img src={student.photoUrl} alt="Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                ) : (
-                 <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#facc15', border: '4px solid white' }}></div>
+                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '48px', color: '#94a3b8', backgroundColor: '#e2e8f0' }}>
+                   {student.name.charAt(0)}
+                 </div>
                )}
-            </div>
-
-            {/* Main Header Text Background */}
-            <div style={{ 
-              flex: 1, 
-              background: headerColor, 
-              borderBottomLeftRadius: '30px', 
-              display: 'flex', 
-              flexDirection: 'column',
-              justifyContent: 'center',
-              paddingLeft: '30px',
-              paddingRight: '20px',
-            }}>
-               <h1 style={{ color: '#facc15', fontSize: '26px', fontWeight: 800, margin: 0, letterSpacing: '1px', textTransform: 'uppercase' }}>
-                 {settings.schoolName}
-               </h1>
-               <div style={{ color: '#ffffff', fontSize: '13px', marginTop: '4px', opacity: 0.9, fontWeight: 500, lineHeight: 1.4 }}>
-                 {settings.schoolAddress || '123 Anywhere St., Any City'}
-                 <br />
-                 {settings.schoolPhone || settings.schoolSubtitle}
-               </div>
-            </div>
+             </div>
           </div>
 
-          {/* MAIN BODY */}
-          <div style={{ flex: 1, display: 'flex', padding: '20px 30px', gap: '24px' }}>
-            
-            {/* Left Column (Photo & Barcode) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '120px' }}>
-               <div style={{ 
-                 width: '120px', 
-                 height: '140px', 
-                 backgroundColor: '#e2e8f0', 
-                 border: '2px solid white', 
-                 boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-                 overflow: 'hidden',
-                 borderRadius: '8px'
-               }}>
-                  {student.photoUrl ? (
-                    <img src={student.photoUrl} alt="Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '48px', color: '#94a3b8' }}>
-                      {student.name.charAt(0)}
-                    </div>
-                  )}
-               </div>
-
-               <div style={{
-                 border: `2px solid ${textColor}`,
-                 borderRadius: '4px',
-                 height: '60px',
-                 width: '60px',
-                 display: 'flex',
-                 alignItems: 'center',
-                 justifyContent: 'center',
-                 fontWeight: 800,
-                 letterSpacing: '1px',
-                 color: textColor,
-                 fontSize: '10px',
-                 backgroundColor: 'white',
-                 overflow: 'hidden',
-                 alignSelf: isHorizontal ? 'center' : 'flex-start'
-               }}>
-                 {qrUrl ? (
-                   <img src={qrUrl} alt="QR Code" style={{ height: '90%', width: '90%', objectFit: 'contain' }} />
-                 ) : (
-                   'QR CODE'
-                 )}
-               </div>
-            </div>
-
-            {/* Right Column (Data & Signature) */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-               <h2 style={{ fontSize: '28px', color: textColor, fontWeight: 800, margin: '0 0 12px 0' }}>
-                 {student.name}
-               </h2>
-
-               <div style={{ display: 'grid', gridTemplateColumns: '120px 10px 1fr', gap: '4px', fontSize: '14px', color: textColor, fontWeight: 600, flex: 1, paddingBottom: '10px' }}>
-                 <div>NIS/NISN</div><div>:</div><div>{student.nisn}</div>
-                 <div>Jenis Kelamin</div><div>:</div><div>{student.gender}</div>
-                 <div>T.T.L</div><div>:</div><div>{student.birthPlace}, {formatDate(student.birthDate)}</div>
-                 <div>Alamat</div><div>:</div><div style={{ lineHeight: 1.3 }}>{student.address || '-'}</div>
-               </div>
-
-               {/* Signature Area */}
-               <div style={{ alignSelf: 'flex-end', textAlign: 'center', marginTop: '-35px', marginRight: '10px', position: 'relative', zIndex: 10 }}>
-                 <div style={{ fontSize: '12px', color: '#334155', fontWeight: 600 }}>
-                   Any City, {formatDate(new Date().toISOString())}<br/>
-                   Kepala Sekolah
-                 </div>
-                 {/* Signature Vector or Image */}
-                 <div style={{ height: '40px', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center', margin: '2px 0 0 0', opacity: settings.headmasterSignatureUrl ? 1 : 0.8 }}>
-                    {settings.headmasterSignatureUrl ? (
-                      <img src={settings.headmasterSignatureUrl} alt="Tanda Tangan" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
-                    ) : (
-                      <svg width="120" height="40" viewBox="0 0 200 60" fill="none">
-                        <path d="M20 50 C40 30, 60 10, 80 40 S 120 70, 160 30" stroke={textColor} strokeWidth="3" fill="none" strokeLinecap="round" />
-                        <path d="M40 40 L180 20" stroke={textColor} strokeWidth="2" fill="none" opacity="0.5" />
-                      </svg>
-                    )}
-                 </div>
-                 <div style={{ fontSize: '14px', color: textColor, fontWeight: 700, textTransform: 'uppercase' }}>
-                   {settings.headmasterName || '-'}
-                 </div>
-                 {settings.headmasterNip && (
-                   <div style={{ fontSize: '12px', color: textColor, fontWeight: 600 }}>
-                     NIP. {settings.headmasterNip}
-                   </div>
-                 )}
-               </div>
-            </div>
+          {/* Info Grid */}
+          <div style={{ alignSelf: 'center', width: '90%', display: 'grid', gridTemplateColumns: '120px 15px 1fr', gap: '12px', fontSize: '16px', color: textColor, fontWeight: 700, marginBottom: '25px' }}>
+              <div style={{ fontWeight: 600 }}>Nama</div><div style={{ fontWeight: 600 }}>:</div><div style={{ fontWeight: 600, textTransform: 'uppercase' }}>{student.name}</div>
+              <div style={{ fontWeight: 600 }}>NIS</div><div style={{ fontWeight: 600 }}>:</div><div style={{ fontWeight: 600 }}>{student.nisn}</div>
+              <div style={{ fontWeight: 600 }}>Tanggal Lahir</div><div style={{ fontWeight: 600 }}>:</div><div style={{ fontWeight: 600, textTransform: 'uppercase' }}>{formatDate(student.birthDate)}</div>
+              <div style={{ fontWeight: 600 }}>Alamat</div><div style={{ fontWeight: 600 }}>:</div><div style={{ fontWeight: 600, lineHeight: 1.4, textTransform: 'uppercase' }}>{student.address || '-'}</div>
           </div>
 
-          {/* Bottom decorative shape */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, width: '250px', height: '30px', background: template?.secondaryColor || '#88be4f', borderTopRightRadius: '30px' }}></div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 'auto', marginBottom: '10px' }}>
+             <img src={barcodeUrl} alt="Barcode" style={{ width: '220px', height: '50px', objectFit: 'fill' }} />
+          </div>
+
+        </div>
+
+        {/* FOOTER */}
+        <div style={{ height: '70px', width: '100%', position: 'relative' }}>
+           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '30px', backgroundColor: headerColor }}></div>
+           
+           <div style={{ position: 'absolute', bottom: '30px', left: 0, width: '150px', height: '15px', backgroundColor: headerColor, borderTopRightRadius: '15px' }}></div>
+           
+           <div style={{ position: 'absolute', bottom: '15px', left: '20px', zIndex: 10 }}>
+              <svg width="100" height="30" viewBox="0 0 120 40">
+                 <path d="M0,40 L30,0 L50,0 L20,40 Z" fill="#facc15" />
+                 <path d="M30,40 L60,0 L80,0 L50,40 Z" fill="#facc15" />
+                 <path d="M60,40 L90,0 L110,0 L80,40 Z" fill="#facc15" />
+              </svg>
+           </div>
+           
+           <div style={{ position: 'absolute', bottom: '40px', right: '30px' }}>
+              <DotMatrix rows={4} cols={5} color={headerColor} />
+           </div>
         </div>
       </div>
     );
   };
 
   const VerticalBack = () => {
-    const textColor = '#0f172a';
+    const kemenagLogoUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
+    const headerColor = template?.primaryColor || '#4F14A0';
+    const textColor = '#111827';
     
-    // Layout for the back of the card
-    const termsTextRaw = settings.termsText || "1. Kartu ini adalah identitas resmi siswa.\n2. Kartu ini tidak boleh dipindahtangankan.\n3. Apabila menemukan kartu ini, harap mengembalikan ke sekolah.\n4. Berlaku selama menjadi siswa aktif.";
+    // Default fallback rules mirroring user snippet
+    const termsTextRaw = settings.termsText || "Kartu wajib dipakai selama berada di lingkungan sekolah\nTidak boleh dipinjamkan kepada orang lain.\nJika hilang, segera lapor ke wali kelas.\nMenjaga kartu agar tidak rusak atau kotor.";
     const termsLines = termsTextRaw.split('\n');
 
+    // Advanced QR Code payload
+    const qrPayload = `Sekolah: ${settings.schoolName}\nNPSN: ${settings.schoolSubtitle || '-'}\nDiterbitkan: ${formatDate(new Date().toISOString())}\nBerlaku: ${settings.academicYear}\nSiswa: ${student.name} (${student.nisn})\nLink: https://mandalotim.sch.id/student/${student.nisn}`;
+    const advancedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data=${encodeURIComponent(qrPayload)}`;
+
+    const DotMatrix = ({ rows=4, cols=4, color=headerColor }) => (
+      <svg width={cols*14} height={rows*14} viewBox={`0 0 ${cols*14} ${rows*14}`}>
+         <defs>
+           <pattern id={`dots-${color}-back`} x="0" y="0" width="14" height="14" patternUnits="userSpaceOnUse">
+             <circle cx="3" cy="3" r="3" fill={color} />
+           </pattern>
+         </defs>
+         <rect x="0" y="0" width="100%" height="100%" fill={`url(#dots-${color}-back)`} />
+      </svg>
+    );
+
     return (
-      <div style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>
-         {/* Subtle watermark logo */}
-         <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.05, zIndex: 0 }}>
-             {settings.schoolLogoUrl && (
-               <img src={settings.schoolLogoUrl} alt="" style={{ width: '300px', height: '300px', objectFit: 'contain' }} />
-             )}
-         </div>
+      <div style={{ width: '100%', height: '100%', position: 'relative', backgroundColor: '#f8f9fa', display: 'flex', flexDirection: 'column' }}>
+        {/* HEADER (Identical replication of Front Header) */}
+        <div style={{ width: '100%', height: '180px', backgroundColor: headerColor, position: 'relative', overflow: 'hidden', borderBottom: '4px solid #facc15' }}>
+           <div style={{ position: 'absolute', top: 0, left: 0, width: '60%', height: '35px', backgroundColor: '#e2e8f0', borderBottomRightRadius: '20px' }}></div>
+           <div style={{ position: 'absolute', top: '15px', left: '-10px', width: '200px', height: '20px', backgroundColor: '#facc15', borderRadius: '10px' }}></div>
+           <div style={{ position: 'absolute', top: '10px', right: '10px' }}>
+              <DotMatrix rows={4} cols={8} color="#facc15" />
+           </div>
 
-         <div style={{ width: '100%', backgroundColor: template.primaryColor || '#2b783f', color: '#facc15', padding: '16px 0', textAlign: 'center', fontWeight: 800, fontSize: '20px', letterSpacing: '2px', zIndex: 1 }}>
-           KETENTUAN PENGGUNAAN KARTU
-         </div>
+           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 30px', height: '100%', marginTop: '10px' }}>
+             <img src={kemenagLogoUrl} alt="Klogo" style={{ width: '70px', height: '70px', objectFit: 'contain' }} />
+             <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', padding: '0 15px' }}>
+               <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
+               <div style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px' }}>{settings.schoolName || 'MAN 2 LOMBOK TIMUR'}</div>
+               <div style={{ fontSize: '11px', fontWeight: 400, opacity: 0.9, lineHeight: 1.4 }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
+             </div>
+             {settings.schoolLogoUrl ? (
+               <img src={settings.schoolLogoUrl} alt="SLogo" style={{ width: '70px', height: '70px', objectFit: 'contain' }} />
+             ) : <div style={{ width: '70px' }} />}
+           </div>
+        </div>
 
-         <div style={{ flex: 1, padding: '30px 40px', zIndex: 1, fontSize: '14px', lineHeight: 1.8, color: '#1e293b', fontWeight: 500 }}>
-           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {termsLines.map((line, idx) => (
-                <div key={idx}>{line}</div>
+        {/* BODY */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '30px 40px', position: 'relative' }}>
+          
+          <div style={{ position: 'absolute', top: '30px', left: '25px' }}><DotMatrix rows={4} cols={3} color={headerColor} /></div>
+          <div style={{ position: 'absolute', top: '30px', right: '25px' }}><DotMatrix rows={4} cols={3} color={headerColor} /></div>
+
+          <div style={{ textAlign: 'center', marginBottom: '40px', zIndex: 10 }}>
+             <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 900, color: '#0a0a0a', letterSpacing: '1px', lineHeight: 1.3 }}>
+               SYARAT &<br/>KETENTUAN
+             </h2>
+          </div>
+
+          <div style={{ padding: '0 10px', marginBottom: '30px' }}>
+            <ul style={{ fontSize: '17px', lineHeight: 1.6, color: textColor, margin: 0, paddingLeft: '20px', fontWeight: 500 }}>
+              {termsLines.map((line, i) => (
+                <li key={i} style={{ marginBottom: '12px' }}>{line}</li>
               ))}
-           </div>
-         </div>
+            </ul>
+          </div>
 
-         <div style={{ padding: '20px 40px', backgroundColor: '#f1f5f9', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1 }}>
-           <div style={{ fontSize: '12px', color: '#64748b' }}>
-             Masa Berlaku: {settings.academicYear}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 'auto', marginBottom: '30px' }}>
+             <img src={advancedQrUrl} alt="QR Code Belakang" style={{ width: '130px', height: '130px', border: '5px solid #ffffff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
+             <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1px', color: textColor, marginTop: '8px' }}>MASA BERLAKU</div>
+             
+             <div style={{ fontSize: '12px', textAlign: 'center', fontWeight: 500, color: '#334155', marginTop: '30px', lineHeight: 1.5, padding: '0 10px' }}>
+               KARTU INI ADALAH MILIK RESMI MADRASAH DAN HANYA<br/>DIGUNAKAN OLEH PEMEGANG YANG TERTERA
+             </div>
+          </div>
+        </div>
+
+        {/* FOOTER PILL */}
+        <div style={{ padding: '0 20px 20px 20px' }}>
+           <div style={{ backgroundColor: headerColor, borderRadius: '15px', height: '55px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', color: '#ffffff', fontSize: '13px', fontWeight: 500 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
+                 <span>{settings.schoolEmail || 'man2lotim@gmail.com'}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                 <span>https://mandalotim.sch.id</span>
+              </div>
            </div>
-           <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
-             {settings.schoolName}
-           </div>
-         </div>
+        </div>
       </div>
     );
   };
