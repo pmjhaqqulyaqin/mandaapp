@@ -121,8 +121,8 @@ export const HeroSection = ({ logoUrl, schoolName }: HeroSectionProps) => {
   return (
     <section className="relative overflow-hidden w-full h-auto min-h-[75vh] md:min-h-[85vh] pt-24 pb-4 flex flex-col justify-end transition-colors duration-1000 bg-black">
       
-      {/* --- DYNAMIC SKY WINDOW (55% HEIGHT) --- */}
-      <div className="absolute top-0 left-0 w-full h-[55%] z-[1] overflow-hidden">
+      {/* --- DYNAMIC SKY WINDOW (42% HEIGHT) --- */}
+      <div className="absolute top-0 left-0 w-full h-[42%] z-[1] overflow-hidden">
         {/* Layer 0: Sky Gradient Base */}
         <div className={`absolute inset-0 z-0 bg-gradient-to-b ${getSkyGradient()} transition-colors duration-3000`}></div>
 
