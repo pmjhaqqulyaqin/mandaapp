@@ -107,6 +107,7 @@ export const DashboardStudentCard = () => {
   // Edit Identity Tab State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [editingStudent, setEditingStudent] = useState<StudentProfile | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string>('');
@@ -207,10 +208,10 @@ export const DashboardStudentCard = () => {
           <button 
             onClick={() => { 
               setSelectedStudent(row); 
-              setActiveTab('preview');
+              setIsPreviewModalOpen(true);
             }}
             className="text-amber-500 hover:text-amber-700 transition-colors p-1"
-            title="Preview Kartu Pelajar"
+            title="Preview Kartu Pelajar (Cepat)"
           >
             <Eye className="w-4 h-4" />
           </button>
@@ -835,6 +836,56 @@ export const DashboardStudentCard = () => {
           )}
         </>
       )}
+
+      {/* --- QUICK PREVIEW MODAL --- */}
+      <Modal
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
+        title="Preview Kartu Pelajar"
+        description={`Melihat tampilan kartu depan untuk ${selectedStudent?.fullName || selectedStudent?.name}`}
+      >
+        <div className="py-4 flex justify-center bg-gray-50 dark:bg-[#0a0a0a] rounded-xl border border-border-light dark:border-border-dark overflow-hidden mt-2 relative">
+           <div style={{ transform: 'scale(min(1, max(0.65, calc(100vw / 800))))', transformOrigin: 'top center' }} className="pb-4">
+              {selectedStudent && (
+                <PrintableStudentCard
+                  student={{
+                    name: selectedStudent.fullName || selectedStudent.name,
+                    nisn: selectedStudent.nisn,
+                    className: selectedStudent.className,
+                    birthPlace: selectedStudent.birthPlace,
+                    birthDate: selectedStudent.birthDate,
+                    gender: selectedStudent.gender,
+                    address: selectedStudent.address,
+                    photoUrl: selectedStudent.photoUrl,
+                  }}
+                  template={template}
+                  settings={{
+                    schoolName: globalSchoolName || cardSettings.schoolName,
+                    schoolSubtitle: cardSettings.schoolSubtitle,
+                    schoolAddress: globalSchoolAddress || cardSettings.schoolAddress,
+                    schoolPhone: globalSchoolPhone,
+                    schoolEmail: globalSchoolEmail,
+                    headmasterName: globalHeadmasterName,
+                    headmasterNip: globalHeadmasterNip,
+                    termsText: cardSettings.termsText,
+                    schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
+                    headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl || cardSettings.headmasterSignatureUrl),
+                    academicYear: cardSettings.academicYear,
+                    showQrCode: cardSettings.showQrCode,
+                  }}
+                  orientation={orientation}
+                  scale={1}
+                  side="front"
+                />
+              )}
+           </div>
+        </div>
+        <div className="mt-6 flex justify-end">
+           <Button type="button" onClick={() => setIsPreviewModalOpen(false)}>
+             Tutup
+           </Button>
+        </div>
+      </Modal>
 
       {/* --- EDIT IDENTITY MODAL --- */}
       <Modal
