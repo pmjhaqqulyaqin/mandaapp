@@ -212,7 +212,7 @@ export const menus = pgTable("menus", {
   parentId: uuid("parent_id"), // Self-referencing column for submenus. Added manually below in relations if needed.
   label: varchar("label", { length: 150 }).notNull(),
   url: varchar("url", { length: 255 }).notNull(),
-  icon: varchar("icon", { length: 50 }), // e.g. 'Home', 'Users', 'BookOpen'
+  icon: varchar("icon", { length: 255 }), // Increased to 255 to support absolute image URLs
   order: integer("order").default(0).notNull(),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
