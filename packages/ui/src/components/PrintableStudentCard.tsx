@@ -190,8 +190,8 @@ export const PrintableStudentCard = ({
             </div>
 
             {/* Barcode 1D */}
-            <div style={{ marginTop: 'auto', marginBottom: '10px', height: '60px', width: '100%' }}>
-              <img src={barcodeUrl} alt="Barcode" style={{ height: '100%', width: '300px', objectFit: 'fill' }} />
+            <div style={{ marginTop: '35px', marginBottom: '5px', height: '50px', width: '100%' }}>
+              <img src={barcodeUrl} alt="Barcode" style={{ height: '100%', width: '250px', objectFit: 'fill' }} />
             </div>
           </div>
         </div>
@@ -233,22 +233,22 @@ export const PrintableStudentCard = ({
 
         {/* BODY (Terms and Conditions) */}
         <div style={{ padding: '20px 60px', zIndex: 10, position: 'relative' }}>
-           <h3 style={{ fontSize: '24px', fontWeight: 800, fontStyle: 'italic', letterSpacing: '1px', textAlign: 'center', marginBottom: '20px', color: textColor }}>
+           <h3 style={{ fontSize: '24px', fontWeight: 800, fontStyle: 'italic', letterSpacing: '1px', textAlign: 'center', marginBottom: '15px', color: textColor }}>
              SYARAT & KETENTUAN:
            </h3>
-           <ul style={{ fontSize: '17px', lineHeight: 1.6, color: textColor, margin: 0, paddingLeft: '20px', fontWeight: 500 }}>
+           <ul style={{ fontSize: '17px', lineHeight: 1.5, color: textColor, margin: 0, paddingLeft: '20px', fontWeight: 500 }}>
               {termsLines.map((line, i) => (
-                <li key={i} style={{ marginBottom: '6px' }}>{line}</li>
+                <li key={i} style={{ marginBottom: '4px' }}>{line}</li>
               ))}
            </ul>
         </div>
 
         {/* BOTTOM AREA (QR & Signature) */}
-        <div style={{ position: 'absolute', bottom: '60px', left: '60px', right: '60px', display: 'flex', justifyContent: 'space-between', zIndex: 10 }}>
+        <div style={{ position: 'absolute', bottom: '45px', left: '90px', right: '60px', display: 'flex', justifyContent: 'space-between', zIndex: 10 }}>
            {/* QR Section */}
-           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-              <img src={advancedQrUrl} alt="QR Code Belakang" style={{ width: '110px', height: '110px', border: '5px solid #ffffff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
-              <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1px' }}>MASA BERLAKU</div>
+           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', paddingTop: '15px' }}>
+              <img src={advancedQrUrl} alt="QR Code Belakang" style={{ width: '105px', height: '105px', border: '4px solid #ffffff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#111827', backgroundColor: 'rgba(255,255,255,0.7)', padding: '2px 6px', borderRadius: '4px' }}>MASA BERLAKU</div>
            </div>
 
            {/* Signature Section */}
@@ -281,7 +281,10 @@ export const PrintableStudentCard = ({
   };
 
   const VerticalFront = () => {
-
+    const headerColor = template?.primaryColor || '#2b783f';
+    const darkAccent = template?.accentColor || '#1a4e28';
+    const textColor = '#0f172a';
+    
     return (
       <div style={{ width: '100%', height: '100%', position: 'relative' }}>
         {/* Background decorative wave (Optional) */}
@@ -438,6 +441,8 @@ export const PrintableStudentCard = ({
   };
 
   const VerticalBack = () => {
+    const textColor = '#0f172a';
+    
     // Layout for the back of the card
     const termsTextRaw = settings.termsText || "1. Kartu ini adalah identitas resmi siswa.\n2. Kartu ini tidak boleh dipindahtangankan.\n3. Apabila menemukan kartu ini, harap mengembalikan ke sekolah.\n4. Berlaku selama menjadi siswa aktif.";
     const termsLines = termsTextRaw.split('\n');
