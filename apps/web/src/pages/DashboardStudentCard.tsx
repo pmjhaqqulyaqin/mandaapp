@@ -631,7 +631,7 @@ export const DashboardStudentCard = () => {
               </div>
 
               {/* Hidden print area for batch */}
-              <div ref={printRef} style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+              <div ref={printRef} className="hidden">
                 
                 {/* Front Sides Grid */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
