@@ -19,6 +19,7 @@ export interface PrintableCardStudent {
   birthPlace: string;
   birthDate: string;
   gender: string;
+  major?: string;
   address?: string;
   photoUrl?: string;
 }
@@ -104,8 +105,8 @@ export const PrintableStudentCard = ({
   // Let's use 323px x 204px as base size but we actually want high res for printing.
   // At CSS level, we can multiply coordinates by 2 for sharper vector text: 646px x 408px.
   const isHorizontal = orientation === 'horizontal';
-  const cardWidth = isHorizontal ? 646 : 408;
-  const cardHeight = isHorizontal ? 408 : 646;
+  const cardWidth = isHorizontal ? 856 : 408;
+  const cardHeight = isHorizontal ? 540 : 646;
 
   const containerStyle: React.CSSProperties = {
     width: `${cardWidth}px`,
@@ -114,9 +115,9 @@ export const PrintableStudentCard = ({
     transformOrigin: 'top left',
     fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif",
     position: 'relative',
-    backgroundColor: '#f3f4f6', // Light gray background
+    backgroundColor: '#ffffff', // Clean white background base
     boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-    borderRadius: '16px',
+    borderRadius: '8px', // High fidelity rounded corners (small)
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
@@ -136,12 +137,150 @@ export const PrintableStudentCard = ({
     backgroundColor: '#ffffff',
   };
 
-  const FrontSide = () => {
-    // We recreate the "SMA NEGERI BORCELLE" layout
-    // Dark green header curving, a dark green badge on the left for logo, etc.
-    const headerColor = template?.primaryColor || '#2b783f';
-    const darkAccent = template?.accentColor || '#1a4e28';
-    const textColor = '#0f172a'; // dark slate
+  // --- HORIZONTAL DESIGN COMPONENTS ---
+  // A dedicated set of renderers to match the exact newly requested "Formal" layout.
+  const HorizontalFront = () => {
+    const kemenagLogoUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
+    const headerColor = template?.primaryColor || '#14425A';
+    const textColor = '#111827';
+    
+    // Encode essential ID info into the 1D Barcode. Max ~30 chars for highly reliable scanning.
+    const barcodeText = `${student.nisn}`;
+    const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(barcodeText)}&scale=3&height=12&includetext=false`;
+
+    return (
+      <div style={{ width: '100%', height: '100%', position: 'relative', backgroundColor: '#ffffff' }}>
+        {/* HEADER */}
+        <div style={{ width: '100%', height: '130px', backgroundColor: headerColor, display: 'flex', alignItems: 'center', padding: '0 30px', justifyContent: 'space-between', zIndex: 10, position: 'relative' }}>
+          <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
+          <div style={{ flex: 1, textAlign: 'center', color: '#ffffff' }}>
+            <div style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '1px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
+            <div style={{ fontSize: '26px', fontWeight: 800, margin: '4px 0', letterSpacing: '0.5px' }}>{settings.schoolName || 'MADRASAH ALIYAH NEGERI'}</div>
+            <div style={{ fontSize: '13px', fontWeight: 400, opacity: 0.9 }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
+          </div>
+          {settings.schoolLogoUrl ? (
+            <img src={settings.schoolLogoUrl} alt="Logo Sekolah" style={{ width: '85px', height: '85px', objectFit: 'contain' }} />
+          ) : <div style={{ width: '85px' }} />}
+        </div>
+
+        {/* BODY */}
+        <div style={{ display: 'flex', padding: '25px 40px', gap: '40px', zIndex: 10, position: 'relative' }}>
+          {/* Foto */}
+          <div style={{ width: '160px', height: '220px', backgroundColor: '#e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
+            {student.photoUrl ? (
+              <img src={student.photoUrl} alt="Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '48px', color: '#94a3b8' }}>
+                {student.name.charAt(0)}
+              </div>
+            )}
+          </div>
+
+          {/* Data */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <h2 style={{ fontSize: '32px', color: textColor, fontWeight: 900, fontStyle: 'italic', letterSpacing: '2px', margin: '0 0 25px 0' }}>
+              KARTU PELAJAR SISWA
+            </h2>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '120px 15px 1fr', gap: '14px', fontSize: '18px', color: textColor, fontWeight: 700 }}>
+              <div>NAMA</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.name}</div>
+              <div>NIS/NISN</div><div>:</div><div style={{ fontWeight: 500 }}>{student.nisn}</div>
+              <div>T.T.L</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.birthPlace}, {formatDate(student.birthDate)}</div>
+              <div>ALAMAT</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase', lineHeight: 1.3 }}>{student.address || '-'}</div>
+            </div>
+
+            {/* Barcode 1D */}
+            <div style={{ marginTop: 'auto', marginBottom: '10px', height: '60px', width: '100%' }}>
+              <img src={barcodeUrl} alt="Barcode" style={{ height: '100%', width: '300px', objectFit: 'fill' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* BOTTOM DECORATIONS */}
+        <div style={{ position: 'absolute', bottom: 0, left: '-20px', width: '220px', height: '120px', backgroundColor: '#facc15', borderTopRightRadius: '150px', zIndex: 1 }}></div>
+        <div style={{ position: 'absolute', bottom: 0, right: 0, width: '85%', height: '50px', backgroundColor: headerColor, borderTopLeftRadius: '30px', zIndex: 1 }}></div>
+        <div style={{ position: 'absolute', bottom: '15px', right: '-20px', width: '150px', height: '50px', backgroundColor: '#facc15', borderRadius: '40px', zIndex: 2 }}></div>
+      </div>
+    );
+  };
+
+  const HorizontalBack = () => {
+    const kemenagLogoUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
+    const headerColor = template?.primaryColor || '#14425A';
+    const textColor = '#111827';
+
+    const termsTextRaw = settings.termsText || "Kartu pelajar ini hanya dikeluarkan kepada siswa yang terdaftar di sekolah.\nKartu pelajar bersifat pribadi dan tidak boleh digunakan oleh orang lain.\nPemegang kartu bertanggung jawab untuk menjaga kebersihan dan keutuhan kartu.\nKartu Pelajar ini berlaku selama masa studi aktif di sekolah yang terdaftar.";
+    const termsLines = termsTextRaw.split('\n');
+
+    // Advanced payload for QR Code tracking student legitimacy
+    const qrPayload = `Sekolah: ${settings.schoolName}\nNPSN: ${settings.schoolSubtitle || '-'}\nDiterbitkan: ${formatDate(new Date().toISOString())}\nBerlaku: ${settings.academicYear}\nSiswa: ${student.name} (${student.nisn})\nLink: https://mandalotim.sch.id/student/${student.nisn}`;
+    const advancedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data=${encodeURIComponent(qrPayload)}`;
+
+    return (
+      <div style={{ width: '100%', height: '100%', position: 'relative', backgroundColor: '#ffffff' }}>
+        {/* HEADER (Identical to Front) */}
+        <div style={{ width: '100%', height: '130px', backgroundColor: headerColor, display: 'flex', alignItems: 'center', padding: '0 30px', justifyContent: 'space-between', zIndex: 10, position: 'relative' }}>
+          <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
+          <div style={{ flex: 1, textAlign: 'center', color: '#ffffff' }}>
+            <div style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '1px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
+            <div style={{ fontSize: '26px', fontWeight: 800, margin: '4px 0', letterSpacing: '0.5px' }}>{settings.schoolName || 'MADRASAH ALIYAH NEGERI'}</div>
+            <div style={{ fontSize: '13px', fontWeight: 400, opacity: 0.9 }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
+          </div>
+          {settings.schoolLogoUrl ? (
+            <img src={settings.schoolLogoUrl} alt="Logo Sekolah" style={{ width: '85px', height: '85px', objectFit: 'contain' }} />
+          ) : <div style={{ width: '85px' }} />}
+        </div>
+
+        {/* BODY (Terms and Conditions) */}
+        <div style={{ padding: '20px 60px', zIndex: 10, position: 'relative' }}>
+           <h3 style={{ fontSize: '24px', fontWeight: 800, fontStyle: 'italic', letterSpacing: '1px', textAlign: 'center', marginBottom: '20px', color: textColor }}>
+             SYARAT & KETENTUAN:
+           </h3>
+           <ul style={{ fontSize: '17px', lineHeight: 1.6, color: textColor, margin: 0, paddingLeft: '20px', fontWeight: 500 }}>
+              {termsLines.map((line, i) => (
+                <li key={i} style={{ marginBottom: '6px' }}>{line}</li>
+              ))}
+           </ul>
+        </div>
+
+        {/* BOTTOM AREA (QR & Signature) */}
+        <div style={{ position: 'absolute', bottom: '60px', left: '60px', right: '60px', display: 'flex', justifyContent: 'space-between', zIndex: 10 }}>
+           {/* QR Section */}
+           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+              <img src={advancedQrUrl} alt="QR Code Belakang" style={{ width: '110px', height: '110px', border: '5px solid #ffffff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
+              <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1px' }}>MASA BERLAKU</div>
+           </div>
+
+           {/* Signature Section */}
+           <div style={{ textAlign: 'center', width: '250px' }}>
+              <div style={{ fontSize: '20px', fontWeight: 800, marginBottom: '5px' }}>KEPALA MADRASAH</div>
+              <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                 {settings.headmasterSignatureUrl ? (
+                   <img src={settings.headmasterSignatureUrl} alt="Tanda Tangan" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+                 ) : (
+                   <svg width="150" height="50" viewBox="0 0 200 60" fill="none">
+                     <path d="M20 50 C40 30, 60 10, 80 40 S 120 70, 160 30" stroke={textColor} strokeWidth="3" fill="none" strokeLinecap="round" />
+                   </svg>
+                 )}
+              </div>
+              <div style={{ fontSize: '18px', fontWeight: 600, textTransform: 'uppercase' }}>
+                 {settings.headmasterName || 'NAMA KEPALA SEKOLAH'}
+              </div>
+              <div style={{ fontSize: '16px', fontWeight: 500 }}>
+                 NIP. {settings.headmasterNip || '-'}
+              </div>
+           </div>
+        </div>
+
+        {/* BOTTOM DECORATIONS */}
+        <div style={{ position: 'absolute', bottom: 0, left: '-20px', width: '220px', height: '120px', backgroundColor: '#facc15', borderTopRightRadius: '150px', zIndex: 1 }}></div>
+        <div style={{ position: 'absolute', bottom: 0, right: 0, width: '85%', height: '50px', backgroundColor: headerColor, borderTopLeftRadius: '30px', zIndex: 1 }}></div>
+        <div style={{ position: 'absolute', bottom: '15px', right: '-20px', width: '150px', height: '50px', backgroundColor: '#facc15', borderRadius: '40px', zIndex: 2 }}></div>
+      </div>
+    );
+  };
+
+  const VerticalFront = () => {
 
     return (
       <div style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -298,7 +437,7 @@ export const PrintableStudentCard = ({
     );
   };
 
-  const BackSide = () => {
+  const VerticalBack = () => {
     // Layout for the back of the card
     const termsTextRaw = settings.termsText || "1. Kartu ini adalah identitas resmi siswa.\n2. Kartu ini tidak boleh dipindahtangankan.\n3. Apabila menemukan kartu ini, harap mengembalikan ke sekolah.\n4. Berlaku selama menjadi siswa aktif.";
     const termsLines = termsTextRaw.split('\n');
@@ -342,14 +481,14 @@ export const PrintableStudentCard = ({
       {(side === 'both' || side === 'front') && (
         <div style={wrapperStyle}>
           <div style={containerStyle} className="printable-card-front" id={`card-front-${student.nisn}`}>
-            <FrontSide />
+            {isHorizontal ? <HorizontalFront /> : <VerticalFront />}
           </div>
         </div>
       )}
       {(side === 'both' || side === 'back') && (
         <div style={{ ...wrapperStyle, marginTop: side === 'both' ? '24px' : '0' }}>
           <div style={backContainerStyle} className="printable-card-back" id={`card-back-${student.nisn}`}>
-            <BackSide />
+            {isHorizontal ? <HorizontalBack /> : <VerticalBack />}
           </div>
         </div>
       )}
