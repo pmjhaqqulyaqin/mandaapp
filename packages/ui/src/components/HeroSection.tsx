@@ -121,11 +121,11 @@ export const HeroSection = ({ logoUrl, schoolName }: HeroSectionProps) => {
   return (
     <section className="relative overflow-hidden w-full h-auto min-h-[75vh] md:min-h-[85vh] pt-24 pb-4 flex flex-col justify-end transition-colors duration-1000 bg-black">
       
-      {/* --- DYNAMIC SKY WINDOW (45% HEIGHT) --- */}
-      <div className="absolute top-0 left-0 w-full h-[45%] z-[1] overflow-hidden">
-        {/* Layer 0: Sky Gradient Base */}
-        <div className={`absolute inset-0 z-0 bg-gradient-to-b ${getSkyGradient()} transition-colors duration-3000`}></div>
+      {/* --- DYNAMIC SKY BACKGROUND (Extends down to 55% to fill black gaps) --- */}
+      <div className={`absolute top-0 left-0 w-full h-[55%] z-[1] bg-gradient-to-b ${getSkyGradient()} transition-colors duration-3000`}></div>
 
+      {/* --- CELESTIAL BODIES CLIPPING WINDOW (45% HEIGHT) --- */}
+      <div className="absolute top-0 left-0 w-full h-[45%] z-[2] overflow-hidden pointer-events-none">
         {/* Layer 1.5: Stars */}
         {!isDaytime && (
           <div className="absolute inset-0 z-[1] opacity-60">
@@ -179,14 +179,14 @@ export const HeroSection = ({ logoUrl, schoolName }: HeroSectionProps) => {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Layer 3: Sky Backdrop Image (Contains Trees & Mountains) positioned over sun/moon */}
-        <div className="absolute inset-0 z-[3] pointer-events-none">
-          <div 
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-60 mix-blend-overlay"
-            style={{ backgroundImage: "url('/Gambar Langit manda.png')" }}
-          ></div>
-        </div>
+      {/* Layer 3: Sky Backdrop Image (Contains Trees & Mountains) positioned over sun/moon */}
+      <div className="absolute top-0 left-0 w-full h-[55%] z-[3] pointer-events-none overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-60 mix-blend-overlay"
+          style={{ backgroundImage: "url('/Gambar Langit manda.png')" }}
+        ></div>
       </div>
 
       {/* Layer 3: Foreground Building (Covers the bottom of the sky window) */}
