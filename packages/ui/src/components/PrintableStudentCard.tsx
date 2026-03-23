@@ -44,6 +44,7 @@ export interface PrintableStudentCardProps {
   settings: PrintableCardSettings;
   orientation: CardOrientation;
   scale?: number;
+  side?: 'front' | 'back' | 'both';
 }
 
 const TEMPLATES: Record<CardTemplateName, PrintableCardTemplate> = {
@@ -90,6 +91,7 @@ export const PrintableStudentCard = ({
   settings,
   orientation,
   scale = 1,
+  side = 'both',
 }: PrintableStudentCardProps) => {
   const qrData = `NISN: ${student.nisn}\nNama: ${student.name}\nTTL: ${student.birthPlace}, ${formatDate(student.birthDate)}\nSekolah: ${settings.schoolName}`;
   const qrUrl = settings.showQrCode !== false
@@ -337,16 +339,20 @@ export const PrintableStudentCard = ({
   // We return a fragment containing both front and back cards if printing, or just front/back components in preview
   return (
     <>
-      <div style={wrapperStyle}>
-        <div style={containerStyle} className="printable-card-front" id={`card-front-${student.nisn}`}>
-          <FrontSide />
+      {(side === 'both' || side === 'front') && (
+        <div style={wrapperStyle}>
+          <div style={containerStyle} className="printable-card-front" id={`card-front-${student.nisn}`}>
+            <FrontSide />
+          </div>
         </div>
-      </div>
-      <div style={{ ...wrapperStyle, marginTop: '24px' }}>
-        <div style={backContainerStyle} className="printable-card-back break-before-page" id={`card-back-${student.nisn}`}>
-          <BackSide />
+      )}
+      {(side === 'both' || side === 'back') && (
+        <div style={{ ...wrapperStyle, marginTop: side === 'both' ? '24px' : '0' }}>
+          <div style={backContainerStyle} className="printable-card-back" id={`card-back-${student.nisn}`}>
+            <BackSide />
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 };
