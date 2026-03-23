@@ -204,7 +204,7 @@ export const DashboardLayout = () => {
   const systemMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'system' && allowedMenus.includes(item.key));
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-[#050505] relative">
+    <div className="flex h-[100dvh] w-screen overflow-hidden bg-gray-50 dark:bg-[#050505] relative">
       
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
@@ -302,7 +302,7 @@ export const DashboardLayout = () => {
       </aside>
       
       <main className="flex-1 flex flex-col min-w-0 w-full overflow-hidden">
-        <header className="h-16 border-b border-border-light dark:border-border-dark bg-white dark:bg-background-dark flex items-center justify-between px-4 sm:px-6 shrink-0 sticky top-0 z-30">
+        <header className="h-16 border-b border-border-light dark:border-border-dark bg-white dark:bg-background-dark flex items-center justify-between px-4 sm:px-6 shrink-0 z-30">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsSidebarOpen(true)}
@@ -319,7 +319,7 @@ export const DashboardLayout = () => {
             </button>
           </div>
         </header>
-        <div className="p-6 overflow-auto">
+        <div className="flex-1 p-6 overflow-auto custom-scrollbar">
           <Outlet />
         </div>
       </main>
