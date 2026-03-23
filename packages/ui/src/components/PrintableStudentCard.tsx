@@ -256,7 +256,7 @@ export const PrintableStudentCard = ({
            {/* Signature Section */}
            <div style={{ textAlign: 'center', width: '250px', position: 'relative' }}>
               {settings.schoolStampUrl && (
-                <img src={settings.schoolStampUrl} alt="Stempel Sekolah" style={{ position: 'absolute', top: '15px', left: '10px', width: '90px', height: '90px', objectFit: 'contain', opacity: 0.8, zIndex: 0 }} />
+                <img src={settings.schoolStampUrl} alt="Stempel Sekolah" style={{ position: 'absolute', top: '-10px', left: '-15px', width: '140px', height: '140px', objectFit: 'contain', opacity: 0.85, zIndex: 0 }} />
               )}
               <div style={{ fontSize: '20px', fontWeight: 800, marginBottom: '5px', position: 'relative', zIndex: 1 }}>KEPALA MADRASAH</div>
               <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2 }}>
