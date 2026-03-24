@@ -291,121 +291,49 @@ export const DashboardStudentCard = () => {
   ];
 
   const handlePrint = () => {
-    const printContainer = document.getElementById('print-content-area');
-    if (!printContainer) {
-      toast.error('Tidak ada konten untuk dicetak.');
+    if (studentsToPrint.length === 0) {
+      toast.error('Tidak ada siswa yang dipilih untuk dicetak.');
       return;
     }
 
-    // === STEP 1: Clone DOM and prepare content ===
-    const clonedContainer = printContainer.cloneNode(true) as HTMLElement;
-
-    // Add inline grid styles (Tailwind not available in iframe)
-    clonedContainer.querySelectorAll('.a4-print-page').forEach(page => {
-      const el = page as HTMLElement;
-      const isHorizontal = el.classList.contains('horizontal-grid');
-      el.style.cssText = `width:210mm;padding:12mm 10mm;page-break-after:always;break-after:page;box-sizing:border-box;display:grid;justify-content:center;align-content:flex-start;gap:8mm 6mm;margin:0 auto;grid-template-columns:repeat(${isHorizontal ? '2, 85.6mm' : '3, 53.98mm'});`;
-    });
-
-    // Force overflow:hidden on wrappers to clip 540px layout box
-    clonedContainer.querySelectorAll('.printable-card-wrapper').forEach(wrapper => {
-      (wrapper as HTMLElement).style.overflow = 'hidden';
-    });
-
-    // Remove page-break from last page
-    const allPages = clonedContainer.querySelectorAll('.a4-print-page');
-    if (allPages.length > 0) {
-      const lastPage = allPages[allPages.length - 1] as HTMLElement;
-      lastPage.style.pageBreakAfter = 'auto';
-      (lastPage.style as any).breakAfter = 'auto';
-    }
-
-    const bodyContent = clonedContainer.innerHTML;
-
-    // === STEP 2: Build HTML document ===
-    const htmlDoc = `<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<title>Cetak Kartu Pelajar</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body {
-    width: 210mm;
-    max-width: 210mm;
-    margin: 0;
-    padding: 0;
-    background: white;
-    font-family: 'Inter', sans-serif;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    overflow-x: hidden;
-  }
-  @page { size: A4 portrait; margin: 0; }
-  @media print {
-    html, body {
-      width: 210mm;
-      max-width: 210mm;
-      background: white;
-    }
-  }
-</style>
-</head>
-<body>${bodyContent}</body>
-</html>`;
-
-    // === STEP 3: Create hidden iframe and print from it ===
-    // Unlike window.open() where Chrome IGNORES the width parameter,
-    // an iframe's width IS the viewport for Chrome's print engine.
-    // Setting width=794px (= 210mm at 96dpi) means Chrome sees the document
-    // as 210mm wide — matching A4 paper exactly — NO auto-scaling.
-    const existingFrame = document.getElementById('batch-print-frame');
-    if (existingFrame) existingFrame.remove();
-
-    const iframe = document.createElement('iframe');
-    iframe.id = 'batch-print-frame';
-    iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;height:1123px;border:none;';
-    document.body.appendChild(iframe);
-
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!iframeDoc || !iframe.contentWindow) {
-      toast.error('Gagal membuat frame cetak.');
-      iframe.remove();
-      return;
-    }
-
-    iframeDoc.open();
-    iframeDoc.write(htmlDoc);
-    iframeDoc.close();
-
-    // Wait for images and fonts to load, then print
-    iframe.onload = () => {
-      setTimeout(() => {
-        try {
-          iframe.contentWindow?.focus();
-          iframe.contentWindow?.print();
-        } catch (e) {
-          console.error('Print error:', e);
-          toast.error('Gagal mencetak. Coba lagi.');
-        }
-        // Remove iframe after print dialog closes
-        setTimeout(() => iframe.remove(), 5000);
-      }, 1000);
+    const printData = {
+      students: studentsToPrint.map(s => ({
+        id: s.id,
+        name: s.fullName || s.name,
+        nisn: s.nisn,
+        className: s.className,
+        birthPlace: s.birthPlace,
+        birthDate: s.birthDate,
+        gender: s.gender,
+        photoUrl: s.photoUrl,
+      })),
+      settings: {
+        schoolName: globalSchoolName || cardSettings.schoolName,
+        schoolSubtitle: cardSettings.schoolSubtitle,
+        schoolAddress: globalSchoolAddress || cardSettings.schoolAddress,
+        schoolPhone: globalSchoolPhone,
+        schoolEmail: globalSchoolEmail,
+        headmasterName: globalHeadmasterName,
+        headmasterNip: globalHeadmasterNip,
+        termsText: cardSettings.termsText,
+        schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
+        headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
+        kemenagLogoUrl: getFullUrl(editingSettings.kemenagLogoUrl),
+        schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
+        academicYear: cardSettings.academicYear,
+        showQrCode: cardSettings.showQrCode,
+      },
+      templateId: template.id,
+      orientation
     };
 
-    // Fallback if onload doesn't fire (document.write may not trigger it)
-    setTimeout(() => {
-      if (document.getElementById('batch-print-frame')) {
-        try {
-          iframe.contentWindow?.focus();
-          iframe.contentWindow?.print();
-        } catch (e) {
-          // Silent fallback
-        }
-        setTimeout(() => iframe.remove(), 5000);
-      }
-    }, 3000);
+    try {
+      localStorage.setItem('batch-print-data', JSON.stringify(printData));
+      window.open('/dashboard/print-batch', '_blank');
+    } catch (e) {
+      console.error('Failed to save print data:', e);
+      toast.error('Gagal menyiapkan data cetak. Data mungkin terlalu besar.');
+    }
   };
 
   const handleFormSubmit = (data: StudentFormData) => {

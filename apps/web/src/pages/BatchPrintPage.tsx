@@ -1,0 +1,294 @@
+import { useState, useEffect, useRef } from 'react';
+import { PrintableStudentCard, CARD_TEMPLATES, type CardTemplateName, type CardOrientation } from '@mandaapp/ui';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Printer, Loader2 } from 'lucide-react';
+
+// Types for localStorage data
+interface BatchPrintData {
+  students: Array<{
+    id: string;
+    name: string;
+    nisn: string;
+    className: string;
+    birthPlace: string;
+    birthDate: string;
+    gender: string;
+    photoUrl?: string;
+  }>;
+  settings: {
+    schoolName: string;
+    schoolSubtitle: string;
+    schoolAddress?: string;
+    schoolPhone?: string;
+    schoolEmail?: string;
+    headmasterName?: string;
+    headmasterNip?: string;
+    termsText?: string;
+    schoolLogoUrl?: string;
+    headmasterSignatureUrl?: string;
+    kemenagLogoUrl?: string;
+    schoolStampUrl?: string;
+    academicYear: string;
+    showQrCode: boolean;
+  };
+  templateId: CardTemplateName;
+  orientation: CardOrientation;
+}
+
+export const BatchPrintPage = () => {
+  const navigate = useNavigate();
+  const [data, setData] = useState<BatchPrintData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const hasTriggeredPrint = useRef(false);
+
+  // Load data from localStorage on mount
+  useEffect(() => {
+    try {
+      const rawData = localStorage.getItem('batch-print-data');
+      if (!rawData) {
+        setError('Data cetak tidak ditemukan. Silakan kembali ke Dashboard dan coba lagi.');
+        return;
+      }
+      const parsed: BatchPrintData = JSON.parse(rawData);
+      if (!parsed.students?.length) {
+        setError('Tidak ada siswa yang dipilih untuk dicetak.');
+        return;
+      }
+      setData(parsed);
+    } catch (e) {
+      setError('Data cetak tidak valid. Silakan kembali ke Dashboard dan coba lagi.');
+    }
+  }, []);
+
+  // Auto-print after all content is rendered and images loaded
+  useEffect(() => {
+    if (!data || hasTriggeredPrint.current) return;
+    hasTriggeredPrint.current = true;
+
+    // Wait for fonts and images to load
+    const timer = setTimeout(() => {
+      setIsPrinting(true);
+      // Small delay to ensure React has finished rendering
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          window.print();
+          setIsPrinting(false);
+        }, 500);
+      });
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [data]);
+
+  const handleManualPrint = () => {
+    window.print();
+  };
+
+  const handleBack = () => {
+    navigate('/dashboard/student-card');
+  };
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button
+            onClick={handleBack}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            Kembali ke Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex items-center gap-3 text-gray-500">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span>Memuat data cetak...</span>
+        </div>
+      </div>
+    );
+  }
+
+  const { students, settings, templateId, orientation } = data;
+  const template = CARD_TEMPLATES[templateId] || CARD_TEMPLATES['elegant-gold'];
+  const itemsPerPage = orientation === 'horizontal' ? 8 : 9;
+  const totalPages = Math.ceil(students.length / itemsPerPage);
+
+  return (
+    <>
+      {/* Print Page CSS */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @page { size: A4 portrait; margin: 0; }
+
+        /* Screen styles: toolbar + preview */
+        .print-toolbar {
+          position: sticky; top: 0; z-index: 50;
+          background: #1f2937; color: white;
+          padding: 12px 24px;
+          display: flex; align-items: center; justify-content: space-between;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .print-toolbar button {
+          display: inline-flex; align-items: center; gap: 8px;
+          padding: 8px 16px; border-radius: 8px; border: none;
+          cursor: pointer; font-size: 14px; font-weight: 500;
+          transition: background-color 0.2s;
+        }
+        .print-toolbar .btn-back {
+          background: transparent; color: white;
+        }
+        .print-toolbar .btn-back:hover { background: rgba(255,255,255,0.1); }
+        .print-toolbar .btn-print {
+          background: #3b82f6; color: white;
+        }
+        .print-toolbar .btn-print:hover { background: #2563eb; }
+
+        .batch-print-container {
+          background: #ccc;
+          min-height: calc(100vh - 56px);
+          padding: 20px 0;
+        }
+
+        .a4-page {
+          width: 210mm;
+          min-height: 297mm;
+          margin: 0 auto 20px auto;
+          background: white;
+          padding: 12mm 10mm;
+          box-sizing: border-box;
+          display: grid;
+          justify-content: center;
+          align-content: flex-start;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .a4-page.horizontal-grid {
+          grid-template-columns: repeat(2, 85.6mm);
+          gap: 8mm 6mm;
+        }
+        .a4-page.vertical-grid {
+          grid-template-columns: repeat(3, 53.98mm);
+          gap: 6mm 4mm;
+        }
+        .page-label {
+          text-align: center; color: #666;
+          font-size: 12px; margin-bottom: 8px;
+          font-family: 'Inter', sans-serif;
+        }
+
+        /* Print styles: hide toolbar, remove backgrounds, enforce page breaks */
+        @media print {
+          .print-toolbar { display: none !important; }
+          .batch-print-container {
+            background: white !important;
+            padding: 0 !important;
+            min-height: auto !important;
+          }
+          .page-label { display: none !important; }
+          .a4-page {
+            width: 210mm !important;
+            margin: 0 !important;
+            padding: 12mm 10mm !important;
+            box-shadow: none !important;
+            page-break-after: always;
+            break-after: page;
+          }
+          .a4-page:last-child {
+            page-break-after: auto;
+            break-after: auto;
+          }
+          body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+        }
+      `}} />
+
+      {/* Toolbar — hidden when printing */}
+      <div className="print-toolbar">
+        <button className="btn-back" onClick={handleBack}>
+          <ArrowLeft size={18} />
+          Kembali
+        </button>
+        <span style={{ fontSize: '14px', opacity: 0.8 }}>
+          {students.length} kartu • {totalPages * 2} halaman (depan + belakang)
+        </span>
+        <button className="btn-print" onClick={handleManualPrint} disabled={isPrinting}>
+          {isPrinting ? <Loader2 size={18} className="animate-spin" /> : <Printer size={18} />}
+          {isPrinting ? 'Menyiapkan...' : 'Cetak'}
+        </button>
+      </div>
+
+      {/* Print Content */}
+      <div className="batch-print-container">
+        {/* Front Sides */}
+        {Array.from({ length: totalPages }).map((_, pageIndex) => {
+          const chunk = students.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
+          return (
+            <div key={`front-section-${pageIndex}`}>
+              <p className="page-label">Halaman {pageIndex + 1} — Depan ({chunk.length} kartu)</p>
+              <div className={`a4-page ${orientation === 'horizontal' ? 'horizontal-grid' : 'vertical-grid'}`}>
+                {chunk.map((s) => (
+                  <PrintableStudentCard
+                    key={`front-${s.id}`}
+                    student={{
+                      name: s.name,
+                      nisn: s.nisn,
+                      className: s.className,
+                      birthPlace: s.birthPlace,
+                      birthDate: s.birthDate,
+                      gender: s.gender,
+                      photoUrl: s.photoUrl,
+                    }}
+                    template={template}
+                    settings={settings}
+                    orientation={orientation}
+                    scale={1}
+                    side="front"
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Back Sides */}
+        {Array.from({ length: totalPages }).map((_, pageIndex) => {
+          const chunk = students.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
+          return (
+            <div key={`back-section-${pageIndex}`}>
+              <p className="page-label">Halaman {totalPages + pageIndex + 1} — Belakang ({chunk.length} kartu)</p>
+              <div className={`a4-page ${orientation === 'horizontal' ? 'horizontal-grid' : 'vertical-grid'}`}>
+                {chunk.map((s) => (
+                  <PrintableStudentCard
+                    key={`back-${s.id}`}
+                    student={{
+                      name: s.name,
+                      nisn: s.nisn,
+                      className: s.className,
+                      birthPlace: s.birthPlace,
+                      birthDate: s.birthDate,
+                      gender: s.gender,
+                      photoUrl: s.photoUrl,
+                    }}
+                    template={template}
+                    settings={settings}
+                    orientation={orientation}
+                    scale={1}
+                    side="back"
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+};

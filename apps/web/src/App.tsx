@@ -25,6 +25,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useFavicon } from './hooks/useFavicon';
 import { SystemUpdateCenter } from './pages/dashboard/SystemUpdateCenter';
+import { BatchPrintPage } from './pages/BatchPrintPage';
 import { FloatingActionButton, ScrollToTopButton } from '@mandaapp/ui';
 
 function App() {
@@ -43,6 +44,12 @@ function App() {
         <Route path="/select-role" element={
           <ProtectedRoute>
             <SelectRolePage />
+          </ProtectedRoute>
+        } />
+        {/* Dedicated batch print page — OUTSIDE DashboardLayout */}
+        <Route path="/dashboard/print-batch" element={
+          <ProtectedRoute>
+            <BatchPrintPage />
           </ProtectedRoute>
         } />
         
