@@ -17,6 +17,9 @@ export const PublicCetakKartu = () => {
   const [studentData, setStudentData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [customOrientation, setCustomOrientation] = useState<string | null>(null);
+  
+  const currentOrientation = customOrientation || settings?.orientation || 'horizontal';
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,11 +139,29 @@ export const PublicCetakKartu = () => {
       {studentData && settings && (
         <div className="mt-12">
           
-          <div className="flex items-center justify-between mb-8 print:hidden">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 print:hidden">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Kartu Pelajar Ditemukan</h2>
-            <Button onClick={handlePrint} variant="success" className="gap-2 px-6 shadow-lg shadow-emerald-500/20 font-bold rounded-xl animate-fade-in-up">
-               <Printer className="w-4 h-4" /> Cetak Kartu
-            </Button>
+            
+            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-3 w-full sm:w-auto">
+              <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                 <button 
+                   onClick={() => setCustomOrientation('horizontal')}
+                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${currentOrientation === 'horizontal' ? 'bg-white dark:bg-gray-700 shadow text-primary dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                 >
+                   Horizontal
+                 </button>
+                 <button 
+                   onClick={() => setCustomOrientation('vertical')}
+                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${currentOrientation === 'vertical' ? 'bg-white dark:bg-gray-700 shadow text-primary dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                 >
+                   Vertikal
+                 </button>
+              </div>
+
+              <Button onClick={handlePrint} variant={"primary" as any} className="bg-emerald-500 hover:bg-emerald-600 border-none gap-2 px-6 shadow-lg shadow-emerald-500/20 font-bold rounded-xl animate-fade-in-up">
+                 <Printer className="w-4 h-4" /> Cetak Kartu
+              </Button>
+            </div>
           </div>
 
           <div className="flex flex-wrap justify-center gap-8 print:block print:w-full print:m-0">
@@ -155,9 +176,9 @@ export const PublicCetakKartu = () => {
                   address: studentData.address,
                   photoUrl: studentData.photoUrl
                 }}
-                template={CARD_TEMPLATES[(settings.selectedTemplate as any) || 'classic-blue']}
+                template={CARD_TEMPLATES[(settings.selectedTemplate as keyof typeof CARD_TEMPLATES) || 'classic-blue']}
                 settings={settings}
-                orientation={settings.orientation as any || 'horizontal'}
+                orientation={currentOrientation as any}
                 scale={1}
                 side="both"
              />
