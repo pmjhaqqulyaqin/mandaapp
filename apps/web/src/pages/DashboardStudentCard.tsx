@@ -290,14 +290,17 @@ export const DashboardStudentCard = () => {
     },
   ];
 
-  const handlePrint = () => {
-    if (studentsToPrint.length === 0) {
+  const handlePrint = (singleStudentToPrint?: StudentProfile) => {
+    // Determine which array of students to print
+    const activeStudentsToPrint = singleStudentToPrint ? [singleStudentToPrint] : studentsToPrint;
+
+    if (activeStudentsToPrint.length === 0) {
       toast.error('Tidak ada siswa yang dipilih untuk dicetak.');
       return;
     }
 
     const printData = {
-      students: studentsToPrint.map(s => ({
+      students: activeStudentsToPrint.map(s => ({
         id: s.id,
         name: s.fullName || s.name,
         nisn: s.nisn,
@@ -638,7 +641,7 @@ export const DashboardStudentCard = () => {
                       </button>
                     </div>
                     <button
-                      onClick={handlePrint}
+                      onClick={() => handlePrint(selectedStudent!)}
                       className="px-5 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 shadow-sm"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -803,7 +806,7 @@ export const DashboardStudentCard = () => {
                       ))}
                     </select>
                     <button
-                      onClick={handlePrint}
+                      onClick={() => handlePrint()}
                       disabled={studentsToPrint.length === 0}
                       className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50"
                     >
