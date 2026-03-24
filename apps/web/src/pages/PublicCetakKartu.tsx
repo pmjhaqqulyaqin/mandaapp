@@ -1,12 +1,26 @@
 import React, { useState } from 'react';
 import { useCards } from '../hooks/api/useCards';
+import { useSiteSettings } from '../hooks/api/useSettings';
 import { PrintableStudentCard, CARD_TEMPLATES, Button } from '@mandaapp/ui';
 import { Search, Printer, AlertCircle } from 'lucide-react';
-import { apiClient } from '../lib/api';
+import { apiClient, API_BASE_URL } from '../lib/api';
 
 export const PublicCetakKartu = () => {
   const { querySettings } = useCards();
+  const { get: getSiteSetting } = useSiteSettings();
   const settings = querySettings.data;
+
+  // Global settings overrides
+  const globalLogoUrl = getSiteSetting('logo_url', '');
+  const globalSchoolName = getSiteSetting('school_name', '');
+  const globalSchoolAddress = getSiteSetting('address', '');
+  const globalSchoolPhone = getSiteSetting('phone', '');
+  const globalSchoolEmail = getSiteSetting('email', '');
+  const globalHeadmasterName = getSiteSetting('principal_name', '');
+  const globalHeadmasterNip = getSiteSetting('principal_nip', '');
+
+  const SERVER_BASE_URL = API_BASE_URL.replace(/\/api$/, '');
+  const getFullUrl = (url?: string) => url?.startsWith('/') ? `${SERVER_BASE_URL}${url}` : (url || '');
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -177,7 +191,22 @@ export const PublicCetakKartu = () => {
                   photoUrl: studentData.photoUrl
                 }}
                 template={CARD_TEMPLATES[(settings.selectedTemplate as keyof typeof CARD_TEMPLATES) || 'classic-blue']}
-                settings={settings}
+                settings={{
+                  schoolName: globalSchoolName || settings.schoolName,
+                  schoolSubtitle: settings.schoolSubtitle,
+                  schoolAddress: globalSchoolAddress || settings.schoolAddress,
+                  schoolPhone: globalSchoolPhone,
+                  schoolEmail: globalSchoolEmail,
+                  headmasterName: globalHeadmasterName,
+                  headmasterNip: globalHeadmasterNip,
+                  termsText: settings.termsText,
+                  schoolLogoUrl: getFullUrl(globalLogoUrl || settings.schoolLogoUrl),
+                  headmasterSignatureUrl: getFullUrl(settings.headmasterSignatureUrl),
+                  kemenagLogoUrl: getFullUrl(settings.kemenagLogoUrl),
+                  schoolStampUrl: getFullUrl(settings.schoolStampUrl),
+                  academicYear: settings.academicYear,
+                  showQrCode: settings.showQrCode,
+                }}
                 orientation={currentOrientation as any}
                 scale={1}
                 side="both"
