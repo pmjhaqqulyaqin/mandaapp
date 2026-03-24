@@ -332,6 +332,9 @@ export const DashboardStudentCard = () => {
     const bodyContent = clonedContainer.innerHTML;
 
     // === STEP 2: Build a complete HTML document ===
+    // CRITICAL: html/body MUST be constrained to EXACTLY 210mm width.
+    // Without this, Chrome sees the popup window width (e.g. 1280px) as the
+    // document width and auto-scales everything down to fit A4 (794px).
     const htmlDoc = `<!DOCTYPE html>
 <html lang="id">
 <head>
@@ -341,14 +344,24 @@ export const DashboardStudentCard = () => {
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
-    margin: 0; padding: 0; background: white;
+    width: 210mm;
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 0;
+    background: white;
     font-family: 'Inter', sans-serif;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    overflow-x: hidden;
   }
   @page { size: A4 portrait; margin: 0; }
   @media print {
-    html, body { background: white; }
+    html, body {
+      width: 210mm;
+      max-width: 210mm;
+      background: white;
+      overflow: visible;
+    }
   }
 </style>
 </head>
@@ -364,11 +377,11 @@ ${bodyContent}
 </html>`;
 
     // === STEP 3: Create Blob URL and open as a real page ===
-    // This is CRITICAL — Blob URL gives Chrome a real document context
-    // unlike document.write() which doesn't fully process @media print
+    // Open at EXACTLY 794px width (= 210mm at 96dpi) so Chrome doesn't see
+    // a wider document and auto-scale. Height is generous for scrolling.
     const blob = new Blob([htmlDoc], { type: 'text/html' });
     const blobUrl = URL.createObjectURL(blob);
-    const printWindow = window.open(blobUrl, '_blank');
+    const printWindow = window.open(blobUrl, '_blank', 'width=794,height=900');
 
     if (!printWindow) {
       URL.revokeObjectURL(blobUrl);
