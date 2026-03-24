@@ -333,6 +333,8 @@ export const DashboardStudentCard = () => {
           @media print {
             html, body { width: 210mm; }
           }
+
+          /* === A4 Grid === */
           .a4-print-page {
             width: 210mm;
             min-height: auto;
@@ -356,39 +358,49 @@ export const DashboardStudentCard = () => {
           .a4-print-page.vertical-grid {
             grid-template-columns: repeat(3, 53.98mm);
           }
+
+          /* === CRITICAL: Force card wrappers to exact KTP size === */
+          /* These rules apply at SCREEN level too (not just @media print) */
+          /* so Chrome never sees 856px-wide elements in the document flow */
           .printable-card-wrapper {
+            position: relative !important;
             page-break-inside: avoid;
             break-inside: avoid;
-            overflow: hidden;
-            margin: 0;
-            box-sizing: border-box;
+            overflow: hidden !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
           }
           .printable-card-wrapper.orientation-horizontal {
-            width: 85.6mm;
-            height: 53.98mm;
+            width: 85.6mm !important;
+            height: 53.98mm !important;
           }
           .printable-card-wrapper.orientation-horizontal > .printable-card-front,
           .printable-card-wrapper.orientation-horizontal > .printable-card-back {
-            position: absolute;
-            top: 0;
-            left: 0;
-            transform: scale(0.37795);
-            transform-origin: top left;
-            margin: 0;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 856px !important;
+            height: 540px !important;
+            transform: scale(0.37795) !important;
+            transform-origin: top left !important;
+            margin: 0 !important;
           }
           .printable-card-wrapper.orientation-vertical {
-            width: 53.98mm;
-            height: 85.6mm;
+            width: 53.98mm !important;
+            height: 85.6mm !important;
           }
           .printable-card-wrapper.orientation-vertical > .printable-card-front,
           .printable-card-wrapper.orientation-vertical > .printable-card-back {
-            position: absolute;
-            top: 0;
-            left: 0;
-            transform: scale(0.5002);
-            transform-origin: top left;
-            margin: 0;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 408px !important;
+            height: 646px !important;
+            transform: scale(0.5002) !important;
+            transform-origin: top left !important;
+            margin: 0 !important;
           }
+
           /* Preview single card centering */
           .print-preview-single {
             display: flex;
@@ -406,19 +418,27 @@ export const DashboardStudentCard = () => {
     `);
     printWindow.document.close();
 
-    // Wait for images to load, then print
-    printWindow.onload = () => {
-      setTimeout(() => {
-        printWindow.focus();
-        printWindow.print();
-        // Don't close immediately — let user finish the print dialog
-      }, 500);
-    };
-    // Fallback if onload doesn't fire (some browsers)
-    setTimeout(() => {
+    // Single print trigger — wait for images to load
+    const triggerPrint = () => {
       printWindow.focus();
       printWindow.print();
-    }, 2000);
+    };
+
+    // Use onload with a fallback timeout (only one will effectively run print)
+    let printed = false;
+    printWindow.onload = () => {
+      if (!printed) {
+        printed = true;
+        setTimeout(triggerPrint, 500);
+      }
+    };
+    // Fallback if onload doesn't fire
+    setTimeout(() => {
+      if (!printed) {
+        printed = true;
+        triggerPrint();
+      }
+    }, 3000);
   };
 
   const handleFormSubmit = (data: StudentFormData) => {
