@@ -281,9 +281,15 @@ export const BatchPrintPage = () => {
           <ArrowLeft size={18} />
           Kembali
         </button>
-        <span style={{ fontSize: '14px', opacity: 0.8 }}>
-          {students.length} kartu • {totalPages * 2} halaman (depan + belakang)
-        </span>
+        {isSinglePrint ? (
+          <span style={{ fontSize: '14px', opacity: 0.8 }}>
+            Preview Cetak Kartu
+          </span>
+        ) : (
+          <span style={{ fontSize: '14px', opacity: 0.8 }}>
+            {students.length} kartu • {totalPages * 2} halaman (depan + belakang)
+          </span>
+        )}
         <button className="btn-print" onClick={handleManualPrint} disabled={isPrinting}>
           {isPrinting ? <Loader2 size={18} className="animate-spin" /> : <Printer size={18} />}
           {isPrinting ? 'Menyiapkan...' : 'Cetak'}
@@ -292,71 +298,94 @@ export const BatchPrintPage = () => {
 
       {/* Print Content */}
       <div className="batch-print-container">
-        {/* Front Sides */}
-        {Array.from({ length: totalPages }).map((_, pageIndex) => {
-          const chunk = students.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
-          return (
-            <div key={`front-section-${pageIndex}`}>
-              <p className="page-label">
-                {isSinglePrint ? 'Preview Kartu - Depan' : `Halaman ${pageIndex + 1} — Depan (${chunk.length} kartu)`}
-              </p>
-              <div className={isSinglePrint ? "single-print-page" : "a4-page"}>
-                {chunk.map((s) => (
-                  <PrintableStudentCard
-                    key={`front-${s.id}`}
-                    student={{
-                      name: s.name,
-                      nisn: s.nisn,
-                      className: s.className,
-                      birthPlace: s.birthPlace,
-                      birthDate: s.birthDate,
-                      gender: s.gender,
-                      photoUrl: s.photoUrl,
-                    }}
-                    template={template}
-                    settings={settings}
-                    orientation={orientation}
-                    scale={isSinglePrint ? 1 : 0.45}
-                    side="front"
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
+        {isSinglePrint ? (
+          <div className="single-print-page">
+            <PrintableStudentCard
+              student={{
+                name: students[0].name,
+                nisn: students[0].nisn,
+                className: students[0].className,
+                birthPlace: students[0].birthPlace,
+                birthDate: students[0].birthDate,
+                gender: students[0].gender,
+                photoUrl: students[0].photoUrl,
+              }}
+              template={template}
+              settings={settings}
+              orientation={orientation}
+              scale={1}
+              side="both"
+            />
+          </div>
+        ) : (
+          <>
+            {/* Front Sides */}
+            {Array.from({ length: totalPages }).map((_, pageIndex) => {
+              const chunk = students.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
+              return (
+                <div key={`front-section-${pageIndex}`}>
+                  <p className="page-label">
+                    Halaman {pageIndex + 1} — Depan ({chunk.length} kartu)
+                  </p>
+                  <div className="a4-page">
+                    {chunk.map((s) => (
+                      <PrintableStudentCard
+                        key={`front-${s.id}`}
+                        student={{
+                          name: s.name,
+                          nisn: s.nisn,
+                          className: s.className,
+                          birthPlace: s.birthPlace,
+                          birthDate: s.birthDate,
+                          gender: s.gender,
+                          photoUrl: s.photoUrl,
+                        }}
+                        template={template}
+                        settings={settings}
+                        orientation={orientation}
+                        scale={0.45}
+                        side="front"
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
 
-        {/* Back Sides */}
-        {Array.from({ length: totalPages }).map((_, pageIndex) => {
-          const chunk = students.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
-          return (
-            <div key={`back-section-${pageIndex}`}>
-              <p className="page-label">
-                {isSinglePrint ? 'Preview Kartu - Belakang' : `Halaman ${totalPages + pageIndex + 1} — Belakang (${chunk.length} kartu)`}
-              </p>
-              <div className={isSinglePrint ? "single-print-page" : "a4-page"}>
-                {chunk.map((s) => (
-                  <PrintableStudentCard
-                    key={`back-${s.id}`}
-                    student={{
-                      name: s.name,
-                      nisn: s.nisn,
-                      className: s.className,
-                      birthPlace: s.birthPlace,
-                      birthDate: s.birthDate,
-                      gender: s.gender,
-                      photoUrl: s.photoUrl,
-                    }}
-                    template={template}
-                    settings={settings}
-                    orientation={orientation}
-                    scale={isSinglePrint ? 1 : 0.45}
-                    side="back"
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
+            {/* Back Sides */}
+            {Array.from({ length: totalPages }).map((_, pageIndex) => {
+              const chunk = students.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
+              return (
+                <div key={`back-section-${pageIndex}`}>
+                  <p className="page-label">
+                    Halaman {totalPages + pageIndex + 1} — Belakang ({chunk.length} kartu)
+                  </p>
+                  <div className="a4-page">
+                    {chunk.map((s) => (
+                      <PrintableStudentCard
+                        key={`back-${s.id}`}
+                        student={{
+                          name: s.name,
+                          nisn: s.nisn,
+                          className: s.className,
+                          birthPlace: s.birthPlace,
+                          birthDate: s.birthDate,
+                          gender: s.gender,
+                          photoUrl: s.photoUrl,
+                        }}
+                        template={template}
+                        settings={settings}
+                        orientation={orientation}
+                        scale={0.45}
+                        side="back"
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
       </div>
     </>
   );
