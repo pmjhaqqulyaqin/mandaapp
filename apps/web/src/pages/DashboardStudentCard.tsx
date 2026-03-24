@@ -329,7 +329,11 @@ export const DashboardStudentCard = () => {
 
     try {
       localStorage.setItem('batch-print-data', JSON.stringify(printData));
-      window.open('/dashboard/print-batch', '_blank');
+      if (printData.students.length === 1 && activeTab === 'preview') {
+         window.open('/dashboard/print-single', '_blank');
+      } else {
+         window.open('/dashboard/print-batch', '_blank');
+      }
     } catch (e) {
       console.error('Failed to save print data:', e);
       toast.error('Gagal menyiapkan data cetak. Data mungkin terlalu besar.');

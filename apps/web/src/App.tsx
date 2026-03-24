@@ -26,6 +26,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { useFavicon } from './hooks/useFavicon';
 import { SystemUpdateCenter } from './pages/dashboard/SystemUpdateCenter';
 import { BatchPrintPage } from './pages/BatchPrintPage';
+import { SinglePrintPage } from './pages/SinglePrintPage';
 import { FloatingActionButton, ScrollToTopButton } from '@mandaapp/ui';
 
 function App() {
@@ -50,6 +51,12 @@ function App() {
         <Route path="/dashboard/print-batch" element={
           <ProtectedRoute>
             <BatchPrintPage />
+          </ProtectedRoute>
+        } />
+        {/* Dedicated single print page — OUTSIDE DashboardLayout */}
+        <Route path="/dashboard/print-single" element={
+          <ProtectedRoute>
+            <SinglePrintPage />
           </ProtectedRoute>
         } />
         
