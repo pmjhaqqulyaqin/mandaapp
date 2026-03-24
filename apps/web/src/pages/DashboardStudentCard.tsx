@@ -303,7 +303,13 @@ export const DashboardStudentCard = () => {
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Inter', sans-serif; background: #fff; }
+          body { 
+            font-family: 'Inter', sans-serif; 
+            background: #fff; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
           .printable-card-front, .printable-card-back {
              box-shadow: none !important;
              border: none !important;
@@ -315,12 +321,17 @@ export const DashboardStudentCard = () => {
              gap: 0;
           }
           @media print {
-            body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            @page { size: A4 portrait; margin: 0 !important; }
+            body { 
+              -webkit-print-color-adjust: exact !important; 
+              print-color-adjust: exact !important; 
+              padding: 0 !important;
+            }
+            @page { size: A4 portrait; margin: 5mm !important; }
             .a4-print-page {
-               width: 210mm;
-               height: 297mm;
-               padding: 10mm 5mm;
+               width: 100%;
+               max-width: 210mm;
+               min-height: 285mm; /* slightly less than 297mm to prevent overflow */
+               padding: 5mm;
                page-break-after: always;
                break-after: page;
                box-sizing: border-box;
@@ -328,8 +339,15 @@ export const DashboardStudentCard = () => {
                flex-wrap: wrap;
                align-content: flex-start;
                justify-content: center;
-               gap: 4px;
+               gap: 10px;
                overflow: hidden;
+            }
+            /* To center the single card preview explicitly */
+            .card-outer-wrapper {
+               margin: 10mm auto !important;
+            }
+            .a4-print-page .card-outer-wrapper {
+               margin: 0 !important;
             }
             .a4-print-page:last-child {
                page-break-after: auto;
@@ -883,8 +901,9 @@ export const DashboardStudentCard = () => {
 
               {/* Hidden print area for batch */}
               <div ref={printRef} className="hidden">
-                {Array.from({ length: Math.ceil(studentsToPrint.length / 10) }).map((_, pageIndex) => {
-                  const chunk = studentsToPrint.slice(pageIndex * 10, (pageIndex + 1) * 10);
+                {Array.from({ length: Math.ceil(studentsToPrint.length / (orientation === 'horizontal' ? 10 : 9)) }).map((_, pageIndex) => {
+                  const itemsPerPage = orientation === 'horizontal' ? 10 : 9;
+                  const chunk = studentsToPrint.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
                   return (
                     <div key={`front-page-${pageIndex}`} className="a4-print-page">
                       {chunk.map((s) => (
@@ -927,8 +946,9 @@ export const DashboardStudentCard = () => {
                 })}
 
                 {/* Back Sides Grid */}
-                {Array.from({ length: Math.ceil(studentsToPrint.length / 10) }).map((_, pageIndex) => {
-                  const chunk = studentsToPrint.slice(pageIndex * 10, (pageIndex + 1) * 10);
+                {Array.from({ length: Math.ceil(studentsToPrint.length / (orientation === 'horizontal' ? 10 : 9)) }).map((_, pageIndex) => {
+                  const itemsPerPage = orientation === 'horizontal' ? 10 : 9;
+                  const chunk = studentsToPrint.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
                   return (
                     <div key={`back-page-${pageIndex}`} className="a4-print-page">
                       {chunk.map((s) => (
