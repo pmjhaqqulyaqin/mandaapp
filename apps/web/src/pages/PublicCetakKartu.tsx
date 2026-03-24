@@ -219,14 +219,11 @@ export const PublicCetakKartu = () => {
       {/* PRINT STYLES */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
-          @page { size: auto; margin: 0; }
+          @page { size: A4 portrait; margin: 0; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; }
           header, footer, nav, .print-hidden { display: none !important; }
-          .printable-card-front, .printable-card-back {
-             break-inside: avoid;
-             page-break-inside: avoid;
-             margin: 10mm auto;
-             box-shadow: none !important;
+          .printable-card-wrapper {
+             margin: 10mm auto !important;
           }
         }
       `}} />

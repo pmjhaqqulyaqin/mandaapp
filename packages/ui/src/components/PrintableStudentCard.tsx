@@ -469,15 +469,45 @@ export const PrintableStudentCard = ({
   // We return a fragment containing both front and back cards if printing, or just front/back components in preview
   return (
     <>
+      <style dangerouslySetInnerHTML={{__html: `
+        @media print {
+          .printable-card-wrapper {
+            page-break-inside: avoid;
+            break-inside: avoid;
+            overflow: hidden !important;
+            margin: 0 !important;
+          }
+          .printable-card-wrapper.orientation-horizontal {
+            width: 85.6mm !important;
+            height: 53.98mm !important;
+          }
+          .printable-card-wrapper.orientation-horizontal > .printable-card-front,
+          .printable-card-wrapper.orientation-horizontal > .printable-card-back {
+            transform: scale(0.37795) !important;
+            transform-origin: top left !important;
+            margin: 0 !important;
+          }
+          .printable-card-wrapper.orientation-vertical {
+            width: 53.98mm !important;
+            height: 85.6mm !important;
+          }
+          .printable-card-wrapper.orientation-vertical > .printable-card-front,
+          .printable-card-wrapper.orientation-vertical > .printable-card-back {
+            transform: scale(0.5002) !important;
+            transform-origin: top left !important;
+            margin: 0 !important;
+          }
+        }
+      `}} />
       {(side === 'both' || side === 'front') && (
-        <div style={wrapperStyle}>
+        <div style={wrapperStyle} className={`printable-card-wrapper orientation-${orientation}`}>
           <div style={containerStyle} className="printable-card-front" id={`card-front-${student.nisn}`}>
             {isHorizontal ? <HorizontalFront /> : <VerticalFront />}
           </div>
         </div>
       )}
       {(side === 'both' || side === 'back') && (
-        <div style={{ ...wrapperStyle, marginTop: side === 'both' ? '24px' : '0' }}>
+        <div style={{ ...wrapperStyle, marginTop: side === 'both' ? '24px' : '0' }} className={`printable-card-wrapper pt-back orientation-${orientation}`}>
           <div style={backContainerStyle} className="printable-card-back" id={`card-back-${student.nisn}`}>
             {isHorizontal ? <HorizontalBack /> : <VerticalBack />}
           </div>
