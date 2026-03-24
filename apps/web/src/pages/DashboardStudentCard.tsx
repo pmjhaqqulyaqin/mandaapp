@@ -291,154 +291,87 @@ export const DashboardStudentCard = () => {
   ];
 
   const handlePrint = () => {
-    // Grab the rendered print-only DOM content
     const printContainer = document.getElementById('print-content-area');
     if (!printContainer) {
       toast.error('Tidak ada konten untuk dicetak.');
       return;
     }
 
-    const htmlContent = printContainer.innerHTML;
+    // === STEP 1: Clone DOM and force exact physical dimensions ===
+    const clonedContainer = printContainer.cloneNode(true) as HTMLElement;
 
-    // Open a CLEAN popup window — no DashboardLayout, no w-screen, no flex
+    // Remove ALL embedded <style> tags to eliminate CSS conflicts
+    clonedContainer.querySelectorAll('style').forEach(el => el.remove());
+
+    // Force exact inline styles on card wrappers
+    clonedContainer.querySelectorAll('.printable-card-wrapper').forEach(wrapper => {
+      const el = wrapper as HTMLElement;
+      const isHorizontal = el.classList.contains('orientation-horizontal');
+      if (isHorizontal) {
+        el.style.cssText = 'width:85.6mm;height:53.98mm;position:relative;overflow:hidden;margin:0;box-sizing:border-box;page-break-inside:avoid;break-inside:avoid;flex-shrink:0;';
+      } else {
+        el.style.cssText = 'width:53.98mm;height:85.6mm;position:relative;overflow:hidden;margin:0;box-sizing:border-box;page-break-inside:avoid;break-inside:avoid;flex-shrink:0;';
+      }
+    });
+
+    // Force exact inline styles on inner card content (front & back)
+    clonedContainer.querySelectorAll('.printable-card-front, .printable-card-back').forEach(card => {
+      const el = card as HTMLElement;
+      const wrapper = el.closest('.printable-card-wrapper') as HTMLElement;
+      const isHorizontal = wrapper?.classList.contains('orientation-horizontal');
+      if (isHorizontal) {
+        el.style.cssText = 'position:absolute;top:0;left:0;width:856px;height:540px;transform:scale(0.37795);transform-origin:top left;margin:0;font-family:Inter,sans-serif;background:#fff;overflow:hidden;border-radius:8px;display:flex;flex-direction:column;';
+      } else {
+        el.style.cssText = 'position:absolute;top:0;left:0;width:408px;height:646px;transform:scale(0.5002);transform-origin:top left;margin:0;font-family:Inter,sans-serif;background:#fff;overflow:hidden;border-radius:8px;display:flex;flex-direction:column;';
+      }
+    });
+
+    // Force a4-print-page grid styles inline
+    clonedContainer.querySelectorAll('.a4-print-page').forEach(page => {
+      const el = page as HTMLElement;
+      const isHorizontal = el.classList.contains('horizontal-grid');
+      el.style.cssText = `width:210mm;padding:12mm 10mm;page-break-after:always;break-after:page;box-sizing:border-box;display:grid;justify-content:center;align-content:flex-start;gap:8mm 6mm;margin:0 auto;grid-template-columns:repeat(${isHorizontal ? '2, 85.6mm' : '3, 53.98mm'});`;
+    });
+
+    // Remove page-break from last a4-print-page
+    const allPages = clonedContainer.querySelectorAll('.a4-print-page');
+    if (allPages.length > 0) {
+      const lastPage = allPages[allPages.length - 1] as HTMLElement;
+      lastPage.style.pageBreakAfter = 'auto';
+      (lastPage.style as any).breakAfter = 'auto';
+    }
+
+    const processedHtml = clonedContainer.innerHTML;
+
+    // === STEP 2: Open clean popup window ===
     const printWindow = window.open('', '_blank', 'width=800,height=600');
     if (!printWindow) {
       toast.error('Popup diblokir oleh browser. Izinkan popup untuk mencetak.');
       return;
     }
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=210mm, initial-scale=1.0">
-        <title>Cetak Kartu Pelajar</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          html, body {
-            width: 210mm;
-            margin: 0;
-            padding: 0;
-            background: white;
-            font-family: 'Inter', sans-serif;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-          @page {
-            size: A4 portrait;
-            margin: 0;
-          }
-          @media print {
-            html, body { width: 210mm; }
-          }
-
-          /* === A4 Grid === */
-          .a4-print-page {
-            width: 210mm;
-            min-height: auto;
-            padding: 12mm 10mm;
-            page-break-after: always;
-            break-after: page;
-            box-sizing: border-box;
-            display: grid;
-            justify-content: center;
-            align-content: flex-start;
-            gap: 8mm 6mm;
-            margin: 0 auto;
-          }
-          .a4-print-page:last-child {
-            page-break-after: auto;
-            break-after: auto;
-          }
-          .a4-print-page.horizontal-grid {
-            grid-template-columns: repeat(2, 85.6mm);
-          }
-          .a4-print-page.vertical-grid {
-            grid-template-columns: repeat(3, 53.98mm);
-          }
-
-          /* === CRITICAL: Force card wrappers to exact KTP size === */
-          /* These rules apply at SCREEN level too (not just @media print) */
-          /* so Chrome never sees 856px-wide elements in the document flow */
-          .printable-card-wrapper {
-            position: relative !important;
-            page-break-inside: avoid;
-            break-inside: avoid;
-            overflow: hidden !important;
-            margin: 0 !important;
-            box-sizing: border-box !important;
-          }
-          .printable-card-wrapper.orientation-horizontal {
-            width: 85.6mm !important;
-            height: 53.98mm !important;
-          }
-          .printable-card-wrapper.orientation-horizontal > .printable-card-front,
-          .printable-card-wrapper.orientation-horizontal > .printable-card-back {
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 856px !important;
-            height: 540px !important;
-            transform: scale(0.37795) !important;
-            transform-origin: top left !important;
-            margin: 0 !important;
-          }
-          .printable-card-wrapper.orientation-vertical {
-            width: 53.98mm !important;
-            height: 85.6mm !important;
-          }
-          .printable-card-wrapper.orientation-vertical > .printable-card-front,
-          .printable-card-wrapper.orientation-vertical > .printable-card-back {
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 408px !important;
-            height: 646px !important;
-            transform: scale(0.5002) !important;
-            transform-origin: top left !important;
-            margin: 0 !important;
-          }
-
-          /* Preview single card centering */
-          .print-preview-single {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 10mm 0;
-            gap: 15mm;
-          }
-        </style>
-      </head>
-      <body>
-        ${htmlContent}
-      </body>
-      </html>
-    `);
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Cetak Kartu Pelajar</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:210mm;max-width:210mm;margin:0;padding:0;background:white;font-family:'Inter',sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+@page{size:A4 portrait;margin:0;}
+@media print{html,body{width:210mm;max-width:210mm;}}
+</style>
+</head>
+<body>${processedHtml}</body>
+</html>`);
     printWindow.document.close();
 
-    // Single print trigger — wait for images to load
-    const triggerPrint = () => {
+    // === STEP 3: Single print trigger ===
+    setTimeout(() => {
       printWindow.focus();
       printWindow.print();
-    };
-
-    // Use onload with a fallback timeout (only one will effectively run print)
-    let printed = false;
-    printWindow.onload = () => {
-      if (!printed) {
-        printed = true;
-        setTimeout(triggerPrint, 500);
-      }
-    };
-    // Fallback if onload doesn't fire
-    setTimeout(() => {
-      if (!printed) {
-        printed = true;
-        triggerPrint();
-      }
-    }, 3000);
+    }, 1500);
   };
 
   const handleFormSubmit = (data: StudentFormData) => {
