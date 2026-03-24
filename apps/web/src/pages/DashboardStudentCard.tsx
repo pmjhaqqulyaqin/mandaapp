@@ -400,33 +400,74 @@ export const DashboardStudentCard = () => {
     <>
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
-          /* === CRITICAL: Force ALL ancestors to A4 width (210mm) === */
-          /* Without this, w-screen (100vw ≈ 1920px) makes Chrome scale everything down ~41% */
-          html, body, #root, #root > div, #root > div > main, #root > div > main > div {
+          /* === STEP 1: Force root containers to A4 width === */
+          html, body {
             width: 210mm !important;
             max-width: 210mm !important;
-            min-width: 0 !important;
-            padding: 0 !important;
             margin: 0 !important;
+            padding: 0 !important;
             height: auto !important;
-            min-height: 0 !important;
-            max-height: none !important;
             overflow: visible !important;
-            display: block !important;
             background: white !important;
-          }
-          body {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
+          #root {
+            width: 210mm !important;
+            max-width: 210mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
+            display: block !important;
+          }
+
+          /* === STEP 2: Neutralize DashboardLayout wrappers === */
+          /* Target the flex/w-screen container, main, and content wrapper */
+          #root > div {
+            width: 210mm !important;
+            max-width: 210mm !important;
+            min-width: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: white !important;
+          }
+          #root > div > main {
+            width: 210mm !important;
+            max-width: 210mm !important;
+            height: auto !important;
+            overflow: visible !important;
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          /* Content wrapper inside main - but do NOT override display */
+          /* so that print:hidden children stay hidden */
+          #root > div > main > div {
+            width: 210mm !important;
+            max-width: 210mm !important;
+            height: auto !important;
+            overflow: visible !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            /* NO display: block here! It would override print:hidden */
+          }
+
+          /* === STEP 3: Hide non-print UI === */
           aside, nav, header {
             display: none !important;
           }
+
+          /* === STEP 4: Page setup === */
           @page {
             size: A4 portrait;
             margin: 0 !important;
           }
 
+          /* === STEP 5: A4 grid for batch cards === */
           .a4-print-page {
              width: 210mm;
              min-height: auto;
