@@ -173,9 +173,14 @@ export const BatchPrintPage = () => {
         /* The magical gap logic for inline-block cards on screen */
         .printable-card-wrapper {
           display: inline-block !important;
-          margin: 4mm 3mm !important;
           vertical-align: top;
           text-align: left; /* reset text alignment inside card */
+        }
+        .printable-card-wrapper.orientation-horizontal {
+          margin: 7mm 4mm !important;
+        }
+        .printable-card-wrapper.orientation-vertical {
+          margin: 5mm 4mm !important;
         }
 
         /* ====================================================================
@@ -220,8 +225,13 @@ export const BatchPrintPage = () => {
           /* 4. Let inline-block flow create an exact 2x4 grid naturally */
           .printable-card-wrapper {
              display: inline-block !important;
-             margin: 5mm 3mm !important;
              vertical-align: top !important;
+          }
+          .printable-card-wrapper.orientation-horizontal {
+             margin: 8mm 4mm !important; /* Perfect fit for 4 rows of 54mm */
+          }
+          .printable-card-wrapper.orientation-vertical {
+             margin: 5mm 4mm !important; /* Perfect fit for 3 rows of 85.6mm */
           }
 
           /* 5. Force graphics */
