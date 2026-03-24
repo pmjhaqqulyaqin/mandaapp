@@ -326,12 +326,12 @@ export const DashboardStudentCard = () => {
               print-color-adjust: exact !important; 
               padding: 0 !important;
             }
-            @page { size: A4 portrait; margin: 5mm !important; }
+            @page { size: A4 portrait; margin: 0 !important; }
             .a4-print-page {
                width: 100%;
                max-width: 210mm;
-               min-height: 285mm; /* slightly less than 297mm to prevent overflow */
-               padding: 5mm;
+               min-height: auto;
+               padding: 15mm 10mm;
                page-break-after: always;
                break-after: page;
                box-sizing: border-box;
@@ -339,7 +339,7 @@ export const DashboardStudentCard = () => {
                flex-wrap: wrap;
                align-content: flex-start;
                justify-content: center;
-               gap: 10px;
+               gap: 5mm;
                overflow: hidden;
             }
             /* To center the single card preview explicitly */
@@ -901,8 +901,8 @@ export const DashboardStudentCard = () => {
 
               {/* Hidden print area for batch */}
               <div ref={printRef} className="hidden">
-                {Array.from({ length: Math.ceil(studentsToPrint.length / (orientation === 'horizontal' ? 10 : 9)) }).map((_, pageIndex) => {
-                  const itemsPerPage = orientation === 'horizontal' ? 10 : 9;
+                {Array.from({ length: Math.ceil(studentsToPrint.length / (orientation === 'horizontal' ? 8 : 9)) }).map((_, pageIndex) => {
+                  const itemsPerPage = orientation === 'horizontal' ? 8 : 9;
                   const chunk = studentsToPrint.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
                   return (
                     <div key={`front-page-${pageIndex}`} className="a4-print-page">
@@ -945,8 +945,8 @@ export const DashboardStudentCard = () => {
                 })}
 
                 {/* Back Sides Grid */}
-                {Array.from({ length: Math.ceil(studentsToPrint.length / (orientation === 'horizontal' ? 10 : 9)) }).map((_, pageIndex) => {
-                  const itemsPerPage = orientation === 'horizontal' ? 10 : 9;
+                {Array.from({ length: Math.ceil(studentsToPrint.length / (orientation === 'horizontal' ? 8 : 9)) }).map((_, pageIndex) => {
+                  const itemsPerPage = orientation === 'horizontal' ? 8 : 9;
                   const chunk = studentsToPrint.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
                   return (
                     <div key={`back-page-${pageIndex}`} className="a4-print-page">
