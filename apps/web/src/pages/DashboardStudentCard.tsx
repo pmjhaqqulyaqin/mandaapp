@@ -400,9 +400,9 @@ export const DashboardStudentCard = () => {
     <>
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
-          body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background: white !important; }
+          body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background: white !important; height: auto !important; overflow: visible !important; }
           aside, nav, header { display: none !important; }
-          main, #root, body, html { padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; background: white !important; }
+          main, #root, body, html { padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; background: white !important; height: auto !important; min-height: 100% !important; overflow: visible !important; }
           @page { size: A4 portrait; margin: 0 !important; }
           
           .a4-print-page {
@@ -871,7 +871,7 @@ export const DashboardStudentCard = () => {
       </div>
 
       {/* --- NATIVE PRINT DOM --- */}
-      <div className="hidden print:flex flex-col w-full bg-white text-black min-h-screen">
+      <div className="hidden print:block w-full bg-white text-black" style={{ height: 'auto', minHeight: '100%', overflow: 'visible' }}>
         {activeTab === 'preview' && selectedStudent && (
           <div className="flex flex-col items-center py-10 print-preview-gap">
             <PrintableStudentCard
