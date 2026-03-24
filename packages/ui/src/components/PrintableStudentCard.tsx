@@ -472,10 +472,12 @@ export const PrintableStudentCard = ({
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           .printable-card-wrapper {
+            position: relative !important;
             page-break-inside: avoid;
             break-inside: avoid;
             overflow: hidden !important;
             margin: 0 !important;
+            box-sizing: border-box !important;
           }
           .printable-card-wrapper.orientation-horizontal {
             width: 85.6mm !important;
@@ -483,6 +485,9 @@ export const PrintableStudentCard = ({
           }
           .printable-card-wrapper.orientation-horizontal > .printable-card-front,
           .printable-card-wrapper.orientation-horizontal > .printable-card-back {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
             transform: scale(0.37795) !important;
             transform-origin: top left !important;
             margin: 0 !important;
@@ -493,6 +498,9 @@ export const PrintableStudentCard = ({
           }
           .printable-card-wrapper.orientation-vertical > .printable-card-front,
           .printable-card-wrapper.orientation-vertical > .printable-card-back {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
             transform: scale(0.5002) !important;
             transform-origin: top left !important;
             margin: 0 !important;
