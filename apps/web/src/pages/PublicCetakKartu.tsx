@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useCards } from '../hooks/api/useCards';
 import { PrintableStudentCard, CARD_TEMPLATES, Button } from '@mandaapp/ui';
 import { Search, Printer, AlertCircle } from 'lucide-react';
+import { apiClient } from '../lib/api';
 
 export const PublicCetakKartu = () => {
   const { querySettings } = useCards();
@@ -30,16 +30,13 @@ export const PublicCetakKartu = () => {
 
     setLoading(true);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || '';
-      const response = await axios.post(`${apiUrl}/api/students/public-search`, formData);
-      setStudentData(response.data);
+      const data = await apiClient<any>('/students/public-search', { data: formData });
+      setStudentData(data);
     } catch (err: any) {
-      if (err.response?.status === 404) {
-        setError(err.response.data.error || "Data siswa tidak ditemukan. Pastikan ejaan nama, tempat, dan tanggal lahir sudah sesuai.");
-      } else if (err.response?.status === 400) {
-        setError(err.response.data.error || "Mohon lengkapi semua data.");
+      if (err.message && err.message !== 'An error occurred' && err.message !== 'Not Found') {
+        setError(err.message);
       } else {
-        setError("Terjadi kesalahan pada server. Coba lagi nanti.");
+        setError("Data siswa tidak ditemukan. Pastikan ejaan nama, tempat, dan tanggal lahir sudah sesuai.");
       }
     } finally {
       setLoading(false);
