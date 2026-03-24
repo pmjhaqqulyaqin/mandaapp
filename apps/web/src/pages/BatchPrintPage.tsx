@@ -120,6 +120,7 @@ export const BatchPrintPage = () => {
   const template = CARD_TEMPLATES[templateId] || CARD_TEMPLATES['elegant-gold'];
   const itemsPerPage = orientation === 'horizontal' ? 8 : 9;
   const totalPages = Math.ceil(students.length / itemsPerPage);
+  const isSinglePrint = students.length === 1;
 
   return (
     <>
@@ -163,6 +164,15 @@ export const BatchPrintPage = () => {
           box-sizing: border-box;
           text-align: center; /* Centers horizontal inline-block cards */
         }
+        
+        .single-print-page {
+          background: white;
+          margin-bottom: 24px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+          padding: 20px;
+          box-sizing: border-box;
+          text-align: center;
+        }
 
         .page-label {
           text-align: center; color: #4b5563; font-weight: 600;
@@ -187,8 +197,7 @@ export const BatchPrintPage = () => {
            PRINT MEDIA
            ==================================================================== */
         @page { 
-          size: A4 portrait; 
-          margin: 0; /* Remove browser default headers/footers completely */
+          ${isSinglePrint ? 'margin: 0;' : 'size: A4 portrait; margin: 0;'}
         }
 
         @media print {
@@ -222,17 +231,41 @@ export const BatchPrintPage = () => {
             break-after: auto !important;
           }
 
+          /* Single Page bounds mapping */
+          .single-print-page {
+            width: 100% !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            text-align: center !important;
+          }
+          .single-print-page:last-child {
+             page-break-after: auto !important;
+             break-after: auto !important;
+          }
+
           /* 4. Let inline-block flow create an exact 2x4 grid naturally */
           .printable-card-wrapper {
-             display: inline-block !important;
-             vertical-align: top !important;
+             ${isSinglePrint ? `
+                display: block !important;
+                margin: 10mm auto !important;
+             ` : `
+                display: inline-block !important;
+                vertical-align: top !important;
+             `}
           }
+          ${isSinglePrint ? '' : `
           .printable-card-wrapper.orientation-horizontal {
              margin: 8mm 4mm !important; /* Perfect fit for 4 rows of 54mm */
           }
           .printable-card-wrapper.orientation-vertical {
              margin: 5mm 4mm !important; /* Perfect fit for 3 rows of 85.6mm */
           }
+          `}
 
           /* 5. Force graphics */
           body {
@@ -264,8 +297,10 @@ export const BatchPrintPage = () => {
           const chunk = students.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
           return (
             <div key={`front-section-${pageIndex}`}>
-              <p className="page-label">Halaman {pageIndex + 1} — Depan ({chunk.length} kartu)</p>
-              <div className="a4-page">
+              <p className="page-label">
+                {isSinglePrint ? 'Preview Kartu - Depan' : `Halaman ${pageIndex + 1} — Depan (${chunk.length} kartu)`}
+              </p>
+              <div className={isSinglePrint ? "single-print-page" : "a4-page"}>
                 {chunk.map((s) => (
                   <PrintableStudentCard
                     key={`front-${s.id}`}
@@ -281,7 +316,7 @@ export const BatchPrintPage = () => {
                     template={template}
                     settings={settings}
                     orientation={orientation}
-                    scale={0.45}
+                    scale={isSinglePrint ? 1 : 0.45}
                     side="front"
                   />
                 ))}
@@ -295,8 +330,10 @@ export const BatchPrintPage = () => {
           const chunk = students.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
           return (
             <div key={`back-section-${pageIndex}`}>
-              <p className="page-label">Halaman {totalPages + pageIndex + 1} — Belakang ({chunk.length} kartu)</p>
-              <div className="a4-page">
+              <p className="page-label">
+                {isSinglePrint ? 'Preview Kartu - Belakang' : `Halaman ${totalPages + pageIndex + 1} — Belakang (${chunk.length} kartu)`}
+              </p>
+              <div className={isSinglePrint ? "single-print-page" : "a4-page"}>
                 {chunk.map((s) => (
                   <PrintableStudentCard
                     key={`back-${s.id}`}
@@ -312,7 +349,7 @@ export const BatchPrintPage = () => {
                     template={template}
                     settings={settings}
                     orientation={orientation}
-                    scale={0.45}
+                    scale={isSinglePrint ? 1 : 0.45}
                     side="back"
                   />
                 ))}
