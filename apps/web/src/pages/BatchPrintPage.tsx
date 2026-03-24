@@ -182,28 +182,22 @@ export const BatchPrintPage = () => {
 
         /* Print styles: hide toolbar, remove backgrounds, enforce page breaks */
         @media print {
-          /* 1. Force absolute page dimensions so Chrome doesn't scale from screen width */
+          /* 1. Let Chrome's print engine use the printer's printable area natively */
           html, body, #root, .batch-print-container {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            min-width: 210mm !important;
+            width: 100% !important;
+            height: auto !important;
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
             overflow: visible !important;
           }
-          
-          /* 2. Hide UI elements */
-          .print-toolbar, .page-label { 
-            display: none !important; 
-          }
-          
+          .print-toolbar, .page-label { display: none !important; }
           /* 3. A4 Page Container constraints */
           .a4-page {
-            width: 210mm !important;
-            height: 297mm !important; /* Prevents rows from collapsing into next page */
+            width: 100% !important;
+            height: auto !important; /* Allow height to flex to prevent bleed */
             margin: 0 !important;
-            padding: 12mm 10mm !important; 
+            padding: 5mm 0 !important; /* Minimal vertical padding, let printer margins dictate horizontal */
             box-sizing: border-box !important;
             box-shadow: none !important;
             page-break-after: always !important;
@@ -217,13 +211,24 @@ export const BatchPrintPage = () => {
           .a4-page.horizontal-flex { gap: 6mm 6mm !important; }
           .a4-page.vertical-flex { gap: 8mm 6mm !important; }
           
-          /* 4. Remove break from last page */
+          /* FIX CHROME SHRINK-TO-FIT: 
+             Flexbox calculates row width using un-transformed DOM size (856px * 2 = 1712px).
+             This exceeds A4 (794px) and triggers a 60% document shrink!
+             Using "zoom" forces Chrome to collapse the logical layout bounds. */
+          .printable-card-wrapper.orientation-horizontal > .printable-card-front,
+          .printable-card-wrapper.orientation-horizontal > .printable-card-back,
+          .printable-card-wrapper.orientation-vertical > .printable-card-front,
+          .printable-card-wrapper.orientation-vertical > .printable-card-back {
+            transform: none !important;
+            zoom: ${orientation === 'horizontal' ? 0.37795 : 0.5002} !important;
+            transform-origin: top left !important;
+            position: relative !important;
+          }
+          
           .a4-page:last-child {
             page-break-after: auto !important;
             break-after: auto !important;
           }
-          
-          /* 5. Force background Graphics */
           body {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
