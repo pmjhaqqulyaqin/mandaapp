@@ -125,9 +125,9 @@ export const BatchPrintPage = () => {
     <>
       {/* Print Page CSS */}
       <style dangerouslySetInnerHTML={{__html: `
-        @page { size: A4 portrait; margin: 0; }
-
-        /* Screen styles: toolbar + preview */
+        /* Screen View: Make it look like a grey desk with A4 papers */
+        body { background: #e5e7eb; }
+        
         .print-toolbar {
           position: sticky; top: 0; z-index: 50;
           background: #1f2937; color: white;
@@ -141,94 +141,90 @@ export const BatchPrintPage = () => {
           cursor: pointer; font-size: 14px; font-weight: 500;
           transition: background-color 0.2s;
         }
-        .print-toolbar .btn-back {
-          background: transparent; color: white;
-        }
+        .print-toolbar .btn-back { background: transparent; color: white; }
         .print-toolbar .btn-back:hover { background: rgba(255,255,255,0.1); }
-        .print-toolbar .btn-print {
-          background: #3b82f6; color: white;
-        }
+        .print-toolbar .btn-print { background: #3b82f6; color: white; }
         .print-toolbar .btn-print:hover { background: #2563eb; }
 
         .batch-print-container {
-          background: #ccc;
-          min-height: calc(100vh - 56px);
           padding: 20px 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
 
         .a4-page {
           width: 210mm;
-          margin: 0 auto 20px auto;
+          min-height: 297mm;
           background: white;
+          margin-bottom: 24px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.1);
           padding: 10mm 5mm;
           box-sizing: border-box;
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: center;
-          align-content: flex-start;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          text-align: center; /* Centers horizontal inline-block cards */
         }
-        .a4-page.horizontal-flex {
-          gap: 6mm 6mm;
-        }
-        .a4-page.vertical-flex {
-          gap: 8mm 6mm;
-        }
+
         .page-label {
-          text-align: center; color: #666;
-          font-size: 12px; margin-bottom: 8px;
+          text-align: center; color: #4b5563; font-weight: 600;
+          font-size: 14px; margin-bottom: 12px;
           font-family: 'Inter', sans-serif;
         }
 
-        /* Print styles: hide toolbar, remove backgrounds, enforce page breaks */
+        /* The magical gap logic for inline-block cards on screen */
+        .printable-card-wrapper {
+          display: inline-block !important;
+          margin: 4mm 3mm !important;
+          vertical-align: top;
+          text-align: left; /* reset text alignment inside card */
+        }
+
+        /* ====================================================================
+           PRINT MEDIA
+           ==================================================================== */
+        @page { 
+          size: A4 portrait; 
+          margin: 0; /* Remove browser default headers/footers completely */
+        }
+
         @media print {
-          /* 1. Let Chrome's print engine use the printer's printable area natively */
+          /* 1. Base Reset */
           html, body, #root, .batch-print-container {
-            width: 100% !important;
-            height: auto !important;
+            background: white !important;
             margin: 0 !important;
             padding: 0 !important;
-            background: white !important;
-            overflow: visible !important;
-          }
-          .print-toolbar, .page-label { display: none !important; }
-          /* 3. A4 Page Container constraints */
-          .a4-page {
             width: 100% !important;
-            height: auto !important; /* Allow height to flex to prevent bleed */
+            height: auto !important;
+          }
+          
+          /* 2. Hide UI elements */
+          .print-toolbar, .page-label { display: none !important; }
+          
+          /* 3. A4 Page bounds mapping */
+          .a4-page {
+            width: 210mm !important;
+            height: 297mm !important; /* Force exact page mapping */
             margin: 0 !important;
-            padding: 5mm 0 !important; /* Minimal vertical padding, let printer margins dictate horizontal */
-            box-sizing: border-box !important;
+            padding: 10mm 5mm !important;
             box-shadow: none !important;
+            border: none !important;
             page-break-after: always !important;
             break-after: page !important;
-            overflow: hidden !important;
-            display: flex !important;
-            flex-wrap: wrap !important;
-            justify-content: center !important;
-            align-content: flex-start !important;
+            overflow: hidden !important; /* Crop anything that bleeds */
+            text-align: center !important; /* Horizontal centering for inline-blocks */
           }
-          .a4-page.horizontal-flex { gap: 6mm 6mm !important; }
-          .a4-page.vertical-flex { gap: 8mm 6mm !important; }
-          
-          /* FIX CHROME SHRINK-TO-FIT: 
-             Flexbox calculates row width using un-transformed DOM size (856px * 2 = 1712px).
-             This exceeds A4 (794px) and triggers a 60% document shrink!
-             Using "zoom" forces Chrome to collapse the logical layout bounds. */
-          .printable-card-wrapper.orientation-horizontal > .printable-card-front,
-          .printable-card-wrapper.orientation-horizontal > .printable-card-back,
-          .printable-card-wrapper.orientation-vertical > .printable-card-front,
-          .printable-card-wrapper.orientation-vertical > .printable-card-back {
-            transform: none !important;
-            zoom: ${orientation === 'horizontal' ? 0.37795 : 0.5002} !important;
-            transform-origin: top left !important;
-            position: relative !important;
-          }
-          
           .a4-page:last-child {
             page-break-after: auto !important;
             break-after: auto !important;
           }
+
+          /* 4. Let inline-block flow create an exact 2x4 grid naturally */
+          .printable-card-wrapper {
+             display: inline-block !important;
+             margin: 5mm 3mm !important;
+             vertical-align: top !important;
+          }
+
+          /* 5. Force graphics */
           body {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
@@ -259,7 +255,7 @@ export const BatchPrintPage = () => {
           return (
             <div key={`front-section-${pageIndex}`}>
               <p className="page-label">Halaman {pageIndex + 1} — Depan ({chunk.length} kartu)</p>
-              <div className={`a4-page ${orientation === 'horizontal' ? 'horizontal-flex' : 'vertical-flex'}`}>
+              <div className="a4-page">
                 {chunk.map((s) => (
                   <PrintableStudentCard
                     key={`front-${s.id}`}
@@ -275,7 +271,7 @@ export const BatchPrintPage = () => {
                     template={template}
                     settings={settings}
                     orientation={orientation}
-                    scale={orientation === 'horizontal' ? 0.37795 : 0.5002}
+                    scale={0.45}
                     side="front"
                   />
                 ))}
@@ -290,7 +286,7 @@ export const BatchPrintPage = () => {
           return (
             <div key={`back-section-${pageIndex}`}>
               <p className="page-label">Halaman {totalPages + pageIndex + 1} — Belakang ({chunk.length} kartu)</p>
-              <div className={`a4-page ${orientation === 'horizontal' ? 'horizontal-flex' : 'vertical-flex'}`}>
+              <div className="a4-page">
                 {chunk.map((s) => (
                   <PrintableStudentCard
                     key={`back-${s.id}`}
@@ -306,7 +302,7 @@ export const BatchPrintPage = () => {
                     template={template}
                     settings={settings}
                     orientation={orientation}
-                    scale={orientation === 'horizontal' ? 0.37795 : 0.5002}
+                    scale={0.45}
                     side="back"
                   />
                 ))}
