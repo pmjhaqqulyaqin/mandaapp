@@ -400,14 +400,35 @@ export const DashboardStudentCard = () => {
     <>
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
-          body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background: white !important; height: auto !important; overflow: visible !important; }
-          aside, nav, header { display: none !important; }
-          main, #root, body, html { padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; background: white !important; height: auto !important; min-height: 100% !important; overflow: visible !important; }
-          @page { size: A4 portrait; margin: 0 !important; }
-          
+          /* === CRITICAL: Force ALL ancestors to A4 width (210mm) === */
+          /* Without this, w-screen (100vw ≈ 1920px) makes Chrome scale everything down ~41% */
+          html, body, #root, #root > div, #root > div > main, #root > div > main > div {
+            width: 210mm !important;
+            max-width: 210mm !important;
+            min-width: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            overflow: visible !important;
+            display: block !important;
+            background: white !important;
+          }
+          body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          aside, nav, header {
+            display: none !important;
+          }
+          @page {
+            size: A4 portrait;
+            margin: 0 !important;
+          }
+
           .a4-print-page {
-             width: 100%;
-             max-width: 210mm;
+             width: 210mm;
              min-height: auto;
              padding: 12mm 10mm;
              page-break-after: always;
