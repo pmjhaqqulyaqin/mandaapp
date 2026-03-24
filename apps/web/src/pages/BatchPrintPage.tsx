@@ -160,20 +160,19 @@ export const BatchPrintPage = () => {
           width: 210mm;
           margin: 0 auto 20px auto;
           background: white;
-          padding: 12mm 10mm;
+          padding: 10mm 5mm;
           box-sizing: border-box;
-          display: grid;
+          display: flex;
+          flex-wrap: wrap;
           justify-content: center;
           align-content: flex-start;
           box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
-        .a4-page.horizontal-grid {
-          grid-template-columns: repeat(2, 85.6mm);
-          gap: 8mm 6mm;
+        .a4-page.horizontal-flex {
+          gap: 6mm 6mm;
         }
-        .a4-page.vertical-grid {
-          grid-template-columns: repeat(3, 53.98mm);
-          gap: 6mm 4mm;
+        .a4-page.vertical-flex {
+          gap: 8mm 6mm;
         }
         .page-label {
           text-align: center; color: #666;
@@ -191,9 +190,10 @@ export const BatchPrintPage = () => {
           }
           .page-label { display: none !important; }
           .a4-page {
-            width: 210mm !important;
-            margin: 0 !important;
-            padding: 12mm 10mm !important;
+            width: 100% !important;
+            max-width: 210mm !important;
+            margin: 0 auto !important;
+            padding: 5mm 0 !important;
             box-shadow: none !important;
             page-break-after: always;
             break-after: page;
@@ -233,7 +233,7 @@ export const BatchPrintPage = () => {
           return (
             <div key={`front-section-${pageIndex}`}>
               <p className="page-label">Halaman {pageIndex + 1} — Depan ({chunk.length} kartu)</p>
-              <div className={`a4-page ${orientation === 'horizontal' ? 'horizontal-grid' : 'vertical-grid'}`}>
+              <div className={`a4-page ${orientation === 'horizontal' ? 'horizontal-flex' : 'vertical-flex'}`}>
                 {chunk.map((s) => (
                   <PrintableStudentCard
                     key={`front-${s.id}`}
@@ -264,7 +264,7 @@ export const BatchPrintPage = () => {
           return (
             <div key={`back-section-${pageIndex}`}>
               <p className="page-label">Halaman {totalPages + pageIndex + 1} — Belakang ({chunk.length} kartu)</p>
-              <div className={`a4-page ${orientation === 'horizontal' ? 'horizontal-grid' : 'vertical-grid'}`}>
+              <div className={`a4-page ${orientation === 'horizontal' ? 'horizontal-flex' : 'vertical-flex'}`}>
                 {chunk.map((s) => (
                   <PrintableStudentCard
                     key={`back-${s.id}`}
