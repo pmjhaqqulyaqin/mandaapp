@@ -307,6 +307,18 @@ export const DashboardStudentCard = () => {
       el.style.cssText = `width:210mm;padding:12mm 10mm;page-break-after:always;break-after:page;box-sizing:border-box;display:grid;justify-content:center;align-content:flex-start;gap:8mm 6mm;margin:0 auto;grid-template-columns:repeat(${isHorizontal ? '2, 85.6mm' : '3, 53.98mm'});`;
     });
 
+    // === CRITICAL FIX: Force overflow:hidden on ALL card wrappers ===
+    // The inner card div is 856px×540px with position:relative. CSS transform:scale()  
+    // does NOT change the layout box — the card still occupies 856×540px in document flow.
+    // Without overflow:hidden, CSS Grid rows expand to 540px (142mm), allowing only 1-2
+    // rows per A4 page → 22 pages instead of 8. With overflow:hidden, the 540px content
+    // is clipped to the 204px wrapper height → 4 rows fit per A4 page.
+    clonedContainer.querySelectorAll('.printable-card-wrapper').forEach(wrapper => {
+      const el = wrapper as HTMLElement;
+      // Preserve existing inline styles, just add overflow:hidden
+      el.style.overflow = 'hidden';
+    });
+
     // Remove page-break from last page
     const allPages = clonedContainer.querySelectorAll('.a4-print-page');
     if (allPages.length > 0) {
