@@ -182,30 +182,51 @@ export const BatchPrintPage = () => {
 
         /* Print styles: hide toolbar, remove backgrounds, enforce page breaks */
         @media print {
-          .print-toolbar { display: none !important; }
-          .batch-print-container {
-            background: white !important;
-            padding: 0 !important;
-            min-height: auto !important;
-          }
-          .page-label { display: none !important; }
-          .a4-page {
-            width: 100% !important;
+          /* 1. Force absolute page dimensions so Chrome doesn't scale from screen width */
+          html, body, #root, .batch-print-container {
+            width: 210mm !important;
             max-width: 210mm !important;
-            margin: 0 auto !important;
-            padding: 5mm 0 !important;
+            min-width: 210mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            overflow: visible !important;
+          }
+          
+          /* 2. Hide UI elements */
+          .print-toolbar, .page-label { 
+            display: none !important; 
+          }
+          
+          /* 3. A4 Page Container constraints */
+          .a4-page {
+            width: 210mm !important;
+            height: 297mm !important; /* Prevents rows from collapsing into next page */
+            margin: 0 !important;
+            padding: 12mm 10mm !important; 
+            box-sizing: border-box !important;
             box-shadow: none !important;
-            page-break-after: always;
-            break-after: page;
+            page-break-after: always !important;
+            break-after: page !important;
             overflow: hidden !important;
+            display: flex !important;
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            align-content: flex-start !important;
           }
+          .a4-page.horizontal-flex { gap: 6mm 6mm !important; }
+          .a4-page.vertical-flex { gap: 8mm 6mm !important; }
+          
+          /* 4. Remove break from last page */
           .a4-page:last-child {
-            page-break-after: auto;
-            break-after: auto;
+            page-break-after: auto !important;
+            break-after: auto !important;
           }
+          
+          /* 5. Force background Graphics */
           body {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
         }
       `}} />
