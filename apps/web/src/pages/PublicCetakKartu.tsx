@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCards } from '../hooks/api/useCards';
 import { useSiteSettings } from '../hooks/api/useSettings';
 import { PrintableStudentCard, CARD_TEMPLATES, Button } from '@mandaapp/ui';
@@ -34,6 +34,36 @@ export const PublicCetakKartu = () => {
   const [customOrientation, setCustomOrientation] = useState<string | null>(null);
   
   const currentOrientation = customOrientation || settings?.orientation || 'horizontal';
+
+  const isPreview = new URLSearchParams(window.location.search).get('preview') === '1';
+
+  useEffect(() => {
+    if (isPreview) {
+      try {
+        const storedDataStr = localStorage.getItem('batch-print-data');
+        if (storedDataStr) {
+          const parsed = JSON.parse(storedDataStr);
+          if (parsed && parsed.students && parsed.students.length > 0) {
+            const s = parsed.students[0];
+            setStudentData({
+               fullName: s.name || s.fullName,
+               nisn: s.nisn,
+               className: s.className,
+               birthPlace: s.birthPlace,
+               birthDate: s.birthDate,
+               gender: s.gender,
+               address: s.address,
+               photoUrl: s.photoUrl
+            });
+            // Automatically trigger print dialog shortly after loading
+            setTimeout(() => window.print(), 800);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse preview data', e);
+      }
+    }
+  }, [isPreview]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,8 +105,9 @@ export const PublicCetakKartu = () => {
         </p>
       </div>
 
-      <div className="bg-white dark:bg-[#111111] rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden print:hidden">
-        <div className="p-6 sm:p-10">
+      {!isPreview && (
+        <div className="bg-white dark:bg-[#111111] rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden print:hidden">
+          <div className="p-6 sm:p-10">
           <form onSubmit={handleSearch} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
@@ -148,6 +179,7 @@ export const PublicCetakKartu = () => {
           </form>
         </div>
       </div>
+      )}
 
       {/* RESULT SECTION */}
       {studentData && settings && (

@@ -329,8 +329,8 @@ export const DashboardStudentCard = () => {
 
     try {
       localStorage.setItem('batch-print-data', JSON.stringify(printData));
-      if (printData.students.length === 1 && activeTab === 'preview') {
-         window.open('/dashboard/print-single', '_blank');
+      if (printData.students.length === 1) {
+         window.open('/page/cetak-kartu-pelajar?preview=1', '_blank');
       } else {
          window.open('/dashboard/print-batch', '_blank');
       }
