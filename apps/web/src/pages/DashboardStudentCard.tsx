@@ -406,8 +406,9 @@ export const DashboardStudentCard = () => {
           @page { size: A4 portrait; margin: 0 !important; }
           
           .a4-print-page {
-             width: 210mm;
-             min-height: 297mm;
+             width: 100%;
+             max-width: 210mm;
+             min-height: auto;
              padding: 12mm 10mm;
              page-break-after: always;
              break-after: page;
@@ -940,7 +941,7 @@ export const DashboardStudentCard = () => {
         )}
 
         {activeTab === 'batch' && studentsToPrint.length > 0 && (
-          <div className="flex flex-col w-full items-center">
+          <div className="flex flex-col w-full items-center print:block">
             {/* Front Sides Grid */}
             {Array.from({ length: Math.ceil(studentsToPrint.length / (orientation === 'horizontal' ? 8 : 9)) }).map((_, pageIndex) => {
               const itemsPerPage = orientation === 'horizontal' ? 8 : 9;
