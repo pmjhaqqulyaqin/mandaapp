@@ -405,24 +405,24 @@ export const DashboardStudentCard = () => {
           main, #root, body, html { padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; background: white !important; }
           @page { size: A4 portrait; margin: 0 !important; }
           
-          .print-preview-gap {
-             gap: 15mm !important;
-          }
-          
           .a4-print-page {
-             width: 100%;
-             max-width: 210mm;
-             min-height: auto;
-             padding: 15mm 10mm;
+             width: 210mm;
+             min-height: 297mm;
+             padding: 12mm 10mm;
              page-break-after: always;
              break-after: page;
              box-sizing: border-box;
-             display: flex;
-             flex-wrap: wrap;
-             align-content: flex-start;
+             display: grid;
              justify-content: center;
-             gap: 5mm;
+             align-content: flex-start;
+             gap: 8mm 6mm;
              margin: 0 auto;
+          }
+          .a4-print-page.horizontal-grid {
+             grid-template-columns: repeat(2, 85.6mm);
+          }
+          .a4-print-page.vertical-grid {
+             grid-template-columns: repeat(3, 53.98mm);
           }
           .a4-print-page:last-child {
              page-break-after: auto;
@@ -946,7 +946,7 @@ export const DashboardStudentCard = () => {
               const itemsPerPage = orientation === 'horizontal' ? 8 : 9;
               const chunk = studentsToPrint.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
               return (
-                <div key={`front-page-${pageIndex}`} className="a4-print-page">
+                <div key={`front-page-${pageIndex}`} className={`a4-print-page ${orientation === 'horizontal' ? 'horizontal-grid' : 'vertical-grid'}`}>
                   {chunk.map((s) => (
                         <PrintableStudentCard
                           key={`front-${s.id}`}
@@ -990,7 +990,7 @@ export const DashboardStudentCard = () => {
                   const itemsPerPage = orientation === 'horizontal' ? 8 : 9;
                   const chunk = studentsToPrint.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
                   return (
-                    <div key={`back-page-${pageIndex}`} className="a4-print-page">
+                    <div key={`back-page-${pageIndex}`} className={`a4-print-page ${orientation === 'horizontal' ? 'horizontal-grid' : 'vertical-grid'}`}>
                       {chunk.map((s) => (
                         <PrintableStudentCard
                           key={`back-${s.id}`}
