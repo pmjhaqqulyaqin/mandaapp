@@ -204,7 +204,7 @@ export const DashboardLayout = () => {
   const systemMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'system' && allowedMenus.includes(item.key));
 
   return (
-    <div className="flex h-[100dvh] w-screen overflow-hidden bg-gray-50 dark:bg-[#050505] relative">
+    <div className="flex h-[100dvh] print:h-auto print:min-h-0 w-screen overflow-hidden print:overflow-visible bg-gray-50 dark:bg-[#050505] relative">
       
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
@@ -216,7 +216,7 @@ export const DashboardLayout = () => {
       )}
 
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-border-light dark:border-border-dark bg-white dark:bg-background-dark flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-border-light dark:border-border-dark bg-white dark:bg-background-dark flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 print:hidden ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -301,8 +301,8 @@ export const DashboardLayout = () => {
         </div>
       </aside>
       
-      <main className="flex-1 flex flex-col min-w-0 w-full overflow-hidden">
-        <header className="h-16 border-b border-border-light dark:border-border-dark bg-white dark:bg-background-dark flex items-center justify-between px-4 sm:px-6 shrink-0 z-30">
+      <main className="flex-1 flex flex-col min-w-0 w-full overflow-hidden print:overflow-visible">
+        <header className="h-16 border-b border-border-light dark:border-border-dark bg-white dark:bg-background-dark flex items-center justify-between px-4 sm:px-6 shrink-0 z-30 print:hidden">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsSidebarOpen(true)}
@@ -319,7 +319,7 @@ export const DashboardLayout = () => {
             </button>
           </div>
         </header>
-        <div className="flex-1 p-6 overflow-auto custom-scrollbar">
+        <div className="flex-1 p-6 print:p-0 overflow-auto print:overflow-visible custom-scrollbar">
           <Outlet />
         </div>
       </main>
