@@ -297,43 +297,17 @@ export const DashboardStudentCard = () => {
       return;
     }
 
-    // === STEP 1: Clone DOM and force exact physical dimensions ===
+    // === STEP 1: Clone DOM and add grid styles ===
     const clonedContainer = printContainer.cloneNode(true) as HTMLElement;
 
-    // Remove ALL embedded <style> tags to eliminate CSS conflicts
-    clonedContainer.querySelectorAll('style').forEach(el => el.remove());
-
-    // Force exact inline styles on card wrappers
-    clonedContainer.querySelectorAll('.printable-card-wrapper').forEach(wrapper => {
-      const el = wrapper as HTMLElement;
-      const isHorizontal = el.classList.contains('orientation-horizontal');
-      if (isHorizontal) {
-        el.style.cssText = 'width:85.6mm;height:53.98mm;position:relative;overflow:hidden;margin:0;box-sizing:border-box;page-break-inside:avoid;break-inside:avoid;flex-shrink:0;';
-      } else {
-        el.style.cssText = 'width:53.98mm;height:85.6mm;position:relative;overflow:hidden;margin:0;box-sizing:border-box;page-break-inside:avoid;break-inside:avoid;flex-shrink:0;';
-      }
-    });
-
-    // Force exact inline styles on inner card content (front & back)
-    clonedContainer.querySelectorAll('.printable-card-front, .printable-card-back').forEach(card => {
-      const el = card as HTMLElement;
-      const wrapper = el.closest('.printable-card-wrapper') as HTMLElement;
-      const isHorizontal = wrapper?.classList.contains('orientation-horizontal');
-      if (isHorizontal) {
-        el.style.cssText = 'position:absolute;top:0;left:0;width:856px;height:540px;transform:scale(0.37795);transform-origin:top left;margin:0;font-family:Inter,sans-serif;background:#fff;overflow:hidden;border-radius:8px;display:flex;flex-direction:column;';
-      } else {
-        el.style.cssText = 'position:absolute;top:0;left:0;width:408px;height:646px;transform:scale(0.5002);transform-origin:top left;margin:0;font-family:Inter,sans-serif;background:#fff;overflow:hidden;border-radius:8px;display:flex;flex-direction:column;';
-      }
-    });
-
-    // Force a4-print-page grid styles inline
+    // Add inline grid styles to .a4-print-page elements (Tailwind not available in print page)
     clonedContainer.querySelectorAll('.a4-print-page').forEach(page => {
       const el = page as HTMLElement;
       const isHorizontal = el.classList.contains('horizontal-grid');
       el.style.cssText = `width:210mm;padding:12mm 10mm;page-break-after:always;break-after:page;box-sizing:border-box;display:grid;justify-content:center;align-content:flex-start;gap:8mm 6mm;margin:0 auto;grid-template-columns:repeat(${isHorizontal ? '2, 85.6mm' : '3, 53.98mm'});`;
     });
 
-    // Remove page-break from last a4-print-page
+    // Remove page-break from last page
     const allPages = clonedContainer.querySelectorAll('.a4-print-page');
     if (allPages.length > 0) {
       const lastPage = allPages[allPages.length - 1] as HTMLElement;
@@ -341,37 +315,57 @@ export const DashboardStudentCard = () => {
       (lastPage.style as any).breakAfter = 'auto';
     }
 
-    const processedHtml = clonedContainer.innerHTML;
+    // DO NOT strip embedded <style> tags! They contain the crucial @media print CSS
+    // that makes cards resize to 85.6mm × 53.98mm — same approach as PublicCetakKartu
+    const bodyContent = clonedContainer.innerHTML;
 
-    // === STEP 2: Open clean popup window ===
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    if (!printWindow) {
-      toast.error('Popup diblokir oleh browser. Izinkan popup untuk mencetak.');
-      return;
-    }
-
-    printWindow.document.write(`<!DOCTYPE html>
-<html>
+    // === STEP 2: Build a complete HTML document ===
+    const htmlDoc = `<!DOCTYPE html>
+<html lang="id">
 <head>
 <meta charset="UTF-8">
 <title>Cetak Kartu Pelajar</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{width:210mm;max-width:210mm;margin:0;padding:0;background:white;font-family:'Inter',sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-@page{size:A4 portrait;margin:0;}
-@media print{html,body{width:210mm;max-width:210mm;}}
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: white;
+    font-family: 'Inter', sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  @page { size: A4 portrait; margin: 0; }
+  @media print {
+    html, body { background: white; }
+  }
 </style>
 </head>
-<body>${processedHtml}</body>
-</html>`);
-    printWindow.document.close();
+<body>
+${bodyContent}
+<script>
+  // Auto-print after page fully loads
+  window.addEventListener('load', function() {
+    setTimeout(function() { window.print(); }, 800);
+  });
+</script>
+</body>
+</html>`;
 
-    // === STEP 3: Single print trigger ===
-    setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-    }, 1500);
+    // === STEP 3: Create Blob URL and open as a real page ===
+    // This is CRITICAL — Blob URL gives Chrome a real document context
+    // unlike document.write() which doesn't fully process @media print
+    const blob = new Blob([htmlDoc], { type: 'text/html' });
+    const blobUrl = URL.createObjectURL(blob);
+    const printWindow = window.open(blobUrl, '_blank');
+
+    if (!printWindow) {
+      URL.revokeObjectURL(blobUrl);
+      toast.error('Popup diblokir oleh browser. Izinkan popup untuk mencetak.');
+      return;
+    }
+
+    // Clean up blob URL after a delay
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
   };
 
   const handleFormSubmit = (data: StudentFormData) => {
