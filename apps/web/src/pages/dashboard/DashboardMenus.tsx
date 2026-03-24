@@ -246,20 +246,22 @@ export const DashboardMenus = () => {
             Belum ada menu. Klik Tambah Menu.
           </div>
         ) : (
-          <table className="w-full text-left">
-            <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-              <tr>
-                <th className="font-semibold text-gray-900 dark:text-gray-100 p-4">Nama Menu</th>
-                <th className="font-semibold text-gray-900 dark:text-gray-100 p-4">URL / Link</th>
-                <th className="font-semibold text-gray-900 dark:text-gray-100 p-4">Urutan</th>
-                <th className="font-semibold text-gray-900 dark:text-gray-100 p-4">Status</th>
-                <th className="font-semibold text-gray-900 dark:text-gray-100 text-right p-4">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {renderTree(menuTree)}
-            </tbody>
-          </table>
+          <div className="w-full overflow-x-auto pb-2 custom-scrollbar">
+            <table className="w-full text-left min-w-[800px]">
+              <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                  <th className="font-semibold text-gray-900 dark:text-gray-100 p-4 whitespace-nowrap">Nama Menu</th>
+                  <th className="font-semibold text-gray-900 dark:text-gray-100 p-4 whitespace-nowrap">URL / Link</th>
+                  <th className="font-semibold text-gray-900 dark:text-gray-100 p-4 whitespace-nowrap">Urutan</th>
+                  <th className="font-semibold text-gray-900 dark:text-gray-100 p-4 whitespace-nowrap">Status</th>
+                  <th className="font-semibold text-gray-900 dark:text-gray-100 text-right p-4 whitespace-nowrap">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {renderTree(menuTree)}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
