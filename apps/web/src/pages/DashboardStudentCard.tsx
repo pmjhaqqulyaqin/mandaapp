@@ -297,26 +297,19 @@ export const DashboardStudentCard = () => {
       return;
     }
 
-    // === STEP 1: Clone DOM and add grid styles ===
+    // === STEP 1: Clone DOM and prepare content ===
     const clonedContainer = printContainer.cloneNode(true) as HTMLElement;
 
-    // Add inline grid styles to .a4-print-page elements (Tailwind not available in print page)
+    // Add inline grid styles (Tailwind not available in iframe)
     clonedContainer.querySelectorAll('.a4-print-page').forEach(page => {
       const el = page as HTMLElement;
       const isHorizontal = el.classList.contains('horizontal-grid');
       el.style.cssText = `width:210mm;padding:12mm 10mm;page-break-after:always;break-after:page;box-sizing:border-box;display:grid;justify-content:center;align-content:flex-start;gap:8mm 6mm;margin:0 auto;grid-template-columns:repeat(${isHorizontal ? '2, 85.6mm' : '3, 53.98mm'});`;
     });
 
-    // === CRITICAL FIX: Force overflow:hidden on ALL card wrappers ===
-    // The inner card div is 856px×540px with position:relative. CSS transform:scale()  
-    // does NOT change the layout box — the card still occupies 856×540px in document flow.
-    // Without overflow:hidden, CSS Grid rows expand to 540px (142mm), allowing only 1-2
-    // rows per A4 page → 22 pages instead of 8. With overflow:hidden, the 540px content
-    // is clipped to the 204px wrapper height → 4 rows fit per A4 page.
+    // Force overflow:hidden on wrappers to clip 540px layout box
     clonedContainer.querySelectorAll('.printable-card-wrapper').forEach(wrapper => {
-      const el = wrapper as HTMLElement;
-      // Preserve existing inline styles, just add overflow:hidden
-      el.style.overflow = 'hidden';
+      (wrapper as HTMLElement).style.overflow = 'hidden';
     });
 
     // Remove page-break from last page
@@ -327,14 +320,9 @@ export const DashboardStudentCard = () => {
       (lastPage.style as any).breakAfter = 'auto';
     }
 
-    // DO NOT strip embedded <style> tags! They contain the crucial @media print CSS
-    // that makes cards resize to 85.6mm × 53.98mm — same approach as PublicCetakKartu
     const bodyContent = clonedContainer.innerHTML;
 
-    // === STEP 2: Build a complete HTML document ===
-    // CRITICAL: html/body MUST be constrained to EXACTLY 210mm width.
-    // Without this, Chrome sees the popup window width (e.g. 1280px) as the
-    // document width and auto-scales everything down to fit A4 (794px).
+    // === STEP 2: Build HTML document ===
     const htmlDoc = `<!DOCTYPE html>
 <html lang="id">
 <head>
@@ -346,7 +334,7 @@ export const DashboardStudentCard = () => {
   html, body {
     width: 210mm;
     max-width: 210mm;
-    margin: 0 auto;
+    margin: 0;
     padding: 0;
     background: white;
     font-family: 'Inter', sans-serif;
@@ -360,37 +348,64 @@ export const DashboardStudentCard = () => {
       width: 210mm;
       max-width: 210mm;
       background: white;
-      overflow: visible;
     }
   }
 </style>
 </head>
-<body>
-${bodyContent}
-<script>
-  // Auto-print after page fully loads
-  window.addEventListener('load', function() {
-    setTimeout(function() { window.print(); }, 800);
-  });
-</script>
-</body>
+<body>${bodyContent}</body>
 </html>`;
 
-    // === STEP 3: Create Blob URL and open as a real page ===
-    // Open at EXACTLY 794px width (= 210mm at 96dpi) so Chrome doesn't see
-    // a wider document and auto-scale. Height is generous for scrolling.
-    const blob = new Blob([htmlDoc], { type: 'text/html' });
-    const blobUrl = URL.createObjectURL(blob);
-    const printWindow = window.open(blobUrl, '_blank', 'width=794,height=900');
+    // === STEP 3: Create hidden iframe and print from it ===
+    // Unlike window.open() where Chrome IGNORES the width parameter,
+    // an iframe's width IS the viewport for Chrome's print engine.
+    // Setting width=794px (= 210mm at 96dpi) means Chrome sees the document
+    // as 210mm wide — matching A4 paper exactly — NO auto-scaling.
+    const existingFrame = document.getElementById('batch-print-frame');
+    if (existingFrame) existingFrame.remove();
 
-    if (!printWindow) {
-      URL.revokeObjectURL(blobUrl);
-      toast.error('Popup diblokir oleh browser. Izinkan popup untuk mencetak.');
+    const iframe = document.createElement('iframe');
+    iframe.id = 'batch-print-frame';
+    iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;height:1123px;border:none;';
+    document.body.appendChild(iframe);
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!iframeDoc || !iframe.contentWindow) {
+      toast.error('Gagal membuat frame cetak.');
+      iframe.remove();
       return;
     }
 
-    // Clean up blob URL after a delay
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    iframeDoc.open();
+    iframeDoc.write(htmlDoc);
+    iframeDoc.close();
+
+    // Wait for images and fonts to load, then print
+    iframe.onload = () => {
+      setTimeout(() => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (e) {
+          console.error('Print error:', e);
+          toast.error('Gagal mencetak. Coba lagi.');
+        }
+        // Remove iframe after print dialog closes
+        setTimeout(() => iframe.remove(), 5000);
+      }, 1000);
+    };
+
+    // Fallback if onload doesn't fire (document.write may not trigger it)
+    setTimeout(() => {
+      if (document.getElementById('batch-print-frame')) {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (e) {
+          // Silent fallback
+        }
+        setTimeout(() => iframe.remove(), 5000);
+      }
+    }, 3000);
   };
 
   const handleFormSubmit = (data: StudentFormData) => {
