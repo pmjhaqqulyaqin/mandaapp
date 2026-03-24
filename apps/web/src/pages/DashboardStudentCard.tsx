@@ -291,12 +291,134 @@ export const DashboardStudentCard = () => {
   ];
 
   const handlePrint = () => {
-    // If we're printing the preview, ensure we render it in the print section
-    // If we're printing the batch, ensure it's rendered in the print section
-    // The native DOM structure will handle this via CSS print media queries.
+    // Grab the rendered print-only DOM content
+    const printContainer = document.getElementById('print-content-area');
+    if (!printContainer) {
+      toast.error('Tidak ada konten untuk dicetak.');
+      return;
+    }
+
+    const htmlContent = printContainer.innerHTML;
+
+    // Open a CLEAN popup window — no DashboardLayout, no w-screen, no flex
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) {
+      toast.error('Popup diblokir oleh browser. Izinkan popup untuk mencetak.');
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=210mm, initial-scale=1.0">
+        <title>Cetak Kartu Pelajar</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          html, body {
+            width: 210mm;
+            margin: 0;
+            padding: 0;
+            background: white;
+            font-family: 'Inter', sans-serif;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          @page {
+            size: A4 portrait;
+            margin: 0;
+          }
+          @media print {
+            html, body { width: 210mm; }
+          }
+          .a4-print-page {
+            width: 210mm;
+            min-height: auto;
+            padding: 12mm 10mm;
+            page-break-after: always;
+            break-after: page;
+            box-sizing: border-box;
+            display: grid;
+            justify-content: center;
+            align-content: flex-start;
+            gap: 8mm 6mm;
+            margin: 0 auto;
+          }
+          .a4-print-page:last-child {
+            page-break-after: auto;
+            break-after: auto;
+          }
+          .a4-print-page.horizontal-grid {
+            grid-template-columns: repeat(2, 85.6mm);
+          }
+          .a4-print-page.vertical-grid {
+            grid-template-columns: repeat(3, 53.98mm);
+          }
+          .printable-card-wrapper {
+            page-break-inside: avoid;
+            break-inside: avoid;
+            overflow: hidden;
+            margin: 0;
+            box-sizing: border-box;
+          }
+          .printable-card-wrapper.orientation-horizontal {
+            width: 85.6mm;
+            height: 53.98mm;
+          }
+          .printable-card-wrapper.orientation-horizontal > .printable-card-front,
+          .printable-card-wrapper.orientation-horizontal > .printable-card-back {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: scale(0.37795);
+            transform-origin: top left;
+            margin: 0;
+          }
+          .printable-card-wrapper.orientation-vertical {
+            width: 53.98mm;
+            height: 85.6mm;
+          }
+          .printable-card-wrapper.orientation-vertical > .printable-card-front,
+          .printable-card-wrapper.orientation-vertical > .printable-card-back {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: scale(0.5002);
+            transform-origin: top left;
+            margin: 0;
+          }
+          /* Preview single card centering */
+          .print-preview-single {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10mm 0;
+            gap: 15mm;
+          }
+        </style>
+      </head>
+      <body>
+        ${htmlContent}
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+
+    // Wait for images to load, then print
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+        // Don't close immediately — let user finish the print dialog
+      }, 500);
+    };
+    // Fallback if onload doesn't fire (some browsers)
     setTimeout(() => {
-      window.print();
-    }, 100);
+      printWindow.focus();
+      printWindow.print();
+    }, 2000);
   };
 
   const handleFormSubmit = (data: StudentFormData) => {
@@ -400,97 +522,9 @@ export const DashboardStudentCard = () => {
     <>
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
-          /* === STEP 1: Force root containers to A4 width === */
-          html, body {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            height: auto !important;
-            overflow: visible !important;
-            background: white !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          #root {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            height: auto !important;
-            overflow: visible !important;
-            display: block !important;
-          }
-
-          /* === STEP 2: Neutralize DashboardLayout wrappers === */
-          /* Target the flex/w-screen container, main, and content wrapper */
-          #root > div {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            min-width: 0 !important;
-            height: auto !important;
-            overflow: visible !important;
-            display: block !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            background: white !important;
-          }
-          #root > div > main {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            height: auto !important;
-            overflow: visible !important;
-            display: block !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          /* Content wrapper inside main - but do NOT override display */
-          /* so that print:hidden children stay hidden */
-          #root > div > main > div {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            height: auto !important;
-            overflow: visible !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            /* NO display: block here! It would override print:hidden */
-          }
-
-          /* === STEP 3: Hide non-print UI === */
-          aside, nav, header {
-            display: none !important;
-          }
-
-          /* === STEP 4: Page setup === */
-          @page {
-            size: A4 portrait;
-            margin: 0 !important;
-          }
-
-          /* === STEP 5: A4 grid for batch cards === */
-          .a4-print-page {
-             width: 210mm;
-             min-height: auto;
-             padding: 12mm 10mm;
-             page-break-after: always;
-             break-after: page;
-             box-sizing: border-box;
-             display: grid;
-             justify-content: center;
-             align-content: flex-start;
-             gap: 8mm 6mm;
-             margin: 0 auto;
-          }
-          .a4-print-page.horizontal-grid {
-             grid-template-columns: repeat(2, 85.6mm);
-          }
-          .a4-print-page.vertical-grid {
-             grid-template-columns: repeat(3, 53.98mm);
-          }
-          .a4-print-page:last-child {
-             page-break-after: auto;
-             break-after: auto;
-          }
+          /* Printing is handled via popup window - hide dashboard UI if print is triggered */
+          body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          @page { size: A4 portrait; margin: 0 !important; }
         }
       `}} />
 
@@ -933,10 +967,10 @@ export const DashboardStudentCard = () => {
         )}
       </div>
 
-      {/* --- NATIVE PRINT DOM --- */}
-      <div className="hidden print:block w-full bg-white text-black" style={{ height: 'auto', minHeight: '100%', overflow: 'visible' }}>
+      {/* --- PRINT CONTENT (hidden, used by handlePrint to grab HTML) --- */}
+      <div id="print-content-area" style={{ display: 'none' }}>
         {activeTab === 'preview' && selectedStudent && (
-          <div className="flex flex-col items-center py-10 print-preview-gap">
+          <div className="print-preview-single">
             <PrintableStudentCard
               student={{
                 name: selectedStudent.fullName || selectedStudent.name,
