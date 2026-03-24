@@ -158,7 +158,6 @@ export const BatchPrintPage = () => {
 
         .a4-page {
           width: 210mm;
-          min-height: 297mm;
           margin: 0 auto 20px auto;
           background: white;
           padding: 12mm 10mm;
@@ -198,6 +197,7 @@ export const BatchPrintPage = () => {
             box-shadow: none !important;
             page-break-after: always;
             break-after: page;
+            overflow: hidden !important;
           }
           .a4-page:last-child {
             page-break-after: auto;
@@ -249,7 +249,7 @@ export const BatchPrintPage = () => {
                     template={template}
                     settings={settings}
                     orientation={orientation}
-                    scale={1}
+                    scale={orientation === 'horizontal' ? 0.37795 : 0.5002}
                     side="front"
                   />
                 ))}
@@ -280,7 +280,7 @@ export const BatchPrintPage = () => {
                     template={template}
                     settings={settings}
                     orientation={orientation}
-                    scale={1}
+                    scale={orientation === 'horizontal' ? 0.37795 : 0.5002}
                     side="back"
                   />
                 ))}
