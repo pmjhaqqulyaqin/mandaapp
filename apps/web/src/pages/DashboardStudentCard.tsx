@@ -318,7 +318,7 @@ export const DashboardStudentCard = () => {
           .card-wrapper { 
              display: flex; 
              flex-direction: column;
-             gap: 0;
+             gap: 15mm;
           }
           @media print {
             body { 
@@ -907,39 +907,38 @@ export const DashboardStudentCard = () => {
                   return (
                     <div key={`front-page-${pageIndex}`} className="a4-print-page">
                       {chunk.map((s) => (
-                        <div key={`front-${s.id}`} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                          <PrintableStudentCard
-                            student={{
-                              name: s.fullName || s.name,
-                              nisn: s.nisn,
-                              className: s.className,
-                              birthPlace: s.birthPlace,
-                              birthDate: s.birthDate,
-                              gender: s.gender,
-                              photoUrl: s.photoUrl,
-                            }}
-                            template={template}
-                            settings={{
-                              schoolName: globalSchoolName || cardSettings.schoolName,
-                              schoolSubtitle: cardSettings.schoolSubtitle,
-                              schoolAddress: globalSchoolAddress || cardSettings.schoolAddress,
-                              schoolPhone: globalSchoolPhone,
-                              schoolEmail: globalSchoolEmail,
-                              headmasterName: globalHeadmasterName,
-                              headmasterNip: globalHeadmasterNip,
-                              termsText: cardSettings.termsText,
-                              schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
-                              headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
-                              kemenagLogoUrl: getFullUrl(editingSettings.kemenagLogoUrl),
-                              schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
-                              academicYear: cardSettings.academicYear,
-                              showQrCode: cardSettings.showQrCode,
-                            }}
-                            orientation={orientation}
-                            scale={0.5}
-                            side="front"
-                          />
-                        </div>
+                        <PrintableStudentCard
+                          key={`front-${s.id}`}
+                          student={{
+                            name: s.fullName || s.name,
+                            nisn: s.nisn,
+                            className: s.className,
+                            birthPlace: s.birthPlace,
+                            birthDate: s.birthDate,
+                            gender: s.gender,
+                            photoUrl: s.photoUrl,
+                          }}
+                          template={template}
+                          settings={{
+                            schoolName: globalSchoolName || cardSettings.schoolName,
+                            schoolSubtitle: cardSettings.schoolSubtitle,
+                            schoolAddress: globalSchoolAddress || cardSettings.schoolAddress,
+                            schoolPhone: globalSchoolPhone,
+                            schoolEmail: globalSchoolEmail,
+                            headmasterName: globalHeadmasterName,
+                            headmasterNip: globalHeadmasterNip,
+                            termsText: cardSettings.termsText,
+                            schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
+                            headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
+                            kemenagLogoUrl: getFullUrl(editingSettings.kemenagLogoUrl),
+                            schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
+                            academicYear: cardSettings.academicYear,
+                            showQrCode: cardSettings.showQrCode,
+                          }}
+                          orientation={orientation}
+                          scale={orientation === 'horizontal' ? 0.37795 : 0.5002}
+                          side="front"
+                        />
                       ))}
                     </div>
                   );
@@ -952,39 +951,38 @@ export const DashboardStudentCard = () => {
                   return (
                     <div key={`back-page-${pageIndex}`} className="a4-print-page">
                       {chunk.map((s) => (
-                        <div key={`back-${s.id}`} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                          <PrintableStudentCard
-                            student={{
-                              name: s.fullName || s.name,
-                              nisn: s.nisn,
-                              className: s.className,
-                              birthPlace: s.birthPlace,
-                              birthDate: s.birthDate,
-                              gender: s.gender,
-                              photoUrl: s.photoUrl,
-                            }}
-                            template={template}
-                            settings={{
-                              schoolName: globalSchoolName || cardSettings.schoolName,
-                              schoolSubtitle: cardSettings.schoolSubtitle,
-                              schoolAddress: globalSchoolAddress || cardSettings.schoolAddress,
-                              schoolPhone: globalSchoolPhone,
-                              schoolEmail: globalSchoolEmail,
-                              headmasterName: globalHeadmasterName,
-                              headmasterNip: globalHeadmasterNip,
-                              termsText: cardSettings.termsText,
-                              schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
-                              headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
-                              kemenagLogoUrl: getFullUrl(editingSettings.kemenagLogoUrl),
-                              schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
-                              academicYear: cardSettings.academicYear,
-                              showQrCode: cardSettings.showQrCode,
-                            }}
-                            orientation={orientation}
-                            scale={0.5}
-                            side="back"
-                          />
-                        </div>
+                        <PrintableStudentCard
+                          key={`back-${s.id}`}
+                          student={{
+                            name: s.fullName || s.name,
+                            nisn: s.nisn,
+                            className: s.className,
+                            birthPlace: s.birthPlace,
+                            birthDate: s.birthDate,
+                            gender: s.gender,
+                            photoUrl: s.photoUrl,
+                          }}
+                          template={template}
+                          settings={{
+                            schoolName: globalSchoolName || cardSettings.schoolName,
+                            schoolSubtitle: cardSettings.schoolSubtitle,
+                            schoolAddress: globalSchoolAddress || cardSettings.schoolAddress,
+                            schoolPhone: globalSchoolPhone,
+                            schoolEmail: globalSchoolEmail,
+                            headmasterName: globalHeadmasterName,
+                            headmasterNip: globalHeadmasterNip,
+                            termsText: cardSettings.termsText,
+                            schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
+                            headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
+                            kemenagLogoUrl: getFullUrl(editingSettings.kemenagLogoUrl),
+                            schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
+                            academicYear: cardSettings.academicYear,
+                            showQrCode: cardSettings.showQrCode,
+                          }}
+                          orientation={orientation}
+                          scale={orientation === 'horizontal' ? 0.37795 : 0.5002}
+                          side="back"
+                        />
                       ))}
                     </div>
                   );
