@@ -48,6 +48,7 @@ export const Header = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedMobileMenus, setExpandedMobileMenus] = useState<Record<string, boolean>>({});
   const searchInputRef = useRef<HTMLInputElement>(null);
   const infoBarRef = useRef<HTMLDivElement>(null);
 
@@ -545,89 +546,163 @@ export const Header = ({
           style={{
             display: 'none',
             overflowY: 'auto',
-            maxHeight: mobileMenuOpen ? '1000px' : '0px',
+            maxHeight: mobileMenuOpen ? '100vh' : '0px',
             opacity: mobileMenuOpen ? 1 : 0,
-            transition: 'max-height 400ms ease, opacity 200ms ease',
+            transition: 'max-height 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms ease',
             borderTop: mobileMenuOpen ? '1px solid rgba(0,0,0,0.08)' : 'none',
-            backgroundColor: 'inherit'
+            backgroundColor: 'inherit',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
           }}
         >
-          <div style={{ padding: '12px 24px 24px' }} className="flex flex-col gap-1">
+          <div style={{ padding: '16px 20px 24px' }} className="flex flex-col gap-2">
             {dynamicMenus && dynamicMenus.length > 0 ? (
-              dynamicMenus.map((menuItem) => (
-                <div key={menuItem.id} className="flex flex-col">
-                  <Link
-                    to={menuItem.url}
-                    onClick={() => setMobileMenuOpen(false)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: 500,
-                      color: '#374151',
-                      textDecoration: 'none',
-                    }}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300"
-                  >
-                    {menuItem.icon && <span style={{ opacity: 0.7 }}>{renderIcon(menuItem.icon)}</span>}
-                    {menuItem.label}
-                  </Link>
-                  {menuItem.children && menuItem.children.length > 0 && (
-                    <div className="flex flex-col gap-1 pl-8 pr-2 pb-2">
-                      {menuItem.children.map((child: any) => (
-                        <Link
-                          key={child.id}
-                          to={child.url}
-                          onClick={() => setMobileMenuOpen(false)}
-                          style={{ textDecoration: 'none' }}
-                          className="text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 py-2 text-sm flex items-center gap-2"
+              dynamicMenus.map((menuItem) => {
+                const hasChildren = menuItem.children && menuItem.children.length > 0;
+                const isExpanded = expandedMobileMenus[menuItem.id];
+                
+                return (
+                  <div key={menuItem.id} className="flex flex-col">
+                    {hasChildren ? (
+                      <button
+                        onClick={() => setExpandedMobileMenus(prev => ({ ...prev, [menuItem.id]: !prev[menuItem.id] }))}
+                        className="hover:bg-green-50/50 dark:hover:bg-white/5 active:scale-[0.98] transition-all duration-200 outline-none"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '12px 14px',
+                          borderRadius: '12px',
+                          fontSize: '15px',
+                          fontWeight: 500,
+                          color: '#374151',
+                          border: '1px solid transparent',
+                          background: isExpanded ? 'rgba(16, 185, 129, 0.04)' : 'transparent',
+                          cursor: 'pointer',
+                          width: '100%',
+                          textAlign: 'left',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          {menuItem.icon && <span style={{ opacity: 0.8 }} className="text-green-600 dark:text-green-400">{renderIcon(menuItem.icon)}</span>}
+                          <span className="dark:text-gray-200">{menuItem.label}</span>
+                        </div>
+                        <svg 
+                          xmlns="http://www.w3.org/2000/svg" 
+                          width="18" height="18" viewBox="0 0 24 24" fill="none" 
+                          stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" 
+                          className={`transition-transform duration-300 ${isExpanded ? 'rotate-180 text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}
                         >
-                          {child.icon && <span className="opacity-70">{renderIcon(child.icon)}</span>}
-                          {child.label}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </button>
+                    ) : (
+                      <Link
+                        to={menuItem.url}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="hover:bg-green-50/50 dark:hover:bg-white/5 active:scale-[0.98] transition-all duration-200"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '12px 14px',
+                          borderRadius: '12px',
+                          fontSize: '15px',
+                          fontWeight: 500,
+                          color: '#374151',
+                          textDecoration: 'none',
+                          border: '1px solid transparent',
+                        }}
+                      >
+                        {menuItem.icon && <span style={{ opacity: 0.8 }} className="text-green-600 dark:text-green-400">{renderIcon(menuItem.icon)}</span>}
+                        <span className="dark:text-gray-200">{menuItem.label}</span>
+                      </Link>
+                    )}
+
+                    {/* Submenu Accordion */}
+                    {hasChildren && (
+                      <div 
+                        style={{
+                          overflow: 'hidden',
+                          maxHeight: isExpanded ? '800px' : '0px',
+                          opacity: isExpanded ? 1 : 0,
+                          transition: 'all 350ms cubic-bezier(0.4, 0, 0.2, 1)',
+                          marginTop: isExpanded ? '4px' : '0'
+                        }}
+                      >
+                        <div className="flex flex-col gap-1 pl-[44px] pr-2 pb-2 relative">
+                          {/* Sleek left futuristic line */}
+                          <div className="absolute left-[24px] top-2 bottom-4 w-[2px] bg-gradient-to-b from-green-500/40 via-green-500/10 to-transparent rounded-full"></div>
+                          
+                          {menuItem.children.map((child: any, index: number) => (
+                            <Link
+                              key={child.id}
+                              to={child.url}
+                              onClick={() => setMobileMenuOpen(false)}
+                              className="text-gray-600 dark:text-gray-400 hover:text-green-700 dark:hover:text-green-400 hover:bg-green-50/80 dark:hover:bg-green-900/20 transition-all duration-300"
+                              style={{ 
+                                textDecoration: 'none',
+                                padding: '10px 14px',
+                                borderRadius: '10px',
+                                fontSize: '14px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                transform: isExpanded ? 'translateX(0)' : 'translateX(-12px)',
+                                transitionDelay: isExpanded ? `${Math.min(index * 30, 200)}ms` : '0ms'
+                              }}
+                            >
+                              {child.icon ? (
+                                <span className="opacity-70 scale-90">{renderIcon(child.icon)}</span>
+                              ) : (
+                                <div className="w-[5px] h-[5px] rounded-full bg-current opacity-40"></div>
+                              )}
+                              <span>{child.label}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             ) : (
               navItems.map((item) => (
                 <Link
                   key={item.label}
                   to={item.to}
                   onClick={() => setMobileMenuOpen(false)}
+                  className="hover:bg-green-50/50 dark:hover:bg-white/5 active:scale-[0.98] transition-all duration-200"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    fontSize: '14px',
+                    gap: '10px',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
+                    fontSize: '15px',
                     fontWeight: 500,
                     color: '#374151',
                     textDecoration: 'none',
                   }}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300"
                 >
-                  <span style={{ opacity: 0.7 }}>{item.icon}</span>
-                  {item.label}
+                  <span style={{ opacity: 0.8 }} className="text-green-600 dark:text-green-400">{item.icon}</span>
+                  <span className="dark:text-gray-200">{item.label}</span>
                 </Link>
               ))
             )}
             <Link
               to="/login"
               onClick={() => setMobileMenuOpen(false)}
+              className="active:scale-[0.98] transition-all duration-200"
               style={{
                 display: 'block',
-                marginTop: '8px',
-                padding: '10px 16px',
-                borderRadius: '8px',
-                background: '#1a9a6f',
+                marginTop: '16px',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #1a9a6f 0%, #10b981 100%)',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
                 color: '#fff',
-                fontSize: '14px',
+                fontSize: '15px',
                 fontWeight: 600,
                 textDecoration: 'none',
                 textAlign: 'center',
