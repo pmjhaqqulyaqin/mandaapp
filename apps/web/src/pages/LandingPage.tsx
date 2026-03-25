@@ -8,7 +8,7 @@ import { contactsService } from '../lib/services/contacts';
 import { FooterWithSettings } from '../components/FooterWithSettings';
 import { HeaderWithSettings } from '../components/HeaderWithSettings';
 import { API_BASE_URL } from '../lib/api';
-import { Helmet } from 'react-helmet-async';
+import { SEO } from '../components/SEO';
 
 const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
 
@@ -68,10 +68,7 @@ export const LandingPage = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Helmet>
-        <title>{get('school_name') || 'Mandalotim'} - School Platform</title>
-        <meta name="description" content={`Official website of ${get('school_name') || 'Mandalotim'}. Welcome to our digital platform.`} />
-      </Helmet>
+      <SEO />
       <HeaderWithSettings />
       <main className="flex-1">
         <HeroSection 

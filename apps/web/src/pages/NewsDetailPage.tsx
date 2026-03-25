@@ -4,7 +4,7 @@ import { Badge } from '@mandaapp/ui';
 import { useNews } from '../hooks/api/useNews';
 import { FooterWithSettings } from '../components/FooterWithSettings';
 import { HeaderWithSettings } from '../components/HeaderWithSettings';
-import { Helmet } from 'react-helmet-async';
+import { SEO } from '../components/SEO';
 
 export const NewsDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -123,10 +123,12 @@ export const NewsDetailPage = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#050505] transition-colors duration-300">
-      <Helmet>
-        <title>{article ? article.title : 'Memuat Berita...'} - MAN 2 Lombok Timur</title>
-        <meta name="description" content={article ? article.title : 'Berita terbaru dari MAN 2 Lombok Timur'} />
-      </Helmet>
+      <SEO 
+        title={article ? article.title : 'Memuat Berita...'}
+        description={article ? article.title : 'Berita terbaru dari MAN 2 Lombok Timur'}
+        imageUrl={imageUrl || undefined}
+        isArticle={true}
+      />
       <HeaderWithSettings />
 
       <main className="flex-1 w-full relative">
