@@ -15,18 +15,19 @@ export async function apiClient<T>(
   const savedUser = localStorage.getItem('mandalotim_user');
   const userId = savedUser ? JSON.parse(savedUser)?.id : undefined;
 
-  const isFormData = customConfig.body instanceof FormData;
+  const isFormData = data instanceof FormData;
+  const { method = data ? "POST" : "GET", ...configWithoutMethod } = customConfig;
 
   const config: RequestInit = {
-    method: data ? "POST" : "GET",
-    body: data ? JSON.stringify(data) : undefined,
+    method,
+    body: isFormData ? (data as FormData) : (data ? JSON.stringify(data) : undefined),
     headers: {
       ...(!isFormData && { "Content-Type": "application/json" }),
       ...(userId ? { "X-User-Id": userId } : {}),
       ...headers,
     },
     credentials: "include", // Required for better-auth session cookies via cross-origin
-    ...customConfig,
+    ...configWithoutMethod,
   };
 
   const url = `${API_BASE_URL}${endpoint}`;

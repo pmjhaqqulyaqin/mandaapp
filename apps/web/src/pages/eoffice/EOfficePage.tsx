@@ -100,8 +100,7 @@ export const EOfficePage = () => {
     try {
       await apiClient(`/eoffice/surat-${uploadTarget.tipe}/${uploadTarget.id}/upload`, { 
         method: 'PUT', 
-        data: formData,
-        headers: { 'Content-Type': 'multipart/form-data' } 
+        data: formData
       });
       toast.success('Dokumen fisik berhasil diunggah!', { id: toastId });
       uploadTarget.tipe === 'keluar' ? fetchSuratKeluar() : fetchSuratMasuk();
