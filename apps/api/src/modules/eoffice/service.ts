@@ -1,5 +1,5 @@
 import { db } from '../../db';
-import { jenisSurats, suratKeluars, suratMasuks } from '../../db/schema';
+import { jenisSurats, suratKeluars, suratMasuks, masterKkas } from '../../db/schema';
 import { eq, desc, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import ExcelJS from 'exceljs';
@@ -217,5 +217,18 @@ export class EOfficeService {
     });
 
     return await workbook.xlsx.writeBuffer();
+  }
+
+  // --- KKA (Klasifikasi Kode Arsip) ---
+  static async getAllKka() {
+    return await db.select().from(masterKkas).orderBy(masterKkas.kode);
+  }
+
+  static async createKka(data: { kode: string, keterangan: string }) {
+    return await db.insert(masterKkas).values({
+      id: uuidv4(),
+      kode: data.kode,
+      keterangan: data.keterangan
+    }).returning();
   }
 }

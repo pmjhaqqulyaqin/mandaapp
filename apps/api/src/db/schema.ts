@@ -244,6 +244,7 @@ export const suratKeluars = pgTable("surat_keluars", {
   tahun: varchar("tahun", { length: 4 }).notNull(),
   perihal: text("perihal").notNull(),
   tujuan: varchar("tujuan", { length: 255 }),
+  fileUrl: varchar("file_url"),
   tanggalGenerate: timestamp("tanggal_generate").defaultNow(),
   userIdPengambil: text("user_id_pengambil").references(() => user.id)
 });
@@ -258,5 +259,14 @@ export const suratMasuks = pgTable("surat_masuk", {
   perihal: text("perihal").notNull(),
   sifat: varchar("sifat", { length: 50 }), // Sangat Segera, Segera, Biasa
   derajat: varchar("derajat", { length: 20 }), // SR, R, B
+  fileUrl: varchar("file_url"),
   userIdPenerima: text("user_id_penerima").references(() => user.id)
+});
+
+export const masterKkas = pgTable("master_kka", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  kode: varchar("kode", { length: 50 }).unique().notNull(),
+  keterangan: varchar("keterangan", { length: 255 }).notNull(),
+  aktif: boolean("aktif").default(true),
+  createdAt: timestamp("created_at").defaultNow()
 });

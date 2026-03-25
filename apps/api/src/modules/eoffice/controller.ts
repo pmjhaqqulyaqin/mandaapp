@@ -87,4 +87,22 @@ export class EOfficeController {
       res.status(500).json({ error: error.message });
     }
   }
+
+  static async getKka(req: Request, res: Response) {
+    try {
+      const result = await EOfficeService.getAllKka();
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async createKka(req: Request, res: Response) {
+    try {
+      const result = await EOfficeService.createKka(req.body);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
 }

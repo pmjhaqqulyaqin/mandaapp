@@ -3,8 +3,10 @@ import { apiClient } from '../../lib/api';
 import { GenerateSuratModal } from './components/GenerateSuratModal';
 import { CatatSuratMasukModal } from './components/CatatSuratMasukModal';
 import { LembarDisposisiPrint } from './components/LembarDisposisiPrint';
+import { PengaturanEOfficeModal } from './components/PengaturanEOfficeModal';
 import { toast } from 'sonner';
 import { useRef } from 'react';
+import { Pencil, Trash2, Upload, Settings } from 'lucide-react';
 
 export const EOfficePage = () => {
   const [activeTab, setActiveTab] = useState<'keluar' | 'masuk'>('keluar');
@@ -12,6 +14,7 @@ export const EOfficePage = () => {
   const [suratMasuks, setSuratMasuks] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMasukModalOpen, setIsMasukModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [resultNomor, setResultNomor] = useState<string | null>(null);
   
   const [selectedSuratPrint, setSelectedSuratPrint] = useState<any>(null);
@@ -69,6 +72,12 @@ export const EOfficePage = () => {
           <p className="text-gray-500 dark:text-gray-400">Pusat kontrol persuratan dan administrasi madrasah</p>
         </div>
         <div className="flex gap-3">
+          <button 
+            onClick={() => setIsSettingsOpen(true)}
+            className="px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+          >
+            <Settings size={16} /> Pengaturan E-Office
+          </button>
           <button 
             onClick={handleExport}
             className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
@@ -186,15 +195,23 @@ export const EOfficePage = () => {
                       <p className="font-medium text-gray-900 dark:text-gray-100">{surat.pengirim}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{surat.nomorSuratAsli}</p>
                     </td>
-                    <td className="px-6 py-4">
-                      <p className="text-gray-900 dark:text-gray-200 truncate max-w-xs">{surat.perihal}</p>
-                    </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-gray-900 dark:text-gray-200 truncate max-w-xs">{surat.perihal}</td>
+                    <td className="px-6 py-4 flex gap-2">
                       <button 
                         onClick={() => handlePrintDisposisi(surat)}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:text-emerald-600 transition-colors"
+                        title="Cetak Disposisi Fisik"
                       >
-                        🖨️ Cetak Disposisi
+                        🖨️ Cetak
+                      </button>
+                      <button className="p-2 bg-gray-100 dark:bg-[#2a2a2a] text-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors" title="Edit">
+                        <Pencil size={16} />
+                      </button>
+                      <button className="p-2 bg-gray-100 dark:bg-[#2a2a2a] text-amber-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors" title="Upload Arsip">
+                        <Upload size={16} />
+                      </button>
+                      <button className="p-2 bg-gray-100 dark:bg-[#2a2a2a] text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors" title="Hapus">
+                        <Trash2 size={16} />
                       </button>
                     </td>
                   </tr>
@@ -222,6 +239,11 @@ export const EOfficePage = () => {
         isOpen={isMasukModalOpen}
         onClose={() => setIsMasukModalOpen(false)}
         onSuccess={fetchSuratMasuk}
+      />
+
+      <PengaturanEOfficeModal 
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
       />
 
       <LembarDisposisiPrint ref={printRef} surat={selectedSuratPrint} />

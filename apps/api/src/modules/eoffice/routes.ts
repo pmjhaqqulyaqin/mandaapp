@@ -15,4 +15,7 @@ router.get('/surat-masuk', EOfficeController.getSuratMasuk);
 router.post('/surat-masuk', EOfficeController.createSuratMasuk);
 router.get('/surat-masuk/export', EOfficeController.exportSuratMasuk);
 
+router.get('/kka', EOfficeController.getKka);
+router.post('/kka', EOfficeController.createKka);
+
 export const eofficeRouter = router;
