@@ -8,7 +8,7 @@ import { EditSuratKeluarModal } from './components/EditSuratKeluarModal';
 import { EditSuratMasukModal } from './components/EditSuratMasukModal';
 import { toast } from 'sonner';
 import { useRef } from 'react';
-import { Pencil, Trash2, Upload, Settings, Eye } from 'lucide-react';
+import { Pencil, Trash2, Upload, Settings, Eye, Search as SearchIcon } from 'lucide-react';
 
 export const EOfficePage = () => {
   const [activeTab, setActiveTab] = useState<'keluar' | 'masuk'>('keluar');
@@ -23,6 +23,7 @@ export const EOfficePage = () => {
   const [isEditMasukOpen, setIsEditMasukOpen] = useState(false);
   const [selectedDataEdit, setSelectedDataEdit] = useState<any>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [selectedSuratPrint, setSelectedSuratPrint] = useState<any>(null);
   const [uploadTarget, setUploadTarget] = useState<{ id: string, tipe: 'keluar' | 'masuk' } | null>(null);
@@ -122,6 +123,19 @@ export const EOfficePage = () => {
     }
   };
 
+  const filteredSuratKeluar = suratKeluars.filter(surat => 
+    surat.nomorLengkap?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    surat.perihal?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    surat.tujuan?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredSuratMasuk = suratMasuks.filter(surat => 
+    surat.nomorAgenda?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    surat.nomorSuratAsli?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    surat.pengirim?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    surat.perihal?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const handleEdit = (tipe: 'keluar' | 'masuk', surat: any) => {
     setSelectedDataEdit(surat);
     if (tipe === 'keluar') {
@@ -182,22 +196,38 @@ export const EOfficePage = () => {
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-6 border-b border-gray-200 dark:border-gray-800">
-        <button 
-          onClick={() => setActiveTab('keluar')}
-          className={`pb-4 font-medium text-sm transition-colors relative ${activeTab === 'keluar' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
-        >
-          Buku Ekspedisi Keluar
-          {activeTab === 'keluar' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded-t-full"></div>}
-        </button>
-        <button 
-          onClick={() => setActiveTab('masuk')}
-          className={`pb-4 font-medium text-sm transition-colors relative ${activeTab === 'masuk' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
-        >
-          Registrasi Surat Masuk
-          {activeTab === 'masuk' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded-t-full"></div>}
-        </button>
+      {/* Tabs & Search */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-200 dark:border-gray-800 pb-1">
+        <div className="flex items-center gap-8">
+          {/* Search Input at far left */}
+          <div className="relative group mb-3">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={16} />
+            <input 
+              type="text"
+              placeholder="Cari arsip..."
+              className="pl-9 pr-4 py-1.5 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all w-48 md:w-64"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="flex gap-6">
+            <button 
+              onClick={() => setActiveTab('keluar')}
+              className={`pb-4 font-medium text-sm transition-colors relative ${activeTab === 'keluar' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
+            >
+              Buku Ekspedisi Keluar
+              {activeTab === 'keluar' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded-t-full"></div>}
+            </button>
+            <button 
+              onClick={() => setActiveTab('masuk')}
+              className={`pb-4 font-medium text-sm transition-colors relative ${activeTab === 'masuk' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
+            >
+              Registrasi Surat Masuk
+              {activeTab === 'masuk' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded-t-full"></div>}
+            </button>
+          </div>
+        </div>
       </div>
 
       {uploadProgress > 0 && (
@@ -235,7 +265,7 @@ export const EOfficePage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {suratKeluars.map((surat, i) => (
+                {filteredSuratKeluar.map((surat, i) => (
                   <tr key={i} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400">#{surat.nomorUrut}</td>
                     <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{surat.nomorLengkap}</td>
@@ -270,8 +300,8 @@ export const EOfficePage = () => {
                     </td>
                   </tr>
                 ))}
-                {suratKeluars.length === 0 && (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">Belum ada surat keluar.</td></tr>
+                {filteredSuratKeluar.length === 0 && (
+                  <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500 italic">Data surat keluar tidak ditemukan.</td></tr>
                 )}
               </tbody>
             </table>
@@ -291,7 +321,7 @@ export const EOfficePage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {suratMasuks.map((surat, i) => (
+                {filteredSuratMasuk.map((surat, i) => (
                   <tr key={i} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4 font-bold text-emerald-600 dark:text-emerald-400">{surat.nomorAgenda}</td>
                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
@@ -327,8 +357,8 @@ export const EOfficePage = () => {
                     </td>
                   </tr>
                 ))}
-                {suratMasuks.length === 0 && (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">Belum ada surat masuk yang tercatat.</td></tr>
+                {filteredSuratMasuk.length === 0 && (
+                  <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500 italic">Data surat masuk tidak ditemukan.</td></tr>
                 )}
               </tbody>
             </table>
