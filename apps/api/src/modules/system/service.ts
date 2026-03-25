@@ -70,7 +70,7 @@ export const processUpdatePackage = async (filePath: string) => {
   try {
     const fileStream = fs.createReadStream(filePath);
     const formData = new FormData();
-    formData.append('package', fileStream);
+    formData.append('package', fileStream, { filename: 'update.zip' });
 
     const targetUrl = `${DEWAHOSTER_URL}/system-updater.php?action=update`;
 
@@ -79,7 +79,9 @@ export const processUpdatePackage = async (filePath: string) => {
         ...formData.getHeaders(),
         'Authorization': `Bearer ${UPDATE_SECRET}`,
       },
-      timeout: 120000 // 2 minutes timeout for large file transfer & extraction
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+      timeout: 180000 // 3 minutes timeout for large file transfer & extraction
     });
 
     return {
