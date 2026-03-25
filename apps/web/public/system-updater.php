@@ -27,10 +27,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 $SECRET_KEY = getenv('UPDATE_SECRET') ?: 'MandaApp_Secret_Key_Update_2026!'; 
 $BACKUP_DIR = __DIR__ . '/backups/';
 $TEMP_DIR = __DIR__ . '/tmp_update/';
+$ARCHIVE_DIR = __DIR__ . '/archives/';
 
-// Pastikan folder backup dan direktori temp tersedia
+// Pastikan folder tersedia
 if (!is_dir($BACKUP_DIR)) mkdir($BACKUP_DIR, 0755, true);
 if (!is_dir($TEMP_DIR)) mkdir($TEMP_DIR, 0755, true);
+if (!is_dir($ARCHIVE_DIR)) mkdir($ARCHIVE_DIR, 0755, true);
 
 // ============================================================================
 // OTENTIKASI
@@ -219,6 +221,47 @@ try {
             if ($res === 19) $errText .= " - Not a zip archive or corrupted.";
             throw new Exception($errText);
         }
+    }
+
+    if ($action === 'upload_archive') {
+        if (!isset($_FILES['file'])) throw new Exception("File tidak terkirim.");
+        
+        $file = $_FILES['file'];
+        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $safeName = 'archive_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+        $targetPath = $ARCHIVE_DIR . $safeName;
+        
+        if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+            $host = $_SERVER['HTTP_HOST'];
+            $fileUrl = "$protocol://$host/archives/$safeName";
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'File berhasil diunggah ke hosting.',
+                'url' => $fileUrl,
+                'filename' => $safeName
+            ]);
+            exit;
+        } else {
+            throw new Exception("Gagal memindahkan file ke direktori archives.");
+        }
+    }
+
+    if ($action === 'delete_archive') {
+        $json = json_decode(file_get_contents('php://input'), true);
+        if (!isset($json['filename'])) throw new Exception("Nama file tidak ditentukan untuk dihapus.");
+        
+        $filename = basename($json['filename']); // Security: prevent traversal
+        $targetPath = $ARCHIVE_DIR . $filename;
+        
+        if (file_exists($targetPath)) {
+            unlink($targetPath);
+            echo json_encode(['success' => true, 'message' => "File $filename berhasil dihapus."]);
+        } else {
+            echo json_encode(['success' => true, 'message' => "File $filename tidak ditemukan (sudah terhapus)."]);
+        }
+        exit;
     }
 
     throw new Exception("Aksi tidak valid.");

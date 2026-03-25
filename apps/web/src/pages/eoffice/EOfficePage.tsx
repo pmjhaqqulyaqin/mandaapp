@@ -8,7 +8,7 @@ import { EditSuratKeluarModal } from './components/EditSuratKeluarModal';
 import { EditSuratMasukModal } from './components/EditSuratMasukModal';
 import { toast } from 'sonner';
 import { useRef } from 'react';
-import { Pencil, Trash2, Upload, Settings } from 'lucide-react';
+import { Pencil, Trash2, Upload, Settings, Eye } from 'lucide-react';
 
 export const EOfficePage = () => {
   const [activeTab, setActiveTab] = useState<'keluar' | 'masuk'>('keluar');
@@ -24,7 +24,10 @@ export const EOfficePage = () => {
   const [selectedDataEdit, setSelectedDataEdit] = useState<any>(null);
 
   const [selectedSuratPrint, setSelectedSuratPrint] = useState<any>(null);
+  const [uploadTarget, setUploadTarget] = useState<{ id: string, tipe: 'keluar' | 'masuk' } | null>(null);
+  
   const printRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchSuratKeluar = async () => {
     try {
@@ -81,15 +84,32 @@ export const EOfficePage = () => {
     }
   };
 
-  const handleUpload = async (tipe: 'keluar' | 'masuk', id: string) => {
-    const url = prompt('Masukkan Tautan / Link ke Dokumen PDF Fisik (Google Drive/Lainnya):');
-    if (!url) return;
+  const handleUploadClick = (tipe: 'keluar' | 'masuk', id: string) => {
+    setUploadTarget({ tipe, id });
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadTarget) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const toastId = toast.loading('Mengunggah dokumen...');
     try {
-      await apiClient(`/eoffice/surat-${tipe}/${id}/upload`, { method: 'PUT', data: { fileUrl: url } });
-      toast.success('Dokumen fisik berhasil dilampirkan!');
-      tipe === 'keluar' ? fetchSuratKeluar() : fetchSuratMasuk();
+      await apiClient(`/eoffice/surat-${uploadTarget.tipe}/${uploadTarget.id}/upload`, { 
+        method: 'PUT', 
+        data: formData,
+        headers: { 'Content-Type': 'multipart/form-data' } 
+      });
+      toast.success('Dokumen fisik berhasil diunggah!', { id: toastId });
+      uploadTarget.tipe === 'keluar' ? fetchSuratKeluar() : fetchSuratMasuk();
     } catch (err: any) {
-      toast.error('Gagal melampirkan dokumen');
+      toast.error('Gagal mengunggah dokumen', { id: toastId });
+    } finally {
+      setUploadTarget(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -207,14 +227,16 @@ export const EOfficePage = () => {
                       <button onClick={() => handleEdit('keluar', surat)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-blue-600 rounded-md hover:bg-blue-50 transition-colors" title="Edit">
                         <Pencil size={14} />
                       </button>
-                      <button onClick={() => handleUpload('keluar', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-amber-600 rounded-md hover:bg-amber-50 transition-colors" title="Upload Arsip PDF">
+                      <button onClick={() => handleUploadClick('keluar', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-amber-600 rounded-md hover:bg-amber-50 transition-colors" title="Upload Arsip PDF">
                         <Upload size={14} />
                       </button>
                       <button onClick={() => handleDelete('keluar', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-rose-600 rounded-md hover:bg-rose-50 transition-colors" title="Hapus">
                         <Trash2 size={14} />
                       </button>
                       {surat.fileUrl && (
-                        <a href={surat.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline">Lihat PDF</a>
+                        <a href={surat.fileUrl} target="_blank" rel="noreferrer" className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-emerald-600 rounded-md hover:bg-emerald-50 transition-colors" title="Lihat Dokumen">
+                          <Eye size={14} />
+                        </a>
                       )}
                     </td>
                   </tr>
@@ -262,14 +284,16 @@ export const EOfficePage = () => {
                       <button onClick={() => handleEdit('masuk', surat)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-blue-600 rounded-md hover:bg-blue-50 transition-colors" title="Edit">
                         <Pencil size={14} />
                       </button>
-                      <button onClick={() => handleUpload('masuk', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-amber-600 rounded-md hover:bg-amber-50 transition-colors" title="Upload Arsip PDF">
+                      <button onClick={() => handleUploadClick('masuk', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-amber-600 rounded-md hover:bg-amber-50 transition-colors" title="Upload Arsip PDF">
                         <Upload size={14} />
                       </button>
                       <button onClick={() => handleDelete('masuk', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-rose-600 rounded-md hover:bg-rose-50 transition-colors" title="Hapus">
                         <Trash2 size={14} />
                       </button>
                       {surat.fileUrl && (
-                        <a href={surat.fileUrl} target="_blank" rel="noreferrer" className="text-xs ml-1 text-blue-500 hover:underline">Lihat PDF</a>
+                        <a href={surat.fileUrl} target="_blank" rel="noreferrer" className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-emerald-600 rounded-md hover:bg-emerald-50 transition-colors" title="Lihat Dokumen">
+                          <Eye size={14} />
+                        </a>
                       )}
                     </td>
                   </tr>
@@ -319,6 +343,15 @@ export const EOfficePage = () => {
       />
 
       <LembarDisposisiPrint ref={printRef} surat={selectedSuratPrint} />
+      
+      {/* Hidden File Input for Upload */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        className="hidden" 
+        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+      />
     </div>
   );
 };

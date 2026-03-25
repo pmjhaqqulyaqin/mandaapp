@@ -144,7 +144,7 @@ export class EOfficeController {
 
   static async uploadSuratKeluar(req: Request, res: Response) {
     try {
-      await EOfficeService.uploadSuratKeluar(req.params.id, req.body.fileUrl);
+      await EOfficeService.uploadSuratKeluar(req.params.id, req.file);
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -171,7 +171,7 @@ export class EOfficeController {
 
   static async uploadSuratMasuk(req: Request, res: Response) {
     try {
-      await EOfficeService.uploadSuratMasuk(req.params.id, req.body.fileUrl);
+      await EOfficeService.uploadSuratMasuk(req.params.id, req.file);
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

@@ -3,6 +3,12 @@ import { jenisSurats, suratKeluars, suratMasuks, masterKkas } from '../../db/sch
 import { eq, desc, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import ExcelJS from 'exceljs';
+import axios from 'axios';
+import FormData from 'form-data';
+import fs from 'fs';
+
+const DEWAHOSTER_URL = process.env.FRONTEND_URL || 'https://mandalotim.sch.id';
+const UPDATE_SECRET = process.env.UPDATE_SECRET || 'MandaApp_Secret_Key_Update_2026!';
 
 export class EOfficeService {
 
@@ -261,8 +267,46 @@ export class EOfficeService {
     return await db.delete(suratKeluars).where(eq(suratKeluars.id, id));
   }
 
-  static async uploadSuratKeluar(id: string, fileUrl: string) {
-    return await db.update(suratKeluars).set({ fileUrl }).where(eq(suratKeluars.id, id));
+  static async deleteArchiveOnHosting(fileUrl: string) {
+    if (!fileUrl) return;
+    try {
+      const filename = fileUrl.split('/').pop();
+      if (!filename) return;
+
+      await axios.post(`${DEWAHOSTER_URL}/system-updater.php?action=delete_archive`, 
+        { filename },
+        { headers: { 'Authorization': `Bearer ${UPDATE_SECRET}`, 'Content-Type': 'application/json' } }
+      );
+    } catch (error) {
+      console.error('Gagal menghapus file lama di hosting:', error);
+      // biarkan tetap lanjut meski gagal hapus file lama
+    }
+  }
+
+  static async uploadSuratKeluar(id: string, file: any) {
+    if (!file) throw new Error('File tidak ditemukan');
+
+    // 1. Ambil data lama untuk hapus file
+    const oldData = await db.select({ fileUrl: suratKeluars.fileUrl }).from(suratKeluars).where(eq(suratKeluars.id, id)).limit(1);
+    if (oldData[0]?.fileUrl) {
+      await this.deleteArchiveOnHosting(oldData[0].fileUrl);
+    }
+
+    // 2. Upload ke Bridge
+    const formData = new FormData();
+    formData.append('file', fs.createReadStream(file.path), { filename: file.originalname });
+
+    const response = await axios.post(`${DEWAHOSTER_URL}/system-updater.php?action=upload_archive`, formData, {
+      headers: { ...formData.getHeaders(), 'Authorization': `Bearer ${UPDATE_SECRET}` },
+      timeout: 60000
+    });
+
+    if (!response.data?.success) throw new Error(response.data?.error || 'Gagal upload ke hosting');
+
+    const newUrl = response.data.url;
+
+    // 3. Update DB
+    return await db.update(suratKeluars).set({ fileUrl: newUrl }).where(eq(suratKeluars.id, id));
   }
 
   static async updateSuratKeluar(id: string, data: any) {
@@ -272,12 +316,31 @@ export class EOfficeService {
     }).where(eq(suratKeluars.id, id));
   }
 
-  static async deleteSuratMasuk(id: string) {
-    return await db.delete(suratMasuks).where(eq(suratMasuks.id, id));
+  static async uploadSuratMasuk(id: string, file: any) {
+    if (!file) throw new Error('File tidak ditemukan');
+
+    const oldData = await db.select({ fileUrl: suratMasuks.fileUrl }).from(suratMasuks).where(eq(suratMasuks.id, id)).limit(1);
+    if (oldData[0]?.fileUrl) {
+      await this.deleteArchiveOnHosting(oldData[0].fileUrl);
+    }
+
+    const formData = new FormData();
+    formData.append('file', fs.createReadStream(file.path), { filename: file.originalname });
+
+    const response = await axios.post(`${DEWAHOSTER_URL}/system-updater.php?action=upload_archive`, formData, {
+      headers: { ...formData.getHeaders(), 'Authorization': `Bearer ${UPDATE_SECRET}` },
+      timeout: 60000
+    });
+
+    if (!response.data?.success) throw new Error(response.data?.error || 'Gagal upload ke hosting');
+
+    const newUrl = response.data.url;
+
+    return await db.update(suratMasuks).set({ fileUrl: newUrl }).where(eq(suratMasuks.id, id));
   }
 
-  static async uploadSuratMasuk(id: string, fileUrl: string) {
-    return await db.update(suratMasuks).set({ fileUrl }).where(eq(suratMasuks.id, id));
+  static async deleteSuratMasuk(id: string) {
+    return await db.delete(suratMasuks).where(eq(suratMasuks.id, id));
   }
 
   static async updateSuratMasuk(id: string, data: any) {
