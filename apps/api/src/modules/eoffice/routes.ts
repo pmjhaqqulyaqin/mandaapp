@@ -5,6 +5,8 @@ const router = Router();
 
 // E-Office Routes
 router.get('/jenis-surat', EOfficeController.getJenisSurat);
+router.post('/jenis-surat', EOfficeController.createJenisSurat);
+router.delete('/jenis-surat/:id', EOfficeController.deleteJenisSurat);
 router.post('/jenis-surat/seed', EOfficeController.seedTemplates);
 
 router.get('/surat-keluar', EOfficeController.getSuratKeluar);
@@ -23,5 +25,6 @@ router.put('/surat-masuk/:id/upload', EOfficeController.uploadSuratMasuk);
 
 router.get('/kka', EOfficeController.getKka);
 router.post('/kka', EOfficeController.createKka);
+router.delete('/kka/:id', EOfficeController.deleteKka);
 
 export const eofficeRouter = router;
