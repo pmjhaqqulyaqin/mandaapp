@@ -151,6 +151,15 @@ export class EOfficeController {
     }
   }
 
+  static async updateSuratKeluar(req: Request, res: Response) {
+    try {
+      await EOfficeService.updateSuratKeluar(req.params.id, req.body);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   static async deleteSuratMasuk(req: Request, res: Response) {
     try {
       await EOfficeService.deleteSuratMasuk(req.params.id);
@@ -163,6 +172,15 @@ export class EOfficeController {
   static async uploadSuratMasuk(req: Request, res: Response) {
     try {
       await EOfficeService.uploadSuratMasuk(req.params.id, req.body.fileUrl);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async updateSuratMasuk(req: Request, res: Response) {
+    try {
+      await EOfficeService.updateSuratMasuk(req.params.id, req.body);
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

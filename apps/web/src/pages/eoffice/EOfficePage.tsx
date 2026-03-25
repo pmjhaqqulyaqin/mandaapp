@@ -87,8 +87,27 @@ export const EOfficePage = () => {
     }
   };
 
-  const handleEdit = () => {
-    toast.info('Fitur edit detail surat sedang dalam pengembangan.');
+  const handleEdit = async (tipe: 'keluar' | 'masuk', surat: any) => {
+    const newPerihal = prompt('📝 Edit Perihal Surat:', surat.perihal);
+    if (newPerihal === null) return; // cancelled
+    
+    let payload: any = { perihal: newPerihal };
+    
+    if (tipe === 'keluar') {
+      const newTujuan = prompt('📬 Edit Tujuan Surat:', surat.tujuan || '');
+      if (newTujuan !== null) payload.tujuan = newTujuan;
+    } else {
+      const newPengirim = prompt('🏢 Edit Asal / Pengirim Surat:', surat.pengirim || '');
+      if (newPengirim !== null) payload.pengirim = newPengirim;
+    }
+
+    try {
+      await apiClient(`/eoffice/surat-${tipe}/${surat.id}`, { method: 'PUT', data: payload });
+      toast.success('Data surat berhasil diperbarui!');
+      tipe === 'keluar' ? fetchSuratKeluar() : fetchSuratMasuk();
+    } catch (err: any) {
+      toast.error('Gagal memperbarui data surat');
+    }
   };
 
   return (
@@ -193,7 +212,7 @@ export const EOfficePage = () => {
                       >
                         Salin
                       </button>
-                      <button onClick={handleEdit} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-blue-600 rounded-md hover:bg-blue-50 transition-colors" title="Edit">
+                      <button onClick={() => handleEdit('keluar', surat)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-blue-600 rounded-md hover:bg-blue-50 transition-colors" title="Edit">
                         <Pencil size={14} />
                       </button>
                       <button onClick={() => handleUpload('keluar', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-amber-600 rounded-md hover:bg-amber-50 transition-colors" title="Upload Arsip PDF">
@@ -248,7 +267,7 @@ export const EOfficePage = () => {
                       >
                         🖨️ Cetak
                       </button>
-                      <button onClick={handleEdit} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-blue-600 rounded-md hover:bg-blue-50 transition-colors" title="Edit">
+                      <button onClick={() => handleEdit('masuk', surat)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-blue-600 rounded-md hover:bg-blue-50 transition-colors" title="Edit">
                         <Pencil size={14} />
                       </button>
                       <button onClick={() => handleUpload('masuk', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-amber-600 rounded-md hover:bg-amber-50 transition-colors" title="Upload Arsip PDF">

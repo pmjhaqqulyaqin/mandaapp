@@ -28,10 +28,16 @@ export class EOfficeService {
 
   // Get all Surat Keluar records
   static async geSuratKeluarList() {
-    return await db.select()
+    const list = await db.select()
       .from(suratKeluars)
       .leftJoin(jenisSurats, eq(suratKeluars.jenisSuratId, jenisSurats.id))
       .orderBy(desc(suratKeluars.tanggalGenerate));
+      
+    // Flatten data to solve undefined properties in frontend loop
+    return list.map(item => ({
+      ...item.surat_keluars,
+      jenis_surats: item.jenis_surats
+    }));
   }
 
   // Generate new Surat Keluar Number
@@ -188,14 +194,14 @@ export class EOfficeService {
 
     sheet.getRow(1).font = { bold: true };
 
-    data.forEach((row, i) => {
+    data.forEach((row: any, i) => {
       sheet.addRow({
         no: i + 1,
-        tanggal: row.surat_keluars.tanggalGenerate ? new Date(row.surat_keluars.tanggalGenerate).toLocaleDateString() : '',
-        urut: row.surat_keluars.nomorUrut,
-        nomor: row.surat_keluars.nomorLengkap,
-        perihal: row.surat_keluars.perihal,
-        tujuan: row.surat_keluars.tujuan || '-'
+        tanggal: row.tanggalGenerate ? new Date(row.tanggalGenerate).toLocaleDateString() : '',
+        urut: row.nomorUrut,
+        nomor: row.nomorLengkap,
+        perihal: row.perihal,
+        tujuan: row.tujuan || '-'
       });
     });
 
@@ -259,11 +265,26 @@ export class EOfficeService {
     return await db.update(suratKeluars).set({ fileUrl }).where(eq(suratKeluars.id, id));
   }
 
+  static async updateSuratKeluar(id: string, data: any) {
+    return await db.update(suratKeluars).set({
+      perihal: data.perihal,
+      tujuan: data.tujuan
+    }).where(eq(suratKeluars.id, id));
+  }
+
   static async deleteSuratMasuk(id: string) {
     return await db.delete(suratMasuks).where(eq(suratMasuks.id, id));
   }
 
   static async uploadSuratMasuk(id: string, fileUrl: string) {
     return await db.update(suratMasuks).set({ fileUrl }).where(eq(suratMasuks.id, id));
+  }
+
+  static async updateSuratMasuk(id: string, data: any) {
+    return await db.update(suratMasuks).set({
+      perihal: data.perihal,
+      pengirim: data.pengirim,
+      nomorSuratAsli: data.nomorSuratAsli
+    }).where(eq(suratMasuks.id, id));
   }
 }
