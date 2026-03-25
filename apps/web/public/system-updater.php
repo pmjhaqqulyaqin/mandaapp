@@ -224,9 +224,18 @@ try {
     }
 
     if ($action === 'upload_archive') {
-        if (!isset($_FILES['file'])) throw new Exception("File tidak terkirim.");
+        if (!isset($_FILES['file'])) throw new Exception("File tidak terkirim ke server.");
         
         $file = $_FILES['file'];
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            $errCode = $file['error'];
+            $msg = "Gagal mengunggah file (Kode: $errCode). ";
+            if ($errCode === 1 || $errCode === 2) {
+                $msg .= "Ukuran file terlalu besar (melebihi limit PHP server hosting).";
+            }
+            throw new Exception($msg);
+        }
+        
         $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
         $safeName = 'archive_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
         $targetPath = $ARCHIVE_DIR . $safeName;

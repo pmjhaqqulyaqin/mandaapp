@@ -93,19 +93,25 @@ export const EOfficePage = () => {
     const file = e.target.files?.[0];
     if (!file || !uploadTarget) return;
 
+    const currentSurat = uploadTarget.tipe === 'keluar' 
+      ? suratKeluars.find(s => s.id === uploadTarget.id)
+      : suratMasuks.find(s => s.id === uploadTarget.id);
+    
+    const isUpdate = !!currentSurat?.fileUrl;
+
     const formData = new FormData();
     formData.append('file', file);
 
-    const toastId = toast.loading('Mengunggah dokumen...');
+    const toastId = toast.loading(isUpdate ? 'Memperbarui dokumen...' : 'Mengunggah dokumen...');
     try {
       await apiClient(`/eoffice/surat-${uploadTarget.tipe}/${uploadTarget.id}/upload`, { 
         method: 'PUT', 
         data: formData
       });
-      toast.success('Dokumen fisik berhasil diunggah!', { id: toastId });
+      toast.success(isUpdate ? 'Pembaruan file berhasil!' : 'Dokumen fisik berhasil diunggah!', { id: toastId });
       uploadTarget.tipe === 'keluar' ? fetchSuratKeluar() : fetchSuratMasuk();
     } catch (err: any) {
-      toast.error('Gagal mengunggah dokumen', { id: toastId });
+      toast.error('Gagal mengunggah dokumen: ' + err.message, { id: toastId });
     } finally {
       setUploadTarget(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
