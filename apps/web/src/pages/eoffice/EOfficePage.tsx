@@ -116,7 +116,7 @@ export const EOfficePage = () => {
     } catch (err: any) {
       toast.error('Gagal mengunggah dokumen: ' + err.message, { id: toastId });
     } finally {
-      setUploadProgress(0); // Hide bar
+      setTimeout(() => setUploadProgress(0), 300); // Small delay so user sees 100%
       setUploadTarget(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
@@ -201,19 +201,21 @@ export const EOfficePage = () => {
       </div>
 
       {uploadProgress > 0 && (
-        <div className="p-4 bg-white dark:bg-[#1a1a1a] border border-emerald-100 dark:border-emerald-800/30 rounded-2xl shadow-sm space-y-2">
-          <div className="flex justify-between items-center text-sm">
-            <span className="font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
-              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-              Sedang Mengunggah Dokumen...
-            </span>
-            <span className="font-bold text-gray-700 dark:text-gray-300">{uploadProgress}%</span>
-          </div>
-          <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
-            <div 
-              className="bg-emerald-500 h-full transition-all duration-300 ease-out" 
-              style={{ width: `${uploadProgress}%` }}
-            ></div>
+        <div className="fixed top-0 left-0 right-0 z-[9999] bg-white dark:bg-[#1a1a1a] border-b border-emerald-100 dark:border-emerald-800/30 shadow-lg p-4 animate-in slide-in-from-top duration-300">
+          <div className="max-w-7xl mx-auto space-y-2">
+            <div className="flex justify-between items-center text-sm">
+              <span className="font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                Sedang Mengunggah Dokumen E-Office...
+              </span>
+              <span className="font-bold text-gray-700 dark:text-gray-300">{uploadProgress}%</span>
+            </div>
+            <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
+              <div 
+                className="bg-emerald-500 h-full transition-all duration-300 ease-out" 
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+            </div>
           </div>
         </div>
       )}

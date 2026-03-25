@@ -27,6 +27,7 @@ import { EOfficePage } from './pages/eoffice/EOfficePage';
 import { SystemUpdateCenter } from './pages/dashboard/SystemUpdateCenter';
 import { BatchPrintPage } from './pages/BatchPrintPage';
 import { FloatingActionButton, ScrollToTopButton } from '@mandaapp/ui';
+import { Toaster } from 'sonner';
 
 function App() {
   useFavicon();
@@ -77,6 +78,7 @@ function App() {
       </Routes>
       <FloatingActionButton />
       <ScrollToTopButton />
+      <Toaster richColors position="top-right" />
     </Router>
     </AuthProvider>
   );
