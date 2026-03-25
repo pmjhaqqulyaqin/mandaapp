@@ -49,7 +49,7 @@ export const EOfficePage = () => {
     // Gunakan window.open atau fetch blob untuk mengunduh
     // karena API Base URL kita ada di env, bisa buat link auth sederhana jika tidak diprotect token cookie
     // Untuk cookie based auth (better-auth), window.open(URL) bekerja jika request GET membawa cookies.
-    window.open(`http://localhost:3001/api${endpoint}`, '_blank');
+    window.open(`${import.meta.env.VITE_API_URL}${endpoint}`, '_blank');
     toast.success('Mengunduh rekap Excel...');
   };
 
