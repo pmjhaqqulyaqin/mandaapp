@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
@@ -24,6 +23,7 @@ import { SelectRolePage } from './pages/SelectRolePage';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useFavicon } from './hooks/useFavicon';
+import { EOfficePage } from './pages/eoffice/EOfficePage';
 import { SystemUpdateCenter } from './pages/dashboard/SystemUpdateCenter';
 import { BatchPrintPage } from './pages/BatchPrintPage';
 import { FloatingActionButton, ScrollToTopButton } from '@mandaapp/ui';
@@ -71,6 +71,7 @@ function App() {
           <Route path="employees" element={<DashboardEmployees />} />
           <Route path="pages" element={<DashboardPages />} />
           <Route path="menus" element={<DashboardMenus />} />
+          <Route path="e-office" element={<EOfficePage />} />
           <Route path="updates" element={<SystemUpdateCenter />} />
         </Route>
       </Routes>

@@ -86,6 +86,13 @@ const ALL_MENU_ITEMS = [
     group: 'main',
   },
   {
+    key: 'e-office',
+    label: 'E-Office / TU',
+    href: '/dashboard/e-office',
+    icon: <FileText size={18} />,
+    group: 'main',
+  },
+  {
     key: 'pages',
     label: 'Manajemen Halaman',
     href: '/dashboard/pages',
@@ -134,6 +141,7 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'contacts': 'contacts',
   'pages': 'pages',
   'menus': 'menus',
+  'e-office': 'e-office',
   'settings': 'settings',
   'users': 'users',
   'updates': 'updates',

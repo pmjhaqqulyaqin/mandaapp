@@ -218,3 +218,45 @@ export const menus = pgTable("menus", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
+
+// E-Office (Surat Menyurat)
+export const jenisSurats = pgTable("jenis_surats", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  namaJenis: varchar("nama_jenis", { length: 150 }).notNull(), // e.g., Surat Dinas, SK, Surat Tugas
+  kodeJenis: varchar("kode_jenis", { length: 50 }).notNull(), // e.g., SD, SK
+  formatPenomoran: text("format_penomoran").notNull(), // e.g. "Nomor {{nomor_urut}} Tahun {{tahun}}"
+  butuhKka: boolean("butuh_kka").default(true),
+  butuhDerajat: boolean("butuh_derajat").default(true),
+  aktif: boolean("aktif").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const suratKeluars = pgTable("surat_keluars", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  jenisSuratId: uuid("jenis_surat_id").references(() => jenisSurats.id).notNull(),
+  nomorUrut: integer("nomor_urut").notNull(),
+  nomorLengkap: varchar("nomor_lengkap", { length: 255 }).unique().notNull(),
+  derajatKode: varchar("derajat_kode", { length: 20 }), // SR, R, B
+  kodeSatker: varchar("kode_satker", { length: 50 }),
+  kkaKode: varchar("kka_kode", { length: 50 }),
+  bulan: varchar("bulan", { length: 2 }),
+  tahun: varchar("tahun", { length: 4 }).notNull(),
+  perihal: text("perihal").notNull(),
+  tujuan: varchar("tujuan", { length: 255 }),
+  tanggalGenerate: timestamp("tanggal_generate").defaultNow(),
+  userIdPengambil: text("user_id_pengambil").references(() => user.id)
+});
+
+export const suratMasuks = pgTable("surat_masuk", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  nomorAgenda: varchar("nomor_agenda", { length: 50 }).unique().notNull(),
+  nomorSuratAsli: varchar("nomor_surat_asli", { length: 150 }).notNull(),
+  tanggalSurat: date("tanggal_surat").notNull(),
+  tanggalDiterima: timestamp("tanggal_diterima").defaultNow(),
+  pengirim: varchar("pengirim", { length: 255 }).notNull(),
+  perihal: text("perihal").notNull(),
+  sifat: varchar("sifat", { length: 50 }), // Sangat Segera, Segera, Biasa
+  derajat: varchar("derajat", { length: 20 }), // SR, R, B
+  userIdPenerima: text("user_id_penerima").references(() => user.id)
+});

@@ -7,6 +7,7 @@ import { db } from './db';
 import { authHandler } from './modules/auth';
 import { studentRoutes } from './modules/students/routes';
 import { newsRoutes } from './modules/news/routes';
+import { eofficeRouter } from './modules/eoffice/routes';
 import { schedulesRoutes } from './modules/schedules/routes';
 import { cardsRoutes } from './modules/cards/routes';
 import { galleryRoutes } from './modules/gallery/routes';
@@ -86,6 +87,7 @@ app.all("/api/auth/*", authHandler);
 // API Routes
 app.use("/api/students", studentRoutes);
 app.use("/api/news", newsRoutes);
+app.use('/api/eoffice', eofficeRouter);
 app.use("/api/schedules", schedulesRoutes);
 app.use("/api/cards", cardsRoutes);
 app.use("/api/gallery", galleryRoutes);
