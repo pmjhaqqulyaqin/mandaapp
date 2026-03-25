@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { apiClient } from '../../lib/api';
+import { apiClient, apiUpload } from '../../lib/api';
 import { GenerateSuratModal } from './components/GenerateSuratModal';
 import { CatatSuratMasukModal } from './components/CatatSuratMasukModal';
 import { LembarDisposisiPrint } from './components/LembarDisposisiPrint';
@@ -22,6 +22,7 @@ export const EOfficePage = () => {
   const [isEditKeluarOpen, setIsEditKeluarOpen] = useState(false);
   const [isEditMasukOpen, setIsEditMasukOpen] = useState(false);
   const [selectedDataEdit, setSelectedDataEdit] = useState<any>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   const [selectedSuratPrint, setSelectedSuratPrint] = useState<any>(null);
   const [uploadTarget, setUploadTarget] = useState<{ id: string, tipe: 'keluar' | 'masuk' } | null>(null);
@@ -104,15 +105,18 @@ export const EOfficePage = () => {
 
     const toastId = toast.loading(isUpdate ? 'Memperbarui dokumen...' : 'Mengunggah dokumen...');
     try {
-      await apiClient(`/eoffice/surat-${uploadTarget.tipe}/${uploadTarget.id}/upload`, { 
-        method: 'PUT', 
-        data: formData
-      });
+      setUploadProgress(1); // Start showing bar
+      await apiUpload(
+        `/eoffice/surat-${uploadTarget.tipe}/${uploadTarget.id}/upload`, 
+        formData,
+        (percent) => setUploadProgress(percent)
+      );
       toast.success(isUpdate ? 'Pembaruan file berhasil!' : 'Dokumen fisik berhasil diunggah!', { id: toastId });
       uploadTarget.tipe === 'keluar' ? fetchSuratKeluar() : fetchSuratMasuk();
     } catch (err: any) {
       toast.error('Gagal mengunggah dokumen: ' + err.message, { id: toastId });
     } finally {
+      setUploadProgress(0); // Hide bar
       setUploadTarget(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
@@ -195,6 +199,24 @@ export const EOfficePage = () => {
           {activeTab === 'masuk' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded-t-full"></div>}
         </button>
       </div>
+
+      {uploadProgress > 0 && (
+        <div className="p-4 bg-white dark:bg-[#1a1a1a] border border-emerald-100 dark:border-emerald-800/30 rounded-2xl shadow-sm space-y-2">
+          <div className="flex justify-between items-center text-sm">
+            <span className="font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+              Sedang Mengunggah Dokumen...
+            </span>
+            <span className="font-bold text-gray-700 dark:text-gray-300">{uploadProgress}%</span>
+          </div>
+          <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
+            <div 
+              className="bg-emerald-500 h-full transition-all duration-300 ease-out" 
+              style={{ width: `${uploadProgress}%` }}
+            ></div>
+          </div>
+        </div>
+      )}
 
       {/* Tab Content */}
       <div className="bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">

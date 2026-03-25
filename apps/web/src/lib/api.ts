@@ -57,3 +57,29 @@ export async function apiClient<T>(
     return {} as T;
   }
 }
+
+import axios from 'axios';
+
+export async function apiUpload(
+  endpoint: string, 
+  formData: FormData, 
+  onProgress?: (percent: number) => void
+) {
+  const savedUser = localStorage.getItem('mandalotim_user');
+  const userId = savedUser ? JSON.parse(savedUser)?.id : undefined;
+
+  const response = await axios.put(`${API_BASE_URL}${endpoint}`, formData, {
+    headers: {
+      ...(userId ? { "X-User-Id": userId } : {}),
+      'Content-Type': 'multipart/form-data'
+    },
+    onUploadProgress: (progressEvent) => {
+      if (onProgress && progressEvent.total) {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        onProgress(percentCompleted);
+      }
+    }
+  });
+
+  return response.data;
+}
