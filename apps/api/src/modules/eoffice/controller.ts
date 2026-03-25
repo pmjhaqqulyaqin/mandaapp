@@ -12,6 +12,24 @@ export class EOfficeController {
     }
   }
 
+  static async createJenisSurat(req: Request, res: Response) {
+    try {
+      const result = await EOfficeService.createJenisSurat(req.body);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async deleteJenisSurat(req: Request, res: Response) {
+    try {
+      await EOfficeService.deleteJenisSurat(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   static async getSuratKeluar(req: Request, res: Response) {
     try {
       const result = await EOfficeService.geSuratKeluarList();
@@ -101,6 +119,51 @@ export class EOfficeController {
     try {
       const result = await EOfficeService.createKka(req.body);
       res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async deleteKka(req: Request, res: Response) {
+    try {
+      await EOfficeService.deleteKka(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async deleteSuratKeluar(req: Request, res: Response) {
+    try {
+      await EOfficeService.deleteSuratKeluar(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async uploadSuratKeluar(req: Request, res: Response) {
+    try {
+      await EOfficeService.uploadSuratKeluar(req.params.id, req.body.fileUrl);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async deleteSuratMasuk(req: Request, res: Response) {
+    try {
+      await EOfficeService.deleteSuratMasuk(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async uploadSuratMasuk(req: Request, res: Response) {
+    try {
+      await EOfficeService.uploadSuratMasuk(req.params.id, req.body.fileUrl);
+      res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

@@ -64,6 +64,33 @@ export const EOfficePage = () => {
     toast.success('Nomor berhasil disalin!');
   };
 
+  const handleDelete = async (tipe: 'keluar' | 'masuk', id: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus surat ini?')) return;
+    try {
+      await apiClient(`/eoffice/surat-${tipe}/${id}`, { method: 'DELETE' });
+      toast.success('Surat berhasil dihapus');
+      tipe === 'keluar' ? fetchSuratKeluar() : fetchSuratMasuk();
+    } catch (err: any) {
+      toast.error('Gagal menghapus surat');
+    }
+  };
+
+  const handleUpload = async (tipe: 'keluar' | 'masuk', id: string) => {
+    const url = prompt('Masukkan Tautan / Link ke Dokumen PDF Fisik (Google Drive/Lainnya):');
+    if (!url) return;
+    try {
+      await apiClient(`/eoffice/surat-${tipe}/${id}/upload`, { method: 'PUT', data: { fileUrl: url } });
+      toast.success('Dokumen fisik berhasil dilampirkan!');
+      tipe === 'keluar' ? fetchSuratKeluar() : fetchSuratMasuk();
+    } catch (err: any) {
+      toast.error('Gagal melampirkan dokumen');
+    }
+  };
+
+  const handleEdit = () => {
+    toast.info('Fitur edit detail surat sedang dalam pengembangan.');
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -159,8 +186,25 @@ export const EOfficePage = () => {
                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
                       {new Date(surat.tanggalGenerate).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4">
-                      <button onClick={() => handleCopy(surat.nomorLengkap)} className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">Salin</button>
+                    <td className="px-6 py-4 flex items-center gap-2">
+                      <button 
+                        onClick={() => handleCopy(surat.nomorLengkap)} 
+                        className="px-2 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded mr-2 hover:bg-emerald-100 transition-colors font-medium text-xs"
+                      >
+                        Salin
+                      </button>
+                      <button onClick={handleEdit} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-blue-600 rounded-md hover:bg-blue-50 transition-colors" title="Edit">
+                        <Pencil size={14} />
+                      </button>
+                      <button onClick={() => handleUpload('keluar', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-amber-600 rounded-md hover:bg-amber-50 transition-colors" title="Upload Arsip PDF">
+                        <Upload size={14} />
+                      </button>
+                      <button onClick={() => handleDelete('keluar', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-rose-600 rounded-md hover:bg-rose-50 transition-colors" title="Hapus">
+                        <Trash2 size={14} />
+                      </button>
+                      {surat.fileUrl && (
+                        <a href={surat.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline">Lihat PDF</a>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -196,23 +240,26 @@ export const EOfficePage = () => {
                       <p className="text-xs text-gray-500 dark:text-gray-400">{surat.nomorSuratAsli}</p>
                     </td>
                     <td className="px-6 py-4 text-gray-900 dark:text-gray-200 truncate max-w-xs">{surat.perihal}</td>
-                    <td className="px-6 py-4 flex gap-2">
+                    <td className="px-6 py-4 flex items-center gap-2">
                       <button 
                         onClick={() => handlePrintDisposisi(surat)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:text-emerald-600 transition-colors"
+                        className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 rounded hover:bg-emerald-50 hover:text-emerald-600 transition-colors text-xs font-medium"
                         title="Cetak Disposisi Fisik"
                       >
                         🖨️ Cetak
                       </button>
-                      <button className="p-2 bg-gray-100 dark:bg-[#2a2a2a] text-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors" title="Edit">
-                        <Pencil size={16} />
+                      <button onClick={handleEdit} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-blue-600 rounded-md hover:bg-blue-50 transition-colors" title="Edit">
+                        <Pencil size={14} />
                       </button>
-                      <button className="p-2 bg-gray-100 dark:bg-[#2a2a2a] text-amber-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors" title="Upload Arsip">
-                        <Upload size={16} />
+                      <button onClick={() => handleUpload('masuk', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-amber-600 rounded-md hover:bg-amber-50 transition-colors" title="Upload Arsip PDF">
+                        <Upload size={14} />
                       </button>
-                      <button className="p-2 bg-gray-100 dark:bg-[#2a2a2a] text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors" title="Hapus">
-                        <Trash2 size={16} />
+                      <button onClick={() => handleDelete('masuk', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-rose-600 rounded-md hover:bg-rose-50 transition-colors" title="Hapus">
+                        <Trash2 size={14} />
                       </button>
+                      {surat.fileUrl && (
+                        <a href={surat.fileUrl} target="_blank" rel="noreferrer" className="text-xs ml-1 text-blue-500 hover:underline">Lihat PDF</a>
+                      )}
                     </td>
                   </tr>
                 ))}

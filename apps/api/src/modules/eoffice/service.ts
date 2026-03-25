@@ -11,6 +11,21 @@ export class EOfficeService {
     return await db.select().from(jenisSurats).orderBy(jenisSurats.namaJenis);
   }
 
+  static async createJenisSurat(data: any) {
+    return await db.insert(jenisSurats).values({
+      id: uuidv4(),
+      namaJenis: data.namaJenis,
+      kodeJenis: data.kodeJenis,
+      formatPenomoran: data.formatPenomoran,
+      butuhKka: data.butuhKka,
+      butuhDerajat: data.butuhDerajat
+    }).returning();
+  }
+
+  static async deleteJenisSurat(id: string) {
+    return await db.delete(jenisSurats).where(eq(jenisSurats.id, id));
+  }
+
   // Get all Surat Keluar records
   static async geSuratKeluarList() {
     return await db.select()
@@ -230,5 +245,25 @@ export class EOfficeService {
       kode: data.kode,
       keterangan: data.keterangan
     }).returning();
+  }
+
+  static async deleteKka(id: string) {
+    return await db.delete(masterKkas).where(eq(masterKkas.id, id));
+  }
+
+  static async deleteSuratKeluar(id: string) {
+    return await db.delete(suratKeluars).where(eq(suratKeluars.id, id));
+  }
+
+  static async uploadSuratKeluar(id: string, fileUrl: string) {
+    return await db.update(suratKeluars).set({ fileUrl }).where(eq(suratKeluars.id, id));
+  }
+
+  static async deleteSuratMasuk(id: string) {
+    return await db.delete(suratMasuks).where(eq(suratMasuks.id, id));
+  }
+
+  static async uploadSuratMasuk(id: string, fileUrl: string) {
+    return await db.update(suratMasuks).set({ fileUrl }).where(eq(suratMasuks.id, id));
   }
 }

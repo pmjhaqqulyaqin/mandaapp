@@ -69,6 +69,28 @@ export const PengaturanEOfficeModal = ({ isOpen, onClose }: PengaturanEOfficeMod
     }
   };
 
+  const handleDeleteJenis = async (id: string) => {
+    if (!confirm('Hapus jenis surat ini?')) return;
+    try {
+      await apiClient(`/eoffice/jenis-surat/${id}`, { method: 'DELETE' });
+      toast.success('Jenis surat dihapus');
+      fetchData();
+    } catch (err: any) {
+      toast.error('Gagal menghapus jenis surat');
+    }
+  };
+
+  const handleDeleteKka = async (id: string) => {
+    if (!confirm('Hapus KKA ini?')) return;
+    try {
+      await apiClient(`/eoffice/kka/${id}`, { method: 'DELETE' });
+      toast.success('KKA dihapus');
+      fetchData();
+    } catch (err: any) {
+      toast.error('Gagal menghapus KKA');
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -120,7 +142,7 @@ export const PengaturanEOfficeModal = ({ isOpen, onClose }: PengaturanEOfficeMod
                       <tr key={j.id} className="border-t border-gray-100 dark:border-gray-800">
                         <td className="p-3 font-medium">{j.namaJenis} <span className="text-gray-400">({j.kodeJenis})</span></td>
                         <td className="p-3 text-emerald-600 font-mono text-xs">{j.formatPenomoran}</td>
-                        <td className="p-3 text-red-500"><button><Trash2 size={16}/></button></td>
+                        <td className="p-3 text-red-500"><button onClick={() => handleDeleteJenis(j.id)}><Trash2 size={16}/></button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -152,7 +174,7 @@ export const PengaturanEOfficeModal = ({ isOpen, onClose }: PengaturanEOfficeMod
                       <tr key={k.id} className="border-t border-gray-100 dark:border-gray-800">
                         <td className="p-3 font-semibold">{k.kode}</td>
                         <td className="p-3 text-gray-600 dark:text-gray-400">{k.keterangan}</td>
-                        <td className="p-3 text-red-500"><button><Trash2 size={16}/></button></td>
+                        <td className="p-3 text-red-500"><button onClick={() => handleDeleteKka(k.id)}><Trash2 size={16}/></button></td>
                       </tr>
                     ))}
                   </tbody>
