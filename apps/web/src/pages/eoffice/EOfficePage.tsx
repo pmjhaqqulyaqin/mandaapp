@@ -19,8 +19,8 @@ export const EOfficePage = () => {
 
   const fetchSuratKeluar = async () => {
     try {
-      const res = await apiClient<{data?: any[], [key:string]: any}>('/eoffice/surat-keluar', { method: 'GET' });
-      setSuratKeluars(res.data || res as any);
+      const res = await apiClient<any>('/eoffice/surat-keluar', { method: 'GET' });
+      setSuratKeluars(Array.isArray(res) ? res : (res.data || []));
     } catch (err: any) {
       toast.error('Gagal mengambil data surat keluar');
     }
@@ -28,8 +28,8 @@ export const EOfficePage = () => {
 
   const fetchSuratMasuk = async () => {
     try {
-      const res = await apiClient<{data?: any[], [key:string]: any}>('/eoffice/surat-masuk', { method: 'GET' });
-      setSuratMasuks(res.data || res as any);
+      const res = await apiClient<any>('/eoffice/surat-masuk', { method: 'GET' });
+      setSuratMasuks(Array.isArray(res) ? res : (res.data || []));
     } catch (err: any) {
       toast.error('Gagal mengambil data surat masuk');
     }

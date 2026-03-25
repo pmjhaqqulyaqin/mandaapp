@@ -26,10 +26,11 @@ export const GenerateSuratModal = ({ isOpen, onClose, onSuccess }: GenerateSurat
   useEffect(() => {
     if (isOpen) {
       // Fetch jenis surat templates
-      apiClient<{data?: any[], [key:string]: any}>('/eoffice/jenis-surat', { method: 'GET' }).then((res: any) => {
-        setJenisSurats(res.data);
-        if (res.data.length > 0) {
-          const defaultSelect = res.data[0];
+      apiClient<any>('/eoffice/jenis-surat', { method: 'GET' }).then((res: any) => {
+        const dataArray = Array.isArray(res) ? res : res.data || [];
+        setJenisSurats(dataArray);
+        if (dataArray.length > 0) {
+          const defaultSelect = dataArray[0];
           setSelectedJenis(defaultSelect);
           setFormData(f => ({ ...f, jenisSuratId: defaultSelect.id }));
         }
