@@ -10,10 +10,16 @@ router.post('/jenis-surat/seed', EOfficeController.seedTemplates);
 router.get('/surat-keluar', EOfficeController.getSuratKeluar);
 router.post('/surat-keluar/generate', EOfficeController.generateNomorKeluar);
 router.get('/surat-keluar/export', EOfficeController.exportSuratKeluar);
+router.delete('/surat-keluar/:id', EOfficeController.deleteSuratKeluar);
+router.put('/surat-keluar/:id', EOfficeController.updateSuratKeluar);
+router.put('/surat-keluar/:id/upload', EOfficeController.uploadSuratKeluar);
 
 router.get('/surat-masuk', EOfficeController.getSuratMasuk);
 router.post('/surat-masuk', EOfficeController.createSuratMasuk);
 router.get('/surat-masuk/export', EOfficeController.exportSuratMasuk);
+router.delete('/surat-masuk/:id', EOfficeController.deleteSuratMasuk);
+router.put('/surat-masuk/:id', EOfficeController.updateSuratMasuk);
+router.put('/surat-masuk/:id/upload', EOfficeController.uploadSuratMasuk);
 
 router.get('/kka', EOfficeController.getKka);
 router.post('/kka', EOfficeController.createKka);

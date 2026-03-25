@@ -4,6 +4,8 @@ import { GenerateSuratModal } from './components/GenerateSuratModal';
 import { CatatSuratMasukModal } from './components/CatatSuratMasukModal';
 import { LembarDisposisiPrint } from './components/LembarDisposisiPrint';
 import { PengaturanEOfficeModal } from './components/PengaturanEOfficeModal';
+import { EditSuratKeluarModal } from './components/EditSuratKeluarModal';
+import { EditSuratMasukModal } from './components/EditSuratMasukModal';
 import { toast } from 'sonner';
 import { useRef } from 'react';
 import { Pencil, Trash2, Upload, Settings } from 'lucide-react';
@@ -17,6 +19,10 @@ export const EOfficePage = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [resultNomor, setResultNomor] = useState<string | null>(null);
   
+  const [isEditKeluarOpen, setIsEditKeluarOpen] = useState(false);
+  const [isEditMasukOpen, setIsEditMasukOpen] = useState(false);
+  const [selectedDataEdit, setSelectedDataEdit] = useState<any>(null);
+
   const [selectedSuratPrint, setSelectedSuratPrint] = useState<any>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -87,26 +93,12 @@ export const EOfficePage = () => {
     }
   };
 
-  const handleEdit = async (tipe: 'keluar' | 'masuk', surat: any) => {
-    const newPerihal = prompt('📝 Edit Perihal Surat:', surat.perihal);
-    if (newPerihal === null) return; // cancelled
-    
-    let payload: any = { perihal: newPerihal };
-    
+  const handleEdit = (tipe: 'keluar' | 'masuk', surat: any) => {
+    setSelectedDataEdit(surat);
     if (tipe === 'keluar') {
-      const newTujuan = prompt('📬 Edit Tujuan Surat:', surat.tujuan || '');
-      if (newTujuan !== null) payload.tujuan = newTujuan;
+      setIsEditKeluarOpen(true);
     } else {
-      const newPengirim = prompt('🏢 Edit Asal / Pengirim Surat:', surat.pengirim || '');
-      if (newPengirim !== null) payload.pengirim = newPengirim;
-    }
-
-    try {
-      await apiClient(`/eoffice/surat-${tipe}/${surat.id}`, { method: 'PUT', data: payload });
-      toast.success('Data surat berhasil diperbarui!');
-      tipe === 'keluar' ? fetchSuratKeluar() : fetchSuratMasuk();
-    } catch (err: any) {
-      toast.error('Gagal memperbarui data surat');
+      setIsEditMasukOpen(true);
     }
   };
 
@@ -310,6 +302,20 @@ export const EOfficePage = () => {
       <PengaturanEOfficeModal 
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+      />
+
+      <EditSuratKeluarModal 
+        isOpen={isEditKeluarOpen}
+        onClose={() => setIsEditKeluarOpen(false)}
+        onSuccess={fetchSuratKeluar}
+        surat={selectedDataEdit}
+      />
+
+      <EditSuratMasukModal 
+        isOpen={isEditMasukOpen}
+        onClose={() => setIsEditMasukOpen(false)}
+        onSuccess={fetchSuratMasuk}
+        surat={selectedDataEdit}
       />
 
       <LembarDisposisiPrint ref={printRef} surat={selectedSuratPrint} />
