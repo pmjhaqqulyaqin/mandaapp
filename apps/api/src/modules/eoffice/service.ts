@@ -67,14 +67,11 @@ export class EOfficeService {
       if (!jenisRows.length) throw new Error('Jenis Surat tidak ditemukan');
       const jenisSurat = jenisRows[0];
 
-      // 2. Get latest Nomor Urut for this Jenis Surat in the current year
+      // 2. Get latest Nomor Urut for ALL outgoing letters in the current year (Global Sequence)
       const lastSuratList = await tx.select({ nomorUrut: suratKeluars.nomorUrut })
         .from(suratKeluars)
         .where(
-          and(
-            eq(suratKeluars.jenisSuratId, jenisSurat.id),
-            eq(suratKeluars.tahun, tahunSekarang)
-          )
+          eq(suratKeluars.tahun, tahunSekarang)
         )
         .orderBy(desc(suratKeluars.nomorUrut))
         .limit(1);
