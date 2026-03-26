@@ -198,35 +198,33 @@ export const EOfficePage = () => {
 
       {/* Tabs & Search */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-200 dark:border-gray-800 pb-1">
-        <div className="flex items-center gap-8">
-          {/* Search Input at far left */}
-          <div className="relative group mb-3">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={16} />
-            <input 
-              type="text"
-              placeholder="Cari arsip..."
-              className="pl-9 pr-4 py-1.5 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all w-48 md:w-64"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+        <div className="flex gap-6 px-1">
+          <button 
+            onClick={() => setActiveTab('keluar')}
+            className={`pb-4 font-medium text-sm transition-colors relative ${activeTab === 'keluar' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
+          >
+            Buku Ekspedisi Keluar
+            {activeTab === 'keluar' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded-t-full"></div>}
+          </button>
+          <button 
+            onClick={() => setActiveTab('masuk')}
+            className={`pb-4 font-medium text-sm transition-colors relative ${activeTab === 'masuk' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
+          >
+            Registrasi Surat Masuk
+            {activeTab === 'masuk' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded-t-full"></div>}
+          </button>
+        </div>
 
-          <div className="flex gap-6">
-            <button 
-              onClick={() => setActiveTab('keluar')}
-              className={`pb-4 font-medium text-sm transition-colors relative ${activeTab === 'keluar' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
-            >
-              Buku Ekspedisi Keluar
-              {activeTab === 'keluar' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded-t-full"></div>}
-            </button>
-            <button 
-              onClick={() => setActiveTab('masuk')}
-              className={`pb-4 font-medium text-sm transition-colors relative ${activeTab === 'masuk' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
-            >
-              Registrasi Surat Masuk
-              {activeTab === 'masuk' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded-t-full"></div>}
-            </button>
-          </div>
+        {/* Search Input at far right */}
+        <div className="relative group mb-3 md:mb-2 mr-2">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={16} />
+          <input 
+            type="text"
+            placeholder="Cari arsip..."
+            className="pl-9 pr-4 py-1.5 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all w-full md:w-64"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </div>
 
