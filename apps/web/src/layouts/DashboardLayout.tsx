@@ -87,7 +87,7 @@ const ALL_MENU_ITEMS = [
   },
   {
     key: 'e-office',
-    label: 'E-Office / TU',
+    label: 'Korespondensi Dinas',
     href: '/dashboard/e-office',
     icon: <FileText size={18} />,
     group: 'main',

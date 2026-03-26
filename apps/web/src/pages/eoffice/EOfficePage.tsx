@@ -149,8 +149,8 @@ export const EOfficePage = () => {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Tata Usaha & E-Office</h1>
-          <p className="text-gray-500 dark:text-gray-400">Pusat kontrol persuratan dan administrasi madrasah</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Korespondensi Dinas</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Sistem manajemen penomoran dan pengarsipan surat resmi</p>
         </div>
         <div className="flex gap-3">
           <button 
