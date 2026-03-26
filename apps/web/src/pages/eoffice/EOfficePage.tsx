@@ -145,14 +145,39 @@ export const EOfficePage = () => {
     }
   };
 
+  const lastNumber = suratKeluars.length > 0 
+    ? Math.max(...suratKeluars.map(s => parseInt(s.nomorUrut) || 0))
+    : null;
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Korespondensi Dinas</h2>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Sistem manajemen penomoran dan pengarsipan surat resmi</p>
+      <div className="flex flex-col items-center justify-center space-y-6 pt-4 pb-2">
+        {lastNumber !== null && (
+          <div className="px-10 py-4 bg-emerald-600 dark:bg-emerald-500 text-white rounded-3xl shadow-[0_20px_50px_rgba(16,185,129,0.3)] border-4 border-white dark:border-gray-800 transform hover:scale-105 transition-transform duration-300">
+            <div className="text-center space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Nomor Terakhir</span>
+              <div className="text-4xl font-black tabular-nums tracking-tighter">
+                #{lastNumber.toString().padStart(3, '0')}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div className="text-center">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+            Korespondensi Dinas
+          </h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 max-w-md mx-auto">
+            Monitoring penomoran dan pengarsipan surat resmi secara real-time
+          </p>
         </div>
-        <div className="flex gap-3">
+      </div>
+
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="hidden md:block">
+          {/* Empty spacer to balance layout or we can put something else here */}
+        </div>
+        <div className="flex gap-3 w-full md:w-auto">
           <button 
             onClick={() => setIsSettingsOpen(true)}
             className="px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
