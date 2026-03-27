@@ -1,10 +1,15 @@
 import { forwardRef } from 'react';
+import { useSiteSettings } from '../../../hooks/api/useSettings';
 
 interface LembarDisposisiPrintProps {
   surat: any;
 }
 
 export const LembarDisposisiPrint = forwardRef<HTMLDivElement, LembarDisposisiPrintProps>(({ surat }, ref) => {
+  const { get } = useSiteSettings();
+  const principalName = get('principal_name');
+  const principalNip = get('principal_nip');
+
   if (!surat) return null;
 
   return (
@@ -90,9 +95,11 @@ export const LembarDisposisiPrint = forwardRef<HTMLDivElement, LembarDisposisiPr
           </tbody>
         </table>
 
-        <div className="mt-8 flex justify-end">
-          <div className="w-48 text-center pt-16 border-b border-black">
-            Kepala Madrasah
+        <div className="mt-12 flex justify-end">
+          <div className="w-64 text-center">
+            <div className="mb-16">Kepala Madrasah,</div>
+            <div className="font-bold underline uppercase">{principalName || '..........................'}</div>
+            <div>NIP. {principalNip || '..........................'}</div>
           </div>
         </div>
 
@@ -100,5 +107,4 @@ export const LembarDisposisiPrint = forwardRef<HTMLDivElement, LembarDisposisiPr
     </div>
   );
 });
-
 LembarDisposisiPrint.displayName = 'LembarDisposisiPrint';
