@@ -3,7 +3,7 @@ import { Button } from '@mandaapp/ui/src/components/Button';
 import { Input } from '@mandaapp/ui/src/components/Input';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Upload, Printer, Download, Edit2, Trash2, FileSpreadsheet } from 'lucide-react';
+import { UserPlus, Upload, Download, Edit2, Trash2, FileSpreadsheet } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { apiClient, API_BASE_URL } from '../lib/api';
 
@@ -198,7 +198,7 @@ export const DashboardStudents = () => {
         <div>
           <h1 className="text-2xl font-bold text-text-primary dark:text-text-darkPrimary">Data Siswa</h1>
           <p className="text-sm text-text-secondary dark:text-gray-400 mt-1">
-            Kelola data siswa, import dari Excel, dan cetak kartu pelajar.
+            Kelola data siswa dan import dari Excel.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -231,9 +231,6 @@ export const DashboardStudents = () => {
             title="Export ke format Excel"
           >
             <FileSpreadsheet size={18} className="text-emerald-500" /> Export Excel
-          </Button>
-          <Button variant="outline" className="flex items-center gap-2 text-primary border-primary hover:bg-primary/10">
-            <Printer size={18} /> Cetak Kartu
           </Button>
           <Button className="flex items-center gap-2" onClick={() => {
             setEditId(null);
