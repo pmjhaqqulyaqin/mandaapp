@@ -242,6 +242,7 @@ export const DashboardStudents = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-[#2a2a2a] text-sm text-text-secondary">
+                    <th className="pb-3 px-4 font-medium text-center w-10">No</th>
                     <th className="pb-3 px-4 font-medium">Nama Siswa</th>
                     <th className="pb-3 px-4 font-medium">NISN</th>
                     <th className="pb-3 px-4 font-medium">NIS</th>
@@ -259,13 +260,14 @@ export const DashboardStudents = () => {
                       const matchSearch = !q || (s.fullName || '').toLowerCase().includes(q) || (s.nisn || '').includes(q);
                       return matchClass && matchSearch;
                     })
-                    .map(student => {
+                    .map((student, idx) => {
                     const classObj = classesList.find(c => c.id === student.classId);
                     const majorName = classObj ? majorsList.find(m => m.id === classObj.majorId)?.name : '';
                     const kelasLabel = classObj ? (majorName ? `${classObj.name} - ${majorName}` : classObj.name) : (student.className || '-');
                     const ttl = [student.birthPlace, student.birthDate ? new Date(student.birthDate).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''].filter(Boolean).join(', ');
                     return (
                     <tr key={student.id} className="group border-b border-gray-50 dark:border-[#222]">
+                      <td className="py-3 px-4 text-center text-text-secondary">{idx + 1}</td>
                       <td className="py-3 px-4">{student.fullName || '-'}</td>
                       <td className="py-3 px-4">{student.nisn || '-'}</td>
                       <td className="py-3 px-4">{student.nis || '-'}</td>
@@ -283,7 +285,7 @@ export const DashboardStudents = () => {
                   })}
                   {students.length === 0 && !loading && (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-gray-400">Belum ada data siswa.</td>
+                      <td colSpan={8} className="py-8 text-center text-gray-400">Belum ada data siswa.</td>
                     </tr>
                   )}
                 </tbody>
