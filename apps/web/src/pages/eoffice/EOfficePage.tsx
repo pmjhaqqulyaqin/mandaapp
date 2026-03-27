@@ -30,7 +30,7 @@ export const EOfficePage = () => {
   const [uploadTarget, setUploadTarget] = useState<{ id: string, tipe: 'keluar' | 'masuk' } | null>(null);
   
   const { user, isAdmin } = useAuth();
-  const isEofficeAdmin = isAdmin || user?.role === 'tu';
+  const isEofficeAdmin = isAdmin || user?.role === 'kepala_tu' || user?.role === 'pegawai_tu';
   const printRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 

@@ -25,6 +25,8 @@ const ROLE_LABELS: Record<string, string> = {
   wali_kelas: 'Wali Kelas',
   pembina_ekstra: 'Pembina Ekstra',
   guru: 'Guru',
+  kepala_tu: 'Kepala TU',
+  pegawai_tu: 'Pegawai TU',
   student: 'Siswa',
 };
 
@@ -36,6 +38,8 @@ const ROLE_COLORS: Record<string, string> = {
   wali_kelas: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
   pembina_ekstra: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
   guru: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  kepala_tu: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  pegawai_tu: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
   student: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
 };
 
