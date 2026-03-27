@@ -21,6 +21,8 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
   pembina_ekstra: ["overview", "news", "calendar", "student-card", "gallery"],
   guru: ["overview", "news", "calendar", "student-card"],
   student: ["overview", "calendar", "student-card"],
+  kepala_tu: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office"],
+  pegawai_tu: ["overview", "news", "calendar", "student-card", "students", "employees", "e-office"],
 };
 
 export async function getAuditLogsHandler(req: Request, res: Response) {
@@ -60,6 +62,8 @@ export function getRolesHandler(_req: Request, res: Response) {
     { value: "wali_kelas", label: "Wali Kelas" },
     { value: "pembina_ekstra", label: "Pembina Ekstra" },
     { value: "guru", label: "Guru" },
+    { value: "kepala_tu", label: "Kepala TU" },
+    { value: "pegawai_tu", label: "Pegawai TU" },
     { value: "student", label: "Siswa" },
   ];
   res.json(roles);

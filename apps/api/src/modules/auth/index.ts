@@ -12,6 +12,8 @@ import {
   waliKelasRole,
   pembinaEkstraRole,
   guruRole,
+  kepalaTURole,
+  pegawaiTURole,
   studentRole,
 } from "./permissions";
 
@@ -77,6 +79,8 @@ export const auth = betterAuth({
         wali_kelas: waliKelasRole,
         pembina_ekstra: pembinaEkstraRole,
         guru: guruRole,
+        kepala_tu: kepalaTURole,
+        pegawai_tu: pegawaiTURole,
         student: studentRole,
       },
       defaultRole: "student",

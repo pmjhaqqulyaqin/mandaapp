@@ -82,6 +82,25 @@ export const guruRole = ac.newRole({
   schedule: ["create", "update"],
 });
 
+// ─── Role: Kepala TU ───
+// Overview, internal management, students, employees, reports
+export const kepalaTURole = ac.newRole({
+  news: ["create", "update", "publish"],
+  gallery: ["create", "update"],
+  student: ["view", "update", "input"],
+  schedule: ["create", "update"],
+  settings: ["view"],
+});
+
+// ─── Role: Pegawai TU ───
+// Data entry, reports, students, employees
+export const pegawaiTURole = ac.newRole({
+  news: ["create", "update"],
+  gallery: ["create", "update"],
+  student: ["view", "update", "input"],
+  schedule: ["create", "update"],
+});
+
 // ─── Role: Siswa (Student) ───
 // Akses terbatas: lihat jadwal, kartu pelajar, profil sendiri
 export const studentRole = ac.newRole({
