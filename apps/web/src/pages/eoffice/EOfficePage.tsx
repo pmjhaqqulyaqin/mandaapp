@@ -278,8 +278,9 @@ export const EOfficePage = () => {
                   <th className="px-6 py-4 font-medium">No. Urut</th>
                   <th className="px-6 py-4 font-medium">Nomor Lengkap</th>
                   <th className="px-6 py-4 font-medium">Perihal & Tujuan</th>
-                  <th className="px-6 py-4 font-medium">Tanggal</th>
-                  <th className="px-6 py-4 font-medium">Aksi</th>
+                   <th className="px-6 py-4 font-medium">Tanggal</th>
+                   <th className="px-6 py-4 font-medium">Petugas</th>
+                   <th className="px-6 py-4 font-medium">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -293,6 +294,18 @@ export const EOfficePage = () => {
                     </td>
                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
                       {new Date(surat.tanggalGenerate).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      {surat.pengambil ? (
+                        <div className="flex flex-col">
+                          <span className="text-gray-900 dark:text-gray-200 font-medium">{surat.pengambil.name}</span>
+                          <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 opacity-80">
+                            {surat.pengambil.role}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-600 italic">Sistem</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 flex items-center gap-2">
                       <button 

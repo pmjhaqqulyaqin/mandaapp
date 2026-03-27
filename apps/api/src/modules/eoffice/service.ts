@@ -1,5 +1,5 @@
 import { db } from '../../db';
-import { jenisSurats, suratKeluars, suratMasuks, masterKkas } from '../../db/schema';
+import { jenisSurats, suratKeluars, suratMasuks, masterKkas, user } from '../../db/schema';
 import { eq, desc, asc, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import ExcelJS from 'exceljs';
@@ -37,12 +37,14 @@ export class EOfficeService {
     const list = await db.select()
       .from(suratKeluars)
       .leftJoin(jenisSurats, eq(suratKeluars.jenisSuratId, jenisSurats.id))
+      .leftJoin(user, eq(suratKeluars.userIdPengambil, user.id))
       .orderBy(desc(suratKeluars.tahun), asc(suratKeluars.nomorUrut));
       
     // Flatten data to solve undefined properties in frontend loop
     return list.map(item => ({
       ...item.surat_keluars,
-      jenis_surats: item.jenis_surats
+      jenis_surats: item.jenis_surats,
+      pengambil: item.user
     }));
   }
 
