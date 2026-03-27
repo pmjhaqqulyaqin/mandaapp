@@ -141,3 +141,134 @@
 .smart-art-circle-1 { left: 20%; }
 .smart-art-circle-2 { right: 20%; }
 
+/* ═══════════════════════════════════════════════════════════
+   COMPACT DASHBOARD GLOBAL OVERRIDES
+   Makes ALL dashboard pages cleaner, tighter, and more modern.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Page-level spacing ── */
+.space-y-6 > * + * { margin-top: 1rem !important; }
+.space-y-8 > * + * { margin-top: 1.25rem !important; }
+
+/* ── Cards & Containers ── */
+@layer utilities {
+  .rounded-2xl { border-radius: 0.75rem; }
+}
+
+/* ── Dashboard headings ── */
+main h1 { font-size: 1.25rem !important; line-height: 1.75rem !important; }
+main h1 + p { font-size: 0.8125rem !important; }
+main h2 { font-size: 1rem !important; }
+main h3 { font-size: 0.8125rem !important; }
+
+/* ── Dashboard card/container padding ── */
+main .p-6 { padding: 1rem !important; }
+main .p-5 { padding: 0.875rem !important; }
+main .px-6 { padding-left: 1rem !important; padding-right: 1rem !important; }
+main .py-6 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+
+/* ── Grid gaps ── */
+main .gap-6 { gap: 1rem !important; }
+main .gap-5 { gap: 0.875rem !important; }
+main .gap-4 { gap: 0.75rem !important; }
+
+/* ── Tables ── */
+main table { font-size: 0.8125rem !important; }
+main th { font-size: 0.6875rem !important; padding: 0.5rem 0.75rem !important; }
+main td { padding: 0.5rem 0.75rem !important; }
+
+/* ── Buttons in dashboard ── */
+main button.bg-primary,
+main button[class*="bg-primary"],
+main a.bg-primary {
+  font-size: 0.8125rem !important;
+  padding: 0.375rem 0.875rem !important;
+}
+main button.text-sm,
+main a.text-sm {
+  font-size: 0.8125rem !important;
+}
+
+/* ── Icons inside buttons ── */
+main button svg:not(.animate-spin),
+main a svg:not(.animate-spin) {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* ── Selects & Inputs in dashboard ── */
+main select,
+main input[type="text"],
+main input[type="email"],
+main input[type="password"],
+main input[type="search"],
+main input[type="number"],
+main input[type="date"],
+main textarea {
+  font-size: 0.8125rem !important;
+  padding-top: 0.375rem !important;
+  padding-bottom: 0.375rem !important;
+}
+
+/* ── Labels ── */
+main label {
+  font-size: 0.8125rem !important;
+}
+
+/* ── Badges / Pills ── */
+main .rounded-full[class*="text-xs"],
+main .rounded-full[class*="text-\\[10px\\]"] {
+  font-size: 0.625rem !important;
+  padding: 0.125rem 0.5rem !important;
+}
+
+/* ── Modal compact overrides ── */
+div[role="dialog"] {
+  padding: 1rem 1.25rem !important;
+  border-radius: 0.75rem !important;
+}
+div[role="dialog"] h3#modal-title {
+  font-size: 0.9375rem !important;
+}
+div[role="dialog"] .modal-input,
+div[role="dialog"] input,
+div[role="dialog"] select,
+div[role="dialog"] textarea {
+  font-size: 0.8125rem !important;
+  padding: 0.375rem 0.625rem !important;
+}
+div[role="dialog"] button {
+  font-size: 0.8125rem !important;
+}
+div[role="dialog"] label {
+  font-size: 0.75rem !important;
+}
+
+/* ── Tabs ── */
+main [class*="rounded-xl"][class*="bg-gray-100"],
+main [class*="rounded-xl"][class*="bg-\\[\\#111\\]"] {
+  padding: 0.1875rem !important;
+}
+main [class*="rounded-xl"] button {
+  font-size: 0.8125rem !important;
+  padding: 0.375rem 0.75rem !important;
+}
+
+/* ── Action icon buttons (small circular) ── */
+main button[title] {
+  padding: 0.25rem !important;
+}
+main button[title] svg {
+  width: 15px !important;
+  height: 15px !important;
+}
+
+/* ── Pagination ── */
+main .text-xs { font-size: 0.6875rem !important; }
+
+/* ── Responsive compact tweaks ── */
+@media (max-width: 768px) {
+  main .p-6 { padding: 0.75rem !important; }
+  main .gap-6 { gap: 0.75rem !important; }
+  main h1 { font-size: 1.125rem !important; }
+}
