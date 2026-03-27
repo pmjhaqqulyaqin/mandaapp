@@ -3,7 +3,8 @@ import { Button } from '@mandaapp/ui/src/components/Button';
 import { Input } from '@mandaapp/ui/src/components/Input';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Upload, Printer, Download, Edit2, Trash2 } from 'lucide-react';
+import { UserPlus, Upload, Printer, Download, Edit2, Trash2, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { apiClient, API_BASE_URL } from '../lib/api';
 
 export const DashboardStudents = () => {
@@ -166,6 +167,31 @@ export const DashboardStudents = () => {
     window.location.href = `${API_BASE_URL}/students/template`;
   };
 
+  const handleExportExcel = () => {
+    const data = students.map((student, idx) => {
+      const classObj = classesList.find(c => c.id === student.classId);
+      const majorName = classObj ? majorsList.find(m => m.id === classObj.majorId)?.name : '';
+      const kelasLabel = classObj ? (majorName ? `${classObj.name} - ${majorName}` : classObj.name) : (student.className || '-');
+
+      return {
+        'No': idx + 1,
+        'Nama Lengkap': student.fullName || '-',
+        'NISN': student.nisn || '-',
+        'NIS': student.nis || '-',
+        'Kelas': kelasLabel,
+        'Jenis Kelamin': student.gender || '-',
+        'Tempat Lahir': student.birthPlace || '-',
+        'Tanggal Lahir': student.birthDate ? new Date(student.birthDate).toLocaleDateString('id-ID') : '-',
+        'Alamat': student.address || '-'
+      };
+    });
+    
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data Siswa");
+    XLSX.writeFile(wb, "Data_Siswa.xlsx");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -197,6 +223,14 @@ export const DashboardStudents = () => {
             disabled={loading}
           >
             <Upload size={18} /> Import Excel
+          </Button>
+          <Button 
+            variant="outline" 
+            className="flex items-center gap-2"
+            onClick={handleExportExcel}
+            title="Export ke format Excel"
+          >
+            <FileSpreadsheet size={18} className="text-emerald-500" /> Export Excel
           </Button>
           <Button variant="outline" className="flex items-center gap-2 text-primary border-primary hover:bg-primary/10">
             <Printer size={18} /> Cetak Kartu

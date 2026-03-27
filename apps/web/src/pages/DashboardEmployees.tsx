@@ -3,7 +3,8 @@ import { Button } from '@mandaapp/ui/src/components/Button';
 import { Input } from '@mandaapp/ui/src/components/Input';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Upload, Download, Edit2, Trash2 } from 'lucide-react';
+import { UserPlus, Upload, Download, Edit2, Trash2, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { apiClient, API_BASE_URL } from '../lib/api';
 
 export const DashboardEmployees = () => {
@@ -154,6 +155,27 @@ export const DashboardEmployees = () => {
     window.location.href = `${API_BASE_URL}/employees/template`;
   };
 
+  const handleExportExcel = () => {
+    const data = employees.map((emp, idx) => ({
+      'No': idx + 1,
+      'Jenis Pegawai': emp.type || '-',
+      'Nama Lengkap': emp.name || '-',
+      'NIP / NUPTK': emp.nip || '-',
+      'Jenis Kelamin': emp.gender || '-',
+      'Pangkat': emp.rank || '-',
+      'Golongan': emp.grade || '-',
+      'Nama Jabatan': emp.position || '-',
+      'Tugas/Mapel': emp.task || '-',
+      'Tempat Lahir': emp.birthPlace || '-',
+      'Tanggal Lahir': emp.birthDate ? new Date(emp.birthDate).toLocaleDateString('id-ID') : '-'
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data Pegawai");
+    XLSX.writeFile(wb, "Data_Pegawai.xlsx");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -181,6 +203,14 @@ export const DashboardEmployees = () => {
           <Button 
             variant="outline" 
             className="flex items-center gap-2"
+            onClick={handleExportExcel}
+            title="Export ke format Excel"
+          >
+            <FileSpreadsheet size={18} className="text-emerald-500" /> Export Excel
+          </Button>
+          <Button 
+            variant="outline" 
+            className="flex items-center gap-2"
             onClick={() => document.getElementById('excel-upload')?.click()}
             disabled={loading}
           >
@@ -202,6 +232,7 @@ export const DashboardEmployees = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-[#2a2a2a] text-sm text-text-secondary">
+                    <th className="pb-3 px-4 font-medium text-center w-10">No</th>
                     <th className="pb-3 px-4 font-medium">Nama/Jabatan</th>
                     <th className="pb-3 px-4 font-medium">NIP</th>
                     <th className="pb-3 px-4 font-medium">Jenis Pegawai</th>
@@ -210,8 +241,9 @@ export const DashboardEmployees = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {employees.map(emp => (
+                  {employees.map((emp, idx) => (
                     <tr key={emp.id} className="border-b border-gray-50 dark:border-[#222] group hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors">
+                      <td className="py-3 px-4 text-center text-text-secondary">{idx + 1}</td>
                       <td className="py-3 px-4">
                         <div className="font-medium text-text-primary dark:text-text-darkPrimary">{emp.name}</div>
                         <div className="text-xs text-text-secondary">{emp.position || '-'}</div>
@@ -233,7 +265,7 @@ export const DashboardEmployees = () => {
                   ))}
                   {employees.length === 0 && !loading && (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-gray-400">Belum ada data pegawai.</td>
+                      <td colSpan={6} className="py-8 text-center text-gray-400">Belum ada data pegawai.</td>
                     </tr>
                   )}
                 </tbody>
