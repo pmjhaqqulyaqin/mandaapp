@@ -27,7 +27,7 @@ export const DashboardOverview = () => {
   }, []);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-4">
       <Breadcrumbs 
         items={[
           { label: 'Dashboard', href: '/dashboard' },
@@ -35,7 +35,7 @@ export const DashboardOverview = () => {
         ]}
       />
 
-      <div className="bg-white dark:bg-background-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm">
+      <div className="bg-white dark:bg-background-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm">
         {isLoading ? (
           <div className="space-y-2">
             <Skeleton className="h-8 w-64" />
@@ -43,15 +43,15 @@ export const DashboardOverview = () => {
           </div>
         ) : (
           <>
-            <h2 className="text-2xl font-heading font-semibold mb-2 text-text-primary dark:text-text-darkPrimary">
+            <h2 className="text-lg font-heading font-semibold mb-1 text-text-primary dark:text-text-darkPrimary">
               Welcome back, {user?.name || 'Budi'}!
             </h2>
-            <p className="text-text-secondary">Your schedule for today is looking great. Have a wonderful day of learning.</p>
+            <p className="text-text-secondary text-sm">Your schedule for today is looking great. Have a wonderful day of learning.</p>
           </>
         )}
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {isLoading ? (
           <>
             <Skeleton className="h-32 w-full rounded-2xl" />
@@ -81,7 +81,7 @@ export const DashboardOverview = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
         {isLoading ? (
            <>
              <Skeleton className="h-96 w-full rounded-2xl" />

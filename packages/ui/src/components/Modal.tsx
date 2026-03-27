@@ -57,13 +57,13 @@ export function Modal({
         aria-labelledby="modal-title"
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          'relative z-[2002] w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-background-dark p-6 text-left shadow-2xl transition-all sm:my-8 border border-border-light dark:border-border-dark',
+          'relative z-[2002] w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl bg-white dark:bg-background-dark p-4 sm:p-5 text-left shadow-2xl transition-all sm:my-8 border border-border-light dark:border-border-dark',
           className
         )}
       >
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] hover:text-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+          className="absolute right-3 top-3 rounded-md p-0.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] hover:text-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
         >
           <span className="sr-only">Close</span>
           <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -71,9 +71,9 @@ export function Modal({
           </svg>
         </button>
 
-        <div className="mb-5 sm:flex sm:items-start">
-          <div className="mt-3 text-center sm:ml-2 sm:mt-0 sm:text-left">
-            <h3 className="text-xl font-heading font-semibold leading-6 text-text-primary dark:text-text-darkPrimary" id="modal-title">
+        <div className="mb-4 sm:flex sm:items-start">
+          <div className="text-center sm:text-left">
+            <h3 className="text-base font-heading font-semibold leading-6 text-text-primary dark:text-text-darkPrimary" id="modal-title">
               {title}
             </h3>
             {description && (
@@ -84,12 +84,12 @@ export function Modal({
           </div>
         </div>
 
-        <div className="mt-4 px-2">
+        <div className="mt-3">
           {children}
         </div>
 
         {footer && (
-          <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 px-2">
+          <div className="mt-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
             {footer}
           </div>
         )}
