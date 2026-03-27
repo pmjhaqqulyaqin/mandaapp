@@ -27,12 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 $SECRET_KEY = getenv('UPDATE_SECRET') ?: 'MandaApp_Secret_Key_Update_2026!'; 
 $BACKUP_DIR = __DIR__ . '/backups/';
 $TEMP_DIR = __DIR__ . '/tmp_update/';
-$ARCHIVE_DIR = __DIR__ . '/archives/';
 
-// Pastikan folder tersedia
+// Pastikan folder backup dan direktori temp tersedia
 if (!is_dir($BACKUP_DIR)) mkdir($BACKUP_DIR, 0755, true);
 if (!is_dir($TEMP_DIR)) mkdir($TEMP_DIR, 0755, true);
-if (!is_dir($ARCHIVE_DIR)) mkdir($ARCHIVE_DIR, 0755, true);
 
 // ============================================================================
 // OTENTIKASI
@@ -112,13 +110,7 @@ try {
         $tmpZipPath = '';
         
         if ($action === 'update') {
-            if (!isset($_FILES['package'])) throw new Exception("File ZIP tidak ditemukan di dalam request.");
-            if ($_FILES['package']['error'] !== UPLOAD_ERR_OK) {
-                $errCode = $_FILES['package']['error'];
-                $msg = "Upload error (Code: $errCode). ";
-                if ($errCode === 1 || $errCode === 2) $msg .= "File terlalu besar (melebihi limit PHP).";
-                throw new Exception($msg);
-            }
+            if (!isset($_FILES['package'])) throw new Exception("File ZIP tidak ditemukan.");
             $tmpZipPath = $_FILES['package']['tmp_name'];
         } else if ($action === 'download_update') {
             $json = json_decode(file_get_contents('php://input'), true);
@@ -132,20 +124,16 @@ try {
             curl_setopt($ch, CURLOPT_URL, $downloadUrl);
             curl_setopt($ch, CURLOPT_FILE, $fp);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_TIMEOUT, 300);
             curl_exec($ch);
             if (curl_errno($ch)) {
-                $err = curl_error($ch);
-                curl_close($ch);
-                fclose($fp);
-                throw new Exception("cURL Error: " . $err);
+                throw new Exception(curl_error($ch));
             }
             curl_close($ch);
             fclose($fp);
             
             if (!file_exists($tmpZipPath) || filesize($tmpZipPath) === 0) {
-               throw new Exception("Gagal mendownload ZIP atau file kosong.");
+               throw new Exception("Gagal mendownload ZIP.");
             }
         }
 
@@ -157,17 +145,10 @@ try {
         if (is_dir(__DIR__ . '/assets')) copyDir(__DIR__ . '/assets', $currentBackupPath . 'assets');
 
         // 2. Extract
-        if (!class_exists('ZipArchive')) {
-            throw new Exception("Ekstensi PHP 'ZipArchive' tidak terpasang di server ini. Hubungi admin.");
-        }
-
         $zip = new ZipArchive;
-        $res = $zip->open($tmpZipPath);
-        if ($res === TRUE) {
+        if ($zip->open($tmpZipPath) === TRUE) {
             $extractTarget = $TEMP_DIR . 'extract/';
-            if (is_dir($extractTarget)) deleteDir($extractTarget);
             @mkdir($extractTarget, 0755, true);
-            
             $zip->extractTo($extractTarget);
             $zip->close();
             
@@ -176,8 +157,7 @@ try {
             $items = array_diff(scandir($extractTarget), array('..', '.'));
             
             if (count($items) === 1) {
-                $itemKey = reset($items);
-                $possibleDir = $extractTarget . $itemKey;
+                $possibleDir = $extractTarget . reset($items);
                 if (is_dir($possibleDir)) {
                     $sourceDir = $possibleDir . '/';
                 }
@@ -187,16 +167,15 @@ try {
 
             if (!file_exists($sourceDir . 'index.html')) {
                 $found = false;
-                $directory = new RecursiveDirectoryIterator($extractTarget);
-                $iterator = new RecursiveIteratorIterator($directory);
-                foreach($iterator as $file) {
+                $it = new RecursiveDirectoryIterator($extractTarget);
+                foreach(new RecursiveIteratorIterator($it) as $file) {
                     if ($file->getFilename() === 'index.html') {
                         $sourceDir = dirname($file->getPathname()) . '/';
                         $found = true;
                         break;
                     }
                 }
-                if (!$found) throw new Exception("Struktur ZIP tidak valid: File 'index.html' tidak ditemukan.");
+                if (!$found) throw new Exception("File index.html tidak ditemukan di dalam paket ZIP.");
             }
 
             // 4. Install
@@ -208,7 +187,7 @@ try {
 
             echo json_encode([
                 'success' => true, 
-                'message' => 'Sistem berhasil diperbarui ke server Dewahoster!',
+                'message' => 'Update berhasil!',
                 'details' => [
                     'source_detected' => basename($sourceDir),
                     'timestamp' => $timestamp,
@@ -217,65 +196,13 @@ try {
             ]);
             exit;
         } else {
-            $errText = "Gagal membuka file ZIP (Error Code: $res).";
-            if ($res === 19) $errText .= " - Not a zip archive or corrupted.";
-            throw new Exception($errText);
+            throw new Exception("Gagal membuka file ZIP.");
         }
     }
 
-    if ($action === 'upload_archive') {
-        if (!isset($_FILES['file'])) throw new Exception("File tidak terkirim ke server.");
-        
-        $file = $_FILES['file'];
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            $errCode = $file['error'];
-            $msg = "Gagal mengunggah file (Kode: $errCode). ";
-            if ($errCode === 1 || $errCode === 2) {
-                $msg .= "Ukuran file terlalu besar (melebihi limit PHP server hosting).";
-            }
-            throw new Exception($msg);
-        }
-        
-        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $safeName = 'archive_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-        $targetPath = $ARCHIVE_DIR . $safeName;
-        
-        if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-            $host = $_SERVER['HTTP_HOST'];
-            $fileUrl = "$protocol://$host/archives/$safeName";
-            
-            echo json_encode([
-                'success' => true,
-                'message' => 'File berhasil diunggah ke hosting.',
-                'url' => $fileUrl,
-                'filename' => $safeName
-            ]);
-            exit;
-        } else {
-            throw new Exception("Gagal memindahkan file ke direktori archives.");
-        }
-    }
-
-    if ($action === 'delete_archive') {
-        $json = json_decode(file_get_contents('php://input'), true);
-        if (!isset($json['filename'])) throw new Exception("Nama file tidak ditentukan untuk dihapus.");
-        
-        $filename = basename($json['filename']); // Security: prevent traversal
-        $targetPath = $ARCHIVE_DIR . $filename;
-        
-        if (file_exists($targetPath)) {
-            unlink($targetPath);
-            echo json_encode(['success' => true, 'message' => "File $filename berhasil dihapus."]);
-        } else {
-            echo json_encode(['success' => true, 'message' => "File $filename tidak ditemukan (sudah terhapus)."]);
-        }
-        exit;
-    }
-
-    throw new Exception("Aksi tidak valid.");
+    throw new Exception("Aksi tidak valid (gunakan action=update atau action=rollback)");
 
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => escapeshellarg($e->getMessage())]);
 }

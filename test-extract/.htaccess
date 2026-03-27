@@ -1,12 +1,4 @@
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-
-  # Memaksa pengunjung untuk selalu menggunakan HTTPS (SSL)
-  RewriteCond %{HTTPS} off
-  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-
-  # Menangani client-side routing (berguna untuk React/Vite SPA)
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^ index.html [QSA,L]
-</IfModule>
+php_value upload_max_filesize 64M
+php_value post_max_size 64M
+php_value max_execution_time 300
+php_value max_input_time 300
