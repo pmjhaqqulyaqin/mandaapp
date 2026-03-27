@@ -1,6 +1,6 @@
 import { db } from '../../db';
 import { jenisSurats, suratKeluars, suratMasuks, masterKkas, user } from '../../db/schema';
-import { eq, desc, asc, and } from 'drizzle-orm';
+import { eq, desc, asc, and, ne } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import ExcelJS from 'exceljs';
 import axios from 'axios';
@@ -69,12 +69,44 @@ export class EOfficeService {
       if (!jenisRows.length) throw new Error('Jenis Surat tidak ditemukan');
       const jenisSurat = jenisRows[0];
 
-      // 2. Get latest Nomor Urut for ALL outgoing letters in the current year (Global Sequence)
-      const lastSuratList = await tx.select({ nomorUrut: suratKeluars.nomorUrut })
-        .from(suratKeluars)
-        .where(eq(suratKeluars.tahun, tahunSekarang))
-        .orderBy(desc(suratKeluars.nomorUrut))
-        .limit(1);
+      // 2. Determine sequencing logic based on letter type (Isolated for SK vs Global for Others)
+      let lastSuratList;
+      if (jenisSurat.kodeJenis === 'SK') {
+        // Isolated sequence for SK
+        lastSuratList = await tx.select({ nomorUrut: suratKeluars.nomorUrut })
+          .from(suratKeluars)
+          .where(
+            and(
+              eq(suratKeluars.tahun, tahunSekarang),
+              eq(suratKeluars.jenisSuratId, jenisSurat.id)
+            )
+          )
+          .orderBy(desc(suratKeluars.nomorUrut))
+          .limit(1);
+      } else {
+        // Global sequence for others, excluding SK
+        const skTypeRows = await tx.select({ id: jenisSurats.id }).from(jenisSurats).where(eq(jenisSurats.kodeJenis, 'SK')).limit(1);
+        const skTypeId = skTypeRows.length > 0 ? skTypeRows[0].id : null;
+
+        if (skTypeId) {
+          lastSuratList = await tx.select({ nomorUrut: suratKeluars.nomorUrut })
+            .from(suratKeluars)
+            .where(
+              and(
+                eq(suratKeluars.tahun, tahunSekarang),
+                ne(suratKeluars.jenisSuratId, skTypeId)
+              )
+            )
+            .orderBy(desc(suratKeluars.nomorUrut))
+            .limit(1);
+        } else {
+          lastSuratList = await tx.select({ nomorUrut: suratKeluars.nomorUrut })
+            .from(suratKeluars)
+            .where(eq(suratKeluars.tahun, tahunSekarang))
+            .orderBy(desc(suratKeluars.nomorUrut))
+            .limit(1);
+        }
+      }
 
       const lastUrut = lastSuratList.length > 0 ? (lastSuratList[0].nomorUrut || 0) : 0;
       const nextUrut = lastUrut + 1;
