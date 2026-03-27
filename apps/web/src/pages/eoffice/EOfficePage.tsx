@@ -145,25 +145,25 @@ export const EOfficePage = () => {
     }
   };
 
-  const lastSurat = suratKeluars.length > 0 ? suratKeluars[0] : null;
+  const lastSurat = suratKeluars.length > 0 ? suratKeluars[suratKeluars.length - 1] : null;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 border-b border-gray-100 dark:border-gray-800 pb-8">
+    <div className="p-4 max-w-7xl mx-auto space-y-4">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-gray-100 dark:border-gray-800 pb-4">
         <div className="text-left flex-1">
-          <h2 className="text-3xl font-black bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+          <h2 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
             Korespondensi Dinas
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 max-w-md">
+          <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5 max-w-md">
             Monitoring penomoran dan pengarsipan surat resmi secara real-time
           </p>
         </div>
 
         {lastSurat && (
-          <div className="px-6 py-3 bg-emerald-600 dark:bg-emerald-500 text-white rounded-2xl shadow-lg border-2 border-white dark:border-gray-800 transform hover:scale-105 transition-transform duration-300">
-            <div className="text-center space-y-0.5">
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Nomor Terakhir</span>
-              <div className="text-xl font-bold tabular-nums tracking-tight">
+          <div className="px-4 py-2 bg-emerald-600 dark:bg-emerald-500 text-white rounded-xl shadow-md border-2 border-white dark:border-gray-800 transform hover:scale-105 transition-transform duration-300">
+            <div className="text-center space-y-0">
+              <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-80">Nomor Terakhir</span>
+              <div className="text-base font-bold tabular-nums tracking-tight">
                 {lastSurat.nomorLengkap}
               </div>
             </div>
@@ -171,19 +171,17 @@ export const EOfficePage = () => {
         )}
       </div>
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="hidden md:block">
-        </div>
-        <div className="flex gap-3 w-full md:w-auto">
+      <div className="flex flex-col md:flex-row justify-start items-start md:items-center gap-3">
+        <div className="flex gap-2 w-full md:w-auto">
           <button 
             onClick={() => setIsSettingsOpen(true)}
-            className="px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+            className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
           >
-            <Settings size={16} /> Pengaturan E-Office
+            <Settings size={14} /> Pengaturan E-Office
           </button>
           <button 
             onClick={handleExport}
-            className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
+            className="px-3 py-1.5 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
           >
             🖨️ Export Rekap (Excel)
           </button>
@@ -196,7 +194,7 @@ export const EOfficePage = () => {
                 setIsMasukModalOpen(true);
               }
             }}
-            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md font-medium transition-all active:scale-95 flex items-center gap-2"
+            className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-md text-xs font-medium transition-all active:scale-95 flex items-center gap-2"
           >
             {activeTab === 'keluar' ? '+ Ambil Nomor Baru' : '+ Catat Surat Masuk'}
           </button>
@@ -287,7 +285,7 @@ export const EOfficePage = () => {
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {filteredSuratKeluar.map((surat, i) => (
                   <tr key={i} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">#{surat.nomorUrut}</td>
+                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{surat.nomorUrut}</td>
                     <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{surat.nomorLengkap}</td>
                     <td className="px-6 py-4">
                       <p className="text-gray-900 dark:text-gray-200">{surat.perihal}</p>
@@ -333,6 +331,7 @@ export const EOfficePage = () => {
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-gray-50/50 dark:bg-black/20 text-gray-500 dark:text-gray-400">
                 <tr>
+                  <th className="px-6 py-4 font-medium">No. Urut</th>
                   <th className="px-6 py-4 font-medium">No. Agenda</th>
                   <th className="px-6 py-4 font-medium">Tgl Terima</th>
                   <th className="px-6 py-4 font-medium">Asal & No. Surat Asli</th>
@@ -343,6 +342,7 @@ export const EOfficePage = () => {
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {filteredSuratMasuk.map((surat, i) => (
                   <tr key={i} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
+                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{surat.nomorUrut || '-'}</td>
                     <td className="px-6 py-4 font-bold text-emerald-600 dark:text-emerald-400">{surat.nomorAgenda}</td>
                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
                       {new Date(surat.tanggalDiterima).toLocaleDateString()}

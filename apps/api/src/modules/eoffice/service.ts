@@ -1,6 +1,6 @@
 import { db } from '../../db';
 import { jenisSurats, suratKeluars, suratMasuks, masterKkas } from '../../db/schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, asc, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import ExcelJS from 'exceljs';
 import axios from 'axios';
@@ -37,7 +37,7 @@ export class EOfficeService {
     const list = await db.select()
       .from(suratKeluars)
       .leftJoin(jenisSurats, eq(suratKeluars.jenisSuratId, jenisSurats.id))
-      .orderBy(desc(suratKeluars.tanggalGenerate));
+      .orderBy(desc(suratKeluars.tahun), asc(suratKeluars.nomorUrut));
       
     // Flatten data to solve undefined properties in frontend loop
     return list.map(item => ({
@@ -70,13 +70,12 @@ export class EOfficeService {
       // 2. Get latest Nomor Urut for ALL outgoing letters in the current year (Global Sequence)
       const lastSuratList = await tx.select({ nomorUrut: suratKeluars.nomorUrut })
         .from(suratKeluars)
-        .where(
-          eq(suratKeluars.tahun, tahunSekarang)
-        )
+        .where(eq(suratKeluars.tahun, tahunSekarang))
         .orderBy(desc(suratKeluars.nomorUrut))
         .limit(1);
 
-      const nextUrut = (lastSuratList[0]?.nomorUrut || 0) + 1;
+      const lastUrut = lastSuratList.length > 0 ? (lastSuratList[0].nomorUrut || 0) : 0;
+      const nextUrut = lastUrut + 1;
 
       // 3. String Replacement Engine
       let nomorHasil = jenisSurat.formatPenomoran;
@@ -121,24 +120,30 @@ export class EOfficeService {
 
   // --- Surat Masuk ---
   static async getSuratMasukList() {
-    return await db.select().from(suratMasuks).orderBy(desc(suratMasuks.tanggalDiterima));
+    return await db.select().from(suratMasuks).orderBy(desc(suratMasuks.tahun), asc(suratMasuks.nomorUrut));
   }
 
-  static async registerSuratMasuk(data: Omit<typeof suratMasuks.$inferInsert, 'id' | 'nomorAgenda'>) {
+  static async registerSuratMasuk(data: Omit<typeof suratMasuks.$inferInsert, 'id' | 'nomorAgenda' | 'nomorUrut'>) {
     // Generate unique nomor agenda: e.g., M-001/2026
     const tahunSekarang = new Date().getFullYear().toString();
     return await db.transaction(async (tx) => {
-      // Find latest agenda
-      // Drizzle equivalent for "like '%/2026'" or we can just fetch all and sort, but let's just use count for simplicity here
-      const allThisYear = await tx.select().from(suratMasuks);
-      const filtered = allThisYear.filter(s => s.nomorAgenda.endsWith(`/${tahunSekarang}`));
-      const nextNum = filtered.length + 1;
+      // Find latest agenda & nomor urut for current year (Annual Reset Support)
+      const lastMasukList = await tx.select({ nomorUrut: suratMasuks.nomorUrut })
+        .from(suratMasuks)
+        .where(eq(suratMasuks.tahun, tahunSekarang))
+        .orderBy(desc(suratMasuks.nomorUrut))
+        .limit(1);
+      
+      const lastUrut = lastMasukList.length > 0 ? (lastMasukList[0].nomorUrut || 0) : 0;
+      const nextUrut = lastUrut + 1;
 
-      const nomorAgenda = `M-${String(nextNum).padStart(3, '0')}/${tahunSekarang}`;
+      const nomorAgenda = `M-${String(nextUrut).padStart(3, '0')}/${tahunSekarang}`;
 
       const inserted = await tx.insert(suratMasuks).values({
         id: uuidv4(),
+        nomorUrut: nextUrut,
         nomorAgenda,
+        tahun: tahunSekarang,
         ...data
       }).returning();
 
@@ -218,6 +223,7 @@ export class EOfficeService {
 
     sheet.columns = [
       { header: 'No', key: 'no', width: 5 },
+      { header: 'No Urut', key: 'no_urut', width: 10 },
       { header: 'Tgl Terima', key: 'tgl_terima', width: 15 },
       { header: 'No Agenda', key: 'agenda', width: 25 },
       { header: 'Tgl Surat', key: 'tgl_surat', width: 15 },
@@ -231,6 +237,7 @@ export class EOfficeService {
     data.forEach((row, i) => {
       sheet.addRow({
         no: i + 1,
+        no_urut: row.nomorUrut || '-',
         tgl_terima: row.tanggalDiterima ? new Date(row.tanggalDiterima).toLocaleDateString() : '',
         agenda: row.nomorAgenda,
         tgl_surat: row.tanggalSurat ? new Date(row.tanggalSurat).toLocaleDateString() : '',

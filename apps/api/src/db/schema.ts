@@ -251,10 +251,12 @@ export const suratKeluars = pgTable("surat_keluars", {
 
 export const suratMasuks = pgTable("surat_masuk", {
   id: uuid("id").primaryKey().defaultRandom(),
+  nomorUrut: integer("nomor_urut"),
   nomorAgenda: varchar("nomor_agenda", { length: 50 }).unique().notNull(),
   nomorSuratAsli: varchar("nomor_surat_asli", { length: 150 }).notNull(),
   tanggalSurat: date("tanggal_surat").notNull(),
   tanggalDiterima: timestamp("tanggal_diterima").defaultNow(),
+  tahun: varchar("tahun", { length: 4 }), // Annual reset support
   pengirim: varchar("pengirim", { length: 255 }).notNull(),
   perihal: text("perihal").notNull(),
   sifat: varchar("sifat", { length: 50 }), // Sangat Segera, Segera, Biasa
