@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { apiClient, apiUpload } from '../../lib/api';
 import { GenerateSuratModal } from './components/GenerateSuratModal';
 import { CatatSuratMasukModal } from './components/CatatSuratMasukModal';
@@ -28,6 +29,8 @@ export const EOfficePage = () => {
   const [selectedSuratPrint, setSelectedSuratPrint] = useState<any>(null);
   const [uploadTarget, setUploadTarget] = useState<{ id: string, tipe: 'keluar' | 'masuk' } | null>(null);
   
+  const { user, isAdmin } = useAuth();
+  const isEofficeAdmin = isAdmin || user?.role === 'tu';
   const printRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -173,31 +176,35 @@ export const EOfficePage = () => {
 
       <div className="flex flex-col md:flex-row justify-start items-start md:items-center gap-3">
         <div className="flex gap-2 w-full md:w-auto">
-          <button 
-            onClick={() => setIsSettingsOpen(true)}
-            className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
-          >
-            <Settings size={14} /> Pengaturan E-Office
-          </button>
+          {isEofficeAdmin && (
+            <button 
+              onClick={() => setIsSettingsOpen(true)}
+              className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+            >
+              <Settings size={14} /> Pengaturan E-Office
+            </button>
+          )}
           <button 
             onClick={handleExport}
             className="px-3 py-1.5 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
           >
             🖨️ Export Rekap (Excel)
           </button>
-          <button 
-            onClick={() => {
-              if (activeTab === 'keluar') {
-                setResultNomor(null);
-                setIsModalOpen(true);
-              } else {
-                setIsMasukModalOpen(true);
-              }
-            }}
-            className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-md text-xs font-medium transition-all active:scale-95 flex items-center gap-2"
-          >
-            {activeTab === 'keluar' ? '+ Ambil Nomor Baru' : '+ Catat Surat Masuk'}
-          </button>
+          {(activeTab === 'keluar' || isEofficeAdmin) && (
+            <button 
+              onClick={() => {
+                if (activeTab === 'keluar') {
+                  setResultNomor(null);
+                  setIsModalOpen(true);
+                } else {
+                  setIsMasukModalOpen(true);
+                }
+              }}
+              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-md text-xs font-medium transition-all active:scale-95 flex items-center gap-2"
+            >
+              {activeTab === 'keluar' ? '+ Ambil Nomor Baru' : '+ Catat Surat Masuk'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -307,22 +314,28 @@ export const EOfficePage = () => {
                         <span className="text-gray-400 dark:text-gray-600 italic">Sistem</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 flex items-center gap-2">
+                    <td className="px-6 py-4 flex items-center gap-2 text-center justify-center">
                       <button 
                         onClick={() => handleCopy(surat.nomorLengkap)} 
-                        className="px-2 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded mr-2 hover:bg-emerald-100 transition-colors font-medium text-xs"
+                        className="px-2 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded hover:bg-emerald-100 transition-colors font-medium text-xs whitespace-nowrap"
                       >
                         Salin
                       </button>
-                      <button onClick={() => handleEdit('keluar', surat)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-blue-600 rounded-md hover:bg-blue-50 transition-colors" title="Edit">
-                        <Pencil size={14} />
-                      </button>
-                      <button onClick={() => handleUploadClick('keluar', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-amber-600 rounded-md hover:bg-amber-50 transition-colors" title="Upload Arsip PDF">
-                        <Upload size={14} />
-                      </button>
-                      <button onClick={() => handleDelete('keluar', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-rose-600 rounded-md hover:bg-rose-50 transition-colors" title="Hapus">
-                        <Trash2 size={14} />
-                      </button>
+                      
+                      {(isEofficeAdmin || surat.userIdPengambil === user?.id) ? (
+                        <>
+                          <button onClick={() => handleEdit('keluar', surat)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-blue-600 rounded-md hover:bg-blue-50 transition-colors" title="Edit">
+                            <Pencil size={14} />
+                          </button>
+                          <button onClick={() => handleUploadClick('keluar', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-amber-600 rounded-md hover:bg-amber-50 transition-colors" title="Upload Arsip PDF">
+                            <Upload size={14} />
+                          </button>
+                          <button onClick={() => handleDelete('keluar', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-rose-600 rounded-md hover:bg-rose-50 transition-colors" title="Hapus">
+                            <Trash2 size={14} />
+                          </button>
+                        </>
+                      ) : null}
+
                       {surat.fileUrl && (
                         <a href={surat.fileUrl} target="_blank" rel="noreferrer" className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-emerald-600 rounded-md hover:bg-emerald-50 transition-colors" title="Lihat Dokumen">
                           <Eye size={14} />
@@ -365,27 +378,36 @@ export const EOfficePage = () => {
                       <p className="text-xs text-gray-500 dark:text-gray-400">{surat.nomorSuratAsli}</p>
                     </td>
                     <td className="px-6 py-4 text-gray-900 dark:text-gray-200 truncate max-w-xs">{surat.perihal}</td>
-                    <td className="px-6 py-4 flex items-center gap-2">
-                      <button 
-                        onClick={() => handlePrintDisposisi(surat)}
-                        className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 rounded hover:bg-emerald-50 hover:text-emerald-600 transition-colors text-xs font-medium"
-                        title="Cetak Disposisi Fisik"
-                      >
-                        🖨️ Cetak
-                      </button>
-                      <button onClick={() => handleEdit('masuk', surat)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-blue-600 rounded-md hover:bg-blue-50 transition-colors" title="Edit">
-                        <Pencil size={14} />
-                      </button>
-                      <button onClick={() => handleUploadClick('masuk', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-amber-600 rounded-md hover:bg-amber-50 transition-colors" title="Upload Arsip PDF">
-                        <Upload size={14} />
-                      </button>
-                      <button onClick={() => handleDelete('masuk', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-rose-600 rounded-md hover:bg-rose-50 transition-colors" title="Hapus">
-                        <Trash2 size={14} />
-                      </button>
+                    <td className="px-6 py-4 flex items-center gap-2 text-center justify-center">
+                      {isEofficeAdmin ? (
+                        <>
+                          <button 
+                            onClick={() => handlePrintDisposisi(surat)}
+                            className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 rounded hover:bg-emerald-50 hover:text-emerald-600 transition-colors text-xs font-medium"
+                            title="Cetak Disposisi Fisik"
+                          >
+                            🖨️ Cetak
+                          </button>
+                          <button onClick={() => handleEdit('masuk', surat)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-blue-600 rounded-md hover:bg-blue-50 transition-colors" title="Edit">
+                            <Pencil size={14} />
+                          </button>
+                          <button onClick={() => handleUploadClick('masuk', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-amber-600 rounded-md hover:bg-amber-50 transition-colors" title="Upload Arsip PDF">
+                            <Upload size={14} />
+                          </button>
+                          <button onClick={() => handleDelete('masuk', surat.id)} className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-rose-600 rounded-md hover:bg-rose-50 transition-colors" title="Hapus">
+                            <Trash2 size={14} />
+                          </button>
+                        </>
+                      ) : null}
+                      
                       {surat.fileUrl && (
                         <a href={surat.fileUrl} target="_blank" rel="noreferrer" className="p-1.5 bg-gray-100 dark:bg-[#2a2a2a] text-emerald-600 rounded-md hover:bg-emerald-50 transition-colors" title="Lihat Dokumen">
                           <Eye size={14} />
                         </a>
+                      )}
+                      
+                      {!isEofficeAdmin && !surat.fileUrl && (
+                        <span className="text-gray-400 italic text-xs">Akses Terbatas</span>
                       )}
                     </td>
                   </tr>

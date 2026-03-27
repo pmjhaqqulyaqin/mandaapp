@@ -9,6 +9,7 @@ export type UserRole =
   | 'wali_kelas' 
   | 'pembina_ekstra' 
   | 'guru' 
+  | 'tu' 
   | 'student';
 
 export interface User {
@@ -52,7 +53,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Staff roles that have access to galeri & berita
 const STAFF_ROLES: UserRole[] = [
   'admin', 'kepala_madrasah', 'wakil_kepala', 'kepala_unit',
-  'wali_kelas', 'pembina_ekstra', 'guru'
+  'wali_kelas', 'pembina_ekstra', 'guru', 'tu'
 ];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
