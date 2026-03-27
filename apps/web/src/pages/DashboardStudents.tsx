@@ -12,6 +12,8 @@ export const DashboardStudents = () => {
   const [classesList, setClassesList] = useState<any[]>([]);
   const [majorsList, setMajorsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterClass, setFilterClass] = useState('');
   const [uploadProgress, setUploadProgress] = useState({ show: false, percent: 0 });
   
   // Add Student State
@@ -215,8 +217,24 @@ export const DashboardStudents = () => {
             <div className="bg-primary h-1.5 transition-all duration-300" style={{ width: `${uploadProgress.percent}%` }} />
           </div>
         )}
-        <div className="p-4 border-b border-gray-100 dark:border-[#2a2a2a] flex items-center justify-between">
-          <Input placeholder="Cari NISN atau Nama..." className="max-w-xs" />
+        <div className="p-4 border-b border-gray-100 dark:border-[#2a2a2a] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <select
+            className="bg-gray-50 dark:bg-[#2a2a2a] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50 min-w-[180px]"
+            value={filterClass}
+            onChange={e => setFilterClass(e.target.value)}
+          >
+            <option value="">Semua Kelas</option>
+            {classesList.map(c => {
+              const majorName = majorsList.find(m => m.id === c.majorId)?.name || '';
+              return <option key={c.id} value={c.id}>{c.name}{majorName ? ` - ${majorName}` : ''}</option>;
+            })}
+          </select>
+          <Input 
+            placeholder="Cari NISN atau Nama..." 
+            className="max-w-xs ml-auto" 
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
         </div>
         <div className="min-h-[300px] flex items-center justify-center text-gray-500">
           {loading ? 'Memuat data...' : (
@@ -225,23 +243,35 @@ export const DashboardStudents = () => {
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-[#2a2a2a] text-sm text-text-secondary">
                     <th className="pb-3 px-4 font-medium">Nama Siswa</th>
-                    <th className="pb-3 px-4 font-medium">NISN / NIS</th>
+                    <th className="pb-3 px-4 font-medium">NISN</th>
+                    <th className="pb-3 px-4 font-medium">NIS</th>
+                    <th className="pb-3 px-4 font-medium">TTL</th>
+                    <th className="pb-3 px-4 font-medium">L/P</th>
                     <th className="pb-3 px-4 font-medium">Kelas</th>
                     <th className="pb-3 px-4 font-medium text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {students.map(student => (
+                  {students
+                    .filter(s => {
+                      const matchClass = !filterClass || s.classId === filterClass;
+                      const q = searchQuery.toLowerCase();
+                      const matchSearch = !q || (s.fullName || '').toLowerCase().includes(q) || (s.nisn || '').includes(q);
+                      return matchClass && matchSearch;
+                    })
+                    .map(student => {
+                    const classObj = classesList.find(c => c.id === student.classId);
+                    const majorName = classObj ? majorsList.find(m => m.id === classObj.majorId)?.name : '';
+                    const kelasLabel = classObj ? (majorName ? `${classObj.name} - ${majorName}` : classObj.name) : (student.className || '-');
+                    const ttl = [student.birthPlace, student.birthDate ? new Date(student.birthDate).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''].filter(Boolean).join(', ');
+                    return (
                     <tr key={student.id} className="group border-b border-gray-50 dark:border-[#222]">
                       <td className="py-3 px-4">{student.fullName || '-'}</td>
-                      <td className="py-3 px-4">{student.nisn}</td>
-                      <td className="py-3 px-4">
-                        {(() => {
-                          const classObj = classesList.find(c => c.id === student.classId);
-                          const majorName = classObj ? majorsList.find(m => m.id === classObj.majorId)?.name : '';
-                          return classObj ? (majorName ? `${classObj.name} - ${majorName}` : classObj.name) : (student.className || '-');
-                        })()}
-                      </td>
+                      <td className="py-3 px-4">{student.nisn || '-'}</td>
+                      <td className="py-3 px-4">{student.nis || '-'}</td>
+                      <td className="py-3 px-4 whitespace-nowrap">{ttl || '-'}</td>
+                      <td className="py-3 px-4">{student.gender === 'Laki-laki' ? 'L' : student.gender === 'Perempuan' ? 'P' : '-'}</td>
+                      <td className="py-3 px-4">{kelasLabel}</td>
                       <td className="py-3 px-4 text-center">
                         <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => handleEditClick(student)} className="text-blue-500 hover:text-blue-700" title="Edit Siswa"><Edit2 size={16} /></button>
@@ -249,10 +279,11 @@ export const DashboardStudents = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                   {students.length === 0 && !loading && (
                     <tr>
-                      <td colSpan={4} className="py-8 text-center text-gray-400">Belum ada data siswa.</td>
+                      <td colSpan={7} className="py-8 text-center text-gray-400">Belum ada data siswa.</td>
                     </tr>
                   )}
                 </tbody>
