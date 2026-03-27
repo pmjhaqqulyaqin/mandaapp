@@ -10,6 +10,7 @@ interface GenerateSuratModalProps {
 
 export const GenerateSuratModal = ({ isOpen, onClose, onSuccess }: GenerateSuratModalProps) => {
   const [jenisSurats, setJenisSurats] = useState<any[]>([]);
+  const [kkas, setKkas] = useState<any[]>([]);
   const [selectedJenis, setSelectedJenis] = useState<any>(null);
   
   const [formData, setFormData] = useState({
@@ -35,6 +36,12 @@ export const GenerateSuratModal = ({ isOpen, onClose, onSuccess }: GenerateSurat
           setFormData(f => ({ ...f, jenisSuratId: defaultSelect.id }));
         }
       }).catch((err: any) => toast.error('Gagal mengambil template surat'));
+
+      // Fetch master KKA for dropdown
+      apiClient<any>('/eoffice/kka', { method: 'GET' }).then((res: any) => {
+        const dataArray = Array.isArray(res) ? res : res.data || [];
+        setKkas(dataArray);
+      }).catch(() => {});
     }
   }, [isOpen]);
 
@@ -105,14 +112,17 @@ export const GenerateSuratModal = ({ isOpen, onClose, onSuccess }: GenerateSurat
             {selectedJenis?.butuhKka && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kode Klasifikasi Arsip (KKA)</label>
-                <input 
-                  type="text"
-                  placeholder="Contoh: PP.00.6 atau KP.01.2"
+                <select 
                   className="w-full bg-gray-50 dark:bg-[#2a2a2a] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500/50"
                   value={formData.kkaKode}
                   onChange={e => setFormData({...formData, kkaKode: e.target.value})}
                   required={selectedJenis?.butuhKka}
-                />
+                >
+                  <option value="">-- Pilih KKA --</option>
+                  {kkas.map(k => (
+                    <option key={k.id} value={k.kode}>{k.kode} - {k.keterangan}</option>
+                  ))}
+                </select>
               </div>
             )}
 
