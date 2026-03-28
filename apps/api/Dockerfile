@@ -18,11 +18,14 @@ RUN npm run build -w @mandaapp/api
 FROM node:20-alpine
 WORKDIR /app
 
-# Copy only production dependencies
-COPY --from=builder /app/package*.json ./
+# Copy root package files
+COPY package*.json ./
+COPY apps/api/package.json ./apps/api/
+
+# Copy all node_modules (including hoisted ones in root and workspace-specific ones)
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
 
 EXPOSE 3001
 
