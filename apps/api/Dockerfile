@@ -18,18 +18,10 @@ RUN npm run build -w @mandaapp/api
 FROM node:20-alpine
 WORKDIR /app
 
-# Copy essential files for install
-COPY package*.json ./
-COPY apps/api/package.json ./apps/api/
-COPY packages/ui/package.json ./packages/ui/
-
-# Install ONLY production dependencies for the entire monorepo
-# This is the safest way to ensure all workspace symlinks are correctly handled in the container.
-RUN npm install --omit=dev
-
-# Copy the built code from builder
-COPY --from=builder /app/apps/api/dist ./apps/api/dist
+# Copy EVERYTHING from builder stage to preserve all symlinks and workspace structures
+COPY --from=builder /app /app
 
 EXPOSE 3001
 
+# The path to the built entry point
 CMD ["node", "apps/api/dist/index.js"]
