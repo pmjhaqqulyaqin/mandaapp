@@ -16,7 +16,7 @@ export const ContactSection = ({
   schoolName = 'MAN 2 LOMBOK TIMUR',
   address = 'Jln. Pendidikan No. 1, Selong, Lombok Timur',
   phone = '0376-21xxx',
-  email = 'info@man2lotim.sch.id',
+  email = 'info@mandualotim.sch.id',
   mapEmbedUrl = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15774.965706249533!2d116.53603411037699!3d-8.620959400262174!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dcc4ebbd7cd48b1%3A0xc3fec8675123d467!2sMAN%202%20Lombok%20Timur%20(Selong)!5e0!3m2!1sen!2sid!4v1700000000000!5m2!1sen!2sid',
   logoUrl,
 }: ContactSectionProps) => {
@@ -145,8 +145,10 @@ export const ContactSection = ({
                     {phone}
                   </p>
                   <p className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-emerald-600" /> 
-                    {email}
+                    <a href="https://mandualotim.sch.id" className="hover:text-green-500 transition-colors">
+                      <Mail className="w-4 h-4 text-emerald-600" /> 
+                      mandualotim.sch.id
+                    </a>
                   </p>
                 </div>
               </div>

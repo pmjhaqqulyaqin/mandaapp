@@ -18,7 +18,7 @@ export const Footer = ({
   schoolName = 'MAN 2 LOMBOK TIMUR',
   address = 'Jln. Pendidikan No. 1, Selong',
   phone = '0376-21xxx',
-  email = 'info@man2lotim.sch.id',
+  email = 'info@mandualotim.sch.id',
   logoUrl,
   facebookUrl,
   twitterUrl,

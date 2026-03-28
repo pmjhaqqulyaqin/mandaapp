@@ -65,7 +65,7 @@ const identityFields = [
   { key: 'district_city', label: 'Kabupaten / Kota', placeholder: 'Lombok Timur' },
   { key: 'province', label: 'Provinsi', placeholder: 'Nusa Tenggara Barat' },
   { key: 'phone', label: 'No. Telepon', placeholder: '0376-21xxx' },
-  { key: 'email', label: 'Email Sekolah', placeholder: 'info@man2lotim.sch.id', type: 'email' },
+  { key: 'email', label: 'Email Sekolah', placeholder: 'info@mandualotim.sch.id', type: 'email' },
   { key: 'npsn', label: 'NPSN', placeholder: '20xxxxxx' },
   { key: 'nsm', label: 'NSM', placeholder: '131xxxxxxxxxxxxx' },
   { key: 'accreditation', label: 'Akreditasi', placeholder: 'A' },
