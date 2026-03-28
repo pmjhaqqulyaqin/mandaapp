@@ -8,7 +8,7 @@ COPY package*.json ./
 COPY packages/ui ./packages/ui
 COPY apps/api ./apps/api
 
-# Install dependencies
+# Install all dependencies (monorepo)
 RUN npm install
 
 # Build the api
@@ -18,11 +18,11 @@ RUN npm run build -w @mandaapp/api
 FROM node:20-alpine
 WORKDIR /app
 
-# Copy built files and dependencies
+# Copy only production dependencies
+COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
-COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
 
 EXPOSE 3001
 
