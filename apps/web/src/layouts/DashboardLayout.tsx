@@ -17,7 +17,11 @@ import {
   Users,
   BookOpen,
   UserSquare2,
+  ChevronDown,
+  User as UserIcon,
+  LogOut,
 } from 'lucide-react';
+import { ProfileModal } from '../components/modals/ProfileModal';
 
 // All menu items definition with their route paths and icons
 const ALL_MENU_ITEMS = [
@@ -154,6 +158,9 @@ const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
 
 export const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -161,6 +168,29 @@ export const DashboardLayout = () => {
   // Start with all menu keys visible so sidebar never flashes empty
   const [allowedMenus, setAllowedMenus] = useState<string[]>(ALL_MENU_ITEMS.map((i) => i.key));
   const [permissionsLoaded, setPermissionsLoaded] = useState(false);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('#profile-dropdown-container')) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const roleLabel = user?.role === 'admin' ? 'System Administrator'
+      : user?.role === 'kepala_madrasah' ? 'Kepala Madrasah'
+      : user?.role === 'wakil_kepala' ? 'Wakil Kepala'
+      : user?.role === 'kepala_unit' ? 'Kepala Unit'
+      : user?.role === 'wali_kelas' ? 'Wali Kelas'
+      : user?.role === 'pembina_ekstra' ? 'Pembina Ekstra'
+      : user?.role === 'kepala_tu' ? 'Kepala TU'
+      : user?.role === 'pegawai_tu' ? 'Pegawai TU'
+      : user?.role === 'guru' ? 'Guru'
+      : 'Siswa';
 
   // Resolve logo URL from system settings
   const logoRaw = get('logo_url');
@@ -243,29 +273,7 @@ export const DashboardLayout = () => {
           </button>
         </div>
         
-        {/* Widget Profile */}
-        <div className="px-3 py-2.5 border-b border-border-light dark:border-border-dark">
-          <div className="bg-primary/10 w-full px-3 py-2.5 rounded-lg flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold uppercase shrink-0">
-              {user?.name?.charAt(0) || '?'}
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-[13px] font-semibold text-text-primary dark:text-text-darkPrimary truncate">{user?.name}</h3>
-              <p className="text-[11px] font-medium text-primary truncate">
-                {user?.role === 'admin' ? 'System Administrator'
-                  : user?.role === 'kepala_madrasah' ? 'Kepala Madrasah'
-                  : user?.role === 'wakil_kepala' ? 'Wakil Kepala'
-                  : user?.role === 'kepala_unit' ? 'Kepala Unit'
-                  : user?.role === 'wali_kelas' ? 'Wali Kelas'
-                  : user?.role === 'pembina_ekstra' ? 'Pembina Ekstra'
-                  : user?.role === 'kepala_tu' ? 'Kepala TU'
-                  : user?.role === 'pegawai_tu' ? 'Pegawai TU'
-                  : user?.role === 'guru' ? 'Guru'
-                  : 'Siswa'}
-              </p>
-            </div>
-          </div>
-        </div>
+
 
         <nav className="flex-1 px-3 py-2.5 flex flex-col gap-0.5 overflow-y-auto">
           <div className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-1 px-2.5">Main Menu</div>
@@ -300,19 +308,11 @@ export const DashboardLayout = () => {
           )}
         </nav>
         
-        <div className="px-3 py-2.5 border-t border-border-light dark:border-border-dark shrink-0">
-          <button 
-            onClick={handleLogout} 
-            className="w-full text-text-secondary hover:text-error text-[13px] flex items-center gap-2.5 px-2.5 py-[7px] rounded-md hover:bg-error/10 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
-            Logout
-          </button>
-        </div>
+
       </aside>
       
       <main className="flex-1 flex flex-col min-w-0 w-full overflow-hidden print:overflow-visible print:block">
-        <header className="h-12 border-b border-border-light dark:border-border-dark bg-white dark:bg-background-dark flex items-center justify-between px-4 sm:px-5 shrink-0 z-30 print:hidden">
+        <header className="h-12 border-b border-border-light dark:border-border-dark bg-white dark:bg-background-dark flex items-center justify-between px-4 sm:px-5 shrink-0 z-30 print:hidden relative">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsSidebarOpen(true)}
@@ -320,19 +320,62 @@ export const DashboardLayout = () => {
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
             </button>
-            <div className="text-text-secondary text-xs font-medium hidden sm:block">Dashboard Overview</div>
+            <div className="hidden sm:flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold uppercase shrink-0">
+                {user?.name?.charAt(0) || '?'}
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-[13px] font-semibold text-text-primary dark:text-text-darkPrimary truncate leading-tight">{user?.name}</h3>
+                <p className="text-[11px] font-medium text-primary truncate leading-tight">
+                  {roleLabel}
+                </p>
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <button className="h-8 w-8 rounded-full bg-gray-100 dark:bg-[#1a1a1a] flex items-center justify-center text-text-secondary hover:text-primary transition-colors border border-border-light dark:border-border-dark">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-            </button>
+            <div id="profile-dropdown-container" className="relative">
+              <button 
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                className="h-8 w-8 rounded-full bg-gray-100 dark:bg-[#1a1a1a] flex items-center justify-center text-text-secondary hover:text-primary transition-colors border border-border-light dark:border-border-dark"
+              >
+                <ChevronDown size={14} />
+              </button>
+              
+              {isProfileDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#111111] border border-border-light dark:border-border-dark rounded-lg shadow-lg py-1 z-50 overflow-hidden">
+                  <button 
+                    onClick={() => {
+                      setIsProfileDropdownOpen(false);
+                      setIsProfileModalOpen(true);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-[13px] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] flex items-center gap-2.5 transition-colors"
+                  >
+                    <UserIcon size={14} className="text-text-secondary" />
+                    <span>Profil</span>
+                  </button>
+                  <div className="h-px bg-border-light dark:bg-border-dark my-1" />
+                  <button 
+                    onClick={handleLogout} 
+                    className="w-full text-left px-4 py-2.5 text-[13px] text-error hover:bg-error/10 flex items-center gap-2.5 transition-colors"
+                  >
+                    <LogOut size={14} />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
         <div className="flex-1 p-4 sm:p-5 print:p-0 overflow-auto print:overflow-visible print:block custom-scrollbar">
           <Outlet />
         </div>
       </main>
+
+      <ProfileModal 
+        isOpen={isProfileModalOpen} 
+        onClose={() => setIsProfileModalOpen(false)} 
+      />
 
       {/* CSS for sidebar hover — transitions ONLY on hover, not on active state change */}
       <style>{`
