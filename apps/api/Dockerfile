@@ -22,9 +22,11 @@ WORKDIR /app
 COPY package*.json ./
 COPY apps/api/package.json ./apps/api/
 
-# Copy all node_modules (including hoisted ones in root and workspace-specific ones)
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
+# Install ONLY production dependencies for the api workspace
+# This ensures all symlinks and peer dependencies are correctly resolved
+RUN npm install --omit=dev --workspace=@mandaapp/api
+
+# Copy the built code from builder
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
 EXPOSE 3001
