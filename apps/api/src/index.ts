@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
+import fs from 'fs';
 
 import { db } from './db';
 import { authHandler } from './modules/auth';
@@ -25,6 +26,19 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Ensure uploads directory exists
+const uploadDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log(`[SYSTEM] Created missing uploads directory: ${uploadDir}`);
+}
+
+// Global Request Auditor (Diagnostic)
+app.use((req, res, next) => {
+  console.log(`[API ACCESS] ${req.method} ${req.path}`);
+  next();
+});
 
 // Diagnostic logging for auth routes
 app.all("/api/auth/*", (req, res, next) => {
@@ -57,6 +71,14 @@ app.use((req, res, next) => {
 // Trust proxy is required for 'Secure' cookies to work when running behind 
 // Railway's or Vercel's lead balancer/reverse proxy
 app.set('trust proxy', true);
+
+// Comprehensive auth diagnostics
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/auth')) {
+    console.log(`[AUTH ACCESS] ${req.method} ${req.path}`);
+  }
+  next();
+});
 
 app.use(cors({
   origin: (origin, callback) => {

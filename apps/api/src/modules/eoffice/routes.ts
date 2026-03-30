@@ -3,8 +3,25 @@ import { EOfficeController } from './controller';
 import multer from 'multer';
 import path from 'path';
 
+import fs from 'fs';
+
 const router = Router();
-const upload = multer({ dest: 'uploads/' }); // Temporary storage before forwarding
+
+// Configure storage for E-Office uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+
+const upload = multer({ storage });
 
 // E-Office Routes
 router.get('/jenis-surat', EOfficeController.getJenisSurat);

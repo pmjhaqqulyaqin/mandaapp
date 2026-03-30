@@ -18,7 +18,15 @@ import {
 } from "./permissions";
 
 if (!process.env.BETTER_AUTH_SECRET) {
-  console.warn("[AUTH WARNING] BETTER_AUTH_SECRET is not set in environment variables!");
+  console.error("[AUTH ERROR] BETTER_AUTH_SECRET is not set! Authentication will fail.");
+} else {
+  console.log("[AUTH CONFIG] BETTER_AUTH_SECRET is configured.");
+}
+
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  console.error("[AUTH ERROR] Google OAuth credentials (ID or SECRET) are missing!");
+} else {
+  console.log(`[AUTH CONFIG] Google Client ID: ${process.env.GOOGLE_CLIENT_ID.substring(0, 10)}... (Present)`);
 }
 
 export const auth = betterAuth({
@@ -45,8 +53,8 @@ export const auth = betterAuth({
 
   socialProviders: {
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      clientId: process.env.GOOGLE_CLIENT_ID || "not-configured",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "not-configured",
       prompt: "select_account",
     },
   },
