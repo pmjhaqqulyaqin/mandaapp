@@ -232,7 +232,8 @@ export const DashboardNews = () => {
     zIndex: 1000,
     // popupContainer: 'body' is the default, which works correctly when parent has no transform
     uploader: {
-      url: `${API_BASE_URL}/api/upload/image`,
+      url: `${API_BASE_URL}/system/upload/image`,
+      format: 'json',
       withCredentials: true,
       headers: {
         'X-User-Id': localStorage.getItem('mandalotim_user') ? JSON.parse(localStorage.getItem('mandalotim_user')!).id : ''

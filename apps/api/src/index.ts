@@ -86,13 +86,17 @@ app.use(cors({
       process.env.FRONTEND_URL,
       'http://localhost:5173',
       'http://localhost:5174',
+      'https://mandualotim.sch.id',
+      'http://mandualotim.sch.id',
     ].filter(Boolean) as string[];
 
+    // Allow requests with no origin (same-origin via Nginx proxy, curl, etc.)
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin) || /https:\/\/.*vercel\.app$/.test(origin)) {
       callback(null, true);
     } else {
+      console.log(`[CORS] Blocked origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
