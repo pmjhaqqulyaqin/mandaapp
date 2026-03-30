@@ -6,8 +6,8 @@ import { GalleryController } from "./controller";
 
 const router = Router();
 
-// Configure multer for gallery upload
-const uploadDir = path.resolve(__dirname, "../../../uploads");
+// Configure multer for gallery upload - use process.cwd() to match Docker volume mount
+const uploadDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
