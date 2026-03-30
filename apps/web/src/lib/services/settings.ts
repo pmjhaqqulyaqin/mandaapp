@@ -22,7 +22,7 @@ export const settingsService = {
     const response = await fetch(uploadTarget, {
       method: 'POST',
       body: formData,
-      credentials: 'omit',
+      credentials: 'include',
     });
     if (!response.ok) throw new Error('Upload failed');
     return response.json();
@@ -36,7 +36,7 @@ export const settingsService = {
     const response = await fetch(uploadTarget, {
       method: 'POST',
       body: formData,
-      credentials: 'omit',
+      credentials: 'include',
     });
     if (!response.ok) throw new Error('Upload failed');
     return response.json();

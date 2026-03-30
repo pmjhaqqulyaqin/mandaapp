@@ -9,14 +9,12 @@ export const galleryService = {
     const formData = new FormData();
     // Use 'image' as matching the backend upload.single("image")
     formData.append('image', file, file instanceof File ? file.name : `camera_${Date.now()}.jpg`);
-    // Route uploads to local cPanel PHP script across the domain,
-    // thereby persisting files independently of ephemeral Railway servers.
     const uploadTarget = `${API_BASE_URL}/gallery/upload`;
 
     const response = await fetch(uploadTarget, {
       method: 'POST',
       body: formData,
-      credentials: 'omit', // No auth needed for public profile photo uploads in this mode
+      credentials: 'include',
     });
     
     if (!response.ok) {

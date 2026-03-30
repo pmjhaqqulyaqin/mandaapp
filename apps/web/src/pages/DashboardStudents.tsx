@@ -89,8 +89,8 @@ export const DashboardStudents = () => {
     try {
       const res = await apiClient<{message:string}>('/students/upload', {
         method: 'POST',
-        body: formData
-      } as any);
+        data: formData
+      });
       
       clearInterval(progressInterval);
       setUploadProgress({ show: true, percent: 100 });
