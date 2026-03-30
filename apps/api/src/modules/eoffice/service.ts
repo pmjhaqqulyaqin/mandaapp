@@ -324,26 +324,10 @@ export class EOfficeService {
   static async uploadSuratKeluar(id: string, file: any) {
     if (!file) throw new Error('File tidak ditemukan');
 
-    // 1. Ambil data lama untuk hapus file
-    const oldData = await db.select({ fileUrl: suratKeluars.fileUrl }).from(suratKeluars).where(eq(suratKeluars.id, id)).limit(1);
-    if (oldData[0]?.fileUrl) {
-      await this.deleteArchiveOnHosting(oldData[0].fileUrl);
-    }
+    // File is already saved to uploads/ by multer diskStorage
+    const newUrl = `/uploads/${file.filename}`;
 
-    // 2. Upload ke Bridge
-    const formData = new FormData();
-    formData.append('file', fs.createReadStream(file.path), { filename: file.originalname });
-
-    const response = await axios.post(`${DEWAHOSTER_URL}/system-updater.php?action=upload_archive`, formData, {
-      headers: { ...formData.getHeaders(), 'Authorization': `Bearer ${UPDATE_SECRET}` },
-      timeout: 60000
-    });
-
-    if (!response.data?.success) throw new Error(response.data?.error || 'Gagal upload ke hosting');
-
-    const newUrl = response.data.url;
-
-    // 3. Update DB
+    // Update DB with the local file path
     return await db.update(suratKeluars).set({ fileUrl: newUrl }).where(eq(suratKeluars.id, id));
   }
 
@@ -357,23 +341,10 @@ export class EOfficeService {
   static async uploadSuratMasuk(id: string, file: any) {
     if (!file) throw new Error('File tidak ditemukan');
 
-    const oldData = await db.select({ fileUrl: suratMasuks.fileUrl }).from(suratMasuks).where(eq(suratMasuks.id, id)).limit(1);
-    if (oldData[0]?.fileUrl) {
-      await this.deleteArchiveOnHosting(oldData[0].fileUrl);
-    }
+    // File is already saved to uploads/ by multer diskStorage
+    const newUrl = `/uploads/${file.filename}`;
 
-    const formData = new FormData();
-    formData.append('file', fs.createReadStream(file.path), { filename: file.originalname });
-
-    const response = await axios.post(`${DEWAHOSTER_URL}/system-updater.php?action=upload_archive`, formData, {
-      headers: { ...formData.getHeaders(), 'Authorization': `Bearer ${UPDATE_SECRET}` },
-      timeout: 60000
-    });
-
-    if (!response.data?.success) throw new Error(response.data?.error || 'Gagal upload ke hosting');
-
-    const newUrl = response.data.url;
-
+    // Update DB with the local file path
     return await db.update(suratMasuks).set({ fileUrl: newUrl }).where(eq(suratMasuks.id, id));
   }
 
