@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { Button, Input, Modal, Badge, SectionPicker } from '@mandaapp/ui';
 import { usePages } from '../../hooks/api/usePages';
+import { compressImage } from '../../lib/imageCompressor';
 import { toast } from 'sonner';
 import { PhotoUploader } from '@mandaapp/ui';
 import { Edit2, Trash2 } from 'lucide-react';
@@ -86,12 +87,20 @@ export const DashboardPages = () => {
       defaultHandlerSuccess: function(this: any, data: any) {
         this.selection.insertImage(data.files[0]);
       },
-      prepareData: (formData: any) => {
-        // Jodit uses 'files' by default, but our backend expects 'image'
+      prepareData: async (formData: any) => {
         const file = formData.get('files[0]');
         formData.delete('files[0]');
-        formData.append('image', file);
-        return formData;
+        let fileToUpload = file;
+        try {
+          if (file instanceof File || file instanceof Blob) {
+            // @ts-ignore
+            fileToUpload = await compressImage(file as File, { maxWidth: 1200, maxHeight: 1200, quality: 0.85 });
+          }
+        } catch (e) {
+          console.error("Compression failed in editor, fallback to original", e);
+        }
+        formData.append('image', fileToUpload);
+        return await Promise.resolve(formData);
       }
     },
     buttons: [

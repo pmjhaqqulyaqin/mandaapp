@@ -3,6 +3,7 @@ import { Button, Input, Badge, DataTable, Skeleton, Modal } from '@mandaapp/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { type NewsItem, type AnnouncementCategory } from '../types/news';
 import { useNews } from '../hooks/api/useNews';
+import { compressImage } from '../lib/imageCompressor';
 import { API_BASE_URL } from '../lib/api';
 import JoditEditor from 'jodit-react';
 import { Edit2, Trash2 } from 'lucide-react';
@@ -11,7 +12,6 @@ export const DashboardNews = () => {
   const { queryAllAdmin, createMutation, updateMutation, deleteMutation } = useNews();
   const allNews: NewsItem[] = queryAllAdmin.data || [];
   const isLoading = queryAllAdmin.isLoading;
-
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSmartArtModalOpen, setIsSmartArtModalOpen] = useState(false);
@@ -252,12 +252,25 @@ export const DashboardNews = () => {
       defaultHandlerSuccess: function(this: any, data: any) {
         this.selection.insertImage(data.files[0]);
       },
-      prepareData: (formData: any) => {
+      prepareData: async (formData: any) => {
         // Jodit uses 'files' by default, but our backend expects 'image'
         const file = formData.get('files[0]');
         formData.delete('files[0]');
-        formData.append('image', file);
-        return formData;
+        
+        let fileToUpload = file;
+        try {
+          // Compress before upload
+          if (file instanceof File || file instanceof Blob) {
+            // Need to wrap mostly for type safety but File inherits Blob
+            // @ts-ignore
+            fileToUpload = await compressImage(file as File, { maxWidth: 1200, maxHeight: 1200, quality: 0.85 });
+          }
+        } catch (e) {
+          console.error("Compression failed in editor, fallback to original", e);
+        }
+
+        formData.append('image', fileToUpload);
+        return await Promise.resolve(formData);
       }
     },
     buttons: [

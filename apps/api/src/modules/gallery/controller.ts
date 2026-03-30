@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import { GalleryService } from "./service";
 import { auth } from "../auth";
 import { fromNodeHeaders } from "better-auth/node";
+import path from "path";
+import fs from "fs";
+import sharp from "sharp";
 
 export class GalleryController {
   static async getImages(req: Request, res: Response) {
@@ -72,9 +75,26 @@ export class GalleryController {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
-      const url = `/uploads/${req.file.filename}`;
+
+      // Convert to WebP using sharp
+      const originalPath = req.file.path;
+      const parsedPath = path.parse(originalPath);
+      const webpFilename = `${parsedPath.name}.webp`;
+      const webpPath = path.join(parsedPath.dir, webpFilename);
+
+      await sharp(originalPath)
+        .webp({ quality: 80, effort: 4 })
+        .toFile(webpPath);
+
+      // Delete the original uploaded file to save space
+      fs.unlink(originalPath, (err) => {
+        if (err) console.error("Failed to delete original image after WebP conversion:", err);
+      });
+
+      const url = `/uploads/${webpFilename}`;
       res.json({ url });
     } catch (error: any) {
+      console.error("Gallery upload error:", error);
       res.status(500).json({ error: "Upload failed", details: error?.message });
     }
   }

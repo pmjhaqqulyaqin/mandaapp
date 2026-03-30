@@ -69,18 +69,27 @@ export const DashboardGallery = () => {
       return;
     }
 
+    // Instant local preview
+    const objectUrl = URL.createObjectURL(file);
+    setFormData(prev => ({
+      ...prev,
+      url: objectUrl, // Temporary preview URL
+      title: prev.title || file.name.replace(/\.[^/.]+$/, ''),
+    }));
+
     setIsUploading(true);
     try {
       const { url } = await galleryService.upload(file);
       setFormData(prev => ({
         ...prev,
-        url,
-        title: prev.title || file.name.replace(/\.[^/.]+$/, ''),
+        url, // Replace temporary URL with real server URL
       }));
     } catch (error: any) {
       alert(`Gagal mengupload gambar: ${error.message}`);
+      setFormData(prev => ({ ...prev, url: '' })); // Revert on error
     } finally {
       setIsUploading(false);
+      URL.revokeObjectURL(objectUrl); // Clean up memory
     }
   };
 
@@ -245,13 +254,20 @@ export const DashboardGallery = () => {
             />
             {formData.url ? (
               <div className="relative group">
-                <div className="w-full aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-border-light dark:border-border-dark">
-                  <img src={resolveUrl(formData.url)} alt="Preview" className="w-full h-full object-cover" />
+                <div className="w-full aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-border-light dark:border-border-dark flex items-center justify-center">
+                  {/* Handle both local blob URLs (instant preview) and server URLs */}
+                  <img src={formData.url.startsWith('blob:') || formData.url.startsWith('data:') ? formData.url : resolveUrl(formData.url)} alt="Preview" className="w-full h-full object-cover" />
+                  {isUploading && (
+                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 text-white animate-spin" />
+                     </div>
+                  )}
                 </div>
                 <button
                   type="button"
+                  disabled={isUploading}
                   onClick={() => { setFormData(prev => ({ ...prev, url: '' })); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-md"
+                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-md disabled:opacity-50"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                 </button>

@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import path from 'path';
 import dotenv from 'dotenv';
 import fs from 'fs';
@@ -25,6 +26,7 @@ import employeesRoutes from './modules/employees/routes';
 dotenv.config();
 
 const app = express();
+app.use(compression());
 const PORT = process.env.PORT || 3001;
 
 // Ensure uploads directory exists

@@ -1,5 +1,8 @@
 import { Request, Response } from 'express';
 import * as systemService from './service';
+import sharp from 'sharp';
+import fs from 'fs';
+import path from 'path';
 
 export const getSystemStatus = async (req: Request, res: Response) => {
   try {
@@ -55,18 +58,31 @@ export const uploadImageHandler = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    // Convert to WebP
+    const originalPath = req.file.path;
+    const parsedPath = path.parse(originalPath);
+    const webpFilename = `${parsedPath.name}.webp`;
+    const webpPath = path.join(parsedPath.dir, webpFilename);
+
+    await sharp(originalPath)
+        .webp({ quality: 80, effort: 4 })
+        .toFile(webpPath);
+
+    fs.unlink(originalPath, (err) => {
+      if (err) console.error("Failed to delete original system image after WebP conversion:", err);
+    });
+
     const protocol = req.protocol;
     const host = req.get('host');
-    // Ensure protocol matches the environment (https for production)
     const effectiveProtocol = host?.includes('localhost') ? protocol : 'https';
-    const fileUrl = `${effectiveProtocol}://${host}/uploads/${req.file.filename}`;
+    const fileUrl = `${effectiveProtocol}://${host}/uploads/${webpFilename}`;
 
     res.status(200).json({
       success: true,
       data: {
         url: fileUrl,
-        name: req.file.originalname,
-        size: req.file.size
+        name: webpFilename,
+        size: fs.statSync(webpPath).size
       }
     });
   } catch (error: any) {
