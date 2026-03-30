@@ -17,9 +17,7 @@ export const settingsService = {
     const formData = new FormData();
     formData.append('logo', file);
     
-    const uploadTarget = window.location.hostname === 'localhost' 
-      ? `${API_BASE_URL}/settings/upload-logo` 
-      : `${window.location.origin}/image-uploader.php`;
+    const uploadTarget = `${API_BASE_URL}/settings/upload-logo`;
 
     const response = await fetch(uploadTarget, {
       method: 'POST',
@@ -33,9 +31,7 @@ export const settingsService = {
     const formData = new FormData();
     formData.append('favicon', file);
 
-    const uploadTarget = window.location.hostname === 'localhost' 
-      ? `${API_BASE_URL}/settings/upload-favicon` 
-      : `${window.location.origin}/image-uploader.php`;
+    const uploadTarget = `${API_BASE_URL}/settings/upload-favicon`;
 
     const response = await fetch(uploadTarget, {
       method: 'POST',

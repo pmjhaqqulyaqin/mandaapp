@@ -2,9 +2,10 @@ import { useState, useRef, useMemo, useEffect } from 'react';
 import { Button, Input, Modal, Badge, SectionPicker } from '@mandaapp/ui';
 import { usePages } from '../../hooks/api/usePages';
 import { toast } from 'sonner';
-import JoditEditor from 'jodit-react';
 import { PhotoUploader } from '@mandaapp/ui';
 import { Edit2, Trash2 } from 'lucide-react';
+import { API_BASE_URL } from '../../lib/api';
+import JoditEditor from 'jodit-react';
 
 export const DashboardPages = () => {
   const { queryAll, createMutation, updateMutation, deleteMutation } = usePages();
@@ -65,9 +66,7 @@ export const DashboardPages = () => {
     toolbarAdaptive: false,
     zIndex: 1000,
     uploader: {
-      url: window.location.hostname === 'localhost' 
-        ? `${import.meta.env.VITE_API_URL}/system/upload/image`
-        : `${window.location.origin}/image-uploader.php`,
+      url: `${API_BASE_URL}/system/upload/image`,
       format: 'json',
       withCredentials: true,
       headers: {

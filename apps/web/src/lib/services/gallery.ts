@@ -11,9 +11,7 @@ export const galleryService = {
     formData.append('image', file, file instanceof File ? file.name : `camera_${Date.now()}.jpg`);
     // Route uploads to local cPanel PHP script across the domain,
     // thereby persisting files independently of ephemeral Railway servers.
-    const uploadTarget = window.location.hostname === 'localhost' 
-      ? `${API_BASE_URL}/gallery/upload` 
-      : `${window.location.origin}/image-uploader.php`;
+    const uploadTarget = `${API_BASE_URL}/gallery/upload`;
 
     const response = await fetch(uploadTarget, {
       method: 'POST',

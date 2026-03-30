@@ -3,6 +3,7 @@ import { Button, Input, Badge, DataTable, Skeleton, Modal } from '@mandaapp/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { type NewsItem, type AnnouncementCategory } from '../types/news';
 import { useNews } from '../hooks/api/useNews';
+import { API_BASE_URL } from '../lib/api';
 import JoditEditor from 'jodit-react';
 import { Edit2, Trash2 } from 'lucide-react';
 
@@ -231,10 +232,7 @@ export const DashboardNews = () => {
     zIndex: 1000,
     // popupContainer: 'body' is the default, which works correctly when parent has no transform
     uploader: {
-      url: window.location.hostname === 'localhost' 
-        ? `${import.meta.env.VITE_API_URL}/system/upload/image`
-        : `${window.location.origin}/image-uploader.php`,
-      format: 'json',
+      url: `${API_BASE_URL}/api/upload/image`,
       withCredentials: true,
       headers: {
         'X-User-Id': localStorage.getItem('mandalotim_user') ? JSON.parse(localStorage.getItem('mandalotim_user')!).id : ''
