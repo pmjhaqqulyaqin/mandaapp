@@ -20,17 +20,17 @@ Halo Pak, berikut adalah langkah-langkah untuk menerapkan update terbaru (Perbai
 
 3. **Rebuild container Web (karena perubahan ada di sisi Frontend):**
    ```bash
-   docker-compose build web
+   docker compose build web
    ```
 
 4. **Restart container Web agar menggunakan image yang baru dibuild:**
    ```bash
-   docker-compose up -d web
+   docker compose up -d web
    ```
 
 5. **(Opsional) Cek status container:**
    ```bash
-   docker-compose ps
+   docker compose ps
    ```
 
 ### Catatan Penting:
