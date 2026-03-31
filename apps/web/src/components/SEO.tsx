@@ -20,13 +20,13 @@ export const SEO = ({ title, description, keywords, url, imageUrl, isArticle = f
   const defaultTitle = `${siteName} - Madrasah Berprestasi`;
   const finalTitle = title ? `${title} - ${siteName}` : defaultTitle;
   
-  const defaultDesc = `Website resmi ${siteName}, madrasah berprestasi di bawah naungan Kantor Kementerian Agama Lombok Timur. Berlokasi strategis di Wanasaba, Beririjarak.`;
+  const defaultDesc = `Website resmi ${siteName}, madrasah berprestasi di bawah naungan Kementerian Agama Kabupaten Lombok Timur. Berlokasi strategis di kecamatan Wanasaba.`;
   const finalDesc = description || defaultDesc;
   
-  const defaultKeywords = "man 2 lombok timur, man 2 lotim, manda, Madrasah di lombok timur, Kantor kementerian agama lombok timur, sekolah lombok timur, madrasah berprestasi, Lombok Timur, Wanasaba, Beririjarak";
+  const defaultKeywords = "MAN 2 Lombok Timur, Lombok Timur, Madrasah di Lombok Timur, Madrasah berprestasi, kementerian agama Kabupaten Lombok Timur, Wanasaba (kecamatan), Wanasaba, man 2 lotim, manda";
   const finalKeywords = keywords ? `${keywords}, ${defaultKeywords}` : defaultKeywords;
   
-  const finalUrl = url || typeof window !== 'undefined' ? window.location.href : 'https://mandalotim.sch.id';
+  const finalUrl = url || typeof window !== 'undefined' ? window.location.href : 'https://mandualotim.sch.id';
   const logoUrlRaw = get('logo_url');
   const resolvedLogo = logoUrlRaw ? (logoUrlRaw.startsWith('/') ? `${SERVER_BASE}${logoUrlRaw}` : logoUrlRaw) : '';
   const finalImage = imageUrl || resolvedLogo || '/hero-bg.png';
@@ -60,7 +60,7 @@ export const SEO = ({ title, description, keywords, url, imageUrl, isArticle = f
     "@context": "https://schema.org",
     "@type": "EducationalOrganization",
     "name": siteName,
-    "url": "https://mandalotim.sch.id",
+    "url": "https://mandualotim.sch.id",
     "logo": resolvedLogo,
     "description": finalDesc,
     "address": {
