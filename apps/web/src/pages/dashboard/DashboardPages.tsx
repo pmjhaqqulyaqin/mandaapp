@@ -93,29 +93,35 @@ export const DashboardPages = () => {
           this.selection.insertImage(fileUrl);
         } else if (isPdf) {
           const pdfHtml = `
-            <div class="manda-pdf-embed" style="margin: 24px 0; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); background-color: #f8fafc; font-family: Inter, sans-serif;">
+            <div contenteditable="false" style="margin: 24px 0; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); background-color: #f8fafc; font-family: Inter, sans-serif; position: relative;">
               <div style="background-color: #ffffff; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                  <span style="font-weight: 600; color: #1e293b; font-size: 14px;">${fileName}</span>
+                  <span style="font-weight: 600; color: #1e293b; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-width: 250px;">${fileName}</span>
                 </div>
-                <a href="${fileUrl}" target="_blank" style="background-color: #2563eb; color: white; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">Buka Penuh / Unduh</a>
+                <!-- Delete Button overlay inside the editor (only visible during editing if possible, but for simplicity we rely on native backspace deletion). Since contenteditable=false, clicking it and pressing Backspace deletes it instantly. -->
+                <a href="${fileUrl}" target="_blank" style="background-color: #2563eb; color: white; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">Lihat Penuh / Unduh</a>
               </div>
-              <div style="width: 100%; height: 750px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
-                <iframe src="https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true" width="100%" height="100%" style="border: none; display: block; background-color: #e5e5e5;"></iframe>
+              <div style="width: 100%; height: 750px; background-color: #e5e5e5;">
+                <object data="${fileUrl}" type="application/pdf" width="100%" height="100%" style="display: block;">
+                  <div style="padding: 24px; text-align: center; color: #475569;">
+                    <p style="margin-bottom: 12px;">Browser Anda tidak dapat memuat PDF secara langsung.</p>
+                    <a href="${fileUrl}" target="_blank" download style="display: inline-block; background-color: #2563eb; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600;">Klik di sini untuk mengunduh PDF</a>
+                  </div>
+                </object>
               </div>
             </div>
             <p><br></p>`;
           this.selection.insertHTML(pdfHtml);
         } else {
           const genericHtml = `
-            <a href="${fileUrl}" target="_blank" download="${fileName}" style="display: flex; align-items: center; padding: 16px; margin: 16px 0; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; text-decoration: none; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1); font-family: Inter, sans-serif;">
+            <a href="${fileUrl}" contenteditable="false" target="_blank" download="${fileName}" style="display: flex; align-items: center; padding: 16px; margin: 16px 0; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; text-decoration: none; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1); font-family: Inter, sans-serif; cursor: pointer;">
               <div style="background-color: #eff6ff; padding: 12px; border-radius: 10px; margin-right: 16px;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               </div>
               <div style="flex-grow: 1;">
                 <div style="font-weight: 600; color: #0f172a; font-size: 15px; margin-bottom: 2px;">${fileName}</div>
-                <div style="font-size: 13px; color: #64748b;">Klik untuk melihat atau mengunduh dokumen ini</div>
+                <div style="font-size: 13px; color: #64748b;">Klik panel ini untuk mengunduh dokumen</div>
               </div>
             </a>
             <p><br></p>`;
