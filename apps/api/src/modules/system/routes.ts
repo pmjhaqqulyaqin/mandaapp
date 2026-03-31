@@ -30,7 +30,7 @@ router.post('/sync-github', systemController.syncGithubUpdate);
 router.post('/upload-update', upload.single('package'), systemController.uploadUpdatePackage);
 router.post('/rollback', systemController.rollbackUpdatePackage);
 
-// Generic image upload for Jodit/Editor
-router.post('/upload/image', upload.single('image'), systemController.uploadImageHandler);
+// Generic image upload for Jodit/Editor (accepts any field name like 'files[0]', 'image', etc.)
+router.post('/upload/image', upload.any(), systemController.uploadImageHandler);
 
 export const systemRoutes = router;

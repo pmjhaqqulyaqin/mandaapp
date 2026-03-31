@@ -54,13 +54,16 @@ export const rollbackUpdatePackage = async (req: Request, res: Response) => {
 
 export const uploadImageHandler = async (req: Request, res: Response) => {
   try {
-    if (!req.file) {
+    const uploadedFile: Express.Multer.File | undefined = 
+      req.file || (req.files && Array.isArray(req.files) ? req.files[0] : undefined);
+
+    if (!uploadedFile) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const originalPath = req.file.path;
+    const originalPath = uploadedFile.path;
     const parsedPath = path.parse(originalPath);
-    let finalFilename = req.file.filename;
+    let finalFilename = uploadedFile.filename;
 
     const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(parsedPath.ext);
 
