@@ -104,7 +104,7 @@ export const cardTemplates: CardTemplate[] = [
 
 export const defaultCardSettings: CardSettings = {
   schoolName: 'SMA NEGERI BORCELLE',
-  schoolSubtitle: 'mandalotim.sch.id',
+  schoolSubtitle: 'mandualotim.sch.id',
   schoolAddress: '123 Anywhere St., Any City, ST 12345 | +123-456-7890',
   termsText: '1. Kartu ini adalah kartu identitas resmi siswa.\n2. Kartu ini tidak boleh dipindahtangankan.\n3. Apabila menemukan kartu ini, harap mengembalikan ke sekolah.\n4. Berlaku selama menjadi siswa aktif.',
   academicYear: '2025/2026',

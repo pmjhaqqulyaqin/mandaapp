@@ -5,7 +5,7 @@ import FormData from 'form-data';
 import { pipeline } from 'stream/promises';
 
 // Target Frontend URL host in production
-const DEWAHOSTER_URL = process.env.FRONTEND_URL || 'https://mandalotim.sch.id';
+const DEWAHOSTER_URL = process.env.FRONTEND_URL || 'https://mandualotim.sch.id';
 const UPDATE_SECRET = process.env.UPDATE_SECRET || 'MandaApp_Secret_Key_Update_2026!';
 const GITHUB_REPO = 'pmjhaqqulyaqin/mandaapp';
 

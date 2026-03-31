@@ -7,7 +7,7 @@ import axios from 'axios';
 import FormData from 'form-data';
 import fs from 'fs';
 
-const DEWAHOSTER_URL = process.env.FRONTEND_URL || 'https://mandalotim.sch.id';
+const DEWAHOSTER_URL = process.env.FRONTEND_URL || 'https://mandualotim.sch.id';
 const UPDATE_SECRET = process.env.UPDATE_SECRET || 'MandaApp_Secret_Key_Update_2026!';
 
 export class EOfficeService {
