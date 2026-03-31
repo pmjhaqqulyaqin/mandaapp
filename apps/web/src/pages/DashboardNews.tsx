@@ -3,7 +3,6 @@ import { Button, Input, Badge, DataTable, Skeleton, Modal } from '@mandaapp/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { type NewsItem, type AnnouncementCategory } from '../types/news';
 import { useNews } from '../hooks/api/useNews';
-import { compressImage } from '../lib/imageCompressor';
 import { API_BASE_URL } from '../lib/api';
 import JoditEditor from 'jodit-react';
 import { Edit2, Trash2 } from 'lucide-react';
@@ -258,34 +257,6 @@ export const DashboardNews = () => {
           const fileName = fileUrl.split('/').pop() || 'Download File';
           this.selection.insertNode(this.createInside.element('a', { href: fileUrl, target: '_blank', download: fileName }, fileName));
         }
-      },
-      prepareData: async (formData: any) => {
-        let fileKey = null;
-        let fileToUpload = null;
-        
-        for (const key of Array.from(formData.keys())) {
-          const val = formData.get(key);
-          if (val instanceof File || val instanceof Blob) {
-            fileKey = key;
-            fileToUpload = val;
-            break;
-          }
-        }
-        
-        if (fileKey && fileToUpload) {
-          formData.delete(fileKey);
-          try {
-            if (fileToUpload instanceof File || fileToUpload instanceof Blob) {
-              // @ts-ignore
-              fileToUpload = await compressImage(fileToUpload as File, { maxWidth: 1200, maxHeight: 1200, quality: 0.85 });
-            }
-          } catch (e) {
-            console.error("Compression failed in editor, fallback to original", e);
-          }
-          formData.append('image', fileToUpload);
-        }
-        
-        return await Promise.resolve(formData);
       }
     },
     buttons: [
