@@ -207,13 +207,49 @@ export const NewsDetailPage = () => {
                 
                 <div
                   className="prose prose-lg dark:prose-invert max-w-none
-                    prose-headings:font-heading prose-headings:text-text-primary dark:prose-headings:text-text-darkPrimary prose-headings:font-bold
-                    prose-p:text-text-secondary prose-p:leading-relaxed prose-p:text-[17px]
-                    prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                    prose-img:rounded-2xl prose-img:shadow-md prose-img:mx-auto prose-img:mt-8 prose-img:max-h-[500px] prose-img:w-auto prose-img:object-contain
                     prose-blockquote:border-l-primary prose-blockquote:bg-gray-50 dark:prose-blockquote:bg-gray-800/50 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:rounded-r-xl prose-blockquote:not-italic"
-                  dangerouslySetInnerHTML={{ __html: article.content }}
-                />
+                >
+                  <style>{`
+                    .prose .pdf-container {
+                      max-width: 100%;
+                      overflow: hidden;
+                    }
+                    @media (max-width: 640px) {
+                      .prose .pdf-header {
+                        flex-direction: column;
+                        align-items: flex-start !important;
+                        gap: 16px !important;
+                      }
+                      .prose .pdf-header div:last-child {
+                        width: 100%;
+                      }
+                      .prose .pdf-header a {
+                        display: block !important;
+                        text-align: center;
+                      }
+                      .prose .pdf-body object, 
+                      .prose .pdf-body iframe {
+                        height: 500px !important;
+                      }
+                    }
+                    /* Dark Mode overrides for the PDF Card */
+                    .dark .prose .pdf-container {
+                      background: #1a1a1a !important;
+                      border-color: #333 !important;
+                    }
+                    .dark .prose .pdf-header {
+                      background: #262626 !important;
+                      border-color: #333 !important;
+                    }
+                    .dark .prose .pdf-header div div:first-child {
+                      color: #f1f5f9 !important;
+                    }
+                    .dark .prose .pdf-header div div:last-child {
+                      color: #94a3b8 !important;
+                    }
+                  `}</style>
+                  <div dangerouslySetInnerHTML={{ __html: article.content }} />
+                </div>
               </article>
 
               {/* Sidebar Area */}

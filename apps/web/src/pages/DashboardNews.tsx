@@ -258,13 +258,29 @@ export const DashboardNews = () => {
           this.selection.insertImage(fileUrl);
         } else if (isPdf) {
           const pdfHtml = `
-            <div class="pdf-container" style="margin: 20px 0;">
-              <p style="margin-bottom: 8px;">
-                <span style="font-weight:bold; color:#1e293b;">📄 Dokumen: ${fileName}</span>
-                <span style="margin: 0 10px;">|</span>
-                <a href="${fileUrl}" target="_blank" style="color: #2563eb; text-decoration: underline;">Buka di Tab Baru / Unduh</a>
-              </p>
-              <iframe class="jodit_iframe" src="https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true" width="100%" height="700" style="border: 2px solid #e2e8f0; border-radius: 8px; display: block; background: #e5e5e5;"></iframe>
+            <div class="pdf-container" style="margin: 32px 0; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; font-family: 'Inter', sans-serif;">
+              <div class="pdf-header" style="padding: 16px 24px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <span style="font-size: 24px;">📄</span>
+                  <div>
+                    <div style="font-weight: 700; color: #1e293b; font-size: 14px; line-height: 1.2;">${fileName}</div>
+                    <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Dokumen Resmi KMA Kemenag</div>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <a href="${fileUrl}" target="_blank" style="padding: 8px 16px; background: #2563eb; color: white; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 600; transition: all 0.2s;">Buka / Unduh</a>
+                </div>
+              </div>
+              <div class="pdf-body" style="background: #525659; position: relative; min-height: 700px;">
+                <object data="${fileUrl}" type="application/pdf" width="100%" height="700px" style="display: block;">
+                  <iframe src="${fileUrl}" width="100%" height="700px" style="border: none; background: #fff;">
+                    <div style="padding: 40px; text-align: center; background: #fff;">
+                      <p style="color: #64748b; margin-bottom: 16px;">Browser Anda tidak dapat menampilkan preview PDF secara langsung.</p>
+                      <a href="${fileUrl}" target="_blank" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">Klik di sini untuk mengunduh dokumen</a>
+                    </div>
+                  </iframe>
+                </object>
+              </div>
             </div>
             <p><br></p>`;
           this.selection.insertHTML(pdfHtml);
