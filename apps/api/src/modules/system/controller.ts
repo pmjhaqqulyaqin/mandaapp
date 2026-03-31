@@ -58,31 +58,42 @@ export const uploadImageHandler = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Convert to WebP
     const originalPath = req.file.path;
     const parsedPath = path.parse(originalPath);
-    const webpFilename = `${parsedPath.name}.webp`;
-    const webpPath = path.join(parsedPath.dir, webpFilename);
+    let finalFilename = req.file.filename;
 
-    await sharp(originalPath)
-        .webp({ quality: 80, effort: 4 })
-        .toFile(webpPath);
+    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(parsedPath.ext);
 
-    fs.unlink(originalPath, (err) => {
-      if (err) console.error("Failed to delete original system image after WebP conversion:", err);
-    });
+    if (isImage) {
+      if (parsedPath.ext.toLowerCase() !== '.webp') {
+        const webpFilename = `${parsedPath.name}.webp`;
+        const webpPath = path.join(parsedPath.dir, webpFilename);
+
+        await sharp(originalPath)
+            .webp({ quality: 80, effort: 4 })
+            .toFile(webpPath);
+
+        fs.unlink(originalPath, (err) => {
+          if (err) console.error("Failed to delete original system image after WebP conversion:", err);
+        });
+
+        finalFilename = webpFilename;
+      }
+    }
 
     const protocol = req.protocol;
     const host = req.get('host');
     const effectiveProtocol = host?.includes('localhost') ? protocol : 'https';
-    const fileUrl = `${effectiveProtocol}://${host}/uploads/${webpFilename}`;
+    const fileUrl = `${effectiveProtocol}://${host}/uploads/${finalFilename}`;
+
+    const filePathToStat = path.join(parsedPath.dir, finalFilename);
 
     res.status(200).json({
       success: true,
       data: {
         url: fileUrl,
-        name: webpFilename,
-        size: fs.statSync(webpPath).size
+        name: finalFilename,
+        size: fs.statSync(filePathToStat).size
       }
     });
   } catch (error: any) {

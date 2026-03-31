@@ -76,22 +76,27 @@ export class GalleryController {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      // Convert to WebP using sharp
       const originalPath = req.file.path;
       const parsedPath = path.parse(originalPath);
-      const webpFilename = `${parsedPath.name}.webp`;
-      const webpPath = path.join(parsedPath.dir, webpFilename);
+      let finalFilename = req.file.filename;
 
-      await sharp(originalPath)
-        .webp({ quality: 80, effort: 4 })
-        .toFile(webpPath);
+      // Only convert if it's not already a webp or svg
+      if (parsedPath.ext.toLowerCase() !== '.webp' && parsedPath.ext.toLowerCase() !== '.svg') {
+        const webpFilename = `${parsedPath.name}.webp`;
+        const webpPath = path.join(parsedPath.dir, webpFilename);
 
-      // Delete the original uploaded file to save space
-      fs.unlink(originalPath, (err) => {
-        if (err) console.error("Failed to delete original image after WebP conversion:", err);
-      });
+        await sharp(originalPath)
+          .webp({ quality: 80, effort: 4 })
+          .toFile(webpPath);
 
-      const url = `/uploads/${webpFilename}`;
+        // Delete the original uploaded file to save space
+        fs.unlink(originalPath, (err) => {
+          if (err) console.error("Failed to delete original image after WebP conversion:", err);
+        });
+        finalFilename = webpFilename;
+      }
+
+      const url = `/uploads/${finalFilename}`;
       res.json({ url });
     } catch (error: any) {
       console.error("Gallery upload error:", error);
