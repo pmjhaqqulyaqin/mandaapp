@@ -264,7 +264,7 @@ export const DashboardNews = () => {
                 <span style="margin: 0 10px;">|</span>
                 <a href="${fileUrl}" target="_blank" style="color: #2563eb; text-decoration: underline;">Buka di Tab Baru / Unduh</a>
               </p>
-              <embed src="${fileUrl}" type="application/pdf" width="100%" height="700" style="border: 2px solid #e2e8f0; border-radius: 8px; display: block; background: #e5e5e5;">
+              <iframe class="jodit_iframe" src="https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true" width="100%" height="700" style="border: 2px solid #e2e8f0; border-radius: 8px; display: block; background: #e5e5e5;"></iframe>
             </div>
             <p><br></p>`;
           this.selection.insertHTML(pdfHtml);
