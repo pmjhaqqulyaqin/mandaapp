@@ -267,7 +267,7 @@ export const DashboardNews = () => {
                 <a href="${fileUrl}" target="_blank" style="background-color: #2563eb; color: white; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">Buka Penuh / Unduh</a>
               </div>
               <div style="width: 100%; height: 750px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
-                <iframe src="${fileUrl}" width="100%" height="100%" style="border: none; display: block; background-color: #e5e5e5;"></iframe>
+                <iframe src="https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true" width="100%" height="100%" style="border: none; display: block; background-color: #e5e5e5;"></iframe>
               </div>
             </div>
             <p><br></p>`;
