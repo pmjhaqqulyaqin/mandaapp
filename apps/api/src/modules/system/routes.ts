@@ -33,4 +33,8 @@ router.post('/rollback', systemController.rollbackUpdatePackage);
 // Generic image upload for Jodit/Editor (accepts any field name like 'files[0]', 'image', etc.)
 router.post('/upload/image', upload.any(), systemController.uploadImageHandler);
 
+// Explicitly serve files through Node API so we can strictly control HTTP headers
+// and bypass any Nginx blocks that might be enforcing octet-stream attachments on /uploads
+router.get('/file/:filename', systemController.serveFileHandler);
+
 export const systemRoutes = router;

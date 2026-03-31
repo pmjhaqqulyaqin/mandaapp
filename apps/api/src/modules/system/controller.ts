@@ -4,6 +4,26 @@ import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
 
+export const serveFileHandler = async (req: Request, res: Response) => {
+  try {
+    const filename = req.params.filename;
+    const filePath = path.join(process.cwd(), 'uploads', filename);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    if (filename.toLowerCase().endsWith('.pdf')) {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    }
+
+    res.sendFile(filePath);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to serve file', details: error.message });
+  }
+};
+
 export const getSystemStatus = async (req: Request, res: Response) => {
   try {
     const status = await systemService.getSystemStatus();
@@ -87,7 +107,9 @@ export const uploadImageHandler = async (req: Request, res: Response) => {
     const protocol = req.protocol;
     const host = req.get('host');
     const effectiveProtocol = host?.includes('localhost') ? protocol : 'https';
-    const fileUrl = `${effectiveProtocol}://${host}/uploads/${finalFilename}`;
+    // Use the API route to serve the file so we can explicitly inject Content-Disposition: inline headers
+    // bypassing any Nginx static location blocks that force octet-stream downloads.
+    const fileUrl = `${effectiveProtocol}://${host}/api/system/file/${finalFilename}`;
 
     const filePathToStat = path.join(parsedPath.dir, finalFilename);
 
