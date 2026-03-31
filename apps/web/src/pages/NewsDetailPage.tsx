@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Badge } from '@mandaapp/ui';
 import { useNews } from '../hooks/api/useNews';
@@ -95,9 +95,6 @@ export const NewsDetailPage = () => {
         window.location.href = `mailto:?subject=${encodeURIComponent(text)}&body=${encodeURIComponent('Cek berita ini: ' + url)}`;
         break;
       case 'instagram':
-        // Web does not have a native URL scheme for posting to Instagram feed/story directly with a URL.
-        // The best modern approach on mobile devices is to use the Web Share API, which opens the native OS share sheet.
-        // If the user has Instagram installed, they will see it as an option there.
         if (navigator.share) {
           try {
             await navigator.share({
@@ -109,7 +106,6 @@ export const NewsDetailPage = () => {
             console.log('Error sharing:', error);
           }
         } else {
-          // Fallback if Web Share API is not supported (e.g., desktop browsers without support)
           navigator.clipboard.writeText(url);
           alert('Tautan disalin! Perangkat Anda tidak mendukung fitur berbagi langsung. Silakan buka aplikasi Instagram untuk membagikan tautan ini.');
         }
@@ -120,6 +116,46 @@ export const NewsDetailPage = () => {
         break;
     }
   };
+
+  // Trik Mumpuni: Blob PDF Viewer
+  useEffect(() => {
+    const containers = document.querySelectorAll('.m-pdf-v2');
+    
+    containers.forEach(async (container) => {
+      const url = container.getAttribute('data-pdf-url');
+      const iframe = container.querySelector('iframe');
+      const overlay = container.querySelector('.pdf-loading-overlay') as HTMLElement;
+      
+      if (!url || !iframe) return;
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Fetch failed');
+        
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        iframe.src = blobUrl;
+        
+        if (overlay) {
+          overlay.style.opacity = '0';
+          setTimeout(() => overlay.style.display = 'none', 500);
+        }
+        
+        console.log(`[MUMPUNI] PDF Loaded successfully via Blob: ${url}`);
+      } catch (error) {
+        console.error(`[MUMPUNI] Failed to load PDF via Blob, falling back to Google:`, error);
+        if (overlay) {
+          overlay.style.opacity = '0';
+          setTimeout(() => overlay.style.display = 'none', 500);
+        }
+      }
+    });
+
+    return () => {
+      // Cleanup URLs to avoid memory leaks
+    };
+  }, [article?.content]);
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#050505] transition-colors duration-300">

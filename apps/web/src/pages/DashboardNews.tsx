@@ -259,22 +259,26 @@ export const DashboardNews = () => {
         } else if (isPdf) {
           const pdfViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
           const pdfHtml = `
-            <div class="pdf-container" style="margin: 32px 0; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; font-family: 'Inter', sans-serif;">
+            <div class="pdf-container m-pdf-v2" data-pdf-url="${fileUrl}" style="margin: 32px 0; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; font-family: 'Inter', sans-serif;">
               <div class="pdf-header" style="padding: 16px 24px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 12px;">
                   <span style="font-size: 24px;">📄</span>
                   <div>
                     <div style="font-weight: 700; color: #1e293b; font-size: 14px; line-height: 1.2;">${fileName}</div>
-                    <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Dokumen Resmi KMA Kemenag</div>
+                    <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Dokumen Resmi Mandaapp (Blob Viewer READY)</div>
                   </div>
                 </div>
                 <div style="display: flex; gap: 8px;">
                   <a href="${fileUrl}" target="_blank" download style="padding: 8px 16px; background: #2563eb; color: white; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 600;">Unduh PDF</a>
-                  <a href="${fileUrl}" target="_blank" style="padding: 8px 16px; border: 1px solid #e2e8f0; background: white; color: #1e293b; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 600;">Tab Baru</a>
                 </div>
               </div>
-              <div class="pdf-body" style="background: #f1f5f9; min-height: 700px; display: flex; align-items: center; justify-content: center;">
+              <div class="pdf-body-viewer" style="background: #f8fafc; min-height: 700px; display: flex; align-items: center; justify-content: center; position: relative;">
                 <iframe class="jodit_iframe" src="${pdfViewerUrl}" width="100%" height="700px" style="border: none; display: block; background: #f1f5f9;"></iframe>
+                <div class="pdf-loading-overlay" style="position: absolute; inset: 0; background: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; pointer-events: none;">
+                  <div style="width: 48px; h-48px; border: 4px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; animate: spin 1s linear infinite;"></div>
+                  <style>@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }</style>
+                  <p style="margin-top: 16px; font-size: 14px; color: #64748b; font-weight: 500;">Memuat Dokumen...</p>
+                </div>
               </div>
             </div>
             <p><br></p>`;

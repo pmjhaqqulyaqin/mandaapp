@@ -16,9 +16,11 @@ export const serveFileHandler = async (req: Request, res: Response) => {
     if (filename.toLowerCase().endsWith('.pdf')) {
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
-      // Prevent Chrome from blocking the embed
+      // Allow the frontend to fetch this file as a blob
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET');
       res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-      res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://mandualotim.sch.id https://*.mandualotim.sch.id");
+      res.setHeader('Content-Security-Policy', "frame-ancestors 'self' *");
     }
 
     res.sendFile(filePath);
