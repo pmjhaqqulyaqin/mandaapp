@@ -119,41 +119,88 @@ export const NewsDetailPage = () => {
 
   // Trik Mumpuni: Blob PDF Viewer
   useEffect(() => {
-    const containers = document.querySelectorAll('.m-pdf-v2');
-    
-    containers.forEach(async (container) => {
+    // Function to process a single PDF container
+    const processContainer = async (container: Element) => {
+      if (container.getAttribute('data-processed')) return;
+      
       const url = container.getAttribute('data-pdf-url');
       const iframe = container.querySelector('iframe');
       const overlay = container.querySelector('.pdf-loading-overlay') as HTMLElement;
       
       if (!url || !iframe) return;
+      container.setAttribute('data-processed', 'true');
 
       try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Fetch failed');
+        console.log(`[MUMPUNI] Attempting to fetch PDF: ${url}`);
+        
+        // Timeout for the fetch to avoid hanging forever
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         
         const blob = await response.blob();
+        if (blob.size < 100) throw new Error('Blob too small, likely an error message');
+        
         const blobUrl = URL.createObjectURL(blob);
         
-        iframe.src = blobUrl;
-        
-        if (overlay) {
-          overlay.style.opacity = '0';
-          setTimeout(() => overlay.style.display = 'none', 500);
+        // Use object/embed instead of iframe for Blob PDF to be more robust
+        const bodyViewer = container.querySelector('.pdf-body-viewer');
+        if (bodyViewer) {
+          bodyViewer.innerHTML = `
+            <object data="${blobUrl}" type="application/pdf" width="100%" height="700px" style="display: block; border: none;">
+              <embed src="${blobUrl}" type="application/pdf" width="100%" height="700px" />
+              <div style="padding: 40px; text-align: center;">
+                 <p>Preview tidak didukung di browser ini.</p>
+                 <a href="${url}" target="_blank" style="color: blue; text-decoration: underline;">Unduh File PDF</a>
+              </div>
+            </object>
+          `;
         }
-        
-        console.log(`[MUMPUNI] PDF Loaded successfully via Blob: ${url}`);
+
+        console.log(`[MUMPUNI] PDF successfully rendered via Blob.`);
       } catch (error) {
-        console.error(`[MUMPUNI] Failed to load PDF via Blob, falling back to Google:`, error);
+        console.error(`[MUMPUNI] PDF Loading Error:`, error);
+        // On failure, we keep the original iframe (Google Docs Viewer) as fallback
+        // But we must hide the overlay
+        if (overlay) {
+          overlay.innerHTML = `<p style="color: #ef4444; font-size: 13px;">Gagal memuat preview otomatis. Silakan klik tombol Unduh atau gunakan tombol Tab Baru.</p>`;
+          setTimeout(() => {
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.style.display = 'none', 500);
+          }, 3000);
+        }
+      } finally {
         if (overlay) {
           overlay.style.opacity = '0';
           setTimeout(() => overlay.style.display = 'none', 500);
         }
       }
+    };
+
+    // Initial check
+    const init = () => {
+      const containers = document.querySelectorAll('.m-pdf-v2');
+      containers.forEach(processContainer);
+    };
+
+    // Use a MutationObserver because dangerouslySetInnerHTML might delay DOM insertion
+    const observer = new MutationObserver((mutations) => {
+      const containers = document.querySelectorAll('.m-pdf-v2');
+      if (containers.length > 0) init();
     });
 
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    // Also run with a small delay
+    const timer = setTimeout(init, 500);
+
     return () => {
-      // Cleanup URLs to avoid memory leaks
+      observer.disconnect();
+      clearTimeout(timer);
     };
   }, [article?.content]);
 
