@@ -250,26 +250,41 @@ export const DashboardNews = () => {
         };
       },
       defaultHandlerSuccess: function(this: any, data: any) {
-        this.selection.insertImage(data.files[0]);
+        const fileUrl = data.files[0];
+        const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileUrl);
+        if (isImage) {
+          this.selection.insertImage(fileUrl);
+        } else {
+          const fileName = fileUrl.split('/').pop() || 'Download File';
+          this.selection.insertNode(this.createInside.element('a', { href: fileUrl, target: '_blank', download: fileName }, fileName));
+        }
       },
       prepareData: async (formData: any) => {
-        // Jodit uses 'files' by default, but our backend expects 'image'
-        const file = formData.get('files[0]');
-        formData.delete('files[0]');
+        let fileKey = null;
+        let fileToUpload = null;
         
-        let fileToUpload = file;
-        try {
-          // Compress before upload
-          if (file instanceof File || file instanceof Blob) {
-            // Need to wrap mostly for type safety but File inherits Blob
-            // @ts-ignore
-            fileToUpload = await compressImage(file as File, { maxWidth: 1200, maxHeight: 1200, quality: 0.85 });
+        for (const key of Array.from(formData.keys())) {
+          const val = formData.get(key);
+          if (val instanceof File || val instanceof Blob) {
+            fileKey = key;
+            fileToUpload = val;
+            break;
           }
-        } catch (e) {
-          console.error("Compression failed in editor, fallback to original", e);
         }
-
-        formData.append('image', fileToUpload);
+        
+        if (fileKey && fileToUpload) {
+          formData.delete(fileKey);
+          try {
+            if (fileToUpload instanceof File || fileToUpload instanceof Blob) {
+              // @ts-ignore
+              fileToUpload = await compressImage(fileToUpload as File, { maxWidth: 1200, maxHeight: 1200, quality: 0.85 });
+            }
+          } catch (e) {
+            console.error("Compression failed in editor, fallback to original", e);
+          }
+          formData.append('image', fileToUpload);
+        }
+        
         return await Promise.resolve(formData);
       }
     },
