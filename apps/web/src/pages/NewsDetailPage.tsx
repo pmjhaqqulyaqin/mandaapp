@@ -123,7 +123,13 @@ export const NewsDetailPage = () => {
     const processContainer = async (container: Element) => {
       if (container.getAttribute('data-processed')) return;
       
-      const url = container.getAttribute('data-pdf-url');
+      let url = container.getAttribute('data-pdf-url');
+      
+      // Trik Mumpuni: Ensure we use the correct domain for PDF fetch
+      if (url && url.includes('mandalotim.sch.id')) {
+        url = url.replace('mandalotim.sch.id', 'mandualotim.sch.id');
+        console.log(`[MUMPUNI] Domain corrected: ${url}`);
+      }
       
       const iframe = container.querySelector('iframe');
       const overlay = container.querySelector('.pdf-loading-overlay') as HTMLElement;
