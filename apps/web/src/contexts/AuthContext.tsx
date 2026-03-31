@@ -60,7 +60,7 @@ const STAFF_ROLES: UserRole[] = [
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     // Optimistically load user from localStorage to prevent logout on refresh
-    const savedUser = localStorage.getItem('mandalotim_user');
+    const savedUser = localStorage.getItem('mandualotim_user');
     if (savedUser) {
       try {
         return JSON.parse(savedUser);
@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
   const [isLoading, setIsLoading] = useState(() => {
     // If we have a saved user, we can show the UI immediately while verifying in background
-    return !localStorage.getItem('mandalotim_user');
+    return !localStorage.getItem('mandualotim_user');
   });
 
   // Fetch current session on mount
@@ -91,11 +91,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (data?.user) {
           const parsedUser = parseUser(data.user);
           setUser(parsedUser);
-          localStorage.setItem('mandalotim_user', JSON.stringify(parsedUser));
+          localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
         } else {
           // Explicitly no session returned by the server
           setUser(null);
-          localStorage.removeItem('mandalotim_user');
+          localStorage.removeItem('mandualotim_user');
         }
       } catch (error) {
         console.error('Failed to fetch session (exception):', error);
@@ -122,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data?.user) {
         const parsedUser = parseUser(data.user);
         setUser(parsedUser);
-        localStorage.setItem('mandalotim_user', JSON.stringify(parsedUser));
+        localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
       }
     } finally {
       setIsLoading(false);
@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Logout error:', error);
     } finally {
       setUser(null);
-      localStorage.removeItem('mandalotim_user');
+      localStorage.removeItem('mandualotim_user');
     }
   }, []);
 
@@ -146,10 +146,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data?.user) {
         const parsedUser = parseUser(data.user);
         setUser(parsedUser);
-        localStorage.setItem('mandalotim_user', JSON.stringify(parsedUser));
+        localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
       } else {
         setUser(null);
-        localStorage.removeItem('mandalotim_user');
+        localStorage.removeItem('mandualotim_user');
       }
     } catch (error) {
       console.error('Failed to refresh session:', error);

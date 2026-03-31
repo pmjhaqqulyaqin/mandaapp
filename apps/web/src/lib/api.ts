@@ -12,7 +12,7 @@ export async function apiClient<T>(
   const { data, headers, ...customConfig } = options;
 
   // Get mock user from localStorage for auth header
-  const savedUser = localStorage.getItem('mandalotim_user');
+  const savedUser = localStorage.getItem('mandualotim_user');
   const userId = savedUser ? JSON.parse(savedUser)?.id : undefined;
 
   const isFormData = data instanceof FormData;
@@ -65,7 +65,7 @@ export async function apiUpload(
   formData: FormData, 
   onProgress?: (percent: number) => void
 ) {
-  const savedUser = localStorage.getItem('mandalotim_user');
+  const savedUser = localStorage.getItem('mandualotim_user');
   const userId = savedUser ? JSON.parse(savedUser)?.id : undefined;
 
   const response = await axios.put(`${API_BASE_URL}${endpoint}`, formData, {

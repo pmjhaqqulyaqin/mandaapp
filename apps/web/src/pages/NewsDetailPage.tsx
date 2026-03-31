@@ -123,12 +123,7 @@ export const NewsDetailPage = () => {
     const processContainer = async (container: Element) => {
       if (container.getAttribute('data-processed')) return;
       
-      // Trik Mumpuni: Koreksi domain Typo di Database secara dinamis
-      let url = container.getAttribute('data-pdf-url');
-      if (url?.includes('mandalotim.sch.id')) {
-        console.warn(`[MUMPUNI] Menemukan Typo Domain: ${url}. Melakukan koreksi otomatis...`);
-        url = url.replace('mandalotim.sch.id', 'mandualotim.sch.id');
-      }
+      const url = container.getAttribute('data-pdf-url');
       
       const iframe = container.querySelector('iframe');
       const overlay = container.querySelector('.pdf-loading-overlay') as HTMLElement;
@@ -137,7 +132,7 @@ export const NewsDetailPage = () => {
       container.setAttribute('data-processed', 'true');
 
       try {
-        console.log(`[MUMPUNI] Attempting to fetch PDF: ${url}`);
+        console.log(`[MUMPUNI] PDF BLOB Fetch: ${url}`);
         
         // Timeout for the fetch to avoid hanging forever
         const controller = new AbortController();

@@ -70,7 +70,7 @@ export const DashboardPages = () => {
       format: 'json',
       withCredentials: true,
       headers: {
-        'X-User-Id': localStorage.getItem('mandalotim_user') ? JSON.parse(localStorage.getItem('mandalotim_user')!).id : ''
+        'X-User-Id': localStorage.getItem('mandualotim_user') ? JSON.parse(localStorage.getItem('mandualotim_user')!).id : ''
       },
       insertImageAsBase64URI: false,
       process: (res: any) => {
