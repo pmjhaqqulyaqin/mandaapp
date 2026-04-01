@@ -151,12 +151,12 @@ export const SystemUpdateCenter = () => {
             Pusat Update Sistem
             <ShieldCheck className="w-6 h-6 text-primary" />
           </h1>
-          <p className="text-gray-500 dark:text-gray-400">Kelola integritas dan pembaruan aplikasi MandaApp.</p>
+          <p className="text-gray-500 dark:text-gray-400">Kelola pembaruan otomatis aplikasi MandaApp (Versi Docker VPS).</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 border-emerald-200">
             <Activity className="w-3 h-3 mr-1" />
-            Server: {getStatus.isLoading ? '...' : (getStatus.data?.writable ? 'Ready' : 'Connected')}
+            Server: {getStatus.isLoading ? '...' : (getStatus.data?.environment || 'Ready')}
           </Badge>
           <Button variant="ghost" size="sm" onClick={() => getStatus.refetch()} disabled={getStatus.isRefetching}>
             <RefreshCcw className={`w-4 h-4 ${getStatus.isRefetching ? 'animate-spin' : ''}`} />
@@ -166,10 +166,10 @@ export const SystemUpdateCenter = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <MetricCard
-          title="Versi Saat Ini"
-          value={status?.version || '1.0.0'}
+          title="Versi Saat Ini (Commit)"
+          value={status?.version || 'Unknown'}
           icon={<Clock className="text-primary" />}
-          trend={{ value: 'Latest', isPositive: true }}
+          trend={{ value: 'Active', isPositive: true }}
         />
         <MetricCard
           title="Lingkungan"
@@ -183,7 +183,7 @@ export const SystemUpdateCenter = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="max-w-4xl">
         {/* Method 1: online sync placeholder */}
         <div className="bg-white dark:bg-[#111] rounded-2xl shadow-sm border border-gray-200 dark:border-[#222] p-6 space-y-4 flex flex-col">
           <div className="flex items-center justify-between">
@@ -192,8 +192,8 @@ export const SystemUpdateCenter = () => {
                 <Github className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900 dark:text-white text-lg">Online Update (GitHub)</h3>
-                <p className="text-xs text-gray-500">Sinkronisasi kode dari repositori pusat.</p>
+                <h3 className="font-bold text-gray-900 dark:text-white text-lg">1-Click VPS Update (GitHub)</h3>
+                <p className="text-xs text-gray-500">Sinkronisasi kode dari repositori GitHub & Rebuild Docker Otomatis.</p>
               </div>
             </div>
           </div>
@@ -208,8 +208,8 @@ export const SystemUpdateCenter = () => {
               syncStep === 'idle' ? (
                 <div className="space-y-4">
                   <div className="flex justify-between items-center bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
-                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Versi Baru Tersedia</span>
-                    <Badge className="bg-emerald-500 hover:bg-emerald-600">{updateInfo.latestVersion}</Badge>
+                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Pembaruan Kode Ditemukan!</span>
+                    <Badge className="bg-emerald-500 hover:bg-emerald-600">Commit #{updateInfo.latestVersion}</Badge>
                   </div>
                   <div className="bg-white dark:bg-[#1a1a1a] p-3 rounded-lg text-xs text-gray-500 border border-gray-100 dark:border-[#222]">
                     <p className="font-semibold mb-1">Release Notes:</p>
@@ -221,15 +221,14 @@ export const SystemUpdateCenter = () => {
                      onClick={executeGithubSync}
                      disabled={syncGithub.isPending}
                   >
-                    Mulai Sync Sekarang
+                    🚀 Trigger Rebuild Server Sekarang
                   </Button>
                 </div>
               ) : (
                 <div className="p-6 bg-gray-50 dark:bg-[#0a0a0a] rounded-xl border border-gray-200 dark:border-[#222] space-y-6">
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600 dark:text-gray-400 font-medium">
-                      {syncStep === 'downloading' ? 'Mengunduh sistem...' : 
-                       syncStep === 'processing' ? 'Memasang update...' : 'Selesai!'}
+                    <span className="text-gray-600 dark:text-gray-400 font-medium animate-pulse">
+                      Mengeksekusi "docker compose up -d --build" pada VPS...
                     </span>
                     <span className="text-primary font-bold">{syncStep === 'done' ? '100' : syncProgress}%</span>
                   </div>
@@ -245,10 +244,10 @@ export const SystemUpdateCenter = () => {
 
                   <div className="flex justify-between text-xs">
                     <div className={`flex items-center gap-1 ${syncProgress > 0 ? 'text-primary' : 'text-gray-400'}`}>
-                      <Download className="w-3 h-3" /> Unduh
+                      <Download className="w-3 h-3" /> git pull
                     </div>
                     <div className={`flex items-center gap-1 ${syncStep === 'processing' || syncStep === 'done' ? 'text-primary' : 'text-gray-400'}`}>
-                      <RefreshCcw className={`w-3 h-3 ${syncStep === 'processing' ? 'animate-spin' : ''}`} /> Ekstraksi
+                      <RefreshCcw className={`w-3 h-3 ${syncStep === 'processing' ? 'animate-spin' : ''}`} /> docker build
                     </div>
                     <div className={`flex items-center gap-1 ${syncStep === 'done' ? 'text-emerald-500' : 'text-gray-400'}`}>
                       <CheckCircle2 className="w-3 h-3" /> Selesai
@@ -256,7 +255,10 @@ export const SystemUpdateCenter = () => {
                   </div>
                   
                   {syncStep === 'done' && (
-                     <Button size="sm" className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => window.location.reload()}>Muat Ulang Halaman</Button>
+                     <div className="mt-4 text-center">
+                       <p className="text-xs text-amber-600 mb-2">Mohon tunggu 30-60 detik selagi mesin VPS me-restart aplikasi secara paksa, lalu muat ulang halaman ini.</p>
+                       <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => window.location.reload()}>Muat Ulang Halaman</Button>
+                     </div>
                   )}
                 </div>
               )
@@ -266,8 +268,8 @@ export const SystemUpdateCenter = () => {
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-900 dark:text-white">Sistem Mutakhir</h4>
-                  <p className="text-xs text-gray-500 mt-1">Versi {status?.version || '1.0.0'} adalah versi terbaru saat ini.</p>
+                  <h4 className="font-semibold text-gray-900 dark:text-white">Sistem Sangat Mutakhir</h4>
+                  <p className="text-xs text-gray-500 mt-1">Commit versi {status?.version || '1.0.0'} adalah versi terbaru saat ini. VPS Anda tidak memerlukan pembaruan.</p>
                 </div>
               </div>
             )}
@@ -275,180 +277,22 @@ export const SystemUpdateCenter = () => {
           
           <div className="flex items-center gap-2 text-[10px] text-gray-400">
             <Info className="w-3 h-3" />
-            <span>Memerlukan akses GitHub Personal Access Token di setting server.</span>
-          </div>
-        </div>
-
-        {/* Method 2: Manual ZIP Package */}
-        <div className="bg-white dark:bg-[#111] rounded-2xl shadow-sm border border-gray-200 dark:border-[#222] p-6 space-y-4 flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-primary/10 text-primary rounded-xl">
-                <Upload className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900 dark:text-white text-lg">Manual Update (Zip)</h3>
-                <p className="text-xs text-gray-500">Upload package dist.zip untuk update instan.</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {updateStep === 'idle' ? (
-                <div className="flex items-center justify-center w-full">
-                  <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-200 dark:border-[#222] rounded-xl cursor-pointer bg-gray-50 dark:bg-[#0a0a0a] hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-all group">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <div className="p-3 bg-white dark:bg-[#111] rounded-full shadow-sm mb-3 group-hover:scale-110 transition-transform">
-                        <Upload className="w-6 h-6 text-gray-400 group-hover:text-primary" />
-                      </div>
-                      <p className="mb-1 text-sm text-gray-700 dark:text-gray-300">
-                        <span className="font-semibold text-primary">Klik untuk unggah</span> paket update
-                      </p>
-                      <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">dist.zip (Max 50MB)</p>
-                    </div>
-                    <input type="file" className="hidden" accept=".zip" onChange={handleFileChange} />
-                  </label>
-                </div>
-              ) : (
-                <div className="p-6 bg-gray-50 dark:bg-[#0a0a0a] rounded-xl border border-gray-200 dark:border-[#222] space-y-6">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600 dark:text-gray-400 font-medium">
-                      {updateStep === 'uploading' ? 'Mengunggah file...' : 
-                       updateStep === 'processing' ? 'Mengekstrak paket...' : 'Selesai!'}
-                    </span>
-                    <span className="text-primary font-bold">{updateStep === 'done' ? '100' : uploadProgress}%</span>
-                  </div>
-                  
-                  <div className="w-full h-3 bg-gray-200 dark:bg-[#1a1a1a] rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-primary transition-all duration-300 ease-out flex items-center justify-center"
-                      style={{ width: `${updateStep === 'done' ? 100 : uploadProgress}%` }}
-                    >
-                      <div className="w-full h-full bg-white/20 animate-pulse" />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between text-xs">
-                    <div className={`flex items-center gap-1 ${uploadProgress > 0 ? 'text-primary' : 'text-gray-400'}`}>
-                      <Upload className="w-3 h-3" /> Upload
-                    </div>
-                    <div className={`flex items-center gap-1 ${updateStep === 'processing' || updateStep === 'done' ? 'text-primary' : 'text-gray-400'}`}>
-                      <RefreshCcw className={`w-3 h-3 ${updateStep === 'processing' ? 'animate-spin' : ''}`} /> Ekstraksi
-                    </div>
-                    <div className={`flex items-center gap-1 ${updateStep === 'done' ? 'text-emerald-500' : 'text-gray-400'}`}>
-                      <CheckCircle2 className="w-3 h-3" /> Verifikasi
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {selectedFile && updateStep === 'idle' && (
-                <div className="p-4 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="p-2 bg-primary/20 rounded-lg text-primary">
-                      <History className="w-4 h-4" />
-                    </div>
-                    <div className="overflow-hidden">
-                      <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{selectedFile.name}</p>
-                      <p className="text-[10px] text-gray-500">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB - Siap Kirim</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedFile(null)}>Batal</Button>
-                    <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => setIsUpdateConfirmOpen(true)}>
-                      Mulai Update
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="pt-4 border-t border-gray-100 dark:border-[#222] flex flex-col gap-3">
-            {updateStep === 'done' && (
-               <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/20 p-3 rounded-xl flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400">
-                 <CheckCircle2 className="w-4 h-4" />
-                 Update Berhasil! Refresh halaman untuk melihat perubahan.
-                 <Button size="sm" variant="ghost" className="ml-auto" onClick={() => window.location.reload()}>Refresh</Button>
-               </div>
-            )}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <History className="w-4 h-4 text-gray-400" />
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Punya kendala setelah update?</span>
-              </div>
-              <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="text-amber-600 border-amber-200 hover:bg-amber-50 dark:border-amber-900/30 dark:hover:bg-amber-900/10"
-                  onClick={() => setIsRollbackConfirmOpen(true)}
-              >
-                <RefreshCcw className="w-3 h-3 mr-2" />
-                Rollback ke Backup
-              </Button>
-            </div>
+            <span>Memerlukan akses socket Docker di VPS Anda (Telah disetting). Dilarang menekan update saat masa jam sibuk karena aplikasi akan down sementara (sekitar 1 menit) untuk rebuilding.</span>
           </div>
         </div>
       </div>
 
-      <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/20 rounded-2xl p-6 flex gap-4">
-        <div className="bg-amber-100 dark:bg-amber-900/20 p-3 h-fit rounded-xl text-amber-600">
+      <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/20 rounded-2xl p-6 flex gap-4 max-w-4xl">
+        <div className="bg-amber-100 dark:bg-amber-900/20 p-3 h-fit rounded-xl text-amber-600 shrink-0">
           <AlertTriangle className="w-6 h-6" />
         </div>
         <div className="space-y-1">
-          <h4 className="font-bold text-amber-900 dark:text-amber-100">Protokol Keamanan & Backup</h4>
+          <h4 className="font-bold text-amber-900 dark:text-amber-100">Protokol Pembaruan Docker (Hati-hati!)</h4>
           <p className="text-sm text-amber-800 dark:text-amber-200/70 leading-relaxed">
-            Sistem Update Center menggunakan skrip bridge yang aman. Setiap pembaruan yang Anda pasang akan secara otomatis membuat cadangan (backup) di server Dewahoster. Jika terjadi kegagalan pemuatan halaman setelah update, gunakan fitur <strong>Rollback</strong> untuk mengembalikan kondisi sistem dalam sekejap.
+            Sistem Update ini bersifat radikal dengan fitur <strong>Docker-in-Docker Socket Mounting</strong>. Ketika sinkronisasi dimulai, Admin API Anda akan memberikan instruksi *shell* ke sistem CentOS/Ubuntu VPS secara gaib untuk membunuh dan mengkompilasi ulang aplikasi ini. Tolong sediakan jeda <strong>1 Menit</strong> setelah menekan tombol jangan akses web sama sekali, hingga notifikasi 502 Bad Gateway di depan hilang.
           </p>
         </div>
       </div>
-
-      {/* Confirmation Modals */}
-      <Modal 
-        isOpen={isUpdateConfirmOpen} 
-        onClose={() => setIsUpdateConfirmOpen(false)}
-        title="Konfirmasi Pembaruan Sistem"
-      >
-        <div className="space-y-4">
-          <div className="p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/20 rounded-xl">
-             <p className="text-sm text-amber-900 dark:text-amber-100 font-medium">
-                Peringatan: Proses ini akan menimpa file frontend Anda di server Dewahoster.
-             </p>
-          </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Sistem akan mengunggah file ZIP dan mengekstraknya di Dewahoster. Proses ini biasanya memakan waktu 30-60 detik tergantung besar file. Lanjutkan?
-          </p>
-          <div className="flex gap-2 justify-end">
-            <Button variant="ghost" onClick={() => setIsUpdateConfirmOpen(false)}>Batal</Button>
-            <Button onClick={executeManualUpdate} disabled={uploadUpdate.isPending}>
-              Mulai Upload & Install
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal 
-        isOpen={isRollbackConfirmOpen} 
-        onClose={() => setIsRollbackConfirmOpen(false)}
-        title="Kembalikan Versi (Rollback)?"
-      >
-        <div className="space-y-4">
-          <div className="p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/20 rounded-xl flex gap-3">
-             <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
-             <p className="text-sm text-red-900 dark:text-red-100 font-medium">
-                Sistem akan kembali ke kondisi cadangan (*backup*) terakhir yang tersimpan.
-             </p>
-          </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Gunakan fitur ini hanya jika versi saat ini mengalami error atau tidak bisa diakses. Perubahan terbaru yang belum di-backup akan hilang.
-          </p>
-          <div className="flex gap-2 justify-end">
-            <Button variant="ghost" onClick={() => setIsRollbackConfirmOpen(false)}>Batal</Button>
-            <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={executeRollback} disabled={rollbackUpdate.isPending}>
-              {rollbackUpdate.isPending ? 'Proses Rollback...' : 'Ya, Rollback Sekarang'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 };

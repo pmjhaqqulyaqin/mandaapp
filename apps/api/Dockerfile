@@ -1,6 +1,9 @@
 FROM node:20-alpine
 WORKDIR /app
 
+# Enable Online Updater: Install git and docker-cli to manipulate host docker socket
+RUN apk add --no-cache git docker-cli docker-cli-compose
+
 # 1. Copy root package files
 COPY package*.json ./
 
