@@ -8,13 +8,13 @@ import {
 import { toast } from 'sonner';
 
 const TABS = [
-  { id: 'surat-keterangan', label: 'Surat Keterangan', short: 'Suket', icon: <FileText className="w-4 h-4" /> },
+  { id: 'surat-keterangan', label: 'Surat Keterangan', short: 'Surat Keterangan', icon: <FileText className="w-4 h-4" /> },
   { id: 'legalisir-online', label: 'Legalisir Online', short: 'Legalisir', icon: <GraduationCap className="w-4 h-4" /> },
   { id: 'izin-siswa', label: 'Izin Siswa', short: 'Izin Siswa', icon: <UserCheck className="w-4 h-4" /> },
-  { id: 'izin-penelitian', label: 'Izin Penelitian', short: 'Penelitian', icon: <SearchIcon className="w-4 h-4" /> },
-  { id: 'izin-sosialisasi', label: 'Izin Sosialisasi', short: 'Sosialisasi', icon: <Megaphone className="w-4 h-4" /> },
-  { id: 'izin-magang', label: 'Izin Magang', short: 'Magang', icon: <Briefcase className="w-4 h-4" /> },
-  { id: 'buku-tamu', label: 'Buku Tamu', short: 'Tamu', icon: <BookOpen className="w-4 h-4" /> },
+  { id: 'izin-penelitian', label: 'Izin Penelitian', short: 'Izin Penelitian', icon: <SearchIcon className="w-4 h-4" /> },
+  { id: 'izin-sosialisasi', label: 'Izin Sosialisasi', short: 'Izin Sosialisasi', icon: <Megaphone className="w-4 h-4" /> },
+  { id: 'izin-magang', label: 'Izin Magang', short: 'Izin Magang', icon: <Briefcase className="w-4 h-4" /> },
+  { id: 'buku-tamu', label: 'Buku Tamu', short: 'Buku Tamu', icon: <BookOpen className="w-4 h-4" /> },
   { id: 'layanan-pengaduan', label: 'Layanan Pengaduan', short: 'Pengaduan', icon: <MessageSquare className="w-4 h-4" /> },
 ];
 
