@@ -272,3 +272,23 @@ export const masterKkas = pgTable("master_kka", {
   aktif: boolean("aktif").default(true),
   createdAt: timestamp("created_at").defaultNow()
 });
+
+// E-PTSP (Layanan Publik Terpadu)
+export const serviceRequests = pgTable("service_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ticketId: varchar("ticket_id", { length: 50 }).unique().notNull(),
+  type: varchar("type", { length: 100 }).notNull(), // e.g. "Surat Keterangan", "Legalisir Online"
+  applicantName: varchar("applicant_name", { length: 255 }).notNull(),
+  nisn: varchar("nisn", { length: 50 }),
+  birthPlace: varchar("birth_place", { length: 100 }),
+  birthDate: date("birth_date"),
+  address: text("address"),
+  email: varchar("email", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 50 }),
+  purpose: text("purpose"),
+  attachmentUrl: varchar("attachment_url", { length: 500 }),
+  status: varchar("status", { length: 20 }).default("pending"), // pending, processing, completed, rejected
+  adminReply: text("admin_reply"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});

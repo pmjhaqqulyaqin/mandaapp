@@ -104,6 +104,13 @@ const ALL_MENU_ITEMS = [
     group: 'system',
   },
   {
+    key: 'ptsp',
+    label: 'Pusat Layanan',
+    href: '/dashboard/services',
+    icon: <MessageSquare size={16} />,
+    group: 'system',
+  },
+  {
     key: 'menus',
     label: 'Manajemen Menu',
     href: '/dashboard/menus',
@@ -144,6 +151,7 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'gallery': 'gallery',
   'contacts': 'contacts',
   'pages': 'pages',
+  'services': 'ptsp',
   'menus': 'menus',
   'e-office': 'e-office',
   'settings': 'settings',

@@ -16,6 +16,7 @@ import { DashboardSettings } from './pages/DashboardSettings';
 import { DashboardUsers } from './pages/DashboardUsers';
 import { DashboardPages } from './pages/dashboard/DashboardPages';
 import { DashboardMenus } from './pages/dashboard/DashboardMenus';
+import { DashboardServices } from './pages/dashboard/DashboardServices';
 import { DashboardStudents } from './pages/DashboardStudents';
 import { DashboardClasses } from './pages/DashboardClasses';
 import { DashboardEmployees } from './pages/DashboardEmployees';
@@ -75,6 +76,7 @@ function App() {
           <Route path="menus" element={<DashboardMenus />} />
           <Route path="e-office" element={<EOfficePage />} />
           <Route path="updates" element={<SystemUpdateCenter />} />
+          <Route path="services" element={<DashboardServices />} />
         </Route>
       </Routes>
       <FloatingActionButton />

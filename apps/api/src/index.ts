@@ -22,6 +22,7 @@ import { systemRoutes } from './modules/system/routes';
 import majorsRoutes from './modules/majors/routes';
 import classesRoutes from './modules/classes/routes';
 import employeesRoutes from './modules/employees/routes';
+import { ptspRoutes } from './modules/ptsp/routes';
 
 dotenv.config();
 
@@ -135,6 +136,7 @@ app.use("/api/system", systemRoutes);
 app.use("/api/majors", majorsRoutes);
 app.use("/api/classes", classesRoutes);
 app.use("/api/employees", employeesRoutes);
+app.use("/api/ptsp", ptspRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
