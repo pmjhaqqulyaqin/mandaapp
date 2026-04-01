@@ -93,7 +93,12 @@ const systemFields = [
   { key: 'footer_credit_text', label: 'Teks Credit Footer', placeholder: 'Powered by Humas Mandalotim' },
   { key: 'primary_color', label: 'Warna Primer', placeholder: '#3B82F6', type: 'color' },
   { key: 'items_per_page', label: 'Items per Page', placeholder: '10', type: 'number' },
-  { key: 'maintenance_mode', label: 'Mode Maintenance', type: 'toggle' },
+  { key: 'maintenance_mode', label: 'Mode Maintenance Aktif', type: 'toggle' },
+  { key: 'maintenance_title', label: 'Judul Mode Maintenance', placeholder: 'SITUS SEDANG DALAM PEMELIHARAAN' },
+  { key: 'maintenance_message', label: 'Pesan Mode Maintenance', placeholder: 'Kami sedang melakukan pembaruan...', type: 'textarea' },
+  { key: 'maintenance_estimate', label: 'Estimasi Waktu', placeholder: '± 30 menit' },
+  { key: 'maintenance_contact_text', label: 'Teks Tombol Kontak (Opsional)', placeholder: 'HUBUNGI KAMI' },
+  { key: 'maintenance_contact_url', label: 'URL Tombol Kontak (Opsional)', placeholder: 'https://wa.me/...' },
   { key: 'allow_guest_contact', label: 'Izinkan Kontak Tamu', type: 'toggle' },
   { key: 'hero_animation_enabled', label: 'Aktifkan Animasi Kartun (Landing Page)', type: 'toggle' },
   { key: 'hero_slider_duration', label: 'Jeda Geser Banner Slider (Detik)', type: 'number', placeholder: '8' },
@@ -180,6 +185,21 @@ const InputField = ({
             className="flex-1 px-4 py-2.5 rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-[#111] text-text-primary dark:text-text-darkPrimary text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-shadow"
           />
         </div>
+      </div>
+    );
+  }
+
+  if (type === 'textarea') {
+    return (
+      <div className="flex flex-col gap-1.5 md:col-span-2">
+        <label className="text-sm font-medium text-text-primary dark:text-text-darkPrimary">{label}</label>
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          rows={3}
+          className="w-full px-4 py-2.5 rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-[#111] text-text-primary dark:text-text-darkPrimary text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-shadow resize-y"
+        />
       </div>
     );
   }

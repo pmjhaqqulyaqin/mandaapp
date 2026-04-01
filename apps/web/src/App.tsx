@@ -22,6 +22,7 @@ import { DashboardEmployees } from './pages/DashboardEmployees';
 import { SelectRolePage } from './pages/SelectRolePage';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { MaintenanceGuard } from './components/MaintenanceGuard';
 import { useFavicon } from './hooks/useFavicon';
 import { EOfficePage } from './pages/eoffice/EOfficePage';
 import { SystemUpdateCenter } from './pages/dashboard/SystemUpdateCenter';
@@ -36,11 +37,11 @@ function App() {
     <AuthProvider>
       <Router>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/news" element={<NewsPage />} />
-        <Route path="/news/:id" element={<NewsDetailPage />} />
-        <Route path="/gallery" element={<GalleryPage />} />
-        <Route path="/page/:slug" element={<DynamicPage />} />
+        <Route path="/" element={<MaintenanceGuard><LandingPage /></MaintenanceGuard>} />
+        <Route path="/news" element={<MaintenanceGuard><NewsPage /></MaintenanceGuard>} />
+        <Route path="/news/:id" element={<MaintenanceGuard><NewsDetailPage /></MaintenanceGuard>} />
+        <Route path="/gallery" element={<MaintenanceGuard><GalleryPage /></MaintenanceGuard>} />
+        <Route path="/page/:slug" element={<MaintenanceGuard><DynamicPage /></MaintenanceGuard>} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/select-role" element={
           <ProtectedRoute>
