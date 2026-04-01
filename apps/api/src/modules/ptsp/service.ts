@@ -16,7 +16,8 @@ export const submitServiceRequest = async (data: any) => {
     email: data.email,
     phone: data.phone || null,
     purpose: data.purpose || null,
-    attachmentUrl: data.attachmentUrl || null
+    attachmentUrl: data.attachmentUrl || null,
+    formData: data.formData || null
   });
 
   // Try to send an initial email confirming we received it

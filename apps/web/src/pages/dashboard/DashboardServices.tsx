@@ -211,10 +211,25 @@ export const DashboardServices = () => {
                </section>
 
                <section>
-                 <h3 className="font-bold text-xs uppercase tracking-wider text-gray-400 mb-3">Keperluan / Laporan</h3>
-                 <div className="bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-xl text-gray-700 dark:text-gray-300 whitespace-pre-wrap border border-blue-100 dark:border-blue-900/30 font-medium">
+                 <h3 className="font-bold text-xs uppercase tracking-wider text-gray-400 mb-3">Keperluan / Keterangan</h3>
+                 <div className="bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-xl text-gray-700 dark:text-gray-300 whitespace-pre-wrap border border-blue-100 dark:border-blue-900/30 font-medium mb-4">
                    {selectedReq.purpose}
                  </div>
+
+                 {/* Show dynamic formData if exists */}
+                 {selectedReq.formData && (
+                   <div className="space-y-4">
+                     {Object.entries(JSON.parse(selectedReq.formData)).map(([key, value]) => (
+                       <div key={key} className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+                         <p className="text-xs text-gray-500 uppercase tracking-tight mb-1">
+                           {key === 'documentType' ? 'Jenis Dokumen' :
+                            key === 'additionalNotes' ? 'Catatan Tambahan' : key}
+                         </p>
+                         <p className="font-semibold text-gray-800 dark:text-gray-100">{value as string}</p>
+                       </div>
+                     ))}
+                   </div>
+                 )}
                  
                  {selectedReq.attachmentUrl && (
                    <div className="mt-4">

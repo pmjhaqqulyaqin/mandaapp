@@ -7,13 +7,16 @@ export const handleSubmit = async (req: Request, res: Response) => {
     let attachmentUrl = null;
 
     if (req.file) {
-      // Typically the host would provide a full URL or we just store relative
       attachmentUrl = `/uploads/${req.file.filename}`;
     }
 
+    // formData comes as a JSON string from the frontend
+    const formData = data.formData || null;
+
     const result = await ptspService.submitServiceRequest({
       ...data,
-      attachmentUrl
+      attachmentUrl,
+      formData
     });
 
     res.status(201).json({ success: true, data: result });

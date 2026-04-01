@@ -287,6 +287,7 @@ export const serviceRequests = pgTable("service_requests", {
   phone: varchar("phone", { length: 50 }),
   purpose: text("purpose"),
   attachmentUrl: varchar("attachment_url", { length: 500 }),
+  formData: text("form_data"), // JSON string for service-specific dynamic fields
   status: varchar("status", { length: 20 }).default("pending"), // pending, processing, completed, rejected
   adminReply: text("admin_reply"),
   createdAt: timestamp("created_at").defaultNow(),

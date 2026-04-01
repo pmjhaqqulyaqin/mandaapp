@@ -4,6 +4,17 @@ import { ArrowLeft, CheckCircle, Search, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Define the service configuration
+// Define the field configuration
+type FormField = {
+  name: string;
+  label: string;
+  type: 'text' | 'email' | 'date' | 'select' | 'textarea';
+  required?: boolean;
+  placeholder?: string;
+  options?: string[]; // For select type
+};
+
+// Define the service configuration
 type ServiceType = {
   id: string;
   slug: string;
@@ -11,16 +22,29 @@ type ServiceType = {
   shortName: string;
   description: string;
   requirements: string[];
+  fields?: FormField[]; // Optional dynamic fields
 };
+
+const DEFAULT_FIELDS: FormField[] = [
+  { name: 'applicantName', label: 'Nama Lengkap Siswa / Pemohon', type: 'text', required: true },
+  { name: 'nisn', label: 'Nomor Identitas (NISN / NIK) - Opsional', type: 'text' },
+  { name: 'birthPlace', label: 'Tempat Lahir', type: 'text' },
+  { name: 'birthDate', label: 'Tanggal Lahir', type: 'date' },
+  { name: 'address', label: 'Alamat Lengkap', type: 'text', required: true },
+  { name: 'email', label: 'E-Mail Pemohon (Email Aktif)', type: 'email', required: true },
+  { name: 'phone', label: 'No Handphone (HP)', type: 'text', required: true },
+  { name: 'purpose', label: 'Hal/Keperluan Spesifik', type: 'text', required: true, placeholder: 'Misal: Surat Keterangan Aktif untuk beasiswa' },
+];
 
 export const SERVICES: ServiceType[] = [
   {
     id: 'surat-keterangan',
-    slug: 'izin-pembuatan-surat-keterangan', // Handled exact user slug
+    slug: 'izin-pembuatan-surat-keterangan',
     title: 'Layanan Pengajuan Pembuatan Surat Keterangan',
     shortName: 'Surat Keterangan',
     description: 'Layanan prima untuk pembuatan Surat Keterangan Aktif, Keterangan Berkelakuan Baik, dll.',
-    requirements: ['Kartu Pelajar/Siswa', 'Data Diri Lengkap']
+    requirements: ['Kartu Pelajar/Siswa', 'Data Diri Lengkap'],
+    fields: DEFAULT_FIELDS
   },
   {
     id: 'legalisir-online',
@@ -28,7 +52,18 @@ export const SERVICES: ServiceType[] = [
     title: 'Layanan Pengajuan Legalisir Ijazah Online',
     shortName: 'Legalisir',
     description: 'Layanan legalisir dokumen resmi madrasah.',
-    requirements: ['Scan Asli Ijazah/SKHUN (PDF/JPG)', 'Bukti Pembayaran (Bila Ada)']
+    requirements: ['Hasil Scan Kualitas Terbaik Berkas/Dokumen Yang akan dilegalisir'],
+    fields: [
+      { name: 'applicantName', label: 'Nama Lengkap Siswa/Alumni', type: 'text', required: true },
+      { name: 'nisn', label: 'No Induk Siswa Nasional (NISN)', type: 'text', required: true },
+      { name: 'birthPlace', label: 'Tempat Lahir', type: 'text', required: true },
+      { name: 'birthDate', label: 'Tanggal Lahir', type: 'date', required: true },
+      { name: 'address', label: 'Alamat Lengkap Pengiriman Dokumen Legalisir', type: 'text', required: true },
+      { name: 'email', label: 'E-Mail Pemohon (Email Aktif)', type: 'email', required: true },
+      { name: 'phone', label: 'No Handphone (HP) yang dapat dihubungi', type: 'text', required: true },
+      { name: 'documentType', label: 'Jenis Dokumen yang akan dilegalisir (Ijazah/Transkrip Nilai/Rapor/SKHUN/SKHUAM)', type: 'select', required: true, options: ['Ijazah', 'Transkrip Nilai', 'Rapor', 'SKHUN', 'SKHUAM', 'Lainnya'] },
+      { name: 'purpose', label: 'Keterangan Tambahan Jika Diperlukan (Misalnya Butuh Soft Copy)', type: 'text', required: true, placeholder: '-' },
+    ]
   },
   {
     id: 'izin-siswa',
@@ -36,7 +71,8 @@ export const SERVICES: ServiceType[] = [
     title: 'Layanan Pengajuan Izin Siswa',
     shortName: 'Izin Siswa',
     description: 'Layanan izin tidak masuk sekolah (Sakit/Izin).',
-    requirements: ['Surat Keterangan Dokter (Bila Sakit)', 'Persetujuan Wali Kelas']
+    requirements: ['Surat Keterangan Dokter (Bila Sakit)', 'Persetujuan Wali Kelas'],
+    fields: DEFAULT_FIELDS
   },
   {
     id: 'izin-penelitian',
@@ -44,7 +80,8 @@ export const SERVICES: ServiceType[] = [
     title: 'Layanan Pengajuan Izin Penelitian',
     shortName: 'Izin Penelitian',
     description: 'Layanan izin observasi/penelitian untuk mahasiswa/umum.',
-    requirements: ['Surat Pengantar dari Universitas/Instansi', 'Proposal Penelitian']
+    requirements: ['Surat Pengantar dari Universitas/Instansi', 'Proposal Penelitian'],
+    fields: DEFAULT_FIELDS
   },
   {
     id: 'izin-sosialisasi',
@@ -52,7 +89,8 @@ export const SERVICES: ServiceType[] = [
     title: 'Layanan Pengajuan Izin Sosialisasi',
     shortName: 'Izin Sosialisasi',
     description: 'Layanan izin penyuluhan atau kunjungan edukatif.',
-    requirements: ['Surat Permohonan Resmi Resmi Instansi', 'Rundown / Materi']
+    requirements: ['Surat Permohonan Resmi Resmi Instansi', 'Rundown / Materi'],
+    fields: DEFAULT_FIELDS
   },
   {
     id: 'izin-magang',
@@ -60,7 +98,8 @@ export const SERVICES: ServiceType[] = [
     title: 'Layanan Pengajuan Izin Magang',
     shortName: 'Izin Magang',
     description: 'Layanan izin Praktik Kerja Industri (Prakerin) / Magang.',
-    requirements: ['Surat Pengantar Magang dari Sekolah', 'Biodata Siswa Magang']
+    requirements: ['Surat Pengantar Magang dari Sekolah', 'Biodata Siswa Magang'],
+    fields: DEFAULT_FIELDS
   },
   {
     id: 'buku-tamu',
@@ -68,7 +107,8 @@ export const SERVICES: ServiceType[] = [
     title: 'Buku Tamu Madrasah',
     shortName: 'Buku Tamu',
     description: 'Registrasi kedatangan tamu resmi atau wali murid.',
-    requirements: ['KTP / Identitas Valid', 'Tujuan Kunjungan yang Jelas']
+    requirements: ['KTP / Identitas Valid', 'Tujuan Kunjungan yang Jelas'],
+    fields: DEFAULT_FIELDS
   },
   {
     id: 'layanan-pengaduan',
@@ -76,13 +116,15 @@ export const SERVICES: ServiceType[] = [
     title: 'Layanan Pengaduan Masyarakat',
     shortName: 'Pengaduan',
     description: 'Saluran pelaporan keluhan/saran bagi warga madrasah dan masyarakat umum.',
-    requirements: ['Bukti Valid Laporan', 'Identitas Jelas (Rahasia Dijaga)']
+    requirements: ['Bukti Valid Laporan', 'Identitas Jelas (Rahasia Dijaga)'],
+    fields: DEFAULT_FIELDS
   }
 ];
 
 export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
   const navigate = useNavigate();
   const service = SERVICES.find(s => pageSlug.includes(s.slug) || s.slug.includes(pageSlug)) || SERVICES[0];
+  const fields = service.fields || DEFAULT_FIELDS;
 
   const [isLoading, setIsLoading] = useState(false);
   const [ticketId, setTicketId] = useState<string | null>(null);
@@ -91,17 +133,8 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
   const [trackInput, setTrackInput] = useState('');
   const [trackResult, setTrackResult] = useState<any>(null);
 
-  // Form State
-  const [formData, setFormData] = useState({
-    applicantName: '',
-    nisn: '',
-    birthPlace: '',
-    birthDate: '',
-    address: '',
-    email: '',
-    phone: '',
-    purpose: '',
-  });
+  // Dynamic Form State
+  const [formData, setFormData] = useState<Record<string, string>>({});
 
   const [file, setFile] = useState<File | null>(null);
 
@@ -110,19 +143,33 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
     setIsLoading(true);
     
     try {
-      // Create FormData payload
+      // Standard core fields to keep in separate columns
+      const CORE_FIELDS = ['applicantName', 'nisn', 'birthPlace', 'birthDate', 'address', 'email', 'phone', 'purpose'];
+      
       const payload = new FormData();
       payload.append('type', service.shortName);
+      
+      const dynamicFields: Record<string, string> = {};
+      
       Object.entries(formData).forEach(([key, value]) => {
-        if (value) payload.append(key, value);
+        if (CORE_FIELDS.includes(key)) {
+          payload.append(key, value);
+        } else {
+          dynamicFields[key] = value;
+        }
       });
+      
+      // Add formData as JSON string if there are any extra fields
+      if (Object.keys(dynamicFields).length > 0) {
+        payload.append('formData', JSON.stringify(dynamicFields));
+      }
+
       if (file) {
         payload.append('attachment', file);
       }
 
       const res = await fetch('/api/ptsp/submit', {
         method: 'POST',
-        // Omit headers, fetch will set auto boundary
         body: payload
       });
       
@@ -190,60 +237,41 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
                 <div className="p-6 md:p-8">
                   <form onSubmit={handleSubmit} className="space-y-6">
                     
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap Siswa / Pemohon <span className="text-red-500">*</span></label>
-                      <input required type="text" value={formData.applicantName} onChange={e => setFormData({ ...formData, applicantName: e.target.value })} 
-                        className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none" />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Nomor Identitas (NISN / NIK) - Opsional</label>
-                      <input type="text" value={formData.nisn} onChange={e => setFormData({ ...formData, nisn: e.target.value })} 
-                        className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50/50 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none" />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Tempat Lahir</label>
-                        <input type="text" value={formData.birthPlace} onChange={e => setFormData({ ...formData, birthPlace: e.target.value })} 
-                          className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none" />
+                    {fields.map((field) => (
+                      <div key={field.name}>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {field.label} {field.required && <span className="text-red-500">*</span>}
+                        </label>
+                        
+                        {field.type === 'select' ? (
+                          <select
+                            required={field.required}
+                            value={formData[field.name] || ''}
+                            onChange={e => setFormData({ ...formData, [field.name]: e.target.value })}
+                            className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none bg-white font-medium"
+                          >
+                            <option value="" disabled>-- Pilih {field.label} --</option>
+                            {field.options?.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input 
+                            required={field.required}
+                            type={field.type} 
+                            placeholder={field.placeholder}
+                            value={formData[field.name] || ''} 
+                            onChange={e => setFormData({ ...formData, [field.name]: e.target.value })} 
+                            className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none" 
+                          />
+                        )}
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Lahir</label>
-                        <input type="date" value={formData.birthDate} onChange={e => setFormData({ ...formData, birthDate: e.target.value })} 
-                          className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none" />
-                      </div>
-                    </div>
+                    ))}
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Alamat Lengkap <span className="text-red-500">*</span></label>
-                      <input required type="text" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} 
-                        className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none" />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">E-Mail Pemohon (Email Aktif) <span className="text-red-500">*</span></label>
-                        <input required type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} 
-                          className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">No Handphone (HP) <span className="text-red-500">*</span></label>
-                        <input required type="text" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} 
-                          className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Hal/Keperluan Spesifik <span className="text-red-500">*</span></label>
-                      <input required type="text" placeholder="Misal: Surat Keterangan Aktif untuk beasiswa" value={formData.purpose} onChange={e => setFormData({ ...formData, purpose: e.target.value })} 
-                        className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none" />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Upload Berkas Persyaratan (Opsional Jika Dibutuhkan)</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Upload Berkas Persyaratan (Wajib)</label>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white">
-                         <input type="file" onChange={e => setFile(e.target.files?.[0] || null)} className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-all outline-none text-sm" />
+                         <input required type="file" onChange={e => setFile(e.target.files?.[0] || null)} className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-all outline-none text-sm" />
                       </div>
                     </div>
 
