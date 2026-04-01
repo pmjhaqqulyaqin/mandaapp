@@ -36,3 +36,5 @@ yarn-error.log*
 
 # Backups and Large Binaries
 *.zip
+*.json.bak
+temp_news.json
