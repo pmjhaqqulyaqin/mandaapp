@@ -3,18 +3,35 @@ import React, { useState, useEffect } from 'react';
 export interface HeroSectionProps {
   logoUrl?: string;
   schoolName?: string;
+  mode?: 'animation' | 'slider';
+  sliderImages?: string[];
+  sliderDuration?: number; // in seconds
 }
 
-export const HeroSection = ({ logoUrl, schoolName }: HeroSectionProps) => {
+export const HeroSection = ({ 
+  logoUrl, 
+  schoolName,
+  mode = 'animation',
+  sliderImages = [],
+  sliderDuration = 8
+}: HeroSectionProps) => {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
   useEffect(() => {
     // Update time every minute
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000);
-    return () => clearInterval(timer);
+    const timeTimer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timeTimer);
   }, []);
+
+  useEffect(() => {
+    if (mode === 'slider' && sliderImages.length > 1) {
+      const slideTimer = setInterval(() => {
+        setCurrentSlideIndex((prev) => (prev + 1) % sliderImages.length);
+      }, sliderDuration * 1000);
+      return () => clearInterval(slideTimer);
+    }
+  }, [mode, sliderImages.length, sliderDuration]);
   const hours = currentTime.getHours();
   const minutes = currentTime.getMinutes();
   const timeInMinutes = hours * 60 + minutes;
@@ -118,15 +135,41 @@ export const HeroSection = ({ logoUrl, schoolName }: HeroSectionProps) => {
     return 'from-[#0B1026] via-[#161B33] to-[#1D2440]';
   };
 
+  const isAnimation = mode === 'animation' || sliderImages.length === 0;
+
   return (
     <section className="relative overflow-hidden w-full h-auto min-h-[50vh] sm:min-h-[60vh] md:min-h-[85vh] pt-24 pb-4 flex flex-col justify-end transition-colors duration-1000 bg-black">
       
-      {/* --- DYNAMIC SKY BACKGROUND (Extends down to 55% to fill black gaps) --- */}
-      <div className={`absolute top-0 left-0 w-full h-[55%] z-[1] bg-gradient-to-b ${getSkyGradient()} transition-colors duration-3000`}></div>
+      {/* --- LAYER 0: SLIDER IMAGES (If Slider Mode) --- */}
+      {!isAnimation && sliderImages.length > 0 && (
+        <div className="absolute inset-0 z-[1] bg-[#0B1026]">
+          {sliderImages.map((img, idx) => (
+            <img 
+              key={`${img}-${idx}`}
+              src={img}
+              alt={`Slider ${idx}`}
+              /** TRICK 3: Preload LCP Instantly */
+              fetchPriority={idx === 0 ? "high" : "auto"}
+              loading={idx === 0 ? "eager" : "lazy"}
+              className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out"
+              /** TRICK 2: Hardware acceleration via opacity */
+              style={{ opacity: currentSlideIndex === idx ? 1 : 0 }}
+            />
+          ))}
+          {/* Subtle gradient overlay to ensure text legibility over any photo */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/40 z-[2] pointer-events-none"></div>
+        </div>
+      )}
 
-      {/* --- CELESTIAL BODIES CLIPPING WINDOW (45% HEIGHT) --- */}
-      <div className="absolute top-0 left-0 w-full h-[45%] z-[2] overflow-hidden pointer-events-none">
-        {/* Layer 1.5: Stars */}
+      {/* --- CELESTIAL & SKY LAYERS (If Animation Mode) --- */}
+      {isAnimation && (
+        <>
+          {/* --- DYNAMIC SKY BACKGROUND (Extends down to 55% to fill black gaps) --- */}
+          <div className={`absolute top-0 left-0 w-full h-[55%] z-[1] bg-gradient-to-b ${getSkyGradient()} transition-colors duration-3000`}></div>
+
+          {/* --- CELESTIAL BODIES CLIPPING WINDOW (45% HEIGHT) --- */}
+          <div className="absolute top-0 left-0 w-full h-[45%] z-[2] overflow-hidden pointer-events-none">
+            {/* Layer 1.5: Stars */}
         {!isDaytime && (
           <div className="absolute inset-0 z-[1] opacity-60">
              {[...Array(60)].map((_, i) => (
@@ -196,6 +239,8 @@ export const HeroSection = ({ logoUrl, schoolName }: HeroSectionProps) => {
       >
         <div className={`absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none`}></div>
       </div>
+      </>
+    )}
 
       {/* --- GLOWING FLOATING SCHOOL IDENTITY OVERLAY --- */}
       <div className="absolute inset-0 z-[20] flex flex-col items-center justify-center pointer-events-none -translate-y-20 sm:-translate-y-28 md:-translate-y-36">

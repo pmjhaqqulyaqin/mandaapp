@@ -66,6 +66,17 @@ export const LandingPage = () => {
     tiktok: get('tiktok_url'),
   };
 
+  // Hero Section Settings
+  const heroMode = get('hero_animation_enabled') === 'false' ? 'slider' : 'animation';
+  const heroSliderDuration = parseInt(get('hero_slider_duration') || '8', 10);
+  const rawHeroImages = [
+    get('hero_image_1'),
+    get('hero_image_2'),
+    get('hero_image_3'),
+    get('hero_image_4'),
+  ].filter(Boolean) as string[];
+  const resolvedHeroImages = rawHeroImages.map(img => img.startsWith('/') ? `${SERVER_BASE}${img}` : img);
+
   return (
     <div className="flex flex-col min-h-screen">
       <SEO />
@@ -74,6 +85,9 @@ export const LandingPage = () => {
         <HeroSection 
           logoUrl={resolvedLogo} 
           schoolName={get('school_name') || 'MAN 2 LOMBOK TIMUR'} 
+          mode={heroMode}
+          sliderDuration={heroSliderDuration}
+          sliderImages={resolvedHeroImages}
         />
         <NewsSection items={newsItems} onReadMore={(id) => navigate(`/news/${id}`)} />
         <QuickLinksSection />

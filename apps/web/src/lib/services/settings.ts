@@ -41,4 +41,17 @@ export const settingsService = {
     if (!response.ok) throw new Error('Upload failed');
     return response.json();
   },
+  uploadHero: async (file: File): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const uploadTarget = `${API_BASE_URL}/system/upload/image`;
+    const response = await fetch(uploadTarget, {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    });
+    if (!response.ok) throw new Error('Upload failed');
+    const result = await response.json();
+    return { url: result.data.url };
+  },
 };

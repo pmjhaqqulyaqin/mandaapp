@@ -95,6 +95,8 @@ const systemFields = [
   { key: 'items_per_page', label: 'Items per Page', placeholder: '10', type: 'number' },
   { key: 'maintenance_mode', label: 'Mode Maintenance', type: 'toggle' },
   { key: 'allow_guest_contact', label: 'Izinkan Kontak Tamu', type: 'toggle' },
+  { key: 'hero_animation_enabled', label: 'Aktifkan Animasi Kartun (Landing Page)', type: 'toggle' },
+  { key: 'hero_slider_duration', label: 'Jeda Geser Banner Slider (Detik)', type: 'number', placeholder: '8' },
 ];
 
 interface WebsiteLink {
@@ -224,6 +226,64 @@ const SaveButton = ({
   </button>
 );
 
+const HeroImageSlot = ({
+  index,
+  value,
+  onUpload,
+  onRemove,
+  isUploading,
+}: {
+  index: number;
+  value: string;
+  onUpload: (file: File) => void;
+  onRemove: () => void;
+  isUploading: boolean;
+}) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="flex flex-col gap-2">
+      <label className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary">Gambar Slide {index}</label>
+      <div 
+        className="w-full relative rounded-xl border-2 border-dashed border-border-light dark:border-border-dark overflow-hidden bg-gray-50 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
+        style={{ aspectRatio: '16/9' }}
+        onClick={() => !value && !isUploading && inputRef.current?.click()}
+      >
+        <input 
+          ref={inputRef} 
+          type="file" 
+          accept="image/*" 
+          className="hidden" 
+          onChange={(e) => {
+            if (e.target.files?.[0]) onUpload(e.target.files[0]);
+            e.target.value = '';
+          }} 
+        />
+        
+        {isUploading ? (
+          <div className="flex flex-col items-center">
+            <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
+          </div>
+        ) : value ? (
+          <>
+            <img src={value} alt={`Slide ${index}`} className="w-full h-full object-cover" />
+            <button 
+              onClick={(e) => { e.stopPropagation(); onRemove(); }}
+              className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-md transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            </button>
+          </>
+        ) : (
+          <div className="flex flex-col items-center opacity-60">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+            <span className="text-xs font-medium">Tambah Gambar</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ── Main Component ──
 
 // Derive server base URL (remove /api suffix)
@@ -237,6 +297,7 @@ export const DashboardSettings = () => {
   const [saveStatus, setSaveStatus] = useState<Record<string, 'idle' | 'saving' | 'saved' | 'error'>>({});
   const [logoUploadStatus, setLogoUploadStatus] = useState<'idle' | 'uploading' | 'done' | 'error'>('idle');
   const [faviconUploadStatus, setFaviconUploadStatus] = useState<'idle' | 'uploading' | 'done' | 'error'>('idle');
+  const [heroUploadStatus, setHeroUploadStatus] = useState<Record<number, boolean>>({});
   const [isDragging, setIsDragging] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
@@ -332,6 +393,39 @@ export const DashboardSettings = () => {
     } catch {
       setFaviconUploadStatus('error');
       setTimeout(() => setFaviconUploadStatus('idle'), 3000);
+    }
+  };
+
+  const handleHeroUpload = async (index: number, file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Ukuran file maksimal 5MB.');
+      return;
+    }
+    setHeroUploadStatus(p => ({ ...p, [index]: true }));
+    try {
+      const result = await settingsService.uploadHero(file);
+      setValue(`hero_image_${index}`, result.url);
+      setSaveStatus(p => ({ ...p, system: 'saving' }));
+      await updateMutation.mutateAsync([{ key: `hero_image_${index}`, value: result.url, group: 'system' }]);
+      setSaveStatus(p => ({ ...p, system: 'saved' }));
+      setTimeout(() => setSaveStatus(p => ({ ...p, system: 'idle' })), 2500);
+    } catch {
+      alert('Gagal mengupload gambar.');
+    } finally {
+      setHeroUploadStatus(p => ({ ...p, [index]: false }));
+    }
+  };
+
+  const handleRemoveHeroList = async (index: number) => {
+    setSaveStatus((p) => ({ ...p, system: 'saving' }));
+    try {
+      await updateMutation.mutateAsync([{ key: `hero_image_${index}`, value: null, group: 'system' }]);
+      setValue(`hero_image_${index}`, '');
+      setSaveStatus((p) => ({ ...p, system: 'saved' }));
+      setTimeout(() => setSaveStatus((p) => ({ ...p, system: 'idle' })), 2500);
+    } catch {
+      setSaveStatus((p) => ({ ...p, system: 'error' }));
+      setTimeout(() => setSaveStatus((p) => ({ ...p, system: 'idle' })), 3000);
     }
   };
 
@@ -753,6 +847,25 @@ export const DashboardSettings = () => {
                     />
                   ))}
                 </div>
+
+                <div className="mt-10 mb-6 p-6 rounded-xl border border-border-light dark:border-border-dark bg-gray-50/50 dark:bg-white/5">
+                  <h3 className="text-md font-bold text-text-primary dark:text-text-darkPrimary mb-2">🖼️ Foto Slider Banner Halaman Depan</h3>
+                  <p className="text-sm text-text-secondary mb-6">Upload gambar foto (Landscape 16:9 disarankan) untuk Slider. Jika Animasi Kartun dinonaktifkan di Pengaturan Sistem di atas, gambar-gambar ini akan digunakan.</p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map(idx => (
+                      <HeroImageSlot 
+                        key={idx}
+                        index={idx}
+                        value={getValue(`hero_image_${idx}`)}
+                        isUploading={!!heroUploadStatus[idx]}
+                        onUpload={(f) => handleHeroUpload(idx, f)}
+                        onRemove={() => handleRemoveHeroList(idx)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
                 <div className="mt-8 flex justify-end">
                   <SaveButton status={saveStatus['system'] || 'idle'} onClick={() => handleSaveGroup('system')} />
                 </div>
