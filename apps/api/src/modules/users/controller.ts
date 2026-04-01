@@ -9,7 +9,7 @@ import { SettingsService } from "../settings/service";
 // All available menu keys
 const ALL_MENU_KEYS = [
   "overview", "news", "calendar", "student-card", "students", "classes", "employees",
-  "gallery", "contacts", "pages", "menus", "settings", "users", "updates", "e-office",
+  "gallery", "contacts", "pages", "menus", "settings", "users", "updates", "e-office", "ptsp",
 ];
 
 const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
