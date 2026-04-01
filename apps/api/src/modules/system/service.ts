@@ -78,36 +78,44 @@ export const rollbackUpdatePackage = async () => {
 
 export const syncGithubUpdate = async () => {
   try {
-    // We execute the git pull and docker compose build command on the HOST via mounted volumes!
-    // Since the API container will be killed and recreated during this process, we spawn it in the background
-    // and immediately return success to the frontend.
-    
-    // Check if /host_app exists
     if (!fs.existsSync('/host_app')) {
       throw new Error('Direktori /host_app tidak ditemukan. Pastikan volume docker-compose diatur dengan benar.');
     }
 
-    // Command runs inside container BUT affects host volume, and docker.sock affects host daemon!
-    const command = `cd /host_app && git pull origin main && docker compose up -d --build`;
+    console.log('Menginisiasi protokol Sibling Container Inception untuk Update...');
 
-    console.log('Menjalankan Pembaruan Mandiri Docker:', command);
+    // 1. Dapatkan lokasi fisik host (VPS path) dari volume /host_app
+    const { stdout: mountStr } = await execPromise(`docker inspect --format='{{json .Mounts}}' mandaapp_api`);
+    const mounts = JSON.parse(mountStr.trim());
+    const hostMount = mounts.find((m: any) => m.Destination === '/host_app');
     
-    // Spawn detached process so it survives when this node server is killed by the docker daemon
-    const { spawn } = require('child_process');
-    const child = spawn('sh', ['-c', command], {
-      detached: true,
-      stdio: 'ignore', // detach completely
-    });
-    
-    child.unref();
+    if (!hostMount || !hostMount.Source) {
+      throw new Error("Gagal melacak direktori asal di VPS Host.");
+    }
+    const hostPath = hostMount.Source; // e.g. /root/mandaapp
+
+    // 2. Dapatkan Image Asli dari mandaapp_api yang punya git & docker-cli
+    const { stdout: imgStr } = await execPromise(`docker inspect --format='{{.Image}}' mandaapp_api`);
+    const apiImageId = imgStr.trim();
+
+    // 3. Bangun Sibiling Container yang berdiri sendiri untuk mengeksekusi bunuh diri & kebangkitan API kita
+    // Menggunakan -d agar Docker daemon yang menjalankan, dan --rm agar kontainer buang sendiri kalau selesai.
+    const updaterCommand = `docker run -d --rm --name mandaapp_auto_updater \
+      -v /var/run/docker.sock:/var/run/docker.sock \
+      -v "${hostPath}:${hostPath}" \
+      -w "${hostPath}" \
+      ${apiImageId} \
+      sh -c "git config --global --add safe.directory '${hostPath}' && git pull origin main && docker compose up -d --build"`;
+
+    await execPromise(updaterCommand);
 
     return {
       success: true,
-      message: 'Perintah pembaruan berhasil dikirim ke VPS! Sistem akan dimuat ulang dalam 1-2 menit ke depan.',
+      message: 'Perintah pembaruan berhasil dikirim ke VPS! Sistem akan dimuat ulang dalam 1-2 menit.',
       targetVersion: 'latest-github'
     };
   } catch (error: any) {
     console.error('GitHub Sync Bridge Failed:', error.message);
-    throw new Error('Gagal sinkronisasi GitHub: ' + error.message);
+    throw new Error('Gagal mengeksekusi Git Pull/Rebuild via Daemon: ' + error.message);
   }
 };
