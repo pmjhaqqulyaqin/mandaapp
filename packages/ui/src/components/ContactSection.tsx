@@ -64,13 +64,13 @@ export const ContactSection = ({
         <div className="bg-white dark:bg-[#0A0A0A] rounded-xl shadow-sm border border-emerald-200 dark:border-gray-800 p-5 sm:p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 w-full">
           
           {/* Left Column - Contact Form */}
-          <div className="flex flex-col justify-between h-full">
-            <h2 className="text-xl font-bold text-text-primary dark:text-text-darkPrimary mb-3 text-center">
+          <div className="flex flex-col justify-center h-full w-full lg:px-4">
+            <h2 className="text-2xl font-bold text-text-primary dark:text-text-darkPrimary mb-6 text-center">
               Contact
             </h2>
             
-            <form className="flex flex-col flex-1 gap-4 mt-3" onSubmit={handleSubmit}>
-              <div className="flex flex-col md:flex-row gap-4">
+            <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+              <div className="flex flex-col md:flex-row gap-6">
                 <div className="flex-1">
                   <input
                     type="text"
@@ -91,17 +91,17 @@ export const ContactSection = ({
                 </div>
               </div>
 
-              <div className="flex-1 mt-2 flex flex-col">
+              <div className="flex flex-col">
                 <textarea
                   placeholder="Pesan"
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  className="w-full flex-1 min-h-[70px] bg-transparent border-b border-gray-300 dark:border-gray-700 py-2 focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-500 text-text-primary dark:text-text-darkPrimary resize-none transition-colors"
+                  className="w-full min-h-[120px] bg-transparent border-b border-gray-300 dark:border-gray-700 py-2 focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-500 text-text-primary dark:text-text-darkPrimary resize-none transition-colors"
                 ></textarea>
               </div>
 
-              <div className="mt-2 flex flex-col items-center">
-                <p className="text-xs text-text-secondary text-center mb-2">
+              <div className="flex flex-col items-center mt-2">
+                <p className="text-xs text-text-secondary text-center mb-3">
                   *NB anda tidak perlu login untuk mengisi kritik dan saran
                 </p>
                 <div className="flex justify-center w-full">
