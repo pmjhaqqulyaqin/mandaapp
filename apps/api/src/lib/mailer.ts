@@ -37,7 +37,7 @@ export const sendServiceEmail = async (
 
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-w: 600px; margin: 0 auto; color: #333;">
-      <h2 style="color: #1a73e8; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">Mandaapp - Update Layanan Anda</h2>
+      <h2 style="color: #1a73e8; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">MAN 2 LOTIM - Update Layanan Anda</h2>
       <p>Halo <strong>${applicantName}</strong>,</p>
       <p>Berikut adalah pembaruan status untuk permohonan <strong>${serviceType}</strong> Anda:</p>
       
@@ -51,14 +51,14 @@ export const sendServiceEmail = async (
         Anda dapat melacak status terkini secara langsung melalui portal Pelayanan Terpadu di website sekolah kami.
       </p>
       <p style="font-size: 12px; color: #94a3b8; margin-top: 30px; border-top: 1px solid #f0f0f0; padding-top: 20px; text-align: center;">
-        Ini adalah pesan otomatis dari sistem E-PTSP Mandaapp.<br/>Harap tidak merespons email ini.
+        Ini adalah pesan otomatis dari sistem E-PTSP MAN 2 LOMBOK TIMUR.<br/>Harap tidak merespons email ini.
       </p>
     </div>
   `;
 
   try {
     const info = await transporter.sendMail({
-      from: `"Mandaapp Pusat Layanan" <${process.env.SMTP_USER}>`,
+      from: `"Pusat Layanan MAN 2 LOTIM" <${process.env.SMTP_USER}>`,
       to,
       subject: `Update Permohonan [${ticketId}] - ${getStatusText()}`,
       html: htmlContent
@@ -101,14 +101,14 @@ export const sendSurveyEmail = async (
         Kami berkomitmen untuk selalu menghadirkan pelayanan yang lebih cepat, mudah, dan prima ke depannya.
       </p>
       <p style="font-size: 12px; color: #94a3b8; margin-top: 30px; border-top: 1px solid #f0f0f0; padding-top: 20px; text-align: center;">
-        Ini adalah pesan otomatis dari sistem E-PTSP Mandaapp.<br/>Harap tidak merespons email ini.
+        Ini adalah pesan otomatis dari sistem E-PTSP MAN 2 LOMBOK TIMUR.<br/>Harap tidak merespons email ini.
       </p>
     </div>
   `;
 
   try {
     const info = await transporter.sendMail({
-      from: `"Mandaapp Pusat Layanan" <${process.env.SMTP_USER}>`,
+      from: `"Pusat Layanan MAN 2 LOTIM" <${process.env.SMTP_USER}>`,
       to,
       subject: `Terima Kasih Atas Partisipasi Anda di SALAM MANDA`,
       html: htmlContent
