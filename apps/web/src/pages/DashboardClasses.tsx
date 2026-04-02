@@ -154,7 +154,7 @@ export const DashboardClasses = () => {
           {loading ? <p className="text-gray-500">Memuat...</p> : (
             <ul className="space-y-2">
               {majors.map(m => (
-                <li key={m.id} className="p-3 border rounded-lg flex justify-between items-center group">
+                <li key={m.id} className="px-3 py-1.5 sm:py-2 border rounded-lg flex justify-between items-center group">
                   <span>{m.name}</span>
                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => openMajorModal(m)} className="text-blue-500 hover:text-blue-700"><Edit2 size={16} /></button>
@@ -175,7 +175,7 @@ export const DashboardClasses = () => {
           {loading ? <p className="text-gray-500">Memuat...</p> : (
             <ul className="space-y-2">
               {classes.map(c => (
-                <li key={c.id} className="p-3 border rounded-lg flex justify-between items-center group">
+                <li key={c.id} className="px-3 py-1.5 sm:py-2 border rounded-lg flex justify-between items-center group">
                   <div>
                     <span className="block font-medium text-text-primary dark:text-text-darkPrimary">
                       {c.name} <span className="font-normal text-text-secondary text-sm">{majors.find(m => m.id === c.majorId)?.name || 'Tanpa Jurusan'}</span>
