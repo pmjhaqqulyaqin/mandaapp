@@ -8,11 +8,14 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-mandaapp_prod}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"  # Hanya accessible dari localhost/Docker internal, BUKAN dari internet
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./docker/pg-override.conf:/etc/postgresql/pg-override.conf:ro
+      - ./docker/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    command: ["postgres", "-c", "config_file=/etc/postgresql/pg-override.conf"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mandaapp_prod"]
       interval: 10s
       timeout: 5s
       retries: 5
