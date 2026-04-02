@@ -138,7 +138,7 @@ export const HeroSection = ({
   const isAnimation = mode === 'animation' || sliderImages.length === 0;
 
   return (
-    <section className="relative overflow-hidden w-full h-auto min-h-[40vh] sm:min-h-[48vh] md:min-h-[65vh] pt-16 pb-3 flex flex-col justify-end transition-colors duration-1000 bg-black">
+    <section className="relative overflow-hidden w-full h-auto min-h-[60vh] sm:min-h-[70vh] md:min-h-[85vh] lg:min-h-[90vh] pt-16 pb-3 flex flex-col justify-end transition-colors duration-1000 bg-black">
       
       {/* --- LAYER 0: SLIDER IMAGES (If Slider Mode) --- */}
       {!isAnimation && sliderImages.length > 0 && (
