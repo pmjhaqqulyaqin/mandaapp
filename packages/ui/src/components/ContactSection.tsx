@@ -155,7 +155,7 @@ export const ContactSection = ({
             </div>
 
             {/* Map Container */}
-            <div className="relative w-full flex-1 min-h-[200px] mt-2 rounded-xl overflow-hidden border border-border-light dark:border-border-dark shadow-sm bg-gray-100 dark:bg-gray-800">
+            <div className="relative w-full flex-1 min-h-[350px] mt-2 rounded-xl overflow-hidden border border-border-light dark:border-border-dark shadow-sm bg-gray-100 dark:bg-gray-800">
               <iframe 
                 src={mapEmbedUrl} 
                 className="absolute inset-0 w-full h-full"
