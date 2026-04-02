@@ -512,7 +512,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
       const CORE_FIELDS = ['applicantName', 'nisn', 'birthPlace', 'birthDate', 'address', 'email', 'phone', 'purpose'];
       
       const payload = new FormData();
-      payload.append('type', service.shortName);
+      payload.append('type', service.id);
       
       const dynamicFields: Record<string, string> = {};
       
@@ -728,6 +728,90 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
           </>
         );
 
+      case 'radio':
+        if (field.isRating) {
+          // Horizontal rating scale 1-4
+          return (
+            <>
+              <div className="flex items-center gap-0 w-full">
+                {field.options?.map((opt, idx) => {
+                  const isSelected = formData[field.name] === opt;
+                  const isFirst = idx === 0;
+                  const isLast = idx === (field.options?.length || 1) - 1;
+                  return (
+                    <label
+                      key={opt}
+                      className={`flex-1 flex flex-col items-center justify-center py-3 cursor-pointer border transition-all text-center ${
+                        isFirst ? 'rounded-l-lg' : ''
+                      } ${
+                        isLast ? 'rounded-r-lg' : ''
+                      } ${
+                        isSelected
+                          ? 'bg-blue-600 border-blue-600 text-white shadow-md z-10 scale-[1.02]'
+                          : 'bg-white border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300'
+                      } ${!isFirst ? '-ml-px' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name={field.name}
+                        value={opt}
+                        checked={isSelected}
+                        onChange={e => setField(field.name, e.target.value)}
+                        required={field.required}
+                        className="sr-only"
+                      />
+                      <span className={`text-lg font-bold ${isSelected ? 'text-white' : 'text-gray-800'}`}>{opt}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {field.helpText && (
+                <div className="flex justify-between mt-1.5 text-xs text-gray-400 italic px-1">
+                  {typeof field.helpText === 'string' && field.helpText.includes('—') ? (
+                    <>
+                      <span>{field.helpText.split('—')[0].trim()}</span>
+                      <span>{field.helpText.split('—')[1].trim()}</span>
+                    </>
+                  ) : (
+                    <span>{field.helpText}</span>
+                  )}
+                </div>
+              )}
+            </>
+          );
+        }
+        // Normal radio (e.g. Jenis Kelamin)
+        return (
+          <>
+            <div className="flex items-center gap-6 flex-wrap">
+              {field.options?.map(opt => {
+                const isSelected = formData[field.name] === opt;
+                return (
+                  <label key={opt} className={`flex items-center gap-2.5 cursor-pointer px-4 py-2.5 rounded-lg border transition-all ${
+                    isSelected
+                      ? 'bg-blue-50 border-blue-400 ring-2 ring-blue-100'
+                      : 'bg-white border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name={field.name}
+                      value={opt}
+                      checked={isSelected}
+                      onChange={e => setField(field.name, e.target.value)}
+                      required={field.required}
+                      className="w-4 h-4 accent-blue-600"
+                    />
+                    <span className={`text-sm font-medium ${
+                      isSelected ? 'text-blue-700' : 'text-gray-700'
+                    }`}>{opt}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {field.helpText && <p className="mt-1.5 text-xs text-gray-500 italic">{field.helpText}</p>}
+          </>
+        );
+
       default:
         return (
           <>
@@ -783,7 +867,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
                     {renderFields()}
 
                     {/* Only show generic upload if service does NOT have custom file fields */}
-                    {!hasCustomFileFields && (
+                    {!hasCustomFileFields && service.id !== 'survey-layanan' && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Upload File Pendukung (seperti Surat Keterangan Sakit/KTP Pemohon/Bukti izin lainnya) <span className="text-red-500">*</span>
@@ -810,20 +894,40 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
             ) : (
               <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden text-center p-12">
                 <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-6" />
-                <h2 className="text-3xl font-bold text-gray-800 mb-2">Berhasil Terkirim!</h2>
-                <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                  Permohonan Anda sedang kami proses. 
-                  Silakan simpan nomor identitas tiket di bawah ini untuk melacak statusnya.
-                </p>
-                <div className="inline-block bg-blue-50 border-2 border-blue-200 rounded-xl px-10 py-5">
-                  <span className="block text-sm text-blue-600 font-medium mb-1 uppercase tracking-wider">Nomor Resi / Tiket Lacak</span>
-                  <span className="text-4xl font-black text-blue-900 tracking-widest">{ticketId}</span>
-                </div>
-                <div className="mt-10">
-                  <button onClick={() => setTicketId(null)} className="text-blue-500 font-medium hover:underline">
-                    Buat Permohonan Baru
-                  </button>
-                </div>
+                {service.id === 'survey-layanan' ? (
+                  <>
+                    <h2 className="text-3xl font-bold text-gray-800 mb-2">Terima Kasih! 🙏</h2>
+                    <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                      Partisipasi Anda sangat berarti bagi kami. Umpan balik yang Anda berikan akan menjadi bahan evaluasi untuk peningkatan kualitas layanan.
+                    </p>
+                    <p className="text-sm text-gray-400 italic mb-8">Notifikasi ucapan terima kasih telah dikirim ke email Anda.</p>
+                    <div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
+                      <button onClick={() => navigate('/')} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow transition-all">
+                        Kembali ke Beranda
+                      </button>
+                      <button onClick={() => { setTicketId(null); setFormData({}); }} className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg transition-all">
+                        Isi Survey Lagi
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-3xl font-bold text-gray-800 mb-2">Berhasil Terkirim!</h2>
+                    <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                      Permohonan Anda sedang kami proses. 
+                      Silakan simpan nomor identitas tiket di bawah ini untuk melacak statusnya.
+                    </p>
+                    <div className="inline-block bg-blue-50 border-2 border-blue-200 rounded-xl px-10 py-5">
+                      <span className="block text-sm text-blue-600 font-medium mb-1 uppercase tracking-wider">Nomor Resi / Tiket Lacak</span>
+                      <span className="text-4xl font-black text-blue-900 tracking-widest">{ticketId}</span>
+                    </div>
+                    <div className="mt-10">
+                      <button onClick={() => setTicketId(null)} className="text-blue-500 font-medium hover:underline">
+                        Buat Permohonan Baru
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
