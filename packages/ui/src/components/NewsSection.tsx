@@ -65,37 +65,37 @@ export const NewsSection = ({ items, onReadMore }: NewsSectionProps) => {
   };
 
   return (
-    <section id="news" className="py-8 sm:py-12 bg-background-light dark:bg-background-dark relative overflow-hidden">
+    <section id="news" className="py-6 sm:py-8 bg-background-light dark:bg-background-dark relative overflow-hidden">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-border-light dark:via-border-dark to-transparent" />
       
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 lg:px-6">
         <div className="mx-auto max-w-2xl sm:text-center">
-          <h2 className="text-base font-semibold leading-7 text-primary">Berita Terbaru</h2>
-          <p className="mt-2 text-3xl font-heading font-bold tracking-tight text-text-primary dark:text-text-darkPrimary sm:text-4xl text-balance">
+          <h2 className="text-xs font-semibold leading-6 text-primary uppercase tracking-wider">Berita Terbaru</h2>
+          <p className="mt-1 text-xl font-heading font-bold tracking-tight text-text-primary dark:text-text-darkPrimary sm:text-2xl text-balance">
             Informasi Terupdate Seputar Sekolah
           </p>
         </div>
-        <div className="mx-auto mt-10 sm:mt-16 relative max-w-6xl group">
+        <div className="mx-auto mt-6 sm:mt-10 relative max-w-5xl group">
           {/* Slider Container */}
           <div 
             ref={scrollContainerRef}
-            className="flex gap-6 sm:gap-8 overflow-x-auto snap-x snap-mandatory pb-8 pt-4 -mx-4 px-4 scrollbar-hide"
+            className="flex gap-4 sm:gap-5 overflow-x-auto snap-x snap-mandatory pb-4 pt-2 -mx-3 px-3 scrollbar-hide"
             style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}
           >
             {newsList.map((news) => (
-              <div key={news.id} className="snap-start w-[88vw] sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.33rem)] shrink-0 flex flex-col bg-white dark:bg-[#111] p-6 shadow-sm ring-1 ring-border-light dark:ring-border-dark rounded-2xl hover:-translate-y-1 hover:shadow-md transition-all">
-                <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-text-primary dark:text-text-darkPrimary">
-                  <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+              <div key={news.id} className="snap-start w-[85vw] sm:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1rem)] shrink-0 flex flex-col bg-white dark:bg-[#111] p-4 shadow-sm ring-1 ring-border-light dark:ring-border-dark rounded-xl hover:-translate-y-1 hover:shadow-md transition-all">
+                <dt className="flex items-center gap-x-2 text-sm font-semibold leading-6 text-text-primary dark:text-text-darkPrimary">
+                  <div className="h-8 w-8 flex items-center justify-center rounded-md bg-primary/10 text-primary shrink-0">
                     {news.categoryIcon || (
                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>
                     )}
                   </div>
                   <span className="line-clamp-2">{news.title}</span>
                 </dt>
-                <dd className="mt-4 flex flex-auto flex-col text-sm leading-6 text-text-secondary">
+                <dd className="mt-3 flex flex-auto flex-col text-xs leading-5 text-text-secondary">
                   {/* Thumbnail Gambar Utama Berita */}
                   {news.imageUrl && (
-                    <div className="w-full aspect-video mb-4 rounded-xl overflow-hidden shrink-0 bg-gray-100 dark:bg-gray-800">
+                    <div className="w-full aspect-video mb-3 rounded-lg overflow-hidden shrink-0 bg-gray-100 dark:bg-gray-800">
                       <img src={news.imageUrl} alt={news.title} loading="lazy" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 ease-in-out" />
                     </div>
                   )}
@@ -104,7 +104,7 @@ export const NewsSection = ({ items, onReadMore }: NewsSectionProps) => {
                   
                   {/* Read More Link */}
                   <div 
-                    className="mt-4 flex items-center text-primary font-medium hover:text-primary/80 transition-colors group cursor-pointer w-fit"
+                    className="mt-3 flex items-center text-primary text-xs font-medium hover:text-primary/80 transition-colors group cursor-pointer w-fit"
                     onClick={() => onReadMore?.(news.id)}
                   >
                     Baca Selengkapnya
@@ -122,19 +122,19 @@ export const NewsSection = ({ items, onReadMore }: NewsSectionProps) => {
             {/* Tombol Kiri */}
             <button 
               onClick={scrollLeft}
-              className={`absolute top-1/2 -left-4 lg:-left-12 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full shadow-lg border border-border-light dark:border-border-dark transition-all bg-white text-primary dark:bg-background-dark dark:text-text-darkPrimary hover:scale-110 hover:shadow-xl cursor-pointer pointer-events-auto`}
+              className={`absolute top-1/2 -left-3 lg:-left-10 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full shadow-md border border-border-light dark:border-border-dark transition-all bg-white text-primary dark:bg-background-dark dark:text-text-darkPrimary hover:scale-110 hover:shadow-lg cursor-pointer pointer-events-auto`}
               aria-label="Berita Sebelumnya"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             </button>
             
             {/* Tombol Kanan */}
             <button 
               onClick={scrollRight}
-              className={`absolute top-1/2 -right-4 lg:-right-12 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full shadow-lg border border-border-light dark:border-border-dark transition-all bg-white text-primary dark:bg-background-dark dark:text-text-darkPrimary hover:scale-110 hover:shadow-xl cursor-pointer pointer-events-auto`}
+              className={`absolute top-1/2 -right-3 lg:-right-10 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full shadow-md border border-border-light dark:border-border-dark transition-all bg-white text-primary dark:bg-background-dark dark:text-text-darkPrimary hover:scale-110 hover:shadow-lg cursor-pointer pointer-events-auto`}
               aria-label="Berita Selanjutnya"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
             </button>
           </div>
         </div>

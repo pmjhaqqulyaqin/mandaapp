@@ -138,7 +138,7 @@ export const HeroSection = ({
   const isAnimation = mode === 'animation' || sliderImages.length === 0;
 
   return (
-    <section className="relative overflow-hidden w-full h-auto min-h-[50vh] sm:min-h-[60vh] md:min-h-[85vh] pt-24 pb-4 flex flex-col justify-end transition-colors duration-1000 bg-black">
+    <section className="relative overflow-hidden w-full h-auto min-h-[40vh] sm:min-h-[48vh] md:min-h-[65vh] pt-16 pb-3 flex flex-col justify-end transition-colors duration-1000 bg-black">
       
       {/* --- LAYER 0: SLIDER IMAGES (If Slider Mode) --- */}
       {!isAnimation && sliderImages.length > 0 && (
@@ -243,17 +243,17 @@ export const HeroSection = ({
     )}
 
       {/* --- GLOWING FLOATING SCHOOL IDENTITY OVERLAY --- */}
-      <div className="absolute inset-0 z-[20] flex flex-col items-center justify-center pointer-events-none -translate-y-20 sm:-translate-y-28 md:-translate-y-36">
+      <div className="absolute inset-0 z-[20] flex flex-col items-center justify-center pointer-events-none -translate-y-14 sm:-translate-y-20 md:-translate-y-24">
         {logoUrl && (
           <img 
             src={logoUrl} 
             alt="School Logo" 
-            className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mb-2 sm:mb-3 object-contain animate-fade-in-up" 
+            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 mb-1.5 sm:mb-2 object-contain animate-fade-in-up" 
             style={{ filter: 'drop-shadow(0px 0px 20px rgba(255, 255, 255, 0.5))' }}
           />
         )}
         <h1 
-          className="text-white font-heading font-black text-center text-xl sm:text-xl md:text-2xl lg:text-2xl px-4 animate-fade-in-up md:tracking-tight"
+          className="text-white font-heading font-black text-center text-lg sm:text-lg md:text-xl lg:text-xl px-4 animate-fade-in-up md:tracking-tight"
           style={{ 
             textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(0, 150, 255, 0.4)',
             animationDelay: '0.2s'

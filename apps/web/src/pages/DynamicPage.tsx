@@ -77,45 +77,45 @@ export const DynamicPage = () => {
     <main className="flex-1 w-full bg-white dark:bg-[#0a0a0a]">
       {/* HERO BANNER */}
       {page.coverImage ? (
-        <div className="relative w-full h-[300px] md:h-[450px] overflow-hidden flex items-center justify-center">
+        <div className="relative w-full h-[200px] md:h-[300px] overflow-hidden flex items-center justify-center">
           <div 
             className="absolute inset-0 bg-cover bg-center z-0 transition-transform duration-700 hover:scale-105"
             style={{ backgroundImage: `url(${page.coverImage})` }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10" />
-          <div className="relative z-20 text-center px-4 max-w-4xl mx-auto mt-16">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 drop-shadow-2xl tracking-tight">
+          <div className="relative z-20 text-center px-4 max-w-4xl mx-auto mt-8">
+            <h1 className="text-2xl md:text-4xl font-bold text-white mb-3 drop-shadow-2xl tracking-tight">
               {page.title}
             </h1>
             {page.metaDescription && (
-              <p className="text-gray-200 text-lg md:text-2xl max-w-2xl mx-auto drop-shadow-lg font-medium opacity-90">
+              <p className="text-gray-200 text-sm md:text-lg max-w-2xl mx-auto drop-shadow-lg font-medium opacity-90">
                 {page.metaDescription}
               </p>
             )}
           </div>
         </div>
       ) : (
-        <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-8">
-           <h1 className="text-4xl md:text-6xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">
+        <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-4">
+           <h1 className="text-2xl md:text-4xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
               {page.title}
             </h1>
             {page.metaDescription && (
-              <p className="text-gray-500 dark:text-gray-400 text-xl font-medium">
+              <p className="text-gray-500 dark:text-gray-400 text-base font-medium">
                 {page.metaDescription}
               </p>
             )}
-           <div className="h-1.5 w-24 bg-emerald-500 rounded-full mt-8" />
+           <div className="h-1 w-20 bg-emerald-500 rounded-full mt-5" />
         </div>
       )}
 
       {/* HTML CONTENT */}
-      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-32 pt-8">
+      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 pt-5">
         <article 
-          className="prose prose-emerald prose-lg dark:prose-invert max-w-none 
-            prose-img:rounded-3xl prose-img:shadow-2xl prose-img:mx-auto
+          className="prose prose-emerald prose-sm md:prose-base dark:prose-invert max-w-none 
+            prose-img:rounded-2xl prose-img:shadow-xl prose-img:mx-auto
             prose-headings:font-bold prose-headings:tracking-tight
             prose-a:text-emerald-600 dark:prose-a:text-emerald-400 prose-a:no-underline hover:prose-a:underline
-            prose-blockquote:border-emerald-500 prose-blockquote:bg-emerald-50/50 dark:prose-blockquote:bg-emerald-900/10 prose-blockquote:py-1 prose-blockquote:px-6 prose-blockquote:rounded-r-2xl"
+            prose-blockquote:border-emerald-500 prose-blockquote:bg-emerald-50/50 dark:prose-blockquote:bg-emerald-900/10 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-xl"
           dangerouslySetInnerHTML={{ __html: page.content }}
         />
       </div>

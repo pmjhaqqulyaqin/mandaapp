@@ -148,24 +148,24 @@ export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
   const currentItem = lightboxIndex !== null ? filteredItems[lightboxIndex] : null;
 
   return (
-    <section className="py-10 sm:py-12 lg:py-14 bg-gray-50 dark:bg-[#0a0a0a] transition-colors duration-300">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <h2 className="text-3xl font-heading font-bold tracking-tight text-text-primary dark:text-text-darkPrimary sm:text-4xl text-balance">
+    <section className="py-8 sm:py-10 lg:py-12 bg-gray-50 dark:bg-[#0a0a0a] transition-colors duration-300">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-3xl mx-auto mb-8">
+          <h2 className="text-xl font-heading font-bold tracking-tight text-text-primary dark:text-text-darkPrimary sm:text-2xl text-balance">
             Life at <span className="text-primary">MANDALOTIM</span>
           </h2>
-          <p className="mt-4 text-lg text-text-secondary">
+          <p className="mt-2 text-sm text-text-secondary">
             Explore our vibrant campus life, extracurricular activities, and memorable events that shape our students' journey.
           </p>
         </div>
 
         {/* Filter Buttons */}
-        <div className="flex flex-wrap justify-center gap-2 mb-12">
+        <div className="flex flex-wrap justify-center gap-1.5 mb-8">
           {categories.map((category) => (
             <button
               key={category}
               onClick={() => setFilter(category)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
                 filter === category
                   ? 'bg-primary text-white shadow-md scale-105'
                   : 'bg-white dark:bg-[#1a1a1a] text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 border border-border-light dark:border-border-dark'
@@ -177,15 +177,15 @@ export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
         </div>
 
         {/* Image Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
           {filteredItems.map((item, index) => (
             <div 
               key={item.id}
-              className="group relative rounded-2xl aspect-video bg-gray-200 dark:bg-gray-800 animate-in fade-in zoom-in duration-500 cursor-pointer"
+              className="group relative rounded-xl aspect-video bg-gray-200 dark:bg-gray-800 animate-in fade-in zoom-in duration-500 cursor-pointer"
             >
               {/* Image & Overlay Wrapper (with overflow-hidden) */}
               <div 
-                className="absolute inset-0 rounded-2xl overflow-hidden" 
+                className="absolute inset-0 rounded-xl overflow-hidden" 
                 onClick={() => openLightbox(index)}
               >
                 <img
@@ -194,21 +194,21 @@ export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   loading="lazy"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
                   <div className="flex justify-between items-end w-full gap-4">
                     <div className="flex-1 min-w-0">
-                      <span className="inline-block px-2.5 py-1 bg-primary/90 text-white text-xs font-semibold rounded-md mb-2 w-fit">
+                      <span className="inline-block px-2 py-0.5 bg-primary/90 text-white text-[10px] font-semibold rounded mb-1.5 w-fit">
                         {item.category}
                       </span>
-                      <h3 className="text-xl font-heading font-bold text-white mb-1 truncate">
+                      <h3 className="text-base font-heading font-bold text-white mb-0.5 truncate">
                         {item.title}
                       </h3>
-                      <p className="text-sm text-gray-200 line-clamp-2">
+                      <p className="text-xs text-gray-200 line-clamp-2">
                         {item.description}
                       </p>
                     </div>
                     {/* Share Button Placeholder */}
-                    <div className="w-10 h-10 shrink-0"></div>
+                    <div className="w-8 h-8 shrink-0"></div>
                   </div>
                 </div>
               </div>

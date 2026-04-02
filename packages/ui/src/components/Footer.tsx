@@ -44,40 +44,40 @@ export const Footer = ({
   return (
     <footer className="bg-white dark:bg-[#050505] border-t border-border-light dark:border-border-dark" aria-labelledby="footer-heading">
       <h2 id="footer-heading" className="sr-only">Footer</h2>
-      <div className="mx-auto max-w-5xl px-6 pb-4 pt-10 sm:pt-12 lg:pt-14">
+      <div className="mx-auto max-w-5xl px-4 pb-3 pt-6 sm:pt-8 lg:pt-10">
         
         {/* 3-Column Card Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           
           {/* Box 1: Tentang */}
-          <div className="border border-emerald-200 dark:border-gray-800 rounded-xl pt-8 px-6 pb-8 flex flex-col items-center min-h-[300px] md:aspect-square bg-white dark:bg-[#0A0A0A] shadow-sm">
-            <h3 className="flex items-center gap-2 text-xl font-bold mb-4 border-b border-emerald-200 dark:border-gray-800 w-full pb-3 justify-center text-text-primary dark:text-text-darkPrimary">
-              <Info className="w-5 h-5 text-emerald-600" /> Tentang
+          <div className="border border-emerald-200 dark:border-gray-800 rounded-lg pt-5 px-4 pb-5 flex flex-col items-center min-h-[220px] md:aspect-auto bg-white dark:bg-[#0A0A0A] shadow-sm">
+            <h3 className="flex items-center gap-1.5 text-base font-bold mb-3 border-b border-emerald-200 dark:border-gray-800 w-full pb-2 justify-center text-text-primary dark:text-text-darkPrimary">
+              <Info className="w-4 h-4 text-emerald-600" /> Tentang
             </h3>
-            <div className="flex flex-col items-center gap-2 w-full">
-              <a href="#" className="w-fit bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-800/30 dark:border-emerald-800/50 rounded-md py-2 px-4 inline-flex items-center justify-center gap-2 transition-colors shadow-sm font-medium text-sm">
+            <div className="flex flex-col items-center gap-1.5 w-full">
+              <a href="#" className="w-fit bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-800/30 dark:border-emerald-800/50 rounded-md py-1.5 px-3 inline-flex items-center justify-center gap-1.5 transition-colors shadow-sm font-medium text-xs">
                 <User className="w-4 h-4" /> Kepala Madrasah
               </a>
-              <a href="#" className="w-fit bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-800/30 dark:border-emerald-800/50 rounded-md py-2 px-4 inline-flex items-center justify-center gap-2 transition-colors shadow-sm font-medium text-sm">
+              <a href="#" className="w-fit bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-800/30 dark:border-emerald-800/50 rounded-md py-1.5 px-3 inline-flex items-center justify-center gap-1.5 transition-colors shadow-sm font-medium text-xs">
                 <Trophy className="w-4 h-4" /> Visi dan Misi
               </a>
-              <a href="#" className="w-fit bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-800/30 dark:border-emerald-800/50 rounded-md py-2 px-4 inline-flex items-center justify-center gap-2 transition-colors shadow-sm font-medium text-sm">
+              <a href="#" className="w-fit bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-800/30 dark:border-emerald-800/50 rounded-md py-1.5 px-3 inline-flex items-center justify-center gap-1.5 transition-colors shadow-sm font-medium text-xs">
                 <History className="w-4 h-4" /> Sejarah
               </a>
-              <a href="#" className="w-fit bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-800/30 dark:border-emerald-800/50 rounded-md py-2 px-4 inline-flex items-center justify-center gap-2 transition-colors shadow-sm font-medium text-sm">
+              <a href="#" className="w-fit bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-800/30 dark:border-emerald-800/50 rounded-md py-1.5 px-3 inline-flex items-center justify-center gap-1.5 transition-colors shadow-sm font-medium text-xs">
                 <Users className="w-4 h-4" /> Pengembang Website
               </a>
             </div>
           </div>
 
           {/* Box 2: Website Terkait */}
-          <div className="border border-emerald-200 dark:border-gray-800 rounded-xl pt-8 px-6 pb-8 flex flex-col items-center min-h-[300px] md:aspect-square bg-white dark:bg-[#0A0A0A] shadow-sm">
-            <h3 className="flex items-center gap-2 text-xl font-bold mb-4 border-b border-emerald-200 dark:border-gray-800 w-full pb-3 justify-center text-text-primary dark:text-text-darkPrimary">
-              <LinkIcon className="w-5 h-5 text-emerald-600" /> Website Terkait
+          <div className="border border-emerald-200 dark:border-gray-800 rounded-lg pt-5 px-4 pb-5 flex flex-col items-center min-h-[220px] md:aspect-auto bg-white dark:bg-[#0A0A0A] shadow-sm">
+            <h3 className="flex items-center gap-1.5 text-base font-bold mb-3 border-b border-emerald-200 dark:border-gray-800 w-full pb-2 justify-center text-text-primary dark:text-text-darkPrimary">
+              <LinkIcon className="w-4 h-4 text-emerald-600" /> Website Terkait
             </h3>
-            <div className="flex flex-col items-center gap-2 w-full">
+            <div className="flex flex-col items-center gap-1.5 w-full">
               {websites.map((site, i) => (
-                <a key={i} href={site.url || '#'} target="_blank" rel="noopener noreferrer" className="w-fit bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-800/30 dark:border-emerald-800/50 rounded-md py-2 px-4 inline-flex items-center justify-center gap-2 transition-colors shadow-sm font-medium text-sm text-center">
+                <a key={i} href={site.url || '#'} target="_blank" rel="noopener noreferrer" className="w-fit bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-800/30 dark:border-emerald-800/50 rounded-md py-1.5 px-3 inline-flex items-center justify-center gap-1.5 transition-colors shadow-sm font-medium text-xs text-center">
                   {site.label}
                 </a>
               ))}
@@ -85,9 +85,9 @@ export const Footer = ({
           </div>
 
           {/* Box 3: Identitas & Kontak */}
-          <div className="border border-emerald-200 dark:border-gray-800 rounded-xl pt-8 px-4 sm:px-6 pb-6 flex flex-col items-center text-center min-h-[300px] md:aspect-square bg-white dark:bg-[#0A0A0A] shadow-sm overflow-hidden">
+          <div className="border border-emerald-200 dark:border-gray-800 rounded-lg pt-5 px-3 sm:px-4 pb-4 flex flex-col items-center text-center min-h-[220px] md:aspect-auto bg-white dark:bg-[#0A0A0A] shadow-sm overflow-hidden">
             {/* Logo */}
-            <div className="w-16 h-16 shrink-0 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center mb-2 overflow-hidden">
+            <div className="w-12 h-12 shrink-0 bg-gray-100 dark:bg-gray-800 rounded-md flex items-center justify-center mb-1.5 overflow-hidden">
               {logoUrl ? (
                 <img src={logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
               ) : (
@@ -95,7 +95,7 @@ export const Footer = ({
               )}
             </div>
             
-            <h4 className="text-base sm:text-lg font-bold text-text-primary dark:text-text-darkPrimary mb-2 leading-tight">
+            <h4 className="text-sm sm:text-base font-bold text-text-primary dark:text-text-darkPrimary mb-1.5 leading-tight">
               {schoolName}
             </h4>
             
@@ -125,11 +125,11 @@ export const Footer = ({
           </div>
           
         </div>
-        <div className="mt-6 border-t border-border-light dark:border-border-dark pt-4 sm:mt-8 lg:mt-10 flex flex-col items-center justify-center text-center">
-          <p className="text-sm font-medium leading-6 text-text-primary dark:text-text-darkPrimary">
+        <div className="mt-4 border-t border-border-light dark:border-border-dark pt-3 sm:mt-5 lg:mt-6 flex flex-col items-center justify-center text-center">
+          <p className="text-xs font-medium leading-5 text-text-primary dark:text-text-darkPrimary">
             &copy; 2026{new Date().getFullYear() > 2026 ? ` - ${new Date().getFullYear()}` : ''} | Sistem Informasi Manajemen {schoolName}
           </p>
-          <p className="text-sm leading-6 text-text-secondary mt-1">
+          <p className="text-xs leading-5 text-text-secondary mt-0.5">
             Powered by <span className="font-semibold text-text-primary dark:text-text-darkPrimary">{footerCreditText}</span> Created by <span className="text-green-500">❤</span>
           </p>
         </div>
