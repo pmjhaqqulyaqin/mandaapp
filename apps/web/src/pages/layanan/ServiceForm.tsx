@@ -117,6 +117,24 @@ const IZIN_SOSIALISASI_FIELDS: FormField[] = [
   { name: 'fileSuratPermohonan', label: 'Upload File Surat Permohonan Izin Sosialisasi', type: 'file', required: true, group: 'Upload Berkas', accept: '.pdf,.jpg,.jpeg,.png' },
 ];
 
+const IZIN_MAGANG_FIELDS: FormField[] = [
+  // === Identitas Pemohon ===
+  { name: 'applicantName', label: 'Nama Lengkap Pemohon', type: 'text', required: true, group: 'Identitas Pemohon', halfWidth: true },
+  { name: 'nisn', label: 'No Identitas (KTP/NIM)', type: 'text', required: true, halfWidth: true },
+  { name: 'institution', label: 'Nama Lembaga Asal Pemohon Magang', type: 'text', required: true },
+  { name: 'address', label: 'Alamat Lembaga', type: 'text', required: true },
+  { name: 'email', label: 'E-Mail Pemohon/Lembaga', type: 'email', required: true, halfWidth: true },
+  { name: 'phone', label: 'No Handphone (HP) yang dapat dihubungi', type: 'text', required: true, halfWidth: true },
+
+  // === Detail Magang ===
+  { name: 'purpose', label: 'Magang dalam rangka apa?', type: 'textarea', required: true, group: 'Detail Magang' },
+  { name: 'startDate', label: 'Rencana Waktu Magang — Mulai', type: 'date', required: true, halfWidth: true },
+  { name: 'endDate', label: 'S/d', type: 'date', required: true, halfWidth: true },
+
+  // === Upload Berkas ===
+  { name: 'fileSuratPermohonan', label: 'Upload File Surat Permohonan Izin Magang', type: 'file', required: true, group: 'Upload Berkas', accept: '.pdf,.jpg,.jpeg,.png' },
+];
+
 export const SERVICES: ServiceType[] = [
   {
     id: 'surat-keterangan',
@@ -188,8 +206,10 @@ export const SERVICES: ServiceType[] = [
     title: 'Layanan Pengajuan Izin Magang',
     shortName: 'Izin Magang',
     description: 'Layanan izin Praktik Kerja Industri (Prakerin) / Magang.',
-    requirements: ['Surat Pengantar Magang dari Sekolah', 'Biodata Siswa Magang'],
-    fields: DEFAULT_FIELDS
+    requirements: [
+      'Surat Permohonan Magang dari Fakultas atau Lembaga Terkait'
+    ],
+    fields: IZIN_MAGANG_FIELDS
   },
   {
     id: 'buku-tamu',
