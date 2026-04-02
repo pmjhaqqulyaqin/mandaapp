@@ -41,8 +41,15 @@ const ALL_MENU_ITEMS = [
     group: 'main',
   },
   {
+    key: 'gallery',
+    label: 'Galeri Sekolah',
+    href: '/dashboard/gallery',
+    icon: <ImageIcon size={16} />,
+    group: 'main',
+  },
+  {
     key: 'calendar',
-    label: 'Jadwal Pelajaran',
+    label: 'Jadwal Kegiatan Madrasah',
     href: '/dashboard/calendar',
     icon: <Calendar size={16} />,
     group: 'main',
@@ -55,10 +62,10 @@ const ALL_MENU_ITEMS = [
     group: 'main',
   },
   {
-    key: 'gallery',
-    label: 'Galeri Sekolah',
-    href: '/dashboard/gallery',
-    icon: <ImageIcon size={16} />,
+    key: 'employees',
+    label: 'Data Pegawai',
+    href: '/dashboard/employees',
+    icon: <UserSquare2 size={16} />,
     group: 'main',
   },
   {
@@ -69,24 +76,10 @@ const ALL_MENU_ITEMS = [
     group: 'main',
   },
   {
-    key: 'employees',
-    label: 'Data Pegawai',
-    href: '/dashboard/employees',
-    icon: <UserSquare2 size={16} />,
-    group: 'main',
-  },
-  {
     key: 'students',
     label: 'Data Siswa',
     href: '/dashboard/students',
     icon: <Users size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'contacts',
-    label: 'Pesan Kontak',
-    href: '/dashboard/contacts',
-    icon: <MessageSquare size={16} />,
     group: 'main',
   },
   {
@@ -97,17 +90,24 @@ const ALL_MENU_ITEMS = [
     group: 'main',
   },
   {
-    key: 'pages',
-    label: 'Manajemen Halaman',
-    href: '/dashboard/pages',
-    icon: <FileText size={16} />,
-    group: 'system',
-  },
-  {
     key: 'ptsp',
     label: 'Pusat Layanan',
     href: '/dashboard/services',
     icon: <MessageSquare size={16} />,
+    group: 'main',
+  },
+  {
+    key: 'contacts',
+    label: 'Pesan Kontak',
+    href: '/dashboard/contacts',
+    icon: <MessageSquare size={16} />,
+    group: 'main',
+  },
+  {
+    key: 'pages',
+    label: 'Manajemen Halaman',
+    href: '/dashboard/pages',
+    icon: <FileText size={16} />,
     group: 'system',
   },
   {
