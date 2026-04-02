@@ -16,6 +16,7 @@ const TABS = [
   { id: 'izin-magang', label: 'Izin Magang', short: 'Izin Magang', icon: <Briefcase className="w-4 h-4" /> },
   { id: 'buku-tamu', label: 'Buku Tamu', short: 'Buku Tamu', icon: <BookOpen className="w-4 h-4" /> },
   { id: 'layanan-pengaduan', label: 'Layanan Pengaduan', short: 'Pengaduan', icon: <MessageSquare className="w-4 h-4" /> },
+  { id: 'survey-layanan', label: 'Survey Pelayanan', short: 'Survey', icon: <CheckCircle className="w-4 h-4" /> },
 ];
 
 export const DashboardServices = () => {
@@ -211,10 +212,14 @@ export const DashboardServices = () => {
                </section>
 
                <section>
+                 {selectedReq.purpose && (
+                 <>
                  <h3 className="font-bold text-xs uppercase tracking-wider text-gray-400 mb-3">Keperluan / Keterangan</h3>
                  <div className="bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-xl text-gray-700 dark:text-gray-300 whitespace-pre-wrap border border-blue-100 dark:border-blue-900/30 font-medium mb-4">
                    {selectedReq.purpose}
                  </div>
+                 </>
+                 )}
 
                  {/* Show dynamic formData if exists */}
                  {selectedReq.formData && (
@@ -237,6 +242,19 @@ export const DashboardServices = () => {
                           fileKtp: 'File KTP',
                           fileKartuMahasiswa: 'File Kartu Mahasiswa',
                           fileSuratPermohonan: 'File Surat Permohonan',
+                          gender: 'Jenis Kelamin',
+                          age: 'Usia',
+                          layananPtsp: 'Layanan Terkait',
+                          q1: '1. Hasil Pelayanan (1-4)',
+                          q2: '2. Kemampuan Petugas (1-4)',
+                          q3: '3. Kesopanan dan Keramahan (1-4)',
+                          q4: '4. Penanganan Pengaduan (1-4)',
+                          q5: '5. Sarana dan Prasarana (1-4)',
+                          q6: '6. Kesesuaian Persyaratan (1-4)',
+                          q7: '7. Prosedur Pelayanan (1-4)',
+                          q8: '8. Ketepatan Waktu (1-4)',
+                          q9: '9. Kewajaran Biaya (1-4)',
+                          feedback: 'Kritik dan Saran'
                         };
                         const strVal = value as string;
                         const isFileUrl = strVal && strVal.startsWith('/uploads/');
@@ -270,7 +288,8 @@ export const DashboardServices = () => {
                  )}
                </section>
 
-               {/* Aksi Respon */}
+               {/* Aksi Respon (Disembunyikan jika Survey karena tidak perlu balasan/persetujuan) */}
+               {selectedReq.type !== 'survey-layanan' && (
                <section className="pt-6 border-t border-gray-100 dark:border-gray-800">
                  <h3 className="font-bold text-xs uppercase tracking-wider text-gray-400 mb-4">Tindakan Admin</h3>
                  
@@ -315,6 +334,7 @@ export const DashboardServices = () => {
                    </div>
                  </div>
                </section>
+               )}
 
             </div>
           </div>

@@ -1,5 +1,5 @@
 import * as model from './model';
-import { sendServiceEmail } from '../../lib/mailer';
+import { sendServiceEmail, sendSurveyEmail } from '../../lib/mailer';
 
 export const submitServiceRequest = async (data: any) => {
   if (!data.type || !data.applicantName || !data.email) {
@@ -17,11 +17,16 @@ export const submitServiceRequest = async (data: any) => {
     phone: data.phone || null,
     purpose: data.purpose || null,
     attachmentUrl: data.attachmentUrl || null,
-    formData: data.formData || null
+    formData: data.formData || null,
+    status: data.type === 'survey-layanan' ? 'completed' : 'pending' // Auto-complete survey
   });
 
-  // Try to send an initial email confirming we received it
-  await sendServiceEmail(data.email, result.ticketId, 'pending', 'Permohonan Anda berhasil masuk ke sistem kami.', data.applicantName, data.type);
+  if (data.type === 'survey-layanan') {
+    await sendSurveyEmail(data.email, data.applicantName);
+  } else {
+    // Try to send an initial email confirming we received it
+    await sendServiceEmail(data.email, result.ticketId, 'pending', 'Permohonan Anda berhasil masuk ke sistem kami.', data.applicantName, data.type);
+  }
 
   return result;
 };

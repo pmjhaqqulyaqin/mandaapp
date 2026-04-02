@@ -7,15 +7,16 @@ import { toast } from 'sonner';
 type FormField = {
   name: string;
   label: string;
-  type: 'text' | 'email' | 'date' | 'select' | 'textarea' | 'student-autocomplete' | 'time' | 'file';
+  type: 'text' | 'email' | 'date' | 'select' | 'textarea' | 'student-autocomplete' | 'time' | 'file' | 'radio';
   required?: boolean;
   placeholder?: string;
-  options?: string[];
+  options?: string[]; // optionally for selects and radios
   autoFillTarget?: string; // auto-fill another field when this one is selected
-  helpText?: string; // guidance text below the field
+  helpText?: React.ReactNode | string; // guidance text below the field (updated to support jsx)
   group?: string; // visual group header
   halfWidth?: boolean; // render side-by-side
   accept?: string; // for file input, e.g. '.pdf,.jpg,.png'
+  isRating?: boolean; // if true, renders radio options horizontally spaced out with labels at ends
 };
 
 // Define the service configuration
@@ -138,6 +139,43 @@ const IZIN_MAGANG_FIELDS: FormField[] = [
   { name: 'fileSuratPermohonan', label: 'Upload File Surat Permohonan Izin Magang', type: 'file', required: true, group: 'Upload Berkas', accept: '.pdf,.jpg,.jpeg,.png' },
 ];
 
+const SURVEY_LAYANAN_FIELDS: FormField[] = [
+  // === Lembar Identitas Responden ===
+  { name: 'applicantName', label: 'Nama Lengkap', type: 'text', required: true, group: 'Lembar Identitas Responden' },
+  { name: 'email', label: 'E-Mail Aktif', type: 'email', required: true },
+  { name: 'gender', label: 'Jenis Kelamin', type: 'radio', required: true, options: ['Laki - Laki', 'Perempuan'] },
+  { name: 'age', label: 'Usia (isi dengan angka saja. contoh: 20)', type: 'text', required: true },
+  { 
+    name: 'layananPtsp', 
+    label: 'Jenis Layanan PTSP yang digunakan pada Aplikasi PEPADU IC', 
+    type: 'select', 
+    required: true, 
+    options: [
+      'Layanan Pengajuan Pembuatan Surat Keterangan',
+      'Layanan Pengajuan Legalisir Ijazah Online',
+      'Permohonan Izin Siswa',
+      'Layanan Pengajuan Izin Penelitian',
+      'Layanan Pengajuan Izin Sosialisasi',
+      'Layanan Pengajuan Izin Magang',
+      'Layanan Pengaduan Masyarakat'
+    ],
+    helpText: <span>Pilih salah satu jenis layanan yang paling sering digunakan pada Sistem Aplikasi Layanan Satu Pintu MAN 2 Lombok Timur (SALAM MANDA) yang dapat diakses melalui tautan <a href="https://mandualotim.sch.id/" target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">https://mandualotim.sch.id/</a></span> 
+  },
+
+  // === Lembar Angket Survey ===
+  { name: 'q1', label: 'Bagaimana pendapat Saudara dengan hasil dari pelayanan yang telah diberikan?', type: 'radio', isRating: true, required: true, options: ['1', '2', '3', '4'], helpText: 'Sangat Tidak Puas — Sangat Puas', group: 'Lembar Angket Survey' },
+  { name: 'q2', label: 'Bagaimana pendapat Saudara tentang kemampuan petugas dalam memberikan pelayanan?', type: 'radio', isRating: true, required: true, options: ['1', '2', '3', '4'], helpText: 'Sangat Tidak Mampu — Sangat Mampu' },
+  { name: 'q3', label: 'Bagaimana pendapat Saudara tentang kesopanan dan keramahan petugas dalam memberikan pelayanan?', type: 'radio', isRating: true, required: true, options: ['1', '2', '3', '4'], helpText: 'Sangat Tidak Sopan/Ramah — Sangat Sopan/Ramah' },
+  { name: 'q4', label: 'Bagaimana pendapat Saudara tentang Penanganan dan tindak lanjut pengaduan yang dilaksanakan oleh unit pelayanan ini?', type: 'radio', isRating: true, required: true, options: ['1', '2', '3', '4'], helpText: 'Sangat Tidak Tepat — Sangat Tepat' },
+  { name: 'q5', label: 'Bagaimana pendapat Saudara tentang Sarana dan Prasarana yang disediakan oleh unit pelayanan ini?', type: 'radio', isRating: true, required: true, options: ['1', '2', '3', '4'], helpText: 'Sangat Tidak Puas — Sangat Puas' },
+  { name: 'q6', label: 'Bagaimana menurut Saudara dengan kesesuaian persyaratan yang harus dipenuhi dalam pengurusan pelayanan dengan hasil/jenis pelayanan yang diberikan?', type: 'radio', isRating: true, required: true, options: ['1', '2', '3', '4'], helpText: 'Sangat Tidak Sesuai — Sangat Sesuai' },
+  { name: 'q7', label: 'Bagaimana pendapat Saudara tentang prosedur pelayanan yang dilaksanakan di unit ini ?', type: 'radio', isRating: true, required: true, options: ['1', '2', '3', '4'], helpText: 'Sangat Tidak Mudah — Sangat Mudah' },
+  { name: 'q8', label: 'Bagaimana menurut Saudara tentang ketepatan waktu pelayanan di unit ini ?', type: 'radio', isRating: true, required: true, options: ['1', '2', '3', '4'], helpText: 'Sangat Tidak Tepat — Sangat Tepat' },
+  { name: 'q9', label: 'Bagaimana pendapat Saudara tentang kewajaran biaya untuk mendapatkan pelayanan?', type: 'radio', isRating: true, required: true, options: ['1', '2', '3', '4'], helpText: 'Sangat Tidak Wajar — Sangat Wajar' },
+
+  { name: 'feedback', label: 'Berikan Kritik atau Saran terkait sistem pelayanan menggunakan Aplikasi SALAM MANDA ini!', type: 'textarea', required: false }
+];
+
 export const SERVICES: ServiceType[] = [
   {
     id: 'surat-keterangan',
@@ -251,6 +289,18 @@ export const SERVICES: ServiceType[] = [
       { name: 'phone', label: 'No Handphone (HP) Aktif', type: 'text', required: true, halfWidth: true },
       { name: 'purpose', label: 'Permasalahan?', type: 'textarea', required: true },
     ]
+  },
+  {
+    id: 'survey-layanan',
+    slug: 'survey-layanan',
+    title: 'Survey Pelayanan',
+    shortName: 'Survey',
+    description: 'Beri nilai kualitas pelayanan E-PTSP untuk peningkatan performa layanan.',
+    submitLabel: 'SUBMIT SURVEY',
+    showServiceLinks: true,
+    sidebarTitle: 'Layanan Kami',
+    requirements: [],
+    fields: SURVEY_LAYANAN_FIELDS
   }
 ];
 
@@ -595,7 +645,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
               }
             }}
             required={field.required}
-            helpText={field.helpText}
+            helpText={field.helpText as string}
           />
         );
 
@@ -689,7 +739,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
               onChange={e => setField(field.name, e.target.value)}
               className={baseClass}
             />
-            {field.helpText && <p className="mt-1.5 text-xs text-gray-500 italic">{field.helpText}</p>}
+            {field.helpText && <div className="mt-1.5 text-xs text-gray-500 italic">{field.helpText}</div>}
           </>
         );
     }
@@ -816,7 +866,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
               <p className="text-sm text-gray-600 leading-relaxed mb-5">
                 Mohon kesediaan pengguna layanan melalui sistem ini dapat memberikan Feedback berupa saran/kritik yang membangun untuk pelayanan kami.
               </p>
-              <button className="px-5 py-2.5 bg-[#1A73E8] hover:bg-blue-600 active:bg-blue-700 text-white font-medium rounded shadow-md text-sm transition-colors">
+              <button onClick={() => navigate('/services/survey-layanan')} className="px-5 py-2.5 bg-[#1A73E8] hover:bg-blue-600 active:bg-blue-700 text-white font-medium rounded shadow-md text-sm transition-colors">
                 Isi Survey
               </button>
             </div>

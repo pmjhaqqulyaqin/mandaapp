@@ -16,7 +16,7 @@ const generateTicketId = () => {
   return result;
 };
 
-export const createServiceRequest = async (data: Omit<InsertServiceRequest, 'id' | 'ticketId' | 'status' | 'createdAt' | 'updatedAt'>) => {
+export const createServiceRequest = async (data: Omit<InsertServiceRequest, 'id' | 'ticketId' | 'createdAt' | 'updatedAt'>) => {
   let ticketId = generateTicketId();
   // Simple while loop to ensure uniqueness
   let exists = await db.select().from(serviceRequests).where(eq(serviceRequests.ticketId, ticketId)).limit(1);
@@ -28,7 +28,7 @@ export const createServiceRequest = async (data: Omit<InsertServiceRequest, 'id'
   const [inserted] = await db.insert(serviceRequests).values({
     ...data,
     ticketId,
-    status: 'pending'
+    status: data.status || 'pending'
   }).returning();
 
   return inserted;
