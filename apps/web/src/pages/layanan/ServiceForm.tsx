@@ -147,7 +147,7 @@ const SURVEY_LAYANAN_FIELDS: FormField[] = [
   { name: 'age', label: 'Usia (isi dengan angka saja. contoh: 20)', type: 'text', required: true },
   { 
     name: 'layananPtsp', 
-    label: 'Jenis Layanan PTSP yang digunakan pada Aplikasi PEPADU IC', 
+    label: 'Jenis Layanan PTSP yang digunakan pada Aplikasi SALAM MANDA', 
     type: 'select', 
     required: true, 
     options: [
@@ -870,7 +870,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
                     {!hasCustomFileFields && service.id !== 'survey-layanan' && service.id !== 'buku-tamu' && service.id !== 'layanan-pengaduan' && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Upload File Pendukung (seperti Surat Keterangan Sakit/KTP Pemohon/Bukti izin lainnya) <span className="text-red-500">*</span>
+                        {service.id === 'surat-keterangan' ? 'Upload File Kartu Pelajar/Siswa' : service.id === 'legalisir-online' ? 'Upload File Dokumen Yang Akan Dilegalisir' : 'Upload File Pendukung'} <span className="text-red-500">*</span>
                       </label>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white">
                          <input required type="file" onChange={e => {
