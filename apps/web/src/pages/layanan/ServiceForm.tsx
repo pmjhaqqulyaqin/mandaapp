@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, Search, FileText } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Search, FileText, User, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Define the service configuration
 // Define the field configuration
 type FormField = {
   name: string;
   label: string;
-  type: 'text' | 'email' | 'date' | 'select' | 'textarea';
+  type: 'text' | 'email' | 'date' | 'select' | 'textarea' | 'student-autocomplete' | 'time';
   required?: boolean;
   placeholder?: string;
-  options?: string[]; // For select type
+  options?: string[];
+  autoFillTarget?: string; // auto-fill another field when this one is selected
+  helpText?: string; // guidance text below the field
+  group?: string; // visual group header
+  halfWidth?: boolean; // render side-by-side
 };
 
 // Define the service configuration
@@ -22,7 +25,7 @@ type ServiceType = {
   shortName: string;
   description: string;
   requirements: string[];
-  fields?: FormField[]; // Optional dynamic fields
+  fields?: FormField[];
 };
 
 const DEFAULT_FIELDS: FormField[] = [
@@ -34,6 +37,40 @@ const DEFAULT_FIELDS: FormField[] = [
   { name: 'email', label: 'E-Mail Pemohon (Email Aktif)', type: 'email', required: true },
   { name: 'phone', label: 'No Handphone (HP)', type: 'text', required: true },
   { name: 'purpose', label: 'Hal/Keperluan Spesifik', type: 'text', required: true, placeholder: 'Misal: Surat Keterangan Aktif untuk beasiswa' },
+];
+
+const IZIN_SISWA_FIELDS: FormField[] = [
+  // === Data Siswa ===
+  { name: 'studentName', label: 'Nama Siswa/Siswi', type: 'student-autocomplete', required: true,
+    helpText: 'Masukan nama panggilan Siswa/i sebagai kata kunci, dan pilih siswa/i yang muncul.',
+    autoFillTarget: 'nis', group: 'Data Siswa' },
+  { name: 'nis', label: 'Nomor Induk Siswa (NIS)', type: 'text', required: true, halfWidth: true },
+
+  // === Data Pemohon ===
+  { name: 'applicantName', label: 'Nama Lengkap Pemohon', type: 'text', required: true, group: 'Data Pemohon (Orang Tua / Wali)' },
+  { name: 'nisn', label: 'No Identitas Pemohon (No KTP)', type: 'text', required: true },
+
+  // === Detail Izin ===
+  { name: 'purpose', label: 'Izin untuk Keperluan?', type: 'select', required: true, group: 'Detail Permohonan Izin', options: [
+      'Izin Keluarga Inti Meninggal',
+      'Izin Acara Keluarga Inti',
+      'Izin Karena Sakit',
+      'Izin Urusan Penting Lainnya',
+      'Izin Pembinaan/TC'
+  ]},
+  { name: 'phone', label: 'No HP Pemohon', type: 'text', required: true },
+  { name: 'description', label: 'Keterangan/Alasan Permohonan Izin', type: 'textarea', required: true },
+
+  // === Waktu Izin ===
+  { name: 'startDate', label: 'Mulai Tanggal', type: 'date', required: true, group: 'Periode Izin', halfWidth: true },
+  { name: 'startTime', label: 'Mulai Jam', type: 'time', required: true, halfWidth: true },
+  { name: 'endDate', label: 'Sampai Tanggal', type: 'date', required: true, halfWidth: true },
+  { name: 'endTime', label: 'Sampai Jam', type: 'time', required: true, halfWidth: true },
+
+  // === Kontak ===
+  { name: 'email', label: 'E-Mail Orang Tua/Wali Siswa/i', type: 'email', required: true, group: 'Kontak',
+    helpText: 'E-Mail diperlukan untuk mendapatkan Notifikasi Status Izin secara Real Time',
+    placeholder: 'Contoh: jagungodak@gmail.com' },
 ];
 
 export const SERVICES: ServiceType[] = [
@@ -68,11 +105,14 @@ export const SERVICES: ServiceType[] = [
   {
     id: 'izin-siswa',
     slug: 'izin-siswa',
-    title: 'Layanan Pengajuan Izin Siswa',
+    title: 'Permohonan Izin Siswa',
     shortName: 'Izin Siswa',
-    description: 'Layanan izin tidak masuk sekolah (Sakit/Izin).',
-    requirements: ['Surat Keterangan Dokter (Bila Sakit)', 'Persetujuan Wali Kelas'],
-    fields: DEFAULT_FIELDS
+    description: 'Layanan permohonan izin tidak masuk sekolah bagi siswa/siswi.',
+    requirements: [
+      'Permohonan Izin hanya bisa dilakukan oleh orang tua/wali siswa/i',
+      'Permohonan Izin dilakukan paling lambat sehari sebelum hari izin (hari H)'
+    ],
+    fields: IZIN_SISWA_FIELDS
   },
   {
     id: 'izin-penelitian',
@@ -121,6 +161,180 @@ export const SERVICES: ServiceType[] = [
   }
 ];
 
+// ============================================================
+// Student Autocomplete Sub-Component
+// ============================================================
+type StudentResult = {
+  id: string;
+  fullName: string;
+  nis: string;
+  nisn: string;
+  className: string;
+};
+
+const StudentAutocomplete = ({
+  value,
+  onChange,
+  onSelect,
+  required,
+  helpText,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  onSelect: (student: StudentResult) => void;
+  required?: boolean;
+  helpText?: string;
+}) => {
+  const [results, setResults] = useState<StudentResult[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [highlightIdx, setHighlightIdx] = useState(-1);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Close on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const doSearch = useCallback(async (q: string) => {
+    if (q.trim().length < 2) {
+      setResults([]);
+      setIsOpen(false);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/students/search-autocomplete?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      setResults(Array.isArray(data) ? data : []);
+      setIsOpen(true);
+      setHighlightIdx(-1);
+    } catch {
+      setResults([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const handleInputChange = (val: string) => {
+    onChange(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => doSearch(val), 300);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!isOpen || results.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightIdx(prev => Math.min(prev + 1, results.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightIdx(prev => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter' && highlightIdx >= 0) {
+      e.preventDefault();
+      handleSelect(results[highlightIdx]);
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
+    }
+  };
+
+  const handleSelect = (student: StudentResult) => {
+    onChange(student.nis + ' ' + student.fullName);
+    onSelect(student);
+    setIsOpen(false);
+  };
+
+  // Highlight matching text
+  const highlightMatch = (text: string, query: string) => {
+    if (!query.trim()) return text;
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+    return parts.map((part, i) =>
+      regex.test(part)
+        ? <span key={i} className="bg-yellow-200 text-yellow-900 font-bold rounded px-0.5">{part}</span>
+        : part
+    );
+  };
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="relative">
+        <input
+          type="text"
+          required={required}
+          value={value}
+          onChange={e => handleInputChange(e.target.value)}
+          onFocus={() => { if (results.length > 0) setIsOpen(true); }}
+          onKeyDown={handleKeyDown}
+          placeholder="Ketik nama siswa..."
+          className="w-full px-4 py-3 pl-11 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
+        />
+        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+          {isLoading
+            ? <span className="block w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+            : <Search className="w-4 h-4" />}
+        </div>
+      </div>
+      {helpText && (
+        <p className="mt-1.5 text-xs text-red-500 italic">{helpText}</p>
+      )}
+
+      {/* Dropdown Results */}
+      {isOpen && results.length > 0 && (
+        <div className="absolute z-50 mt-1.5 w-full bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="max-h-64 overflow-y-auto">
+            {results.map((student, idx) => (
+              <button
+                key={student.id}
+                type="button"
+                onClick={() => handleSelect(student)}
+                className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-b-0 ${
+                  idx === highlightIdx
+                    ? 'bg-blue-50'
+                    : 'hover:bg-gray-50'
+                }`}
+              >
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-gray-800 text-sm truncate">
+                    {highlightMatch(student.fullName || '', value)}
+                  </div>
+                  <div className="text-xs text-gray-500 flex items-center gap-2 mt-0.5">
+                    <span>NIS: {student.nis || '-'}</span>
+                    {student.className && (
+                      <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                        {student.className}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isOpen && results.length === 0 && !isLoading && value.trim().length >= 2 && (
+        <div className="absolute z-50 mt-1.5 w-full bg-white rounded-xl shadow-xl border border-gray-100 p-5 text-center text-sm text-gray-400">
+          Tidak ditemukan siswa dengan nama tersebut.
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================
+// Main ServiceForm Component
+// ============================================================
 export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
   const navigate = useNavigate();
   const service = SERVICES.find(s => pageSlug.includes(s.slug) || s.slug.includes(pageSlug)) || SERVICES[0];
@@ -137,6 +351,10 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
   const [formData, setFormData] = useState<Record<string, string>>({});
 
   const [file, setFile] = useState<File | null>(null);
+
+  const setField = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,6 +420,154 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
     }
   };
 
+  // Group fields by their 'group' property for visual sections
+  const renderFields = () => {
+    let currentGroup: string | null = null;
+    const rendered: React.ReactNode[] = [];
+    let halfWidthBuffer: FormField[] = [];
+
+    const flushHalfWidth = () => {
+      if (halfWidthBuffer.length > 0) {
+        const pair = halfWidthBuffer.splice(0, 2);
+        rendered.push(
+          <div key={`hw-${pair[0].name}`} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {pair.map(f => (
+              <div key={f.name}>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {f.label} {f.required && <span className="text-red-500">*</span>}
+                </label>
+                {renderInput(f)}
+              </div>
+            ))}
+          </div>
+        );
+      }
+    };
+
+    fields.forEach((field, idx) => {
+      // If we hit a new group, flush pending halfWidth fields first
+      if (field.group && field.group !== currentGroup) {
+        flushHalfWidth();
+        currentGroup = field.group;
+        rendered.push(
+          <div key={`group-${field.group}`} className="pt-4 first:pt-0">
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">
+              {field.group}
+            </h3>
+          </div>
+        );
+      }
+
+      if (field.halfWidth) {
+        halfWidthBuffer.push(field);
+        if (halfWidthBuffer.length === 2) {
+          flushHalfWidth();
+        }
+      } else {
+        flushHalfWidth();
+        rendered.push(
+          <div key={field.name}>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {field.label} {field.required && <span className="text-red-500">*</span>}
+            </label>
+            {renderInput(field)}
+          </div>
+        );
+      }
+    });
+
+    // Flush any remaining halfWidth
+    flushHalfWidth();
+
+    return rendered;
+  };
+
+  const renderInput = (field: FormField) => {
+    const baseClass = "w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none";
+
+    switch (field.type) {
+      case 'student-autocomplete':
+        return (
+          <StudentAutocomplete
+            value={formData[field.name] || ''}
+            onChange={(val) => setField(field.name, val)}
+            onSelect={(student) => {
+              if (field.autoFillTarget) {
+                setField(field.autoFillTarget, student.nis || '');
+              }
+            }}
+            required={field.required}
+            helpText={field.helpText}
+          />
+        );
+
+      case 'select':
+        return (
+          <>
+            <div className="relative">
+              <select
+                required={field.required}
+                value={formData[field.name] || ''}
+                onChange={e => setField(field.name, e.target.value)}
+                className={`${baseClass} bg-white font-medium appearance-none pr-10`}
+              >
+                <option value="" disabled>-- Pilih {field.label} --</option>
+                {field.options?.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
+            {field.helpText && <p className="mt-1.5 text-xs text-gray-500 italic">{field.helpText}</p>}
+          </>
+        );
+
+      case 'textarea':
+        return (
+          <>
+            <textarea
+              required={field.required}
+              placeholder={field.placeholder}
+              value={formData[field.name] || ''}
+              onChange={e => setField(field.name, e.target.value)}
+              rows={4}
+              className={`${baseClass} resize-y`}
+            />
+            {field.helpText && <p className="mt-1.5 text-xs text-gray-500 italic">{field.helpText}</p>}
+          </>
+        );
+
+      case 'time':
+        return (
+          <>
+            <input
+              required={field.required}
+              type="time"
+              value={formData[field.name] || ''}
+              onChange={e => setField(field.name, e.target.value)}
+              className={`${baseClass}`}
+            />
+            {field.helpText && <p className="mt-1.5 text-xs text-gray-500 italic">{field.helpText}</p>}
+          </>
+        );
+
+      default:
+        return (
+          <>
+            <input
+              required={field.required}
+              type={field.type}
+              placeholder={field.placeholder}
+              value={formData[field.name] || ''}
+              onChange={e => setField(field.name, e.target.value)}
+              className={baseClass}
+            />
+            {field.helpText && <p className="mt-1.5 text-xs text-gray-500 italic">{field.helpText}</p>}
+          </>
+        );
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FBFF] pb-20">
       
@@ -237,39 +603,12 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
                 <div className="p-6 md:p-8">
                   <form onSubmit={handleSubmit} className="space-y-6">
                     
-                    {fields.map((field) => (
-                      <div key={field.name}>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          {field.label} {field.required && <span className="text-red-500">*</span>}
-                        </label>
-                        
-                        {field.type === 'select' ? (
-                          <select
-                            required={field.required}
-                            value={formData[field.name] || ''}
-                            onChange={e => setFormData({ ...formData, [field.name]: e.target.value })}
-                            className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none bg-white font-medium"
-                          >
-                            <option value="" disabled>-- Pilih {field.label} --</option>
-                            {field.options?.map(opt => (
-                              <option key={opt} value={opt}>{opt}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input 
-                            required={field.required}
-                            type={field.type} 
-                            placeholder={field.placeholder}
-                            value={formData[field.name] || ''} 
-                            onChange={e => setFormData({ ...formData, [field.name]: e.target.value })} 
-                            className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none" 
-                          />
-                        )}
-                      </div>
-                    ))}
+                    {renderFields()}
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Upload Berkas Persyaratan (Wajib)</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Upload File Pendukung (seperti Surat Keterangan Sakit/KTP Pemohon/Bukti izin lainnya) <span className="text-red-500">*</span>
+                      </label>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white">
                          <input required type="file" onChange={e => setFile(e.target.files?.[0] || null)} className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-all outline-none text-sm" />
                       </div>
@@ -277,7 +616,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
 
                     <div className="pt-4 border-t border-gray-100">
                       <button disabled={isLoading} type="submit" 
-                        className="px-8 py-3.5 bg-[#1A73E8] hover:bg-blue-600 active:bg-blue-700 text-white font-bold rounded-lg shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                        className="w-full sm:w-auto px-8 py-3.5 bg-[#1A73E8] hover:bg-blue-600 active:bg-blue-700 text-white font-bold rounded-lg shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
                         {isLoading ? 'MENGIRIM...' : 'KIRIM PERMOHONAN'}
                       </button>
                     </div>
@@ -310,7 +649,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
           <div className="lg:col-span-1 space-y-6">
             
             <div className="bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-gray-100 p-6">
-              <h3 className="font-bold text-gray-800 pb-3 border-b border-gray-100 mb-4 whitespace-nowrap">Berkas Persyaratan</h3>
+              <h3 className="font-bold text-gray-800 pb-3 border-b border-gray-100 mb-4 whitespace-nowrap">Ketentuan Permohonan Izin</h3>
               <ul className="space-y-3">
                 {service.requirements.map((req, idx) => (
                   <li key={idx} className="flex gap-3 text-sm text-gray-600">

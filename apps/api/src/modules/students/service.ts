@@ -1,6 +1,6 @@
 import { db } from "../../db";
 import { studentProfiles, identityRevisions } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { eq, ilike, or } from "drizzle-orm";
 
 export class StudentService {
   static async getAllStudents(classFilter?: string) {
@@ -74,5 +74,27 @@ export class StudentService {
     ).limit(1);
     
     return results[0] || null;
+  }
+
+  static async searchStudentsAutocomplete(keyword: string) {
+    const trimmed = keyword.trim();
+    if (!trimmed || trimmed.length < 2) return [];
+
+    const results = await db.select({
+      id: studentProfiles.id,
+      fullName: studentProfiles.fullName,
+      nis: studentProfiles.nis,
+      nisn: studentProfiles.nisn,
+      className: studentProfiles.className,
+    }).from(studentProfiles)
+      .where(
+        or(
+          ilike(studentProfiles.fullName, `%${trimmed}%`),
+          ilike(studentProfiles.nis, `%${trimmed}%`)
+        )
+      )
+      .limit(10);
+
+    return results;
   }
 }

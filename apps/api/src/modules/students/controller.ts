@@ -252,4 +252,17 @@ export class StudentController {
       res.status(500).json({ error: "Terjadi kesalahan pada server saat mencari data." });
     }
   }
+
+  static async autocompleteSearch(req: Request, res: Response) {
+    try {
+      const q = req.query.q as string;
+      if (!q || q.trim().length < 2) {
+        return res.json([]);
+      }
+      const results = await StudentService.searchStudentsAutocomplete(q);
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to search students" });
+    }
+  }
 }

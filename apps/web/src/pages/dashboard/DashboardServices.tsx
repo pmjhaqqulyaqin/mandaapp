@@ -219,15 +219,27 @@ export const DashboardServices = () => {
                  {/* Show dynamic formData if exists */}
                  {selectedReq.formData && (
                    <div className="space-y-4">
-                     {Object.entries(JSON.parse(selectedReq.formData)).map(([key, value]) => (
+                     {Object.entries(JSON.parse(selectedReq.formData)).map(([key, value]) => {
+                       const labelMap: Record<string, string> = {
+                         documentType: 'Jenis Dokumen',
+                         additionalNotes: 'Catatan Tambahan',
+                         studentName: 'Nama Siswa/Siswi',
+                         nis: 'Nomor Induk Siswa (NIS)',
+                         description: 'Keterangan/Alasan Izin',
+                         startDate: 'Mulai Tanggal',
+                         startTime: 'Mulai Jam',
+                         endDate: 'Sampai Tanggal',
+                         endTime: 'Sampai Jam',
+                       };
+                       return (
                        <div key={key} className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
                          <p className="text-xs text-gray-500 uppercase tracking-tight mb-1">
-                           {key === 'documentType' ? 'Jenis Dokumen' :
-                            key === 'additionalNotes' ? 'Catatan Tambahan' : key}
+                           {labelMap[key] || key}
                          </p>
                          <p className="font-semibold text-gray-800 dark:text-gray-100">{value as string}</p>
                        </div>
-                     ))}
+                       );
+                     })}
                    </div>
                  )}
                  
