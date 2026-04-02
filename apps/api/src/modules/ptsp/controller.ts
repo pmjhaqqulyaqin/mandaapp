@@ -6,17 +6,34 @@ export const handleSubmit = async (req: Request, res: Response) => {
     const data = req.body;
     let attachmentUrl = null;
 
-    if (req.file) {
-      attachmentUrl = `/uploads/${req.file.filename}`;
+    // Handle multiple files from upload.any()
+    const files = req.files as Express.Multer.File[] | undefined;
+    const extraFileUrls: Record<string, string> = {};
+
+    if (files && files.length > 0) {
+      for (const file of files) {
+        const fileUrl = `/uploads/${file.filename}`;
+        if (file.fieldname === 'attachment') {
+          // Backward compatible: single attachment field
+          attachmentUrl = fileUrl;
+        } else {
+          // Named file fields → store in formData
+          extraFileUrls[file.fieldname] = fileUrl;
+        }
+      }
     }
 
-    // formData comes as a JSON string from the frontend
-    const formData = data.formData || null;
+    // Merge existing formData with file URLs
+    let formData = data.formData ? JSON.parse(data.formData) : {};
+    if (Object.keys(extraFileUrls).length > 0) {
+      formData = { ...formData, ...extraFileUrls };
+    }
+    const formDataStr = Object.keys(formData).length > 0 ? JSON.stringify(formData) : null;
 
     const result = await ptspService.submitServiceRequest({
       ...data,
       attachmentUrl,
-      formData
+      formData: formDataStr
     });
 
     res.status(201).json({ success: true, data: result });

@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 type FormField = {
   name: string;
   label: string;
-  type: 'text' | 'email' | 'date' | 'select' | 'textarea' | 'student-autocomplete' | 'time';
+  type: 'text' | 'email' | 'date' | 'select' | 'textarea' | 'student-autocomplete' | 'time' | 'file';
   required?: boolean;
   placeholder?: string;
   options?: string[];
@@ -15,6 +15,7 @@ type FormField = {
   helpText?: string; // guidance text below the field
   group?: string; // visual group header
   halfWidth?: boolean; // render side-by-side
+  accept?: string; // for file input, e.g. '.pdf,.jpg,.png'
 };
 
 // Define the service configuration
@@ -73,6 +74,31 @@ const IZIN_SISWA_FIELDS: FormField[] = [
     placeholder: 'Contoh: jagungodak@gmail.com' },
 ];
 
+const IZIN_PENELITIAN_FIELDS: FormField[] = [
+  // === Identitas Pemohon ===
+  { name: 'applicantName', label: 'Nama Lengkap', type: 'text', required: true, group: 'Identitas Pemohon', halfWidth: true },
+  { name: 'nisn', label: 'Nomor Induk Mahasiswa (NIM)', type: 'text', required: true, halfWidth: true },
+  { name: 'address', label: 'Alamat', type: 'text', required: true },
+  { name: 'institution', label: 'Asal Lembaga', type: 'text', required: true },
+  { name: 'major', label: 'Jurusan', type: 'text', required: true, halfWidth: true },
+  { name: 'educationLevel', label: 'Jenjang', type: 'select', required: true, halfWidth: true, options: [
+    'D3', 'D4 / S1 Terapan', 'S1', 'S2', 'S3', 'Lainnya'
+  ]},
+  { name: 'email', label: 'E-Mail', type: 'email', required: true, halfWidth: true },
+  { name: 'phone', label: 'No Handphone (HP)', type: 'text', required: true, halfWidth: true },
+
+  // === Detail Penelitian ===
+  { name: 'purpose', label: 'Judul Penelitian', type: 'text', required: true, group: 'Detail Penelitian' },
+  { name: 'startDate', label: 'Kurun Waktu Penelitian — Mulai', type: 'date', required: true, halfWidth: true },
+  { name: 'endDate', label: 'S/d', type: 'date', required: true, halfWidth: true },
+  { name: 'respondent', label: 'Responden/Narasumber/Sasaran yang dibutuhkan', type: 'text', required: true },
+
+  // === Upload Berkas ===
+  { name: 'fileKtp', label: 'Upload File KTP', type: 'file', required: true, group: 'Upload Berkas', accept: '.pdf,.jpg,.jpeg,.png' },
+  { name: 'fileKartuMahasiswa', label: 'Upload File Kartu Mahasiswa', type: 'file', required: true, accept: '.pdf,.jpg,.jpeg,.png' },
+  { name: 'fileSuratPermohonan', label: 'Upload File Surat Permohonan Penelitian', type: 'file', required: true, accept: '.pdf,.jpg,.jpeg,.png' },
+];
+
 export const SERVICES: ServiceType[] = [
   {
     id: 'surat-keterangan',
@@ -120,8 +146,12 @@ export const SERVICES: ServiceType[] = [
     title: 'Layanan Pengajuan Izin Penelitian',
     shortName: 'Izin Penelitian',
     description: 'Layanan izin observasi/penelitian untuk mahasiswa/umum.',
-    requirements: ['Surat Pengantar dari Universitas/Instansi', 'Proposal Penelitian'],
-    fields: DEFAULT_FIELDS
+    requirements: [
+      'Kartu Tanda Penduduk (KTP)',
+      'Kartu Mahasiswa atau sejenisnya',
+      'Surat Permohonan Penelitian dari Fakultas atau Lembaga Terkait'
+    ],
+    fields: IZIN_PENELITIAN_FIELDS
   },
   {
     id: 'izin-sosialisasi',
@@ -350,7 +380,11 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
   // Dynamic Form State
   const [formData, setFormData] = useState<Record<string, string>>({});
 
-  const [file, setFile] = useState<File | null>(null);
+  // File state: supports multiple named file fields
+  const [files, setFiles] = useState<Record<string, File>>({});
+
+  // Check if this service has its own file fields in the config
+  const hasCustomFileFields = fields.some(f => f.type === 'file');
 
   const setField = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -382,9 +416,10 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
         payload.append('formData', JSON.stringify(dynamicFields));
       }
 
-      if (file) {
-        payload.append('attachment', file);
-      }
+      // Append files: named file fields or single attachment
+      Object.entries(files).forEach(([fieldName, fileObj]) => {
+        payload.append(fieldName, fileObj);
+      });
 
       const res = await fetch('/api/ptsp/submit', {
         method: 'POST',
@@ -551,6 +586,35 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
           </>
         );
 
+      case 'file':
+        return (
+          <>
+            <div className="flex flex-col gap-2 w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white">
+              <input
+                required={field.required && !files[field.name]}
+                type="file"
+                accept={field.accept}
+                onChange={e => {
+                  const f = e.target.files?.[0];
+                  if (f) {
+                    setFiles(prev => ({ ...prev, [field.name]: f }));
+                  }
+                }}
+                className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-all outline-none text-sm"
+              />
+              {files[field.name] && (
+                <div className="text-xs text-gray-500 flex items-center gap-2">
+                  <FileText className="w-3.5 h-3.5 text-blue-500" />
+                  <span className="font-medium text-gray-700">{files[field.name].name}</span>
+                  <span className="text-gray-400">—</span>
+                  <span>{(files[field.name].size / 1024 / 1024).toFixed(2)} MB</span>
+                </div>
+              )}
+            </div>
+            {field.helpText && <p className="mt-1.5 text-xs text-gray-500 italic">{field.helpText}</p>}
+          </>
+        );
+
       default:
         return (
           <>
@@ -605,14 +669,20 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
                     
                     {renderFields()}
 
+                    {/* Only show generic upload if service does NOT have custom file fields */}
+                    {!hasCustomFileFields && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Upload File Pendukung (seperti Surat Keterangan Sakit/KTP Pemohon/Bukti izin lainnya) <span className="text-red-500">*</span>
                       </label>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white">
-                         <input required type="file" onChange={e => setFile(e.target.files?.[0] || null)} className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-all outline-none text-sm" />
+                         <input required type="file" onChange={e => {
+                           const f = e.target.files?.[0];
+                           if (f) setFiles(prev => ({ ...prev, attachment: f }));
+                         }} className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-all outline-none text-sm" />
                       </div>
                     </div>
+                    )}
 
                     <div className="pt-4 border-t border-gray-100">
                       <button disabled={isLoading} type="submit" 

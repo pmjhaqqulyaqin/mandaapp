@@ -218,30 +218,47 @@ export const DashboardServices = () => {
 
                  {/* Show dynamic formData if exists */}
                  {selectedReq.formData && (
-                   <div className="space-y-4">
-                     {Object.entries(JSON.parse(selectedReq.formData)).map(([key, value]) => {
-                       const labelMap: Record<string, string> = {
-                         documentType: 'Jenis Dokumen',
-                         additionalNotes: 'Catatan Tambahan',
-                         studentName: 'Nama Siswa/Siswi',
-                         nis: 'Nomor Induk Siswa (NIS)',
-                         description: 'Keterangan/Alasan Izin',
-                         startDate: 'Mulai Tanggal',
-                         startTime: 'Mulai Jam',
-                         endDate: 'Sampai Tanggal',
-                         endTime: 'Sampai Jam',
-                       };
-                       return (
-                       <div key={key} className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                         <p className="text-xs text-gray-500 uppercase tracking-tight mb-1">
-                           {labelMap[key] || key}
-                         </p>
-                         <p className="font-semibold text-gray-800 dark:text-gray-100">{value as string}</p>
-                       </div>
-                       );
-                     })}
-                   </div>
-                 )}
+                    <div className="space-y-4">
+                      {Object.entries(JSON.parse(selectedReq.formData)).map(([key, value]) => {
+                        const labelMap: Record<string, string> = {
+                          documentType: 'Jenis Dokumen',
+                          additionalNotes: 'Catatan Tambahan',
+                          studentName: 'Nama Siswa/Siswi',
+                          nis: 'Nomor Induk Siswa (NIS)',
+                          description: 'Keterangan/Alasan Izin',
+                          startDate: 'Mulai Tanggal',
+                          startTime: 'Mulai Jam',
+                          endDate: 'Sampai Tanggal',
+                          endTime: 'Sampai Jam',
+                          institution: 'Asal Lembaga',
+                          major: 'Jurusan',
+                          educationLevel: 'Jenjang Pendidikan',
+                          respondent: 'Responden/Narasumber',
+                          fileKtp: 'File KTP',
+                          fileKartuMahasiswa: 'File Kartu Mahasiswa',
+                          fileSuratPermohonan: 'File Surat Permohonan',
+                        };
+                        const strVal = value as string;
+                        const isFileUrl = strVal && strVal.startsWith('/uploads/');
+                        return (
+                        <div key={key} className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+                          <p className="text-xs text-gray-500 uppercase tracking-tight mb-1">
+                            {labelMap[key] || key}
+                          </p>
+                          {isFileUrl ? (
+                            <a href={strVal} target="_blank" rel="noopener noreferrer"
+                               className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:blue-400 rounded-lg text-sm font-semibold transition-colors">
+                              <Download className="w-3.5 h-3.5" />
+                              {strVal.endsWith('.pdf') ? '📄' : '🖼️'} Download Berkas
+                            </a>
+                          ) : (
+                            <p className="font-semibold text-gray-800 dark:text-gray-100">{strVal}</p>
+                          )}
+                        </div>
+                        );
+                      })}
+                    </div>
+                  )}
                  
                  {selectedReq.attachmentUrl && (
                    <div className="mt-4">

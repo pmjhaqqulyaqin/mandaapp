@@ -26,7 +26,7 @@ const upload = multer({
 });
 
 // Public Routes
-ptspRoutes.post("/submit", upload.single('attachment'), controller.handleSubmit);
+ptspRoutes.post("/submit", upload.any(), controller.handleSubmit);
 ptspRoutes.get("/track/:ticketId", controller.handleTrack);
 
 // Admin Routes (Auth will be checked at frontend and basic controller layer)
