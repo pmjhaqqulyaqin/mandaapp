@@ -116,7 +116,7 @@ export const Header = ({
         <img 
           src={resolveUrl(iconStr)} 
           alt="Menu Ikon" 
-          style={{ width: '20px', height: '20px', objectFit: 'contain' }} 
+          style={{ width: '16px', height: '16px', objectFit: 'contain' }} 
         />
       );
     }
@@ -146,7 +146,7 @@ export const Header = ({
           background: 'linear-gradient(135deg, #0f7b5f 0%, #1a9a6f 50%, #2aaa7a 100%)',
           color: '#fff',
           overflow: 'hidden',
-          maxHeight: isScrolled ? '0px' : '44px',
+          maxHeight: isScrolled ? '0px' : '34px',
           opacity: isScrolled ? 0 : 1,
           transition: 'max-height 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms ease',
         }}
@@ -158,15 +158,15 @@ export const Header = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '32px',
-            height: '44px',
-            fontSize: '12px',
+            gap: '24px',
+            height: '34px',
+            fontSize: '11px',
             fontWeight: 400,
             flexWrap: 'wrap',
             whiteSpace: 'normal',
             lineHeight: '1.2',
             textAlign: 'center',
-            padding: '4px 24px',
+            padding: '2px 16px',
           }}
         >
           {/* Address */}
@@ -227,11 +227,11 @@ export const Header = ({
           style={{
             maxWidth: '1200px',
             margin: '0 auto',
-            padding: '0 24px',
+            padding: '0 16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            height: '52px',
+            height: '42px',
           }}
         >
           {/* Logo + School Name */}
@@ -246,7 +246,7 @@ export const Header = ({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
+              gap: '8px',
               textDecoration: 'none',
               flexShrink: 0,
               cursor: 'pointer',
@@ -258,7 +258,7 @@ export const Header = ({
               <img
                 src={logoUrl}
                 alt="Logo"
-                style={{ width: '32px', height: '32px', objectFit: 'contain' }}
+                style={{ width: '28px', height: '28px', objectFit: 'contain' }}
               />
             ) : null}
             {isLoading ? (
@@ -266,7 +266,7 @@ export const Header = ({
             ) : (
               <span
                 style={{
-                  fontSize: '18px',
+                  fontSize: '15px',
                   fontWeight: 700,
                   fontFamily: '"Space Grotesk", system-ui, sans-serif',
                   color: '#0f7b5f',
@@ -286,7 +286,7 @@ export const Header = ({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '2px',
             }}
             className="header-desktop-nav"
           >
@@ -309,10 +309,10 @@ export const Header = ({
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px',
-                      padding: '8px 14px',
-                      borderRadius: '8px',
-                      fontSize: '14px',
+                      gap: '5px',
+                      padding: '5px 10px',
+                      borderRadius: '6px',
+                      fontSize: '12.5px',
                       fontWeight: 500,
                       textDecoration: 'none',
                     }}
@@ -324,7 +324,7 @@ export const Header = ({
                     )}
                     {menuItem.label}
                     {menuItem.children && menuItem.children.length > 0 && (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-60 group-hover:rotate-180 transition-transform duration-200">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-60 group-hover:rotate-180 transition-transform duration-200">
                         <polyline points="6 9 12 15 18 9"></polyline>
                       </svg>
                     )}
@@ -332,13 +332,13 @@ export const Header = ({
                   
                   {/* Dropdown Menu */}
                   {menuItem.children && menuItem.children.length > 0 && (
-                    <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 z-50">
-                      <div className="p-2 flex flex-col gap-1">
+                    <div className="absolute top-full left-0 mt-0.5 w-44 bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 z-50">
+                      <div className="p-1.5 flex flex-col gap-0.5">
                         {menuItem.children.map((child: any) => (
                           <Link
                             key={child.id}
                             to={child.url}
-                            className="text-sm text-gray-700 dark:text-gray-300 hover:bg-green-50 hover:text-green-700 dark:hover:bg-green-900/30 dark:hover:text-green-400 px-3 py-2 rounded-lg transition-colors flex items-center gap-2"
+                            className="text-xs text-gray-700 dark:text-gray-300 hover:bg-green-50 hover:text-green-700 dark:hover:bg-green-900/30 dark:hover:text-green-400 px-2.5 py-1.5 rounded-md transition-colors flex items-center gap-2"
                           >
                             {child.icon && (
                               <span className="opacity-70">
@@ -369,10 +369,10 @@ export const Header = ({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    fontSize: '14px',
+                    gap: '5px',
+                    padding: '5px 10px',
+                    borderRadius: '6px',
+                    fontSize: '12.5px',
                     fontWeight: 500,
                     textDecoration: 'none',
                   }}
@@ -386,7 +386,7 @@ export const Header = ({
             )}
 
             {/* Separator */}
-            <div style={{ width: '1px', height: '24px', background: '#E5E7EB', margin: '0 4px' }} />
+            <div style={{ width: '1px', height: '20px', background: '#E5E7EB', margin: '0 2px' }} />
 
             {/* Search Button + Expandable Input */}
             <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
@@ -399,8 +399,8 @@ export const Header = ({
                   overflow: 'hidden',
                   borderRadius: '8px',
                   transition: 'width 350ms cubic-bezier(0.4, 0, 0.2, 1), background-color 200ms, border-color 200ms',
-                  width: searchOpen ? '260px' : '42px',
-                  height: '42px',
+                  width: searchOpen ? '220px' : '34px',
+                  height: '34px',
                 }}
               >
                 {/* Search input */}
@@ -452,11 +452,11 @@ export const Header = ({
                     }
                   }}
                   style={{
-                    width: '42px',
-                    minWidth: '42px',
-                    height: '42px',
-                    minHeight: '42px',
-                    borderRadius: searchOpen ? '0 7px 7px 0' : '8px',
+                    width: '34px',
+                    minWidth: '34px',
+                    height: '34px',
+                    minHeight: '34px',
+                    borderRadius: searchOpen ? '0 6px 6px 0' : '6px',
                     border: 'none',
                     background: '#1a9a6f',
                     color: '#fff',
@@ -470,7 +470,7 @@ export const Header = ({
                   onMouseEnter={(e) => { e.currentTarget.style.background = '#0f7b5f'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = '#1a9a6f'; }}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, width: '22px', height: '22px' }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, width: '18px', height: '18px' }}>
                     <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
                   </svg>
                 </button>
@@ -481,21 +481,21 @@ export const Header = ({
             <Link
               to="/login"
               style={{
-                height: '42px',
+                height: '34px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '0 20px',
-                borderRadius: '8px',
+                padding: '0 16px',
+                borderRadius: '6px',
                 background: '#1a9a6f',
                 color: '#fff',
-                fontSize: '14px',
+                fontSize: '12.5px',
                 fontWeight: 600,
                 textDecoration: 'none',
                 transition: 'background 200ms, box-shadow 200ms',
                 boxShadow: '0 1px 3px rgba(26, 154, 111, 0.3)',
                 flexShrink: 0,
-                minWidth: '100px',
+                minWidth: '80px',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = '#0f7b5f';
@@ -517,9 +517,9 @@ export const Header = ({
             className="header-mobile-toggle"
             style={{
               display: 'none',
-              width: '40px',
-              height: '40px',
-              borderRadius: '8px',
+              width: '36px',
+              height: '36px',
+              borderRadius: '6px',
               border: 'none',
               background: 'transparent',
               cursor: 'pointer',
@@ -555,7 +555,7 @@ export const Header = ({
             WebkitBackdropFilter: 'blur(12px)',
           }}
         >
-          <div style={{ padding: '16px 20px 24px' }} className="flex flex-col gap-2">
+          <div style={{ padding: '12px 16px 20px' }} className="flex flex-col gap-1">
             {dynamicMenus && dynamicMenus.length > 0 ? (
               dynamicMenus.map((menuItem) => {
                 const hasChildren = menuItem.children && menuItem.children.length > 0;
@@ -571,9 +571,9 @@ export const Header = ({
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          padding: '12px 14px',
-                          borderRadius: '12px',
-                          fontSize: '15px',
+                          padding: '10px 12px',
+                          borderRadius: '10px',
+                          fontSize: '13.5px',
                           fontWeight: 500,
                           color: '#374151',
                           border: '1px solid transparent',
@@ -604,10 +604,10 @@ export const Header = ({
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '10px',
-                          padding: '12px 14px',
-                          borderRadius: '12px',
-                          fontSize: '15px',
+                          gap: '8px',
+                          padding: '10px 12px',
+                          borderRadius: '10px',
+                          fontSize: '13.5px',
                           fontWeight: 500,
                           color: '#374151',
                           textDecoration: 'none',
@@ -642,9 +642,9 @@ export const Header = ({
                               className="text-gray-600 dark:text-gray-400 hover:text-green-700 dark:hover:text-green-400 hover:bg-green-50/80 dark:hover:bg-green-900/20 transition-all duration-300"
                               style={{ 
                                 textDecoration: 'none',
-                                padding: '10px 14px',
-                                borderRadius: '10px',
-                                fontSize: '14px',
+                                padding: '8px 12px',
+                                borderRadius: '8px',
+                                fontSize: '13px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '10px',
@@ -676,10 +676,10 @@ export const Header = ({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '10px',
-                    padding: '12px 14px',
-                    borderRadius: '12px',
-                    fontSize: '15px',
+                    gap: '8px',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    fontSize: '13.5px',
                     fontWeight: 500,
                     color: '#374151',
                     textDecoration: 'none',
@@ -696,13 +696,13 @@ export const Header = ({
               className="active:scale-[0.98] transition-all duration-200"
               style={{
                 display: 'block',
-                marginTop: '16px',
-                padding: '12px 16px',
-                borderRadius: '12px',
+                marginTop: '12px',
+                padding: '10px 14px',
+                borderRadius: '10px',
                 background: 'linear-gradient(135deg, #1a9a6f 0%, #10b981 100%)',
                 boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
                 color: '#fff',
-                fontSize: '15px',
+                fontSize: '13.5px',
                 fontWeight: 600,
                 textDecoration: 'none',
                 textAlign: 'center',
@@ -716,7 +716,7 @@ export const Header = ({
 
       {/* Responsive CSS injected via style tag */}
       <style>{`
-        @media (max-width: 1100px) {
+        @media (max-width: 960px) {
           .header-desktop-nav { display: none !important; }
           .header-mobile-toggle { display: flex !important; }
           .header-mobile-menu { display: block !important; }

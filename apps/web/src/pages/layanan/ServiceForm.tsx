@@ -417,7 +417,7 @@ const StudentAutocomplete = ({
           onFocus={() => { if (results.length > 0) setIsOpen(true); }}
           onKeyDown={handleKeyDown}
           placeholder="Ketik nama siswa..."
-          className="w-full px-4 py-3 pl-11 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
+          className="w-full px-3 py-2 pl-9 rounded-md border border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none text-sm"
         />
         <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
           {isLoading
@@ -578,10 +578,10 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
       if (halfWidthBuffer.length > 0) {
         const pair = halfWidthBuffer.splice(0, 2);
         rendered.push(
-          <div key={`hw-${pair[0].name}`} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div key={`hw-${pair[0].name}`} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {pair.map(f => (
               <div key={f.name}>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
                   {f.label} {f.required && <span className="text-red-500">*</span>}
                 </label>
                 {renderInput(f)}
@@ -598,8 +598,8 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
         flushHalfWidth();
         currentGroup = field.group;
         rendered.push(
-          <div key={`group-${field.group}`} className="pt-4 first:pt-0">
-            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">
+          <div key={`group-${field.group}`} className="pt-3 first:pt-0">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-1.5 mb-3">
               {field.group}
             </h3>
           </div>
@@ -615,7 +615,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
         flushHalfWidth();
         rendered.push(
           <div key={field.name}>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-medium text-gray-700 mb-1">
               {field.label} {field.required && <span className="text-red-500">*</span>}
             </label>
             {renderInput(field)}
@@ -631,7 +631,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
   };
 
   const renderInput = (field: FormField) => {
-    const baseClass = "w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none";
+    const baseClass = "w-full px-3 py-2 rounded-md border border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none text-sm";
 
     switch (field.type) {
       case 'student-autocomplete':
@@ -666,7 +666,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
-            {field.helpText && <p className="mt-1.5 text-xs text-gray-500 italic">{field.helpText}</p>}
+            {field.helpText && <p className="mt-1 text-[11px] text-gray-500 italic">{field.helpText}</p>}
           </>
         );
 
@@ -678,10 +678,10 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
               placeholder={field.placeholder}
               value={formData[field.name] || ''}
               onChange={e => setField(field.name, e.target.value)}
-              rows={4}
+              rows={3}
               className={`${baseClass} resize-y`}
             />
-            {field.helpText && <p className="mt-1.5 text-xs text-gray-500 italic">{field.helpText}</p>}
+            {field.helpText && <p className="mt-1 text-[11px] text-gray-500 italic">{field.helpText}</p>}
           </>
         );
 
@@ -695,14 +695,14 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
               onChange={e => setField(field.name, e.target.value)}
               className={`${baseClass}`}
             />
-            {field.helpText && <p className="mt-1.5 text-xs text-gray-500 italic">{field.helpText}</p>}
+            {field.helpText && <p className="mt-1 text-[11px] text-gray-500 italic">{field.helpText}</p>}
           </>
         );
 
       case 'file':
         return (
           <>
-            <div className="flex flex-col gap-2 w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white">
+            <div className="flex flex-col gap-1.5 w-full px-3 py-2 rounded-md border border-gray-200 bg-white">
               <input
                 required={field.required && !files[field.name]}
                 type="file"
@@ -713,7 +713,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
                     setFiles(prev => ({ ...prev, [field.name]: f }));
                   }
                 }}
-                className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-all outline-none text-sm"
+                className="w-full file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-all outline-none text-xs"
               />
               {files[field.name] && (
                 <div className="text-xs text-gray-500 flex items-center gap-2">
@@ -724,7 +724,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
                 </div>
               )}
             </div>
-            {field.helpText && <p className="mt-1.5 text-xs text-gray-500 italic">{field.helpText}</p>}
+            {field.helpText && <p className="mt-1 text-[11px] text-gray-500 italic">{field.helpText}</p>}
           </>
         );
 
@@ -741,7 +741,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
                   return (
                     <label
                       key={opt}
-                      className={`flex-1 flex flex-col items-center justify-center py-3 cursor-pointer border transition-all text-center ${
+                      className={`flex-1 flex flex-col items-center justify-center py-2 cursor-pointer border transition-all text-center ${
                         isFirst ? 'rounded-l-lg' : ''
                       } ${
                         isLast ? 'rounded-r-lg' : ''
@@ -760,7 +760,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
                         required={field.required}
                         className="sr-only"
                       />
-                      <span className={`text-lg font-bold ${isSelected ? 'text-white' : 'text-gray-800'}`}>{opt}</span>
+                      <span className={`text-base font-bold ${isSelected ? 'text-white' : 'text-gray-800'}`}>{opt}</span>
                     </label>
                   );
                 })}
@@ -787,7 +787,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
               {field.options?.map(opt => {
                 const isSelected = formData[field.name] === opt;
                 return (
-                  <label key={opt} className={`flex items-center gap-2.5 cursor-pointer px-4 py-2.5 rounded-lg border transition-all ${
+                  <label key={opt} className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded-md border transition-all ${
                     isSelected
                       ? 'bg-blue-50 border-blue-400 ring-2 ring-blue-100'
                       : 'bg-white border-gray-200 hover:border-blue-300 hover:bg-gray-50'
@@ -801,14 +801,14 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
                       required={field.required}
                       className="w-4 h-4 accent-blue-600"
                     />
-                    <span className={`text-sm font-medium ${
+                    <span className={`text-xs font-medium ${
                       isSelected ? 'text-blue-700' : 'text-gray-700'
                     }`}>{opt}</span>
                   </label>
                 );
               })}
             </div>
-            {field.helpText && <p className="mt-1.5 text-xs text-gray-500 italic">{field.helpText}</p>}
+            {field.helpText && <p className="mt-1 text-[11px] text-gray-500 italic">{field.helpText}</p>}
           </>
         );
 
@@ -823,21 +823,21 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
               onChange={e => setField(field.name, e.target.value)}
               className={baseClass}
             />
-            {field.helpText && <div className="mt-1.5 text-xs text-gray-500 italic">{field.helpText}</div>}
+            {field.helpText && <div className="mt-1 text-[11px] text-gray-500 italic">{field.helpText}</div>}
           </>
         );
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FBFF] pb-20">
+    <div className="min-h-screen bg-[#F8FBFF] pb-12">
       
       {/* Top Header */}
       <div className="bg-white border-b sticky top-0 md:relative z-20">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-700">{service.title}</h1>
+        <div className="max-w-6xl mx-auto px-3 md:px-6 py-3 flex flex-col md:flex-row md:items-center justify-between gap-2">
+          <h1 className="text-base md:text-lg font-semibold text-gray-700">{service.title}</h1>
           
-          <div className="text-sm font-medium flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+          <div className="text-xs font-medium flex items-center gap-1.5 overflow-x-auto whitespace-nowrap">
             <span className="text-blue-500 cursor-pointer hover:underline" onClick={() => navigate('/')}>Home</span>
             <span className="text-gray-400">/</span>
             <span className="text-blue-500 cursor-pointer hover:underline" onClick={() => navigate('/services')}>Layanan</span>
@@ -847,43 +847,43 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-6xl mx-auto px-3 md:px-6 mt-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           
           {/* LEFT: Main Form Column */}
           <div className="lg:col-span-2">
             {!ticketId ? (
-              <div className="bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-gray-100 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                  <h2 className="font-semibold text-gray-700">Form Permohonan {service.shortName}</h2>
-                  <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-600">
-                    <ArrowLeft size={20} />
+              <div className="bg-white rounded-lg shadow-[0_2px_16px_rgba(0,0,0,0.02)] border border-gray-100 overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                  <h2 className="font-semibold text-gray-700 text-sm">Form Permohonan {service.shortName}</h2>
+                  <button onClick={() => navigate(-1)} className="p-1.5 hover:bg-gray-200 rounded-full transition-colors text-gray-600">
+                    <ArrowLeft size={16} />
                   </button>
                 </div>
 
-                <div className="p-6 md:p-8">
-                  <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="p-4 md:p-5">
+                  <form onSubmit={handleSubmit} className="space-y-4">
                     
                     {renderFields()}
 
                     {/* Only show generic upload if service does NOT have custom file fields */}
                     {!hasCustomFileFields && service.id !== 'survey-layanan' && service.id !== 'buku-tamu' && service.id !== 'layanan-pengaduan' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
                         {service.id === 'surat-keterangan' ? 'Upload File Kartu Pelajar/Siswa' : service.id === 'legalisir-online' ? 'Upload File Dokumen Yang Akan Dilegalisir' : 'Upload File Pendukung (seperti Surat Keterangan Sakit/KTP Pemohon/Bukti izin lainnya)'} <span className="text-red-500">*</span>
                       </label>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white">
+                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full px-3 py-2 rounded-md border border-gray-200 bg-white">
                          <input required type="file" onChange={e => {
                            const f = e.target.files?.[0];
                            if (f) setFiles(prev => ({ ...prev, attachment: f }));
-                         }} className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-all outline-none text-sm" />
+                         }} className="w-full file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-all outline-none text-xs" />
                       </div>
                     </div>
                     )}
 
-                    <div className="pt-4 border-t border-gray-100">
+                    <div className="pt-3 border-t border-gray-100">
                       <button disabled={isLoading} type="submit" 
-                        className="w-full sm:w-auto px-8 py-3.5 bg-[#1A73E8] hover:bg-blue-600 active:bg-blue-700 text-white font-bold rounded-lg shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                        className="w-full sm:w-auto px-6 py-2.5 bg-[#1A73E8] hover:bg-blue-600 active:bg-blue-700 text-white font-bold rounded-md shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
                         {isLoading ? 'MENGIRIM...' : (service.submitLabel || 'KIRIM PERMOHONAN')}
                       </button>
                     </div>
@@ -892,36 +892,36 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden text-center p-12">
-                <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-6" />
+              <div className="bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden text-center p-8">
+                <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-4" />
                 {service.id === 'survey-layanan' ? (
                   <>
-                    <h2 className="text-3xl font-bold text-gray-800 mb-2">Terima Kasih! 🙏</h2>
-                    <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Terima Kasih! 🙏</h2>
+                    <p className="text-gray-600 mb-3 max-w-md mx-auto text-sm">
                       Partisipasi Anda sangat berarti bagi kami. Umpan balik yang Anda berikan akan menjadi bahan evaluasi untuk peningkatan kualitas layanan.
                     </p>
-                    <p className="text-sm text-gray-400 italic mb-8">Notifikasi ucapan terima kasih telah dikirim ke email Anda.</p>
-                    <div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
-                      <button onClick={() => navigate('/')} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow transition-all">
+                    <p className="text-xs text-gray-400 italic mb-6">Notifikasi ucapan terima kasih telah dikirim ke email Anda.</p>
+                    <div className="mt-3 flex flex-col sm:flex-row gap-2 justify-center">
+                      <button onClick={() => navigate('/')} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-md shadow transition-all text-sm">
                         Kembali ke Beranda
                       </button>
-                      <button onClick={() => { setTicketId(null); setFormData({}); }} className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg transition-all">
+                      <button onClick={() => { setTicketId(null); setFormData({}); }} className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-md transition-all text-sm">
                         Isi Survey Lagi
                       </button>
                     </div>
                   </>
                 ) : (
                   <>
-                    <h2 className="text-3xl font-bold text-gray-800 mb-2">Berhasil Terkirim!</h2>
-                    <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Berhasil Terkirim!</h2>
+                    <p className="text-gray-600 mb-6 max-w-md mx-auto text-sm">
                       Permohonan Anda sedang kami proses. 
                       Silakan simpan nomor identitas tiket di bawah ini untuk melacak statusnya.
                     </p>
-                    <div className="inline-block bg-blue-50 border-2 border-blue-200 rounded-xl px-10 py-5">
-                      <span className="block text-sm text-blue-600 font-medium mb-1 uppercase tracking-wider">Nomor Resi / Tiket Lacak</span>
-                      <span className="text-4xl font-black text-blue-900 tracking-widest">{ticketId}</span>
+                    <div className="inline-block bg-blue-50 border-2 border-blue-200 rounded-lg px-8 py-4">
+                      <span className="block text-xs text-blue-600 font-medium mb-1 uppercase tracking-wider">Nomor Resi / Tiket Lacak</span>
+                      <span className="text-3xl font-black text-blue-900 tracking-widest">{ticketId}</span>
                     </div>
-                    <div className="mt-10">
+                    <div className="mt-6">
                       <button onClick={() => setTicketId(null)} className="text-blue-500 font-medium hover:underline">
                         Buat Permohonan Baru
                       </button>
@@ -936,14 +936,14 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
           <div className="lg:col-span-1 space-y-6">
             
             {service.showServiceLinks ? (
-            <div className="bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-gray-100 p-6">
-              <h3 className="font-bold text-gray-800 pb-3 border-b border-gray-100 mb-4">Layanan Kami</h3>
-              <ul className="space-y-2.5">
+            <div className="bg-white rounded-lg shadow-[0_2px_16px_rgba(0,0,0,0.02)] border border-gray-100 p-4">
+              <h3 className="font-bold text-gray-800 text-sm pb-2 border-b border-gray-100 mb-3">Layanan Kami</h3>
+              <ul className="space-y-1.5">
                 {SERVICES.filter(s => s.id !== service.id).map(s => (
                   <li key={s.id}>
                     <span
                       onClick={() => navigate(`/services/${s.slug}`)}
-                      className="text-sm text-blue-500 hover:text-blue-700 hover:underline cursor-pointer transition-colors"
+                      className="text-xs text-blue-500 hover:text-blue-700 hover:underline cursor-pointer transition-colors"
                     >
                       {s.title}
                     </span>
@@ -952,11 +952,11 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
               </ul>
             </div>
             ) : (
-            <div className="bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-gray-100 p-6">
-              <h3 className="font-bold text-gray-800 pb-3 border-b border-gray-100 mb-4 whitespace-nowrap">{service.sidebarTitle || 'Berkas Persyaratan'}</h3>
-              <ul className="space-y-3">
+            <div className="bg-white rounded-lg shadow-[0_2px_16px_rgba(0,0,0,0.02)] border border-gray-100 p-4">
+              <h3 className="font-bold text-gray-800 text-sm pb-2 border-b border-gray-100 mb-3 whitespace-nowrap">{service.sidebarTitle || 'Berkas Persyaratan'}</h3>
+              <ul className="space-y-2">
                 {service.requirements.map((req, idx) => (
-                  <li key={idx} className="flex gap-3 text-sm text-gray-600">
+                  <li key={idx} className="flex gap-2 text-xs text-gray-600">
                     <span className="font-bold text-gray-800">{idx + 1}.</span>
                     <span>{req}</span>
                   </li>
@@ -965,22 +965,22 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
             </div>
             )}
 
-            <div className="bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-gray-100 p-6">
-              <h3 className="font-bold text-gray-800 pb-3 border-b border-gray-100 mb-4">Survey Pelayanan</h3>
-              <p className="text-sm text-gray-600 leading-relaxed mb-5">
+            <div className="bg-white rounded-lg shadow-[0_2px_16px_rgba(0,0,0,0.02)] border border-gray-100 p-4">
+              <h3 className="font-bold text-gray-800 text-sm pb-2 border-b border-gray-100 mb-3">Survey Pelayanan</h3>
+              <p className="text-xs text-gray-600 leading-relaxed mb-4">
                 Mohon kesediaan pengguna layanan melalui sistem ini dapat memberikan Feedback berupa saran/kritik yang membangun untuk pelayanan kami.
               </p>
-              <button onClick={() => navigate('/services/survey-layanan')} className="px-5 py-2.5 bg-[#1A73E8] hover:bg-blue-600 active:bg-blue-700 text-white font-medium rounded shadow-md text-sm transition-colors">
+              <button onClick={() => navigate('/services/survey-layanan')} className="px-4 py-2 bg-[#1A73E8] hover:bg-blue-600 active:bg-blue-700 text-white font-medium rounded shadow-md text-xs transition-colors">
                 Isi Survey
               </button>
             </div>
 
-            <div className="bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-gray-100 p-6">
-              <h3 className="font-bold text-gray-800 pb-3 border-b border-gray-100 mb-4">Layanan Pengaduan Masyarakat</h3>
-              <p className="text-sm text-gray-600 leading-relaxed mb-5">
+            <div className="bg-white rounded-lg shadow-[0_2px_16px_rgba(0,0,0,0.02)] border border-gray-100 p-4">
+              <h3 className="font-bold text-gray-800 text-sm pb-2 border-b border-gray-100 mb-3">Layanan Pengaduan Masyarakat</h3>
+              <p className="text-xs text-gray-600 leading-relaxed mb-4">
                 Jika ada kendala/permasalahan terkait pelayanan sekolah yang perlu Anda sampaikan, lapor melalui tautan berikut.
               </p>
-              <button onClick={() => window.location.href = 'https://mandualotim.sch.id/page/layanan-pengaduan-masyarakat'} className="px-5 py-2.5 bg-[#1A73E8] hover:bg-blue-600 active:bg-blue-700 text-white font-medium rounded shadow-md text-sm transition-colors">
+              <button onClick={() => window.location.href = 'https://mandualotim.sch.id/page/layanan-pengaduan-masyarakat'} className="px-4 py-2 bg-[#1A73E8] hover:bg-blue-600 active:bg-blue-700 text-white font-medium rounded shadow-md text-xs transition-colors">
                 Ajukan Permasalahan
               </button>
             </div>
@@ -991,10 +991,10 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
       </div>
 
       {/* TRACKING SECTION = BOTTOM */}
-      <div className="mt-20 pt-16 bg-[#eef5fd] pb-16">
-        <div className="max-w-2xl mx-auto px-4 text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-3">Cek Status Permohonan</h2>
-          <p className="text-gray-500 text-sm mb-8 leading-relaxed max-w-lg mx-auto">
+      <div className="mt-12 pt-10 bg-[#eef5fd] pb-10">
+        <div className="max-w-xl mx-auto px-4 text-center">
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Cek Status Permohonan</h2>
+          <p className="text-gray-500 text-xs mb-6 leading-relaxed max-w-lg mx-auto">
             Cek Status Permohonan yang pernah diajukan dengan memasukkan Nomor Resi Layanan.
             <br/><span className="italic text-xs">Note: Nomor Resi didapatkan setelah sukses membuat form.</span>
           </p>
