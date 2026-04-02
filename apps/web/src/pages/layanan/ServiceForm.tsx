@@ -867,7 +867,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
                     {renderFields()}
 
                     {/* Only show generic upload if service does NOT have custom file fields */}
-                    {!hasCustomFileFields && service.id !== 'survey-layanan' && (
+                    {!hasCustomFileFields && service.id !== 'survey-layanan' && service.id !== 'buku-tamu' && service.id !== 'layanan-pengaduan' && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Upload File Pendukung (seperti Surat Keterangan Sakit/KTP Pemohon/Bukti izin lainnya) <span className="text-red-500">*</span>
@@ -980,7 +980,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
               <p className="text-sm text-gray-600 leading-relaxed mb-5">
                 Jika ada kendala/permasalahan terkait pelayanan sekolah yang perlu Anda sampaikan, lapor melalui tautan berikut.
               </p>
-              <button className="px-5 py-2.5 bg-[#1A73E8] hover:bg-blue-600 active:bg-blue-700 text-white font-medium rounded shadow-md text-sm transition-colors">
+              <button onClick={() => window.location.href = 'https://mandualotim.sch.id/page/layanan-pengaduan-masyarakat'} className="px-5 py-2.5 bg-[#1A73E8] hover:bg-blue-600 active:bg-blue-700 text-white font-medium rounded shadow-md text-sm transition-colors">
                 Ajukan Permasalahan
               </button>
             </div>
