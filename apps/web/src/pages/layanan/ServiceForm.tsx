@@ -29,6 +29,7 @@ type ServiceType = {
   fields?: FormField[];
   submitLabel?: string; // custom submit button text (default: 'KIRIM PERMOHONAN')
   showServiceLinks?: boolean; // show 'Layanan Kami' links in sidebar instead of requirements
+  sidebarTitle?: string; // custom sidebar heading (default: 'Berkas Persyaratan')
 };
 
 const DEFAULT_FIELDS: FormField[] = [
@@ -235,10 +236,21 @@ export const SERVICES: ServiceType[] = [
     id: 'layanan-pengaduan',
     slug: 'layanan-pengaduan',
     title: 'Layanan Pengaduan Masyarakat',
-    shortName: 'Pengaduan',
+    shortName: 'Pengaduan Masyarakat',
     description: 'Saluran pelaporan keluhan/saran bagi warga madrasah dan masyarakat umum.',
-    requirements: ['Bukti Valid Laporan', 'Identitas Jelas (Rahasia Dijaga)'],
-    fields: DEFAULT_FIELDS
+    submitLabel: 'KIRIM',
+    sidebarTitle: 'KETENTUAN:',
+    requirements: [
+      'Mohon menyampaikan keluhan/permasalahan dengan detail dan jelas',
+      'Isi E-Mail dan No HP Aktif agar mudah dihubungi atas tindak lanjut dari keluhan/permasalahan dimaksud'
+    ],
+    fields: [
+      { name: 'applicantName', label: 'Nama Lengkap Pemohon', type: 'text', required: true, halfWidth: true },
+      { name: 'nisn', label: 'No Identitas (KTP/SIM)', type: 'text', required: true, halfWidth: true },
+      { name: 'email', label: 'E-Mail', type: 'email', required: true, halfWidth: true },
+      { name: 'phone', label: 'No Handphone (HP) Aktif', type: 'text', required: true, halfWidth: true },
+      { name: 'purpose', label: 'Permasalahan?', type: 'textarea', required: true },
+    ]
   }
 ];
 
@@ -787,7 +799,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
             </div>
             ) : (
             <div className="bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-gray-100 p-6">
-              <h3 className="font-bold text-gray-800 pb-3 border-b border-gray-100 mb-4 whitespace-nowrap">Ketentuan Permohonan Izin</h3>
+              <h3 className="font-bold text-gray-800 pb-3 border-b border-gray-100 mb-4 whitespace-nowrap">{service.sidebarTitle || 'Berkas Persyaratan'}</h3>
               <ul className="space-y-3">
                 {service.requirements.map((req, idx) => (
                   <li key={idx} className="flex gap-3 text-sm text-gray-600">
