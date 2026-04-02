@@ -25,6 +25,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { MaintenanceGuard } from './components/MaintenanceGuard';
 import { useFavicon } from './hooks/useFavicon';
+import { ServicePageRoute } from './pages/layanan/ServicePageRoute';
 import { EOfficePage } from './pages/eoffice/EOfficePage';
 import { SystemUpdateCenter } from './pages/dashboard/SystemUpdateCenter';
 import { BatchPrintPage } from './pages/BatchPrintPage';
@@ -43,6 +44,7 @@ function App() {
         <Route path="/news/:id" element={<MaintenanceGuard><NewsDetailPage /></MaintenanceGuard>} />
         <Route path="/gallery" element={<MaintenanceGuard><GalleryPage /></MaintenanceGuard>} />
         <Route path="/page/:slug" element={<MaintenanceGuard><DynamicPage /></MaintenanceGuard>} />
+        <Route path="/services/:slug" element={<MaintenanceGuard><ServicePageRoute /></MaintenanceGuard>} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/select-role" element={
           <ProtectedRoute>
