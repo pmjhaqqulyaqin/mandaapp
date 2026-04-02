@@ -1,40 +1,70 @@
-# Panduan Implementasi Update Mandaapp (Docker VPS)
+# Panduan Deploy Mandaapp (Docker VPS)
 
-Halo Pak, berikut adalah langkah-langkah untuk menerapkan update terbaru (Perbaikan PDF & UI) di VPS Bapak.
+## 🚀 Deploy Cepat (Cara Paling Aman)
 
-> [!IMPORTANT]
-> Pastikan Bapak sudah melakukan `git push` dari komputer lokal atau saya sudah mengonfirmasi bahwa perubahan telah di-push ke GitHub sebelum mencoba langkah di bawah ini.
+Gunakan script otomatis yang sudah disediakan:
 
-### Langkah-langkah di Terminal VPS:
+```bash
+cd ~/mandaapp
+./deploy.sh
+```
 
-1. **Masuk ke folder project:**
-   ```bash
-   cd /path/ke/folder/mandaapp
-   ```
-   *(Sesuaikan path di atas dengan lokasi folder mandaapp di VPS Bapak)*
+> Script ini hanya me-rebuild API + Web. **Database TIDAK dimatikan** sehingga tidak ada masalah password.
 
-2. **Tarik perubahan terbaru dari GitHub:**
-   ```bash
-   git pull origin main
-   ```
+### Pertama kali Setup Script:
+```bash
+chmod +x deploy.sh
+```
 
-3. **Rebuild container Web (karena perubahan ada di sisi Frontend):**
-   ```bash
-   docker compose build web
-   ```
+---
 
-4. **Restart container Web agar menggunakan image yang baru dibuild:**
-   ```bash
-   docker compose up -d web
-   ```
+## 📋 Manual Deploy (Langkah per Langkah)
 
-5. **(Opsional) Cek status container:**
-   ```bash
-   docker compose ps
-   ```
+Jika ingin manual, ikuti langkah ini:
 
-### Catatan Penting:
-- **Layar Abu-abu Masal**: Jika ada berita lama yang masih menunjukkan kotak abu-abu, Bapak cukup edit berita tersebut di Dashboard, hapus blok PDF lama, lalu upload ulang. Update ini akan memastikan upload selanjutnya tampil "gagah" dengan viewer native.
-- **Cache Browser**: Jika tampilan belum berubah, coba tekan `Ctrl + F5` (Hard Refresh) di browser Bapak.
+```bash
+cd ~/mandaapp
+git pull origin main
+docker compose build api web
+docker compose up -d api web
+```
 
-Sekarang Mandaapp sudah siap dengan tampilan PDF yang lebih profesional! 🚀
+> [!CAUTION]
+> **JANGAN gunakan `docker compose down`** kecuali benar-benar perlu (misal: mengubah konfigurasi database).
+> Perintah `down` mematikan database dan menyebabkan masalah password authentication.
+
+---
+
+## 🔧 Jika Terpaksa Harus Restart Database
+
+Hanya gunakan ini jika ada masalah berat pada database:
+
+```bash
+docker compose down
+docker compose up -d
+# Tunggu 10 detik, lalu fix password:
+docker exec -it mandaapp_db psql -U postgres -d mandaapp_prod -c "ALTER USER postgres WITH PASSWORD 'postgres';"
+docker compose restart api
+```
+
+---
+
+## 🩺 Troubleshooting
+
+### Website Loading Terus (Tidak Muncul)
+```bash
+# Cek log API:
+docker compose logs --tail=30 api
+
+# Jika ada "password authentication failed":
+docker exec -it mandaapp_db psql -U postgres -d mandaapp_prod -c "ALTER USER postgres WITH PASSWORD 'postgres';"
+docker compose restart api
+```
+
+### Cek Status Container
+```bash
+docker compose ps
+```
+
+### Cache Browser
+Tekan `Ctrl + F5` (Hard Refresh) jika tampilan belum berubah.
