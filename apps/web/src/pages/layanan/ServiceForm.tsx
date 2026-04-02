@@ -27,6 +27,8 @@ type ServiceType = {
   description: string;
   requirements: string[];
   fields?: FormField[];
+  submitLabel?: string; // custom submit button text (default: 'KIRIM PERMOHONAN')
+  showServiceLinks?: boolean; // show 'Layanan Kami' links in sidebar instead of requirements
 };
 
 const DEFAULT_FIELDS: FormField[] = [
@@ -214,11 +216,20 @@ export const SERVICES: ServiceType[] = [
   {
     id: 'buku-tamu',
     slug: 'buku-tamu',
-    title: 'Buku Tamu Madrasah',
+    title: 'Buku Tamu',
     shortName: 'Buku Tamu',
     description: 'Registrasi kedatangan tamu resmi atau wali murid.',
-    requirements: ['KTP / Identitas Valid', 'Tujuan Kunjungan yang Jelas'],
-    fields: DEFAULT_FIELDS
+    requirements: [],
+    submitLabel: 'SIMPAN',
+    showServiceLinks: true,
+    fields: [
+      { name: 'applicantName', label: 'Nama Lengkap', type: 'text', required: true },
+      { name: 'nisn', label: 'No Identitas (KTP/SIM/NIP)', type: 'text', required: true },
+      { name: 'institution', label: 'Nama Lembaga/Instansi', type: 'text', required: true },
+      { name: 'purpose', label: 'Keperluan', type: 'text', required: true },
+      { name: 'email', label: 'E-Mail', type: 'email', required: true },
+      { name: 'phone', label: 'No Handphone (HP)', type: 'text', required: true },
+    ]
   },
   {
     id: 'layanan-pengaduan',
@@ -519,7 +530,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
       }
     };
 
-    fields.forEach((field, idx) => {
+    fields.forEach((field) => {
       // If we hit a new group, flush pending halfWidth fields first
       if (field.group && field.group !== currentGroup) {
         flushHalfWidth();
@@ -727,7 +738,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
                     <div className="pt-4 border-t border-gray-100">
                       <button disabled={isLoading} type="submit" 
                         className="w-full sm:w-auto px-8 py-3.5 bg-[#1A73E8] hover:bg-blue-600 active:bg-blue-700 text-white font-bold rounded-lg shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
-                        {isLoading ? 'MENGIRIM...' : 'KIRIM PERMOHONAN'}
+                        {isLoading ? 'MENGIRIM...' : (service.submitLabel || 'KIRIM PERMOHONAN')}
                       </button>
                     </div>
 
@@ -758,17 +769,35 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
           {/* RIGHT: Sidebar Columns */}
           <div className="lg:col-span-1 space-y-6">
             
+            {service.showServiceLinks ? (
+            <div className="bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-gray-100 p-6">
+              <h3 className="font-bold text-gray-800 pb-3 border-b border-gray-100 mb-4">Layanan Kami</h3>
+              <ul className="space-y-2.5">
+                {SERVICES.filter(s => s.id !== service.id).map(s => (
+                  <li key={s.id}>
+                    <span
+                      onClick={() => navigate(`/services/${s.slug}`)}
+                      className="text-sm text-blue-500 hover:text-blue-700 hover:underline cursor-pointer transition-colors"
+                    >
+                      {s.title}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            ) : (
             <div className="bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-gray-100 p-6">
               <h3 className="font-bold text-gray-800 pb-3 border-b border-gray-100 mb-4 whitespace-nowrap">Ketentuan Permohonan Izin</h3>
               <ul className="space-y-3">
                 {service.requirements.map((req, idx) => (
                   <li key={idx} className="flex gap-3 text-sm text-gray-600">
                     <span className="font-bold text-gray-800">{idx + 1}.</span>
-                    <span>{req.includes('Mengisi Formulir') ? <a href="#" className="text-blue-500 hover:underline">{req}</a> : req}</span>
+                    <span>{req}</span>
                   </li>
                 ))}
               </ul>
             </div>
+            )}
 
             <div className="bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-gray-100 p-6">
               <h3 className="font-bold text-gray-800 pb-3 border-b border-gray-100 mb-4">Survey Pelayanan</h3>
