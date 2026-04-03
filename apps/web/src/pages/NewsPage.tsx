@@ -278,7 +278,7 @@ export const NewsPage = () => {
   
   const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
-  const [visibleCount, setVisibleCount] = useState(9); // 3 featured + 6 grid
+  const [visibleCount, setVisibleCount] = useState(6); // 3 featured + 3 grid
 
   const { queryAll } = useNews();
   const allNews: any[] = queryAll.data || [];
@@ -347,11 +347,11 @@ export const NewsPage = () => {
             >
               {/* Left side Filter Pills */}
               <div className="flex items-center gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:pb-0 scrollbar-hide">
-                <FilterButton label="Semua" active={activeCategory === 'Semua'} onClick={() => { setActiveCategory('Semua'); setVisibleCount(9); }} />
-                <FilterButton label="Akademik" active={activeCategory === 'Akademik'} onClick={() => { setActiveCategory('Akademik'); setVisibleCount(9); }} />
-                <FilterButton label="Kegiatan" active={activeCategory === 'Kegiatan'} onClick={() => { setActiveCategory('Kegiatan'); setVisibleCount(9); }} />
-                <FilterButton label="Pengumuman" active={activeCategory === 'Pengumuman'} onClick={() => { setActiveCategory('Pengumuman'); setVisibleCount(9); }} />
-                <FilterButton label="Umum" active={activeCategory === 'Umum'} onClick={() => { setActiveCategory('Umum'); setVisibleCount(9); }} />
+                <FilterButton label="Semua" active={activeCategory === 'Semua'} onClick={() => { setActiveCategory('Semua'); setVisibleCount(6); }} />
+                <FilterButton label="Akademik" active={activeCategory === 'Akademik'} onClick={() => { setActiveCategory('Akademik'); setVisibleCount(6); }} />
+                <FilterButton label="Kegiatan" active={activeCategory === 'Kegiatan'} onClick={() => { setActiveCategory('Kegiatan'); setVisibleCount(6); }} />
+                <FilterButton label="Pengumuman" active={activeCategory === 'Pengumuman'} onClick={() => { setActiveCategory('Pengumuman'); setVisibleCount(6); }} />
+                <FilterButton label="Umum" active={activeCategory === 'Umum'} onClick={() => { setActiveCategory('Umum'); setVisibleCount(6); }} />
               </div>
 
               {/* Right side Search & Arsip */}
@@ -420,7 +420,7 @@ export const NewsPage = () => {
                 {visibleCount < displayNews.length && (
                   <div className="mt-16 sm:mt-20 flex justify-center pb-8">
                     <button
-                      onClick={() => setVisibleCount(prev => prev + 9)}
+                      onClick={() => setVisibleCount(prev => prev + 6)}
                       className="group flex items-center justify-center gap-2 bg-[#eef5fd] text-blue-600 hover:bg-blue-600 hover:text-white px-8 md:px-10 py-3.5 md:py-4 rounded-full font-bold text-sm md:text-base transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-blue-500/30 active:scale-95"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:rotate-180 transition-transform duration-700">
