@@ -40,6 +40,7 @@ const formatDate = (dateStr: string) => {
 };
 
 const stripHtml = (html: string) => {
+  if (!html) return "";
   const doc = new DOMParser().parseFromString(html, 'text/html');
   return doc.body.textContent || "";
 };
@@ -293,13 +294,14 @@ export const NewsPage = () => {
   const publishedNews = allNews.filter((news: any) => news.status === 'Published');
   const filteredByCategory = activeCategory === 'Semua' 
     ? publishedNews 
-    : publishedNews.filter((news: any) => CATEGORY_MAP[news.category as Category]?.label === activeCategory);
+    : publishedNews.filter((news: any) => CATEGORY_MAP[news?.category as Category]?.label === activeCategory);
     
   // Search
-  const displayNews = filteredByCategory.filter((news: any) => 
-    news.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    (news.content && stripHtml(news.content).toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const displayNews = filteredByCategory.filter((news: any) => {
+    const titleMatch = news?.title ? String(news.title).toLowerCase().includes(searchQuery.toLowerCase()) : false;
+    const contentMatch = news?.content ? stripHtml(news.content).toLowerCase().includes(searchQuery.toLowerCase()) : false;
+    return titleMatch || contentMatch;
+  });
 
   // Split Featured and Grid
   // IF we are in "Semua" without search, we show 3 featured on top
