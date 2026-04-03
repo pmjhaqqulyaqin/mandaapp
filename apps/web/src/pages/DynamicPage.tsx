@@ -17,6 +17,7 @@ import { useSiteSettings } from '../hooks/api/useSettings';
 import { contactsService } from '../lib/services/contacts';
 import { PublicCetakKartu } from './PublicCetakKartu';
 import { ServiceForm, SERVICES } from './layanan/ServiceForm';
+import { LayananPage } from './layanan/LayananPage';
 
 interface LayoutSection {
   type: 'Hero' | 'Features' | 'Gallery' | 'News' | 'Stats' | 'QuickLinks' | 'Contact' | 'HTML';
@@ -174,7 +175,9 @@ export const DynamicPage = () => {
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex flex-col">
       <HeaderWithSettings />
       {slug === 'cetak-kartu-pelajar' 
-         ? <PublicCetakKartu /> 
+         ? <PublicCetakKartu />
+         : slug === 'layanan'
+         ? <LayananPage />
          : (isServicePage ? <ServiceForm pageSlug={slug} /> : (layout.length > 0 ? renderLayout() : renderDefaultContent()))
       }
       <FooterWithSettings />

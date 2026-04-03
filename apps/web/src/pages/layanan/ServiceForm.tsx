@@ -840,7 +840,7 @@ export const ServiceForm = ({ pageSlug }: { pageSlug: string }) => {
           <div className="text-xs font-medium flex items-center gap-1.5 overflow-x-auto whitespace-nowrap">
             <span className="text-blue-500 cursor-pointer hover:underline" onClick={() => navigate('/')}>Home</span>
             <span className="text-gray-400">/</span>
-            <span className="text-blue-500 cursor-pointer hover:underline" onClick={() => navigate('/services')}>Layanan</span>
+            <span className="text-blue-500 cursor-pointer hover:underline" onClick={() => navigate('/page/layanan')}>Layanan</span>
             <span className="text-gray-400">/</span>
             <span className="text-gray-500">{service.shortName}</span>
           </div>
