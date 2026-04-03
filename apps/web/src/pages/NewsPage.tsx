@@ -241,12 +241,6 @@ const NewsCard = ({ article, index, isVisible }: { article: any, index: number, 
 
         {/* Content Body */}
         <div className="p-6 md:p-7 flex-1 flex flex-col bg-white">
-          <div className="flex items-center gap-2 text-[11px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">
-            <span className={catMode.badgeBg.replace('bg-', 'text-')}>{catMode.label}</span>
-            <span className="text-gray-300">•</span>
-            <span>{formatDate(article.publishDate)}</span>
-          </div>
-          
           <h3 className="text-lg md:text-xl font-black text-gray-900 leading-tight mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">
             {article.title}
           </h3>
@@ -261,8 +255,11 @@ const NewsCard = ({ article, index, isVisible }: { article: any, index: number, 
               <img src={getAvatarUrl(article.author)} alt={article.author || 'Admin'} className="w-8 h-8 rounded-full shadow-sm bg-gray-50" />
               <span className="text-xs font-bold text-gray-800">{article.author || 'Admin'}</span>
             </div>
-            <div className="w-8 h-8 rounded-full bg-gray-50 group-hover:bg-blue-50 flex items-center justify-center transition-colors">
-              <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-semibold text-gray-400 group-hover:text-gray-500 transition-colors tracking-wide">{formatDate(article.publishDate)}</span>
+              <div className="w-8 h-8 rounded-full bg-gray-50 group-hover:bg-blue-50 flex items-center justify-center transition-colors">
+                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+              </div>
             </div>
           </div>
         </div>
