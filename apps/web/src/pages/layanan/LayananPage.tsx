@@ -359,14 +359,14 @@ export const LayananPage = () => {
               transition: 'opacity 0.8s ease, transform 0.8s ease',
             }}
           >
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 leading-tight tracking-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 leading-tight tracking-tight sm:whitespace-nowrap">
               Sistem Aplikasi Layanan{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
                 Satu Pintu
               </span>
             </h1>
-            <p className="mt-3 text-base md:text-lg text-gray-600 font-medium">
-              MAN 2 Lombok Timur (SALAM MANDA LOTIM)
+            <p className="mt-3 text-sm sm:text-base md:text-lg text-gray-600 font-medium sm:whitespace-nowrap">
+              Madrasah Aliyah Negeri 2 Lombok Timur (SALAM MANDA LOTIM)
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -431,7 +431,8 @@ export const LayananPage = () => {
               }}
             >
               Sistem Aplikasi Layanan Satu Pintu untuk pelayanan pada masyarakat / Instansi / ASN /
-              Pegawai / Guru / Siswa / Alumni dan siapa saja yang punya kepentingan dengan{' '}
+              Pegawai / Guru / Siswa / Alumni dan siapa saja yang punya kepentingan dengan
+              <br />
               <strong className="text-gray-700">MAN 2 Lombok Timur</strong>
             </p>
           </div>
