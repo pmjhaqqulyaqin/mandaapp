@@ -8,7 +8,7 @@ import { SettingsService } from "../settings/service";
 
 // All available menu keys
 const ALL_MENU_KEYS = [
-  "overview", "news", "calendar", "student-card", "students", "classes", "employees",
+  "overview", "news", "calendar", "student-card", "students", "classes", "employees", "nis",
   "gallery", "contacts", "pages", "menus", "settings", "users", "updates", "e-office", "ptsp",
 ];
 
