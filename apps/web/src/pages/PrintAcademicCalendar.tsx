@@ -315,10 +315,9 @@ export const PrintAcademicCalendar = () => {
         }
         .no-print { display: none !important; }
         .print-container {
-          /* Use transform instead of zoom — purely visual, no layout overflow */
-          transform: scale(${computedScale}) !important;
-          transform-origin: top left !important;
-          /* Set width to printable area / scale so content refills page after scaling */
+          /* zoom affects LAYOUT (not just visual), so browser sees reduced height = no page break */
+          zoom: ${computedScale} !important;
+          /* mm-based width compensates for zoom shrinkage without causing % overflow */
           width: ${pageW / computedScale}mm !important;
           max-width: none !important;
           box-sizing: border-box !important;
