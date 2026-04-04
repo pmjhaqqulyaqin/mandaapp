@@ -386,6 +386,10 @@ export class NISService {
     });
 
     if (deleteProfile) {
+      // Nullify all activity log references to this student before deletion
+      await db.update(nisActivityLogs)
+        .set({ studentId: null })
+        .where(eq(nisActivityLogs.studentId, studentId));
       // Delete student profile entirely
       await db.delete(studentProfiles).where(eq(studentProfiles.id, studentId));
     } else {
