@@ -182,8 +182,12 @@ export const PrintAcademicCalendar = () => {
 
     // Available dimensions in pixels (96 DPI for screen)
     const pxPerMm = 96 / 25.4;
+    
+    // Add a safety buffer for browser default print headers/footers
+    const safeOffsetMm = 15; 
+    
     const pageW = (orientation === 'landscape' ? paper.widthMm : paper.heightMm) - margin.mm * 2;
-    const pageH = (orientation === 'landscape' ? paper.heightMm : paper.widthMm) - margin.mm * 2;
+    const pageH = (orientation === 'landscape' ? paper.heightMm : paper.widthMm) - margin.mm * 2 - safeOffsetMm;
     const availW = pageW * pxPerMm;
     const availH = pageH * pxPerMm;
 
@@ -191,7 +195,8 @@ export const PrintAcademicCalendar = () => {
     const scaleH = availH / contentHeight;
     const optimalScale = Math.min(scaleW, scaleH, 1); // never exceed 100%
 
-    setComputedScale(Math.max(0.55, optimalScale)); // minimum 55%
+    // Subract a tiny bit more just to be absolutely sure we don't trigger a page break overflow
+    setComputedScale(Math.max(0.55, optimalScale * 0.98)); // minimum 55%
   }, [scaleMode, paperSize, orientation, marginSize]);
 
   // Recalculate on settings change and after data loads
