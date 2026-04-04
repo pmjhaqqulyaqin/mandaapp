@@ -302,8 +302,9 @@ export const PrintAcademicCalendar = () => {
         html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0 !important; padding: 0 !important; }
         .no-print { display: none !important; }
         .print-container {
-          transform: scale(${computedScale}) !important;
-          transform-origin: top left !important;
+          zoom: ${computedScale} !important; /* The magic bullet for Chrome/Edge */
+          -moz-transform: scale(${computedScale}) !important; /* Fallback for Firefox */
+          -moz-transform-origin: top left !important;
           width: ${100 / computedScale}% !important;
           margin: 0 !important;
           padding: 0 !important;
