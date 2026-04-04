@@ -333,65 +333,65 @@ export const NewsPage = () => {
       <main className="flex-1 pt-24 pb-20">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
           
-          {/* Header & Filter Section */}
+          {/* Header Section (Featured News) */}
           <div ref={pageHeaderSection.ref} className="mb-10">
-             
-            {/* Top Bar: Title & Arsip/Search */}
-            <div 
-              className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8"
-              style={{
-                opacity: pageHeaderSection.isInView ? 1 : 0,
-                transform: pageHeaderSection.isInView ? 'translateY(0)' : 'translateY(20px)',
-                transition: 'opacity 0.6s ease, transform 0.6s ease'
-              }}
-            >
-              {/* Left side Filter Pills */}
-              <div className="flex items-center gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:pb-0 scrollbar-hide">
-                <FilterButton label="Semua" active={activeCategory === 'Semua'} onClick={() => { setActiveCategory('Semua'); setVisibleCount(9); }} />
-                <FilterButton label="Akademik" active={activeCategory === 'Akademik'} onClick={() => { setActiveCategory('Akademik'); setVisibleCount(9); }} />
-                <FilterButton label="Kegiatan" active={activeCategory === 'Kegiatan'} onClick={() => { setActiveCategory('Kegiatan'); setVisibleCount(9); }} />
-                <FilterButton label="Pengumuman" active={activeCategory === 'Pengumuman'} onClick={() => { setActiveCategory('Pengumuman'); setVisibleCount(9); }} />
-                <FilterButton label="Umum" active={activeCategory === 'Umum'} onClick={() => { setActiveCategory('Umum'); setVisibleCount(9); }} />
-              </div>
 
-              {/* Right side Search & Arsip */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4 shrink-0">
-                <div className="relative flex-1 sm:w-64">
-                  <SearchIcon className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Cari berita..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-11 pr-4 py-2.5 rounded-full border border-gray-200 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full bg-white shadow-sm transition-shadow hover:shadow-md"
-                  />
+            {/* Featured News Section */}
+            {featuredNews.length > 0 && (
+              <div 
+                className="grid grid-cols-1 lg:grid-cols-3 gap-5 md:gap-6"
+                style={{
+                  opacity: pageHeaderSection.isInView ? 1 : 0,
+                  transform: pageHeaderSection.isInView ? 'translateY(0)' : 'translateY(30px)',
+                  transition: 'opacity 0.8s ease 0.2s, transform 0.8s ease 0.2s'
+                }}
+              >
+                <div className="lg:col-span-2">
+                  <FeaturedCard article={featuredNews[0]} isLarge={true} />
                 </div>
-                <Link to="/news?arsip=true" className="text-sm font-bold text-gray-600 hover:text-blue-600 flex items-center justify-end gap-1.5 transition-colors whitespace-nowrap group">
-                  Arsip Berita <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
+                <div className="flex flex-col gap-5 md:gap-6">
+                  {featuredNews[1] && <FeaturedCard article={featuredNews[1]} />}
+                  {featuredNews[2] && <FeaturedCard article={featuredNews[2]} />}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Featured News Section */}
-          {featuredNews.length > 0 && (
-            <div 
-              className="grid grid-cols-1 lg:grid-cols-3 gap-5 md:gap-6 mb-12 lg:mb-16"
-              style={{
-                opacity: pageHeaderSection.isInView ? 1 : 0,
-                transform: pageHeaderSection.isInView ? 'translateY(0)' : 'translateY(30px)',
-                transition: 'opacity 0.8s ease 0.2s, transform 0.8s ease 0.2s'
-              }}
-            >
-              <div className="lg:col-span-2">
-                <FeaturedCard article={featuredNews[0]} isLarge={true} />
-              </div>
-              <div className="flex flex-col gap-5 md:gap-6">
-                {featuredNews[1] && <FeaturedCard article={featuredNews[1]} />}
-                {featuredNews[2] && <FeaturedCard article={featuredNews[2]} />}
-              </div>
+          {/* Filter & Search Bar (between Featured and Grid) */}
+          <div 
+            className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10"
+            style={{
+              opacity: pageHeaderSection.isInView ? 1 : 0,
+              transform: pageHeaderSection.isInView ? 'translateY(0)' : 'translateY(20px)',
+              transition: 'opacity 0.6s ease 0.3s, transform 0.6s ease 0.3s'
+            }}
+          >
+            {/* Left side Filter Pills */}
+            <div className="flex items-center gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:pb-0 scrollbar-hide">
+              <FilterButton label="Semua" active={activeCategory === 'Semua'} onClick={() => { setActiveCategory('Semua'); setVisibleCount(9); }} />
+              <FilterButton label="Akademik" active={activeCategory === 'Akademik'} onClick={() => { setActiveCategory('Akademik'); setVisibleCount(9); }} />
+              <FilterButton label="Kegiatan" active={activeCategory === 'Kegiatan'} onClick={() => { setActiveCategory('Kegiatan'); setVisibleCount(9); }} />
+              <FilterButton label="Pengumuman" active={activeCategory === 'Pengumuman'} onClick={() => { setActiveCategory('Pengumuman'); setVisibleCount(9); }} />
+              <FilterButton label="Umum" active={activeCategory === 'Umum'} onClick={() => { setActiveCategory('Umum'); setVisibleCount(9); }} />
             </div>
-          )}
+
+            {/* Right side Search & Arsip */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 shrink-0">
+              <div className="relative flex-1 sm:w-64">
+                <SearchIcon className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Cari berita..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-11 pr-4 py-2.5 rounded-full border border-gray-200 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full bg-white shadow-sm transition-shadow hover:shadow-md"
+                />
+              </div>
+              <Link to="/news?arsip=true" className="text-sm font-bold text-gray-600 hover:text-blue-600 flex items-center justify-end gap-1.5 transition-colors whitespace-nowrap group">
+                Arsip Berita <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+          </div>
 
           {/* Grid News Section */}
           <div ref={gridSection.ref}>
