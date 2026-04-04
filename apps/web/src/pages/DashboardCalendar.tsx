@@ -83,6 +83,30 @@ export const DashboardCalendar = () => {
     Object.fromEntries(CATEGORY_KEYS.map((k) => [k, true]))
   );
 
+  // When academic year changes, jump to July of that year (start of tahun ajaran)
+  useEffect(() => {
+    const [startY] = selectedYear.split('/').map(Number);
+    if (startY) {
+      // If it's the active year and we're within that academic year range, stay on today
+      if (selectedYear === activeAcademicYear) {
+        const todayMonth = today.getMonth();
+        const todayYear = today.getFullYear();
+        const [, endY] = selectedYear.split('/').map(Number);
+        const isWithinAcademicYear =
+          (todayYear === startY && todayMonth >= 6) || // Jul-Dec of start year
+          (todayYear === endY && todayMonth <= 5);      // Jan-Jun of end year
+        if (isWithinAcademicYear) {
+          setViewYear(todayYear);
+          setViewMonth(todayMonth);
+          return;
+        }
+      }
+      // Otherwise jump to July of the start year
+      setViewYear(startY);
+      setViewMonth(6); // July = index 6
+    }
+  }, [selectedYear]);
+
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<SchoolEvent | null>(null);
