@@ -184,7 +184,7 @@ export const PrintAcademicCalendar = () => {
     const pxPerMm = 96 / 25.4;
     
     // Add a safety buffer for browser default print headers/footers
-    const safeOffsetMm = 15; 
+    const safeOffsetMm = 8; 
     
     const pageW = (orientation === 'landscape' ? paper.widthMm : paper.heightMm) - margin.mm * 2;
     const pageH = (orientation === 'landscape' ? paper.heightMm : paper.widthMm) - margin.mm * 2 - safeOffsetMm;
@@ -302,22 +302,25 @@ export const PrintAcademicCalendar = () => {
         html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0 !important; padding: 0 !important; }
         .no-print { display: none !important; }
         .print-container {
-          zoom: ${computedScale} !important; /* The magic bullet for Chrome/Edge */
-          -moz-transform: scale(${computedScale}) !important; /* Fallback for Firefox */
+          zoom: ${computedScale} !important;
+          -moz-transform: scale(${computedScale}) !important;
           -moz-transform-origin: top left !important;
           width: ${100 / computedScale}% !important;
           margin: 0 !important;
-          padding: 0 !important;
+          padding: 2mm !important;
+          page-break-inside: avoid !important;
+          overflow: visible !important;
         }
       }
       .print-calendar * { font-family: 'Arial', 'Helvetica', sans-serif; }
+      .print-calendar { page-break-inside: avoid; }
       .mini-cal-table { border-collapse: collapse; width: 100%; }
-      .mini-cal-table th, .mini-cal-table td { font-size: 7.5pt; text-align: center; padding: 1px; width: 14.28%; height: 16px; }
+      .mini-cal-table th, .mini-cal-table td { font-size: 7.5pt; text-align: center; padding: 0.5px; width: 14.28%; height: 14px; }
       .mini-cal-table th { font-weight: 700; font-size: 6.5pt; background: #166534; color: white; }
-      .mini-cal-month-header { background: #fef08a; font-weight: 700; font-size: 8pt; text-align: center; padding: 2px; }
-      .event-table { border-collapse: collapse; width: 100%; font-size: 7pt; }
-      .event-table th { background: #166534; color: white; font-weight: 700; font-size: 7pt; padding: 2px 4px; border: 1px solid #333; }
-      .event-table td { padding: 1.5px 4px; border: 1px solid #aaa; vertical-align: top; }
+      .mini-cal-month-header { background: #fef08a; font-weight: 700; font-size: 7.5pt; text-align: center; padding: 1px; }
+      .event-table { border-collapse: collapse; width: 100%; font-size: 6.5pt; }
+      .event-table th { background: #166534; color: white; font-weight: 700; font-size: 6.5pt; padding: 1px 3px; border: 1px solid #333; }
+      .event-table td { padding: 1px 3px; border: 1px solid #aaa; vertical-align: top; }
       @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
     `;
   }, [paperSize, orientation, marginSize, computedScale]);
@@ -492,19 +495,19 @@ export const PrintAcademicCalendar = () => {
         }}
       >
         {/* Title */}
-        <div style={{ textAlign: 'center', marginBottom: 8 }}>
-          <div style={{ fontSize: '12pt', fontWeight: 700, color: '#166534', letterSpacing: 1 }}>
+        <div style={{ textAlign: 'center', marginBottom: 4 }}>
+          <div style={{ fontSize: '11pt', fontWeight: 700, color: '#166534', letterSpacing: 1 }}>
             {titleStr}
           </div>
           {modeLabel && (
-            <div style={{ fontSize: '10pt', fontWeight: 600, color: '#333', marginTop: 2 }}>
+            <div style={{ fontSize: '9pt', fontWeight: 600, color: '#333', marginTop: 1 }}>
               {modeLabel}
             </div>
           )}
         </div>
 
         {/* Mini Calendars Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${mode === 'full' ? 4 : 3}, 1fr)`, gap: 6, marginBottom: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${mode === 'full' ? 4 : 3}, 1fr)`, gap: 4, marginBottom: 4 }}>
           {months.map(({ year, month }, idx) => {
             const total = daysInMonth(year, month);
             const start = firstDayOfMonth(year, month);
@@ -589,10 +592,10 @@ export const PrintAcademicCalendar = () => {
 
         {/* Event Tables */}
         {mode === 'full' ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 4 }}>
             {/* Semester Ganjil */}
             <div>
-              <div style={{ textAlign: 'center', fontWeight: 700, fontSize: '9pt', marginBottom: 4, color: '#166534' }}>
+              <div style={{ textAlign: 'center', fontWeight: 700, fontSize: '8pt', marginBottom: 2, color: '#166534' }}>
                 SEMESTER GANJIL
               </div>
               <table className="event-table">
@@ -618,7 +621,7 @@ export const PrintAcademicCalendar = () => {
             </div>
             {/* Semester Genap */}
             <div>
-              <div style={{ textAlign: 'center', fontWeight: 700, fontSize: '9pt', marginBottom: 4, color: '#166534' }}>
+              <div style={{ textAlign: 'center', fontWeight: 700, fontSize: '8pt', marginBottom: 2, color: '#166534' }}>
                 SEMESTER GENAP
               </div>
               <table className="event-table">
@@ -673,21 +676,21 @@ export const PrintAcademicCalendar = () => {
         )}
 
         {/* Color Legend */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 4, justifyContent: 'center' }}>
           {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '6.5pt' }}>
-              <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, backgroundColor: CATEGORY_COLORS[key] }} />
+            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: '6pt' }}>
+              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, backgroundColor: CATEGORY_COLORS[key] }} />
               <span>{label}</span>
             </div>
           ))}
         </div>
 
         {/* Footer — Signature */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16, paddingRight: 40 }}>
-          <div style={{ textAlign: 'center', fontSize: '8pt' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4, paddingRight: 30 }}>
+          <div style={{ textAlign: 'center', fontSize: '7.5pt' }}>
             <div>{districtCity}, ____________ {startYearNum}</div>
-            <div style={{ fontWeight: 700, marginTop: 2 }}>Kepala Madrasah</div>
-            <div style={{ height: 50 }} />
+            <div style={{ fontWeight: 700, marginTop: 1 }}>Kepala Madrasah</div>
+            <div style={{ height: 35 }} />
             {principalName && (
               <>
                 <div style={{ fontWeight: 700, textDecoration: 'underline' }}>{principalName}</div>
