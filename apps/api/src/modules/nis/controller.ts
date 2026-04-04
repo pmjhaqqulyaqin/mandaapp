@@ -209,7 +209,8 @@ export class NISController {
   static async revokeRecord(req: Request, res: Response) {
     try {
       const operatorId = req.headers['x-user-id'] as string;
-      const result = await NISService.revokeNIS(req.params.id, operatorId);
+      const deleteProfile = req.query.deleteProfile === 'true';
+      const result = await NISService.revokeNIS(req.params.id, deleteProfile, operatorId);
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message || "Failed to revoke NIS" });

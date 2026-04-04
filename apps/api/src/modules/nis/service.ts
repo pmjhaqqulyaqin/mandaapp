@@ -360,20 +360,40 @@ export class NISService {
   }
 
   // ─── Revoke (Delete) NIS ───
-  static async revokeNIS(studentId: string, operatorId?: string) {
+  static async revokeNIS(studentId: string, deleteProfile: boolean = false, operatorId?: string) {
     const student = await db.select().from(studentProfiles)
       .where(eq(studentProfiles.id, studentId)).limit(1);
     if (!student[0]) throw new Error("Siswa tidak ditemukan");
     if (!student[0].nis) throw new Error("Siswa ini belum memiliki NIS");
 
     const oldNis = student[0].nis;
+    const studentName = student[0].fullName;
     const yearCode = oldNis.slice(0, 2);
     const seqNum = parseInt(oldNis.slice(2), 10);
 
-    // Clear NIS from student
-    await db.update(studentProfiles)
-      .set({ nis: null, updatedAt: new Date() })
-      .where(eq(studentProfiles.id, studentId));
+    // Activity log first (before potential deletion)
+    await db.insert(nisActivityLogs).values({
+      action: deleteProfile ? 'revoke_delete' : 'revoke',
+      details: JSON.stringify({
+        revokedNis: oldNis,
+        studentName,
+        deleteProfile,
+        reason: deleteProfile ? 'wrong_entry' : 'revoke_only'
+      }),
+      studentId: deleteProfile ? null : studentId,
+      nisValue: oldNis,
+      userId: operatorId || null,
+    });
+
+    if (deleteProfile) {
+      // Delete student profile entirely
+      await db.delete(studentProfiles).where(eq(studentProfiles.id, studentId));
+    } else {
+      // Only clear NIS
+      await db.update(studentProfiles)
+        .set({ nis: null, updatedAt: new Date() })
+        .where(eq(studentProfiles.id, studentId));
+    }
 
     // If this was the last sequence number, decrement the counter
     const year = await db.select().from(academicYears)
@@ -384,16 +404,7 @@ export class NISService {
         .where(eq(academicYears.id, year[0].id));
     }
 
-    // Activity log
-    await db.insert(nisActivityLogs).values({
-      action: 'revoke',
-      details: JSON.stringify({ revokedNis: oldNis, reason: 'manual_delete' }),
-      studentId,
-      nisValue: oldNis,
-      userId: operatorId || null,
-    });
-
-    return { studentId, revokedNis: oldNis, studentName: student[0].fullName };
+    return { studentId, revokedNis: oldNis, studentName, profileDeleted: deleteProfile };
   }
 
   // ─── Check Duplicate ───

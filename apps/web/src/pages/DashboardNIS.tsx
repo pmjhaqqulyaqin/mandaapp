@@ -64,7 +64,7 @@ const StatusBadge = ({ status }: { status: string }) => {
 // ─── Activity Item ───
 const ActivityItem = ({ log }: { log: ActivityLog }) => {
   const color = log.action === 'batch_generate' ? 'bg-blue-500' : log.action === 'single_assign' ? 'bg-emerald-500' : log.action === 'edit' ? 'bg-amber-500' : 'bg-red-500';
-  const label = log.action === 'batch_generate' ? 'Batch Digenerate' : log.action === 'single_assign' ? 'Entri Manual' : log.action === 'edit' ? 'NIS Diedit' : log.action === 'revoke' ? 'NIS Dicabut' : log.action;
+  const label = log.action === 'batch_generate' ? 'Batch Digenerate' : log.action === 'single_assign' ? 'Entri Manual' : log.action === 'edit' ? 'NIS Diedit' : log.action === 'revoke' ? 'NIS Dicabut' : log.action === 'revoke_delete' ? 'Siswa Dihapus' : log.action;
   const timeAgo = (d: string) => {
     const diff = Date.now() - new Date(d).getTime();
     if (diff < 60000) return 'Baru saja';
@@ -235,11 +235,14 @@ export const DashboardNIS = () => {
     } catch (err: any) { toast.error(err.message); }
   };
 
-  const handleRevokeNIS = async () => {
+  const handleRevokeNIS = async (deleteProfile: boolean) => {
     if (!editModal.student) return;
     try {
-      const res = await apiClient<any>(`/nis/records/${editModal.student.id}/revoke`, { method: 'DELETE' });
-      toast.success(`NIS ${res.revokedNis} berhasil dicabut dari ${res.studentName}`);
+      const res = await apiClient<any>(`/nis/records/${editModal.student.id}/revoke?deleteProfile=${deleteProfile}`, { method: 'DELETE' });
+      const msg = deleteProfile
+        ? `NIS ${res.revokedNis} dicabut dan data ${res.studentName} dihapus`
+        : `NIS ${res.revokedNis} berhasil dicabut dari ${res.studentName}`;
+      toast.success(msg);
       setEditModal({ open: false, student: null });
       setRevokeConfirm(false); setRevokeConfirmName('');
       fetchRecords(recordsPage); fetchActivity(); fetchStats(); fetchStudentsWithoutNIS();
@@ -666,7 +669,7 @@ export const DashboardNIS = () => {
                   <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
                   <div>
                     <p className="text-xs font-semibold text-red-700 dark:text-red-400">Cabut NIS {editModal.student?.nis}?</p>
-                    <p className="text-[10px] text-red-600/80 dark:text-red-400/60 mt-0.5">NIS akan dihapus dari siswa ini. Nomor urut tidak berubah kecuali ini adalah NIS terakhir.</p>
+                    <p className="text-[10px] text-red-600/80 dark:text-red-400/60 mt-0.5">Pilih salah satu aksi di bawah. Nomor urut bisa di-reclaim untuk siswa lain.</p>
                   </div>
                 </div>
                 <div>
@@ -675,14 +678,19 @@ export const DashboardNIS = () => {
                     placeholder="Ketik nama siswa..."
                     className="w-full px-2.5 py-1.5 text-xs border border-red-300 dark:border-red-700 rounded-md bg-white dark:bg-[#111] outline-none focus:ring-2 focus:ring-red-300" />
                 </div>
-                <div className="flex justify-end gap-2">
-                  <button onClick={() => { setRevokeConfirm(false); setRevokeConfirmName(''); }}
-                    className="px-2.5 py-1 text-xs text-text-secondary hover:text-text-primary rounded-md">Batal</button>
-                  <button onClick={handleRevokeNIS}
+                <div className="flex flex-col gap-1.5">
+                  <button onClick={() => handleRevokeNIS(true)}
                     disabled={revokeConfirmName !== editModal.student?.fullName}
-                    className="px-2.5 py-1 text-xs font-semibold bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1">
-                    <Trash2 size={12} /> Cabut NIS
+                    className="w-full px-2.5 py-1.5 text-xs font-semibold bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1">
+                    <Trash2 size={12} /> Cabut NIS & Hapus Data Siswa
                   </button>
+                  <button onClick={() => handleRevokeNIS(false)}
+                    disabled={revokeConfirmName !== editModal.student?.fullName}
+                    className="w-full px-2.5 py-1.5 text-xs font-medium border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1">
+                    <RefreshCw size={12} /> Cabut NIS Saja (Profil Tetap)
+                  </button>
+                  <button onClick={() => { setRevokeConfirm(false); setRevokeConfirmName(''); }}
+                    className="w-full px-2.5 py-1 text-[10px] text-text-secondary hover:text-text-primary">Batal</button>
                 </div>
               </div>
             )}
