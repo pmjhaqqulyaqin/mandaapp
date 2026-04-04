@@ -11,10 +11,14 @@ import { AnnouncementCategory } from '../types/news';
 // ============================================================
 const useInView = (options?: IntersectionObserverInit) => {
   const [isInView, setIsInView] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [el, setEl] = useState<HTMLDivElement | null>(null);
+
+  // Callback ref — triggers re-render when element mounts/unmounts
+  const ref = useCallback((node: HTMLDivElement | null) => {
+    setEl(node);
+  }, []);
 
   useEffect(() => {
-    const el = ref.current;
     if (!el) return;
 
     // Check immediately if already visible (fixes refresh/direct-load issue)
@@ -32,7 +36,7 @@ const useInView = (options?: IntersectionObserverInit) => {
     }, { threshold: 0.01, rootMargin: '100px', ...options });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [options]);
+  }, [el, options]);
 
   return { ref, isInView };
 };
