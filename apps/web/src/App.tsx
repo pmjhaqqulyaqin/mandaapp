@@ -18,6 +18,7 @@ import { DashboardPages } from './pages/dashboard/DashboardPages';
 import { DashboardMenus } from './pages/dashboard/DashboardMenus';
 import { DashboardServices } from './pages/dashboard/DashboardServices';
 import { DashboardStudents } from './pages/DashboardStudents';
+import { DashboardNIS } from './pages/DashboardNIS';
 import { DashboardClasses } from './pages/DashboardClasses';
 import { DashboardEmployees } from './pages/DashboardEmployees';
 import { SelectRolePage } from './pages/SelectRolePage';
@@ -78,6 +79,7 @@ function App() {
           <Route path="settings" element={<DashboardSettings />} />
           <Route path="users" element={<DashboardUsers />} />
           <Route path="students" element={<DashboardStudents />} />
+          <Route path="nis" element={<DashboardNIS />} />
           <Route path="classes" element={<DashboardClasses />} />
           <Route path="employees" element={<DashboardEmployees />} />
           <Route path="pages" element={<DashboardPages />} />

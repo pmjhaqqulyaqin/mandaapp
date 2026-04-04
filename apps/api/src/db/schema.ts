@@ -310,3 +310,37 @@ export const schoolEvents = pgTable("school_events", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
+
+// NIS Management (Nomor Induk Siswa)
+export const academicYears = pgTable("academic_years", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tahunAjaran: varchar("tahun_ajaran", { length: 20 }).unique().notNull(), // "2025/2026"
+  kodeTahun: varchar("kode_tahun", { length: 4 }).notNull(),              // "25"
+  tanggalMulai: date("tanggal_mulai").notNull(),
+  tanggalSelesai: date("tanggal_selesai").notNull(),
+  isActive: boolean("is_active").default(false),
+  lastNisSequence: integer("last_nis_sequence").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const nisBatches = pgTable("nis_batches", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  academicYearId: uuid("academic_year_id").references(() => academicYears.id).notNull(),
+  jumlahSiswa: integer("jumlah_siswa").notNull(),
+  startSequence: integer("start_sequence").notNull(),
+  endSequence: integer("end_sequence").notNull(),
+  operator: text("operator").references(() => user.id),
+  status: varchar("status", { length: 20 }).default("completed"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const nisActivityLogs = pgTable("nis_activity_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  action: varchar("action", { length: 50 }).notNull(), // batch_generate, single_assign, edit, rollback
+  details: text("details"),
+  studentId: uuid("student_id").references(() => studentProfiles.id),
+  nisValue: varchar("nis_value", { length: 50 }),
+  userId: text("user_id").references(() => user.id),
+  createdAt: timestamp("created_at").defaultNow()
+});

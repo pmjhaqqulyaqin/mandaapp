@@ -17,6 +17,7 @@ import {
   Users,
   BookOpen,
   UserSquare2,
+  Hash,
   ChevronDown,
   User as UserIcon,
   LogOut,
@@ -66,6 +67,13 @@ const ALL_MENU_ITEMS = [
     label: 'Data Pegawai',
     href: '/dashboard/employees',
     icon: <UserSquare2 size={16} />,
+    group: 'main',
+  },
+  {
+    key: 'nis',
+    label: 'Manajemen NIS',
+    href: '/dashboard/nis',
+    icon: <Hash size={16} />,
     group: 'main',
   },
   {
@@ -158,6 +166,7 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'users': 'users',
   'updates': 'updates',
   'students': 'students',
+  'nis': 'nis',
   'classes': 'classes',
   'employees': 'employees',
 };
