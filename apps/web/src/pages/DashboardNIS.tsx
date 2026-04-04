@@ -36,17 +36,17 @@ interface PreviewItem {
 const StatCard = ({ icon, label, value, sub, color }: {
   icon: React.ReactNode; label: string; value: string | number; sub?: string; color: string;
 }) => (
-  <div className={`relative overflow-hidden rounded-2xl bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] p-5 group hover:shadow-lg transition-all duration-300`}>
-    <div className={`absolute top-0 left-0 w-full h-1 ${color}`} />
-    <div className="flex items-start justify-between">
-      <div>
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${color} bg-opacity-10`}>
-          {icon}
-        </div>
-        <p className="text-3xl font-bold text-text-primary dark:text-text-darkPrimary tracking-tight">{value}</p>
-        <p className="text-xs text-text-secondary mt-1 uppercase tracking-wider font-semibold">{label}</p>
+  <div className={`relative overflow-hidden rounded-xl bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] p-3 group hover:shadow-md transition-all duration-300`}>
+    <div className={`absolute top-0 left-0 w-full h-0.5 ${color}`} />
+    <div className="flex items-center gap-3">
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${color} bg-opacity-10`}>
+        {icon}
       </div>
-      {sub && <span className="text-[11px] px-2 py-1 rounded-full bg-gray-100 dark:bg-[#1a1a1a] text-text-secondary font-medium">{sub}</span>}
+      <div className="min-w-0 flex-1">
+        <p className="text-xl font-bold text-text-primary dark:text-text-darkPrimary tracking-tight leading-tight">{value}</p>
+        <p className="text-[10px] text-text-secondary uppercase tracking-wider font-semibold">{label}</p>
+      </div>
+      {sub && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#1a1a1a] text-text-secondary font-medium shrink-0">{sub}</span>}
     </div>
   </div>
 );
@@ -73,12 +73,12 @@ const ActivityItem = ({ log }: { log: ActivityLog }) => {
     return `${Math.floor(diff / 86400000)} hari lalu`;
   };
   return (
-    <div className="flex gap-3 py-2.5">
-      <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${color}`} />
+    <div className="flex gap-2 py-1.5">
+      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${color}`} />
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-semibold text-text-primary dark:text-text-darkPrimary">{label}</p>
-        <p className="text-[11px] text-text-secondary truncate">{log.studentName ? `${log.studentName} → ${log.nisValue}` : (log.details || '')}</p>
-        <p className="text-[10px] text-text-secondary/60 mt-0.5 uppercase">{timeAgo(log.createdAt)}</p>
+        <p className="text-[12px] font-semibold text-text-primary dark:text-text-darkPrimary leading-tight">{label}</p>
+        <p className="text-[10px] text-text-secondary truncate">{log.studentName ? `${log.studentName} → ${log.nisValue}` : (log.details || '')}</p>
+        <p className="text-[9px] text-text-secondary/60 mt-0.5 uppercase">{timeAgo(log.createdAt)}</p>
       </div>
     </div>
   );
@@ -266,36 +266,36 @@ export const DashboardNIS = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
-            <Hash size={24} className="text-primary" /> Manajemen NIS
+          <h1 className="text-lg font-bold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
+            <Hash size={18} className="text-primary" /> Manajemen NIS
           </h1>
-          <p className="text-sm text-text-secondary mt-1">Kelola penerbitan dan alokasi Nomor Induk Siswa</p>
+          <p className="text-xs text-text-secondary mt-0.5">Kelola penerbitan dan alokasi Nomor Induk Siswa</p>
         </div>
-        <Button className="flex items-center gap-2" onClick={() => setYearModal(true)}>
-          <Calendar size={16} /> Kelola Tahun Ajaran
+        <Button className="flex items-center gap-1.5 text-xs px-3 py-1.5 h-auto" onClick={() => setYearModal(true)}>
+          <Calendar size={13} /> Kelola Tahun Ajaran
         </Button>
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard icon={<Users size={20} className="text-blue-600" />} label="Total Siswa" value={stats.totalStudents.toLocaleString()} color="bg-blue-500" />
-        <StatCard icon={<AlertCircle size={20} className="text-amber-600" />} label="Belum Ada NIS" value={stats.withoutNIS} sub="Perlu perhatian" color="bg-amber-500" />
-        <StatCard icon={<Calendar size={20} className="text-emerald-600" />} label="Tahun Ajaran Aktif" value={stats.activeYear?.tahunAjaran || '-'} color="bg-emerald-500" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <StatCard icon={<Users size={16} className="text-blue-600" />} label="Total Siswa" value={stats.totalStudents.toLocaleString()} color="bg-blue-500" />
+        <StatCard icon={<AlertCircle size={16} className="text-amber-600" />} label="Belum Ada NIS" value={stats.withoutNIS} sub="Perlu perhatian" color="bg-amber-500" />
+        <StatCard icon={<Calendar size={16} className="text-emerald-600" />} label="Tahun Ajaran Aktif" value={stats.activeYear?.tahunAjaran || '-'} color="bg-emerald-500" />
       </div>
 
       {/* Main Content = Tabs + Sidebar */}
-      <div className="flex flex-col lg:flex-row gap-5">
+      <div className="flex flex-col lg:flex-row gap-3">
         {/* Left: Tab Content */}
         <div className="flex-1 min-w-0">
           {/* Tab Navigation */}
-          <div className="flex gap-1 border-b border-gray-200 dark:border-[#222] mb-5">
+          <div className="flex gap-0.5 border-b border-gray-200 dark:border-[#222] mb-3">
             {tabs.map(t => (
               <button key={t.key} onClick={() => setActiveTab(t.key)}
-                className={`px-4 py-2.5 text-sm font-medium relative transition-colors ${activeTab === t.key ? 'text-primary' : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'}`}>
+                className={`px-3 py-2 text-xs font-medium relative transition-colors ${activeTab === t.key ? 'text-primary' : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'}`}>
                 {t.label}
                 {activeTab === t.key && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t" />}
               </button>
@@ -304,12 +304,12 @@ export const DashboardNIS = () => {
 
           {/* ─── TAB: All Records ─── */}
           {activeTab === 'records' && (
-            <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#222] overflow-hidden">
-              <div className="p-4 border-b border-gray-100 dark:border-[#222] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                <h3 className="text-base font-semibold text-text-primary dark:text-text-darkPrimary">Daftar & Manajemen NIS</h3>
+            <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] overflow-hidden">
+              <div className="px-3 py-2.5 border-b border-gray-100 dark:border-[#222] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary">Daftar & Manajemen NIS</h3>
                 <div className="flex items-center gap-2">
                   <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-                    className="bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none">
+                    className="bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-md px-2 py-1.5 text-xs outline-none">
                     <option value="">Semua Status</option>
                     <option value="active">Aktif</option>
                     <option value="mutasi">Mutasi</option>
@@ -319,54 +319,54 @@ export const DashboardNIS = () => {
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                       placeholder="Cari NIS atau nama..."
-                      className="pl-9 pr-3 py-2 text-sm bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg outline-none focus:ring-2 focus:ring-primary/30 w-48" />
+                      className="pl-8 pr-2 py-1.5 text-xs bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-md outline-none focus:ring-2 focus:ring-primary/30 w-40" />
                   </div>
                   <a href={`${API_BASE_URL}/nis/export?search=${searchQuery}&status=${statusFilter}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
-                    <Download size={14} /> Ekspor Excel
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
+                    <Download size={12} /> Ekspor Excel
                   </a>
                 </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-gray-100 dark:border-[#222] text-[11px] uppercase tracking-wider text-text-secondary">
-                      <th className="py-3 px-4 font-semibold">NIS</th>
-                      <th className="py-3 px-4 font-semibold">Nama Lengkap</th>
-                      <th className="py-3 px-4 font-semibold">NISN</th>
-                      <th className="py-3 px-4 font-semibold">Status</th>
-                      <th className="py-3 px-4 font-semibold text-center">Aksi</th>
+                    <tr className="border-b border-gray-100 dark:border-[#222] text-[10px] uppercase tracking-wider text-text-secondary">
+                      <th className="py-2 px-3 font-semibold">NIS</th>
+                      <th className="py-2 px-3 font-semibold">Nama Lengkap</th>
+                      <th className="py-2 px-3 font-semibold">NISN</th>
+                      <th className="py-2 px-3 font-semibold">Status</th>
+                      <th className="py-2 px-3 font-semibold text-center">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {records.map(r => (
                       <tr key={r.id} className="group border-b border-gray-50 dark:border-[#1a1a1a] hover:bg-gray-50/50 dark:hover:bg-[#0a0a0a] transition-colors">
-                        <td className="py-3 px-4 text-sm font-mono text-primary font-semibold">#{r.nis || '-'}</td>
-                        <td className="py-3 px-4 text-sm font-medium text-text-primary dark:text-text-darkPrimary">{r.fullName || '-'}</td>
-                        <td className="py-3 px-4 text-sm text-text-secondary">{r.nisn || '-'}</td>
-                        <td className="py-3 px-4"><StatusBadge status={r.status} /></td>
-                        <td className="py-3 px-4 text-center">
+                        <td className="py-2 px-3 text-xs font-mono text-primary font-semibold">#{r.nis || '-'}</td>
+                        <td className="py-2 px-3 text-xs font-medium text-text-primary dark:text-text-darkPrimary">{r.fullName || '-'}</td>
+                        <td className="py-2 px-3 text-xs text-text-secondary">{r.nisn || '-'}</td>
+                        <td className="py-2 px-3"><StatusBadge status={r.status} /></td>
+                        <td className="py-2 px-3 text-center">
                           <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onClick={() => { setEditModal({ open: true, student: r }); setEditNisValue(r.nis || ''); }}
-                              className="text-blue-500 hover:text-blue-700" title="Edit NIS"><Edit2 size={14} /></button>
+                              className="text-blue-500 hover:text-blue-700" title="Edit NIS"><Edit2 size={13} /></button>
                           </div>
                         </td>
                       </tr>
                     ))}
                     {records.length === 0 && (
-                      <tr><td colSpan={5} className="py-12 text-center text-gray-400 text-sm">Belum ada data NIS.</td></tr>
+                      <tr><td colSpan={5} className="py-8 text-center text-gray-400 text-xs">Belum ada data NIS.</td></tr>
                     )}
                   </tbody>
                 </table>
               </div>
               {recordsTotalPages > 1 && (
-                <div className="p-4 border-t border-gray-100 dark:border-[#222] flex items-center justify-between text-sm text-text-secondary">
+                <div className="px-3 py-2 border-t border-gray-100 dark:border-[#222] flex items-center justify-between text-xs text-text-secondary">
                   <span>Menampilkan {(recordsPage - 1) * 10 + 1}-{Math.min(recordsPage * 10, recordsTotal)} dari {recordsTotal}</span>
                   <div className="flex items-center gap-1">
                     <button onClick={() => fetchRecords(recordsPage - 1)} disabled={recordsPage <= 1} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#222] disabled:opacity-30"><ChevronLeft size={16} /></button>
                     {Array.from({ length: Math.min(5, recordsTotalPages) }, (_, i) => i + 1).map(p => (
                       <button key={p} onClick={() => fetchRecords(p)}
-                        className={`w-8 h-8 rounded-lg text-sm font-medium ${p === recordsPage ? 'bg-primary text-white' : 'hover:bg-gray-100 dark:hover:bg-[#222]'}`}>{p}</button>
+                        className={`w-7 h-7 rounded-md text-xs font-medium ${p === recordsPage ? 'bg-primary text-white' : 'hover:bg-gray-100 dark:hover:bg-[#222]'}`}>{p}</button>
                     ))}
                     <button onClick={() => fetchRecords(recordsPage + 1)} disabled={recordsPage >= recordsTotalPages} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#222] disabled:opacity-30"><ChevronRight size={16} /></button>
                   </div>
@@ -378,16 +378,16 @@ export const DashboardNIS = () => {
           {/* ─── TAB: Batch Generation ─── */}
           {activeTab === 'batch' && (
             <div className="space-y-5">
-              <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#222] p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-base font-semibold text-text-primary dark:text-text-darkPrimary">Proses Batch Baru</h3>
-                  <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Langkah {batchStep} dari 3</span>
+              <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary">Proses Batch Baru</h3>
+                  <span className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Langkah {batchStep} dari 3</span>
                 </div>
                 {/* Step indicator */}
-                <div className="flex items-center gap-0 mb-8">
+                <div className="flex items-center gap-0 mb-5">
                   {[1, 2, 3].map(s => (
                     <React.Fragment key={s}>
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition-all ${s <= batchStep ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-[#222] text-gray-500'}`}>{s}</div>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all ${s <= batchStep ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-[#222] text-gray-500'}`}>{s}</div>
                       {s < 3 && <div className={`flex-1 h-0.5 mx-1 transition-all ${s < batchStep ? 'bg-primary' : 'bg-gray-200 dark:bg-[#222]'}`} />}
                     </React.Fragment>
                   ))}
@@ -397,32 +397,32 @@ export const DashboardNIS = () => {
                 {batchStep === 1 && (
                   <div className="space-y-4">
                     <div className="flex gap-3 mb-4">
-                      <button onClick={() => setSourceMode('existing')} className={`flex-1 p-4 rounded-xl border-2 text-left transition-all ${sourceMode === 'existing' ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-[#222]'}`}>
-                        <Users size={20} className="text-primary mb-2" />
-                        <p className="font-semibold text-sm">Pilih dari Data Siswa</p>
-                        <p className="text-xs text-text-secondary mt-1">Pilih siswa yang belum memiliki NIS</p>
+                      <button onClick={() => setSourceMode('existing')} className={`flex-1 p-3 rounded-lg border-2 text-left transition-all ${sourceMode === 'existing' ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-[#222]'}`}>
+                        <Users size={16} className="text-primary mb-1.5" />
+                        <p className="font-semibold text-xs">Pilih dari Data Siswa</p>
+                        <p className="text-[10px] text-text-secondary mt-0.5">Pilih siswa yang belum memiliki NIS</p>
                       </button>
-                      <button onClick={() => setSourceMode('upload')} className={`flex-1 p-4 rounded-xl border-2 text-left transition-all ${sourceMode === 'upload' ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-[#222]'}`}>
-                        <Upload size={20} className="text-primary mb-2" />
-                        <p className="font-semibold text-sm">Unggah File</p>
-                        <p className="text-xs text-text-secondary mt-1">Import dari file CSV atau XLSX</p>
+                      <button onClick={() => setSourceMode('upload')} className={`flex-1 p-3 rounded-lg border-2 text-left transition-all ${sourceMode === 'upload' ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-[#222]'}`}>
+                        <Upload size={16} className="text-primary mb-1.5" />
+                        <p className="font-semibold text-xs">Unggah File</p>
+                        <p className="text-[10px] text-text-secondary mt-0.5">Import dari file CSV atau XLSX</p>
                       </button>
                     </div>
 
                     {sourceMode === 'upload' && (
                       <div className="space-y-3">
-                        <div className="border-2 border-dashed border-gray-300 dark:border-[#333] rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                        <div className="border-2 border-dashed border-gray-300 dark:border-[#333] rounded-lg p-5 text-center hover:border-primary/50 transition-colors cursor-pointer"
                           onClick={() => fileInputRef.current?.click()}>
-                          <Upload size={32} className="mx-auto mb-3 text-gray-400" />
-                          <p className="font-semibold text-sm text-text-primary dark:text-text-darkPrimary">Unggah Data Siswa</p>
-                          <p className="text-xs text-text-secondary mt-1">Seret dan lepas file .CSV atau .XLSX di sini</p>
+                          <Upload size={24} className="mx-auto mb-2 text-gray-400" />
+                          <p className="font-semibold text-xs text-text-primary dark:text-text-darkPrimary">Unggah Data Siswa</p>
+                          <p className="text-[10px] text-text-secondary mt-0.5">Seret dan lepas file .CSV atau .XLSX di sini</p>
                           <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileUpload} />
-                          <Button className="mt-4" onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}>Pilih File</Button>
+                          <Button className="mt-3 text-xs px-3 py-1.5 h-auto" onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}>Pilih File</Button>
                         </div>
-                        <div className="flex items-center justify-center gap-2 text-sm">
+                        <div className="flex items-center justify-center gap-1.5 text-xs">
                           <span className="text-text-secondary">Belum punya template?</span>
-                          <a href={`${API_BASE_URL}/students/template`} className="inline-flex items-center gap-1.5 text-primary font-semibold hover:underline">
-                            <Download size={14} /> Download Template Excel
+                          <a href={`${API_BASE_URL}/students/template`} className="inline-flex items-center gap-1 text-primary font-semibold hover:underline">
+                            <Download size={12} /> Download Template
                           </a>
                         </div>
                       </div>
@@ -430,27 +430,27 @@ export const DashboardNIS = () => {
 
                     {sourceMode === 'existing' && (
                       <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <p className="text-sm font-medium">{studentsWithoutNIS.length} siswa belum memiliki NIS</p>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-medium">{studentsWithoutNIS.length} siswa belum memiliki NIS</p>
                           <button onClick={() => setSelectedStudentIds(selectedStudentIds.length === studentsWithoutNIS.length ? [] : studentsWithoutNIS.map(s => s.id))}
                             className="text-xs text-primary font-semibold hover:underline">
                             {selectedStudentIds.length === studentsWithoutNIS.length ? 'Hapus Semua' : 'Pilih Semua'}
                           </button>
                         </div>
-                        <div className="max-h-64 overflow-y-auto rounded-xl border border-gray-200 dark:border-[#222]">
+                        <div className="max-h-52 overflow-y-auto rounded-lg border border-gray-200 dark:border-[#222]">
                           {studentsWithoutNIS.map(s => (
-                            <label key={s.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-[#0a0a0a] cursor-pointer border-b border-gray-50 dark:border-[#1a1a1a] last:border-0">
+                            <label key={s.id} className="flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 dark:hover:bg-[#0a0a0a] cursor-pointer border-b border-gray-50 dark:border-[#1a1a1a] last:border-0">
                               <input type="checkbox" checked={selectedStudentIds.includes(s.id)}
                                 onChange={e => setSelectedStudentIds(e.target.checked ? [...selectedStudentIds, s.id] : selectedStudentIds.filter(id => id !== s.id))}
-                                className="accent-primary w-4 h-4" />
+                                className="accent-primary w-3.5 h-3.5" />
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{s.fullName}</p>
-                                <p className="text-xs text-text-secondary">NISN: {s.nisn} • {s.className || '-'}</p>
+                                <p className="text-xs font-medium truncate">{s.fullName}</p>
+                                <p className="text-[10px] text-text-secondary">NISN: {s.nisn} • {s.className || '-'}</p>
                               </div>
                             </label>
                           ))}
                           {studentsWithoutNIS.length === 0 && (
-                            <p className="py-8 text-center text-sm text-gray-400">Semua siswa sudah memiliki NIS</p>
+                            <p className="py-6 text-center text-xs text-gray-400">Semua siswa sudah memiliki NIS</p>
                           )}
                         </div>
                         {selectedStudentIds.length > 0 && (
@@ -527,11 +527,11 @@ export const DashboardNIS = () => {
 
           {/* ─── TAB: Single Entry ─── */}
           {activeTab === 'single' && (
-            <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#222] p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><UserPlus size={20} className="text-primary" /></div>
+            <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-4">
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><UserPlus size={16} className="text-primary" /></div>
                 <div>
-                  <h3 className="text-base font-semibold text-text-primary dark:text-text-darkPrimary">Entri Siswa Mutasi</h3>
+                  <h3 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary">Entri Siswa Mutasi</h3>
                   <p className="text-xs text-text-secondary">Berikan NIS satuan untuk siswa pindahan/mutasi dari sekolah lain.</p>
                 </div>
               </div>
@@ -599,24 +599,24 @@ export const DashboardNIS = () => {
         </div>
 
         {/* Right Sidebar */}
-        <div className="w-full lg:w-72 shrink-0 space-y-4">
-          <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#222] p-4">
+        <div className="w-full lg:w-64 shrink-0 space-y-2.5">
+          <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-3">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary">Aktivitas Terbaru</h4>
-              <button onClick={fetchActivity} className="text-xs text-primary hover:underline">Lihat Semua</button>
+              <h4 className="text-xs font-semibold text-text-primary dark:text-text-darkPrimary">Aktivitas Terbaru</h4>
+              <button onClick={fetchActivity} className="text-[10px] text-primary hover:underline">Lihat Semua</button>
             </div>
             <div className="divide-y divide-gray-100 dark:divide-[#1a1a1a]">
               {activity.length > 0 ? activity.slice(0, 5).map(log => <ActivityItem key={log.id} log={log} />)
                 : <p className="py-4 text-center text-xs text-gray-400">Belum ada aktivitas</p>}
             </div>
           </div>
-          <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#222] p-4">
-            <h4 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary mb-3">Kuota Penggunaan</h4>
-            <p className="text-3xl font-bold text-text-primary dark:text-text-darkPrimary">{quotaPercent}%</p>
-            <div className="w-full bg-gray-200 dark:bg-[#222] rounded-full h-2 mt-2 overflow-hidden">
-              <div className="bg-primary h-2 rounded-full transition-all duration-500" style={{ width: `${quotaPercent}%` }} />
+          <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-3">
+            <h4 className="text-xs font-semibold text-text-primary dark:text-text-darkPrimary mb-2">Kuota Penggunaan</h4>
+            <p className="text-2xl font-bold text-text-primary dark:text-text-darkPrimary">{quotaPercent}%</p>
+            <div className="w-full bg-gray-200 dark:bg-[#222] rounded-full h-1.5 mt-1.5 overflow-hidden">
+              <div className="bg-primary h-1.5 rounded-full transition-all duration-500" style={{ width: `${quotaPercent}%` }} />
             </div>
-            <p className="text-[11px] text-text-secondary mt-2">{stats.totalStudents - stats.withoutNIS} dari {stats.totalStudents} NIS telah diterbitkan</p>
+            <p className="text-[10px] text-text-secondary mt-1.5">{stats.totalStudents - stats.withoutNIS} dari {stats.totalStudents} NIS telah diterbitkan</p>
           </div>
         </div>
       </div>
