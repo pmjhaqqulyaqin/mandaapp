@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import {
   Hash, Users, AlertCircle, Calendar, Upload, FileSpreadsheet,
   UserPlus, Search, Download, Eye, Edit2, ChevronLeft, ChevronRight,
-  CheckCircle2, Clock, ArrowUpRight, Loader2, X, RefreshCw
+  CheckCircle2, Clock, ArrowUpRight, Loader2, X, RefreshCw, Trash2, AlertTriangle
 } from 'lucide-react';
 
 // ─── Types ───
@@ -64,7 +64,7 @@ const StatusBadge = ({ status }: { status: string }) => {
 // ─── Activity Item ───
 const ActivityItem = ({ log }: { log: ActivityLog }) => {
   const color = log.action === 'batch_generate' ? 'bg-blue-500' : log.action === 'single_assign' ? 'bg-emerald-500' : log.action === 'edit' ? 'bg-amber-500' : 'bg-red-500';
-  const label = log.action === 'batch_generate' ? 'Batch Digenerate' : log.action === 'single_assign' ? 'Entri Manual' : log.action === 'edit' ? 'NIS Diedit' : log.action;
+  const label = log.action === 'batch_generate' ? 'Batch Digenerate' : log.action === 'single_assign' ? 'Entri Manual' : log.action === 'edit' ? 'NIS Diedit' : log.action === 'revoke' ? 'NIS Dicabut' : log.action;
   const timeAgo = (d: string) => {
     const diff = Date.now() - new Date(d).getTime();
     if (diff < 60000) return 'Baru saja';
@@ -125,6 +125,8 @@ export const DashboardNIS = () => {
   // Edit modal
   const [editModal, setEditModal] = useState<{ open: boolean; student: StudentRecord | null }>({ open: false, student: null });
   const [editNisValue, setEditNisValue] = useState('');
+  const [revokeConfirm, setRevokeConfirm] = useState(false);
+  const [revokeConfirmName, setRevokeConfirmName] = useState('');
 
   // Academic Year modal
   const [yearModal, setYearModal] = useState(false);
@@ -228,7 +230,19 @@ export const DashboardNIS = () => {
       await apiClient(`/nis/records/${editModal.student.id}`, { method: 'PUT', data: { nis: editNisValue } });
       toast.success('NIS berhasil diupdate');
       setEditModal({ open: false, student: null });
-      fetchRecords(recordsPage); fetchActivity();
+      setRevokeConfirm(false); setRevokeConfirmName('');
+      fetchRecords(recordsPage); fetchActivity(); fetchStats();
+    } catch (err: any) { toast.error(err.message); }
+  };
+
+  const handleRevokeNIS = async () => {
+    if (!editModal.student) return;
+    try {
+      const res = await apiClient<any>(`/nis/records/${editModal.student.id}/revoke`, { method: 'DELETE' });
+      toast.success(`NIS ${res.revokedNis} berhasil dicabut dari ${res.studentName}`);
+      setEditModal({ open: false, student: null });
+      setRevokeConfirm(false); setRevokeConfirmName('');
+      fetchRecords(recordsPage); fetchActivity(); fetchStats(); fetchStudentsWithoutNIS();
     } catch (err: any) { toast.error(err.message); }
   };
 
@@ -630,13 +644,48 @@ export const DashboardNIS = () => {
       </div>
 
       {/* ─── Edit NIS Modal ─── */}
-      <Modal isOpen={editModal.open} onClose={() => setEditModal({ open: false, student: null })} title="Edit NIS">
+      <Modal isOpen={editModal.open} onClose={() => { setEditModal({ open: false, student: null }); setRevokeConfirm(false); setRevokeConfirmName(''); }} title="Edit NIS">
         <div className="space-y-4">
           <p className="text-sm">Siswa: <strong>{editModal.student?.fullName}</strong></p>
           <Input value={editNisValue} onChange={e => setEditNisValue(e.target.value)} placeholder="NIS baru" />
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setEditModal({ open: false, student: null })}>Batal</Button>
+            <Button variant="ghost" onClick={() => { setEditModal({ open: false, student: null }); setRevokeConfirm(false); setRevokeConfirmName(''); }}>Batal</Button>
             <Button onClick={handleEditNIS}>Simpan</Button>
+          </div>
+
+          {/* Danger Zone */}
+          <div className="border-t border-gray-100 dark:border-[#222] pt-4 mt-2">
+            {!revokeConfirm ? (
+              <button onClick={() => setRevokeConfirm(true)}
+                className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 font-medium transition-colors">
+                <Trash2 size={13} /> Cabut NIS dari siswa ini
+              </button>
+            ) : (
+              <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/40 rounded-lg p-3 space-y-2.5">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-red-700 dark:text-red-400">Cabut NIS {editModal.student?.nis}?</p>
+                    <p className="text-[10px] text-red-600/80 dark:text-red-400/60 mt-0.5">NIS akan dihapus dari siswa ini. Nomor urut tidak berubah kecuali ini adalah NIS terakhir.</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] text-red-600 dark:text-red-400 mb-1">Ketik <strong>{editModal.student?.fullName}</strong> untuk konfirmasi:</p>
+                  <input value={revokeConfirmName} onChange={e => setRevokeConfirmName(e.target.value)}
+                    placeholder="Ketik nama siswa..."
+                    className="w-full px-2.5 py-1.5 text-xs border border-red-300 dark:border-red-700 rounded-md bg-white dark:bg-[#111] outline-none focus:ring-2 focus:ring-red-300" />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => { setRevokeConfirm(false); setRevokeConfirmName(''); }}
+                    className="px-2.5 py-1 text-xs text-text-secondary hover:text-text-primary rounded-md">Batal</button>
+                  <button onClick={handleRevokeNIS}
+                    disabled={revokeConfirmName !== editModal.student?.fullName}
+                    className="px-2.5 py-1 text-xs font-semibold bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1">
+                    <Trash2 size={12} /> Cabut NIS
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </Modal>

@@ -205,6 +205,17 @@ export class NISController {
     }
   }
 
+  // DELETE /api/nis/records/:id/revoke
+  static async revokeRecord(req: Request, res: Response) {
+    try {
+      const operatorId = req.headers['x-user-id'] as string;
+      const result = await NISService.revokeNIS(req.params.id, operatorId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to revoke NIS" });
+    }
+  }
+
   // GET /api/nis/export
   static async exportRecords(req: Request, res: Response) {
     try {

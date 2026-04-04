@@ -359,6 +359,43 @@ export class NISService {
     return { oldNis, newNis };
   }
 
+  // ─── Revoke (Delete) NIS ───
+  static async revokeNIS(studentId: string, operatorId?: string) {
+    const student = await db.select().from(studentProfiles)
+      .where(eq(studentProfiles.id, studentId)).limit(1);
+    if (!student[0]) throw new Error("Siswa tidak ditemukan");
+    if (!student[0].nis) throw new Error("Siswa ini belum memiliki NIS");
+
+    const oldNis = student[0].nis;
+    const yearCode = oldNis.slice(0, 2);
+    const seqNum = parseInt(oldNis.slice(2), 10);
+
+    // Clear NIS from student
+    await db.update(studentProfiles)
+      .set({ nis: null, updatedAt: new Date() })
+      .where(eq(studentProfiles.id, studentId));
+
+    // If this was the last sequence number, decrement the counter
+    const year = await db.select().from(academicYears)
+      .where(eq(academicYears.kodeTahun, yearCode)).limit(1);
+    if (year[0] && year[0].lastNisSequence === seqNum) {
+      await db.update(academicYears)
+        .set({ lastNisSequence: seqNum - 1, updatedAt: new Date() })
+        .where(eq(academicYears.id, year[0].id));
+    }
+
+    // Activity log
+    await db.insert(nisActivityLogs).values({
+      action: 'revoke',
+      details: JSON.stringify({ revokedNis: oldNis, reason: 'manual_delete' }),
+      studentId,
+      nisValue: oldNis,
+      userId: operatorId || null,
+    });
+
+    return { studentId, revokedNis: oldNis, studentName: student[0].fullName };
+  }
+
   // ─── Check Duplicate ───
   static async checkDuplicate(nis: string, excludeStudentId?: string) {
     let query = db.select({ id: studentProfiles.id, fullName: studentProfiles.fullName })

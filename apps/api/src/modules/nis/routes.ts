@@ -31,6 +31,7 @@ router.post("/assign-single", NISController.assignSingle);
 // Records
 router.get("/records", NISController.getRecords);
 router.put("/records/:id", NISController.editRecord);
+router.delete("/records/:id/revoke", NISController.revokeRecord);
 router.get("/export", NISController.exportRecords);
 
 // Validation
