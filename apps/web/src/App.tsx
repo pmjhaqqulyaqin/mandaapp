@@ -29,6 +29,7 @@ import { ServicePageRoute } from './pages/layanan/ServicePageRoute';
 import { EOfficePage } from './pages/eoffice/EOfficePage';
 import { SystemUpdateCenter } from './pages/dashboard/SystemUpdateCenter';
 import { BatchPrintPage } from './pages/BatchPrintPage';
+import { PrintAcademicCalendar } from './pages/PrintAcademicCalendar';
 import { FloatingActionButton, ScrollToTopButton } from '@mandaapp/ui';
 import { Toaster } from 'sonner';
 
@@ -55,6 +56,11 @@ function App() {
         <Route path="/dashboard/print-batch" element={
           <ProtectedRoute>
             <BatchPrintPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard/print-calendar" element={
+          <ProtectedRoute>
+            <PrintAcademicCalendar />
           </ProtectedRoute>
         } />
         

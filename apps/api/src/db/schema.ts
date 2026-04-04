@@ -293,3 +293,20 @@ export const serviceRequests = pgTable("service_requests", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
+
+// School Events Calendar (Kalender Pendidikan)
+export const schoolEvents = pgTable("school_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  eventDate: date("event_date").notNull(),
+  endDate: date("end_date"),  // optional, for multi-day events
+  category: varchar("category", { length: 50 }).default("general").notNull(),
+  // Categories: holiday, semester_ganjil, semester_genap, first_day, orientation,
+  // exam_sumatif, exam_madrasah, exam_other, report_filling, report_distribution, general
+  color: varchar("color", { length: 20 }),  // optional override per event
+  academicYear: varchar("academic_year", { length: 20 }).notNull(), // e.g. "2025/2026"
+  createdBy: text("created_by").references(() => user.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});

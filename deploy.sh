@@ -19,22 +19,32 @@ echo "╚═══════════════════════�
 echo ""
 
 # 1. Pull latest code
-echo "📥 [1/4] Mengambil kode terbaru dari GitHub..."
+echo "📥 [1/5] Mengambil kode terbaru dari GitHub..."
 git pull origin main
 echo ""
 
+# 1.5 Run pending SQL migrations against the database
+echo "🗄️  [2/5] Menjalankan migrasi database (jika ada)..."
+for migration_file in migration-*.sql; do
+  if [ -f "$migration_file" ]; then
+    echo "   ➜ Menjalankan $migration_file ..."
+    docker exec -i mandaapp_db psql -U "${DB_USER:-postgres}" -d "${DB_NAME:-mandaapp_prod}" < "$migration_file" 2>&1 || true
+  fi
+done
+echo ""
+
 # 2. Build only API and Web (SKIP database!)
-echo "🔨 [2/4] Rebuild image API dan Web..."
+echo "🔨 [3/5] Rebuild image API dan Web..."
 docker compose build api web
 echo ""
 
 # 3. Restart only API and Web (database tetap jalan!)
-echo "♻️  [3/4] Restart API dan Web (Database TIDAK disentuh)..."
+echo "♻️  [4/5] Restart API dan Web (Database TIDAK disentuh)..."
 docker compose up -d api web
 echo ""
 
 # 4. Quick health check
-echo "🩺 [4/4] Menunggu container sehat..."
+echo "🩺 [5/5] Menunggu container sehat..."
 sleep 5
 
 # Check if containers are running
