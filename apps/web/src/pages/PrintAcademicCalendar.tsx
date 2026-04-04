@@ -294,12 +294,14 @@ export const PrintAcademicCalendar = () => {
     return `
       @media print {
         @page { size: ${sizeValue}; margin: ${margin.value}; }
-        body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0; }
+        html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0 !important; padding: 0 !important; }
         .no-print { display: none !important; }
         .print-container {
           transform: scale(${computedScale}) !important;
           transform-origin: top left !important;
           width: ${100 / computedScale}% !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }
       }
       .print-calendar * { font-family: 'Arial', 'Helvetica', sans-serif; }
@@ -480,7 +482,7 @@ export const PrintAcademicCalendar = () => {
         className="print-calendar print-container bg-white"
         style={{
           padding: MARGIN_VALUES[marginSize].value,
-          marginTop: settingsCollapsed ? '36px' : '170px', // Offset for settings bar (no-print only)
+          paddingTop: settingsCollapsed ? '44px' : '180px',
         }}
       >
         {/* Title */}
