@@ -330,7 +330,7 @@ export const NewsPage = () => {
     <div className="flex flex-col min-h-screen bg-[#F8FBFF]">
       <HeaderWithSettings />
       
-      <main className="flex-1 pt-20 pb-20">
+      <main className="flex-1 pt-6 pb-20">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
           
           {/* Header Section (Featured News) */}
