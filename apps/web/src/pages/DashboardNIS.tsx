@@ -58,19 +58,19 @@ const StatusBadge = ({ status }: { status: string }) => {
     : s === 'mutasi' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
     : s === 'pending' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
     : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
-  return <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide ${cls}`}>{status || 'Active'}</span>;
+  return <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide ${cls}`}>{status || 'Aktif'}</span>;
 };
 
 // ─── Activity Item ───
 const ActivityItem = ({ log }: { log: ActivityLog }) => {
   const color = log.action === 'batch_generate' ? 'bg-blue-500' : log.action === 'single_assign' ? 'bg-emerald-500' : log.action === 'edit' ? 'bg-amber-500' : 'bg-red-500';
-  const label = log.action === 'batch_generate' ? 'Batch Generated' : log.action === 'single_assign' ? 'Manual Entry' : log.action === 'edit' ? 'NIS Edited' : log.action;
+  const label = log.action === 'batch_generate' ? 'Batch Digenerate' : log.action === 'single_assign' ? 'Entri Manual' : log.action === 'edit' ? 'NIS Diedit' : log.action;
   const timeAgo = (d: string) => {
     const diff = Date.now() - new Date(d).getTime();
     if (diff < 60000) return 'Baru saja';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)} min ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
-    return `${Math.floor(diff / 86400000)} days ago`;
+    if (diff < 3600000) return `${Math.floor(diff / 60000)} menit lalu`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)} jam lalu`;
+    return `${Math.floor(diff / 86400000)} hari lalu`;
   };
   return (
     <div className="flex gap-3 py-2.5">
@@ -252,9 +252,9 @@ export const DashboardNIS = () => {
   useEffect(() => { if (activeTab === 'batch') fetchStudentsWithoutNIS(); }, [activeTab]);
 
   const tabs = [
-    { key: 'records' as const, label: 'All Records' },
-    { key: 'batch' as const, label: 'Batch Generation' },
-    { key: 'single' as const, label: 'Single Entry' },
+    { key: 'records' as const, label: 'Semua Data' },
+    { key: 'batch' as const, label: 'Generate Batch' },
+    { key: 'single' as const, label: 'Entri Satuan' },
   ];
 
   const quotaPercent = stats.totalStudents > 0 ? Math.round(((stats.totalStudents - stats.withoutNIS) / stats.totalStudents) * 100) : 0;
@@ -283,8 +283,8 @@ export const DashboardNIS = () => {
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard icon={<Users size={20} className="text-blue-600" />} label="Total Siswa" value={stats.totalStudents.toLocaleString()} color="bg-blue-500" />
-        <StatCard icon={<AlertCircle size={20} className="text-amber-600" />} label="Belum Ada NIS" value={stats.withoutNIS} sub="Requires attention" color="bg-amber-500" />
-        <StatCard icon={<Calendar size={20} className="text-emerald-600" />} label="Current Cycle" value={stats.activeYear?.tahunAjaran || '-'} color="bg-emerald-500" />
+        <StatCard icon={<AlertCircle size={20} className="text-amber-600" />} label="Belum Ada NIS" value={stats.withoutNIS} sub="Perlu perhatian" color="bg-amber-500" />
+        <StatCard icon={<Calendar size={20} className="text-emerald-600" />} label="Tahun Ajaran Aktif" value={stats.activeYear?.tahunAjaran || '-'} color="bg-emerald-500" />
       </div>
 
       {/* Main Content = Tabs + Sidebar */}
@@ -306,24 +306,24 @@ export const DashboardNIS = () => {
           {activeTab === 'records' && (
             <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#222] overflow-hidden">
               <div className="p-4 border-b border-gray-100 dark:border-[#222] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                <h3 className="text-base font-semibold text-text-primary dark:text-text-darkPrimary">NIS List & Management</h3>
+                <h3 className="text-base font-semibold text-text-primary dark:text-text-darkPrimary">Daftar & Manajemen NIS</h3>
                 <div className="flex items-center gap-2">
                   <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
                     className="bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none">
-                    <option value="">All Status</option>
-                    <option value="active">Active</option>
+                    <option value="">Semua Status</option>
+                    <option value="active">Aktif</option>
                     <option value="mutasi">Mutasi</option>
                     <option value="alumni">Alumni</option>
                   </select>
                   <div className="relative">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                      placeholder="Search NIS or name..."
+                      placeholder="Cari NIS atau nama..."
                       className="pl-9 pr-3 py-2 text-sm bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg outline-none focus:ring-2 focus:ring-primary/30 w-48" />
                   </div>
                   <a href={`${API_BASE_URL}/nis/export?search=${searchQuery}&status=${statusFilter}`}
                     className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
-                    <Download size={14} /> Export CSV
+                    <Download size={14} /> Ekspor Excel
                   </a>
                 </div>
               </div>
@@ -331,11 +331,11 @@ export const DashboardNIS = () => {
                 <table className="w-full text-left">
                   <thead>
                     <tr className="border-b border-gray-100 dark:border-[#222] text-[11px] uppercase tracking-wider text-text-secondary">
-                      <th className="py-3 px-4 font-semibold">Student ID</th>
-                      <th className="py-3 px-4 font-semibold">Full Name</th>
+                      <th className="py-3 px-4 font-semibold">NIS</th>
+                      <th className="py-3 px-4 font-semibold">Nama Lengkap</th>
                       <th className="py-3 px-4 font-semibold">NISN</th>
                       <th className="py-3 px-4 font-semibold">Status</th>
-                      <th className="py-3 px-4 font-semibold text-center">Action</th>
+                      <th className="py-3 px-4 font-semibold text-center">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -361,7 +361,7 @@ export const DashboardNIS = () => {
               </div>
               {recordsTotalPages > 1 && (
                 <div className="p-4 border-t border-gray-100 dark:border-[#222] flex items-center justify-between text-sm text-text-secondary">
-                  <span>Showing {(recordsPage - 1) * 10 + 1}-{Math.min(recordsPage * 10, recordsTotal)} of {recordsTotal}</span>
+                  <span>Menampilkan {(recordsPage - 1) * 10 + 1}-{Math.min(recordsPage * 10, recordsTotal)} dari {recordsTotal}</span>
                   <div className="flex items-center gap-1">
                     <button onClick={() => fetchRecords(recordsPage - 1)} disabled={recordsPage <= 1} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#222] disabled:opacity-30"><ChevronLeft size={16} /></button>
                     {Array.from({ length: Math.min(5, recordsTotalPages) }, (_, i) => i + 1).map(p => (
@@ -380,8 +380,8 @@ export const DashboardNIS = () => {
             <div className="space-y-5">
               <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#222] p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-base font-semibold text-text-primary dark:text-text-darkPrimary">New Batch Process</h3>
-                  <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Step {batchStep} of 3</span>
+                  <h3 className="text-base font-semibold text-text-primary dark:text-text-darkPrimary">Proses Batch Baru</h3>
+                  <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Langkah {batchStep} dari 3</span>
                 </div>
                 {/* Step indicator */}
                 <div className="flex items-center gap-0 mb-8">
@@ -404,19 +404,27 @@ export const DashboardNIS = () => {
                       </button>
                       <button onClick={() => setSourceMode('upload')} className={`flex-1 p-4 rounded-xl border-2 text-left transition-all ${sourceMode === 'upload' ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-[#222]'}`}>
                         <Upload size={20} className="text-primary mb-2" />
-                        <p className="font-semibold text-sm">Upload File</p>
-                        <p className="text-xs text-text-secondary mt-1">Import CSV atau XLSX</p>
+                        <p className="font-semibold text-sm">Unggah File</p>
+                        <p className="text-xs text-text-secondary mt-1">Import dari file CSV atau XLSX</p>
                       </button>
                     </div>
 
                     {sourceMode === 'upload' && (
-                      <div className="border-2 border-dashed border-gray-300 dark:border-[#333] rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
-                        onClick={() => fileInputRef.current?.click()}>
-                        <Upload size={32} className="mx-auto mb-3 text-gray-400" />
-                        <p className="font-semibold text-sm text-text-primary dark:text-text-darkPrimary">Upload Student Registry</p>
-                        <p className="text-xs text-text-secondary mt-1">Drag and drop your .CSV or .XLSX file here</p>
-                        <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileUpload} />
-                        <Button className="mt-4" onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}>Browse Files</Button>
+                      <div className="space-y-3">
+                        <div className="border-2 border-dashed border-gray-300 dark:border-[#333] rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                          onClick={() => fileInputRef.current?.click()}>
+                          <Upload size={32} className="mx-auto mb-3 text-gray-400" />
+                          <p className="font-semibold text-sm text-text-primary dark:text-text-darkPrimary">Unggah Data Siswa</p>
+                          <p className="text-xs text-text-secondary mt-1">Seret dan lepas file .CSV atau .XLSX di sini</p>
+                          <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileUpload} />
+                          <Button className="mt-4" onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}>Pilih File</Button>
+                        </div>
+                        <div className="flex items-center justify-center gap-2 text-sm">
+                          <span className="text-text-secondary">Belum punya template?</span>
+                          <a href={`${API_BASE_URL}/students/template`} className="inline-flex items-center gap-1.5 text-primary font-semibold hover:underline">
+                            <Download size={14} /> Download Template Excel
+                          </a>
+                        </div>
                       </div>
                     )}
 
@@ -448,7 +456,7 @@ export const DashboardNIS = () => {
                         {selectedStudentIds.length > 0 && (
                           <div className="mt-4 flex justify-end">
                             <Button onClick={handlePreviewBatch} className="flex items-center gap-2">
-                              <Eye size={16} /> Preview {selectedStudentIds.length} NIS
+                              <Eye size={16} /> Pratinjau {selectedStudentIds.length} NIS
                             </Button>
                           </div>
                         )}
@@ -480,7 +488,7 @@ export const DashboardNIS = () => {
                 {/* Step 3: Preview */}
                 {batchStep === 3 && batchPreview.length > 0 && (
                   <div className="space-y-4">
-                    <p className="text-sm text-text-secondary">Preview NIS yang akan di-generate (sorted alphabetically):</p>
+                    <p className="text-sm text-text-secondary">Pratinjau NIS yang akan di-generate (diurutkan berdasarkan abjad):</p>
                     <div className="max-h-72 overflow-y-auto rounded-xl border border-gray-200 dark:border-[#222]">
                       <table className="w-full text-left text-sm">
                         <thead className="sticky top-0 bg-gray-50 dark:bg-[#0a0a0a]">
@@ -523,30 +531,30 @@ export const DashboardNIS = () => {
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><UserPlus size={20} className="text-primary" /></div>
                 <div>
-                  <h3 className="text-base font-semibold text-text-primary dark:text-text-darkPrimary">Mutation Student Entry</h3>
-                  <p className="text-xs text-text-secondary">Assign a single NIS for students transferring between institutions.</p>
+                  <h3 className="text-base font-semibold text-text-primary dark:text-text-darkPrimary">Entri Siswa Mutasi</h3>
+                  <p className="text-xs text-text-secondary">Berikan NIS satuan untuk siswa pindahan/mutasi dari sekolah lain.</p>
                 </div>
               </div>
               <form onSubmit={handleAssignSingle} className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Full Legal Name</label>
-                    <Input required placeholder="As it appears on birth certificate" value={singleForm.fullName} onChange={e => setSingleForm({ ...singleForm, fullName: e.target.value })} />
+                    <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Nama Lengkap</label>
+                    <Input required placeholder="Sesuai akta kelahiran" value={singleForm.fullName} onChange={e => setSingleForm({ ...singleForm, fullName: e.target.value })} />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary">NISN</label>
                     <Input required placeholder="Nomor Induk Siswa Nasional" value={singleForm.nisn} onChange={e => setSingleForm({ ...singleForm, nisn: e.target.value })} />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Previous Institution</label>
-                    <Input placeholder="Asal sekolah" value={singleForm.asalSekolah} onChange={e => setSingleForm({ ...singleForm, asalSekolah: e.target.value })} />
+                    <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Asal Sekolah</label>
+                    <Input placeholder="Nama sekolah sebelumnya" value={singleForm.asalSekolah} onChange={e => setSingleForm({ ...singleForm, asalSekolah: e.target.value })} />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Transfer Reason</label>
-                    <Input placeholder="e.g. Relocation, Specialized Course" value={singleForm.address} onChange={e => setSingleForm({ ...singleForm, address: e.target.value })} />
+                    <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Alasan Pindah</label>
+                    <Input placeholder="Contoh: Pindah domisili, Jurusan khusus" value={singleForm.address} onChange={e => setSingleForm({ ...singleForm, address: e.target.value })} />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Gender</label>
+                    <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Jenis Kelamin</label>
                     <select value={singleForm.gender} onChange={e => setSingleForm({ ...singleForm, gender: e.target.value })}
                       className="w-full h-10 rounded-md border border-gray-200 dark:border-[#333] bg-white dark:bg-[#0a0a0a] px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30">
                       <option value="">-- Pilih --</option>
@@ -555,7 +563,7 @@ export const DashboardNIS = () => {
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Effective Date</label>
+                    <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Tanggal Masuk</label>
                     <Input type="date" value={singleForm.birthDate} onChange={e => setSingleForm({ ...singleForm, birthDate: e.target.value })} />
                   </div>
                 </div>
@@ -566,7 +574,7 @@ export const DashboardNIS = () => {
                     <p className="text-xs text-text-secondary mb-2">NIS yang akan diberikan</p>
                     <div className="flex items-center gap-4">
                       <div>
-                        <p className="text-xs text-text-secondary">Last Sequence</p>
+                        <p className="text-xs text-text-secondary">Urutan Terakhir</p>
                         <p className="text-lg font-mono font-bold">{String(nextNisInfo.lastSequence).padStart(4, '0')}</p>
                       </div>
                       <ArrowUpRight size={20} className="text-primary" />
@@ -579,10 +587,10 @@ export const DashboardNIS = () => {
                 )}
 
                 <div className="flex justify-end gap-3 pt-2 border-t border-gray-100 dark:border-[#222]">
-                  <Button type="button" variant="ghost" onClick={() => setSingleForm({ fullName: '', nisn: '', gender: '', birthPlace: '', birthDate: '', address: '', asalSekolah: '', className: '', academicYearId: '' })}>Discard Draft</Button>
+                  <Button type="button" variant="ghost" onClick={() => setSingleForm({ fullName: '', nisn: '', gender: '', birthPlace: '', birthDate: '', address: '', asalSekolah: '', className: '', academicYearId: '' })}>Hapus Draf</Button>
                   <Button type="submit" disabled={singleLoading} className="flex items-center gap-2 bg-primary">
                     {singleLoading ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                    Verify & Assign NIS
+                    Verifikasi & Terbitkan NIS
                   </Button>
                 </div>
               </form>
@@ -594,8 +602,8 @@ export const DashboardNIS = () => {
         <div className="w-full lg:w-72 shrink-0 space-y-4">
           <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#222] p-4">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary">Recent Activity</h4>
-              <button onClick={fetchActivity} className="text-xs text-primary hover:underline">View All</button>
+              <h4 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary">Aktivitas Terbaru</h4>
+              <button onClick={fetchActivity} className="text-xs text-primary hover:underline">Lihat Semua</button>
             </div>
             <div className="divide-y divide-gray-100 dark:divide-[#1a1a1a]">
               {activity.length > 0 ? activity.slice(0, 5).map(log => <ActivityItem key={log.id} log={log} />)
@@ -603,12 +611,12 @@ export const DashboardNIS = () => {
             </div>
           </div>
           <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#222] p-4">
-            <h4 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary mb-3">Quota Usage</h4>
+            <h4 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary mb-3">Kuota Penggunaan</h4>
             <p className="text-3xl font-bold text-text-primary dark:text-text-darkPrimary">{quotaPercent}%</p>
             <div className="w-full bg-gray-200 dark:bg-[#222] rounded-full h-2 mt-2 overflow-hidden">
               <div className="bg-primary h-2 rounded-full transition-all duration-500" style={{ width: `${quotaPercent}%` }} />
             </div>
-            <p className="text-[11px] text-text-secondary mt-2">{stats.totalStudents - stats.withoutNIS} of {stats.totalStudents} ID licenses used</p>
+            <p className="text-[11px] text-text-secondary mt-2">{stats.totalStudents - stats.withoutNIS} dari {stats.totalStudents} NIS telah diterbitkan</p>
           </div>
         </div>
       </div>
@@ -635,9 +643,9 @@ export const DashboardNIS = () => {
                 <div key={y.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-[#222]">
                   <div>
                     <p className="text-sm font-semibold">{y.tahunAjaran} <span className="text-xs text-text-secondary">(Kode: {y.kodeTahun})</span></p>
-                    <p className="text-xs text-text-secondary">Last seq: {y.lastNisSequence}</p>
+                    <p className="text-xs text-text-secondary">Urutan terakhir: {y.lastNisSequence}</p>
                   </div>
-                  {y.isActive ? <span className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-1 rounded-full font-semibold">Active</span>
+                  {y.isActive ? <span className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-1 rounded-full font-semibold">Aktif</span>
                     : <button onClick={async () => { await apiClient(`/nis/academic-years/${y.id}/activate`, { method: 'PUT' }); fetchAcademicYears(); fetchStats(); toast.success('Tahun ajaran diaktifkan'); }}
                       className="text-xs text-primary hover:underline font-semibold">Aktifkan</button>}
                 </div>
