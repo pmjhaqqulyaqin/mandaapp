@@ -126,12 +126,20 @@ const useInView = (options?: IntersectionObserverInit) => {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
+    // Check immediately if already visible (fixes refresh/direct-load issue)
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      setIsInView(true);
+      return;
+    }
+
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
         setIsInView(true);
         observer.unobserve(el);
       }
-    }, { threshold: 0.15, ...options });
+    }, { threshold: 0.01, rootMargin: '100px', ...options });
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
