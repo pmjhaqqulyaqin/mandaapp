@@ -102,6 +102,7 @@ export const DashboardNIS = () => {
   const [recordsTotalPages, setRecordsTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [yearFilter, setYearFilter] = useState('');
 
   // Batch state
   const [batchStep, setBatchStep] = useState(1);
@@ -149,10 +150,10 @@ export const DashboardNIS = () => {
 
   const fetchRecords = useCallback(async (page = 1) => {
     try {
-      const res = await apiClient<any>(`/nis/records?page=${page}&limit=10&search=${searchQuery}&status=${statusFilter}`);
+      const res = await apiClient<any>(`/nis/records?page=${page}&limit=10&search=${searchQuery}&status=${statusFilter}&yearCode=${yearFilter}`);
       setRecords(res.records); setRecordsTotal(res.total); setRecordsTotalPages(res.totalPages); setRecordsPage(res.page);
     } catch (e) { console.error(e); }
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, yearFilter]);
 
   const fetchStudentsWithoutNIS = useCallback(async () => {
     try { setStudentsWithoutNIS(await apiClient<StudentRecord[]>('/nis/students-without-nis')); } catch (e) { console.error(e); }
@@ -162,7 +163,7 @@ export const DashboardNIS = () => {
     Promise.all([fetchStats(), fetchActivity(), fetchAcademicYears(), fetchRecords()]).finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { fetchRecords(); }, [searchQuery, statusFilter]);
+  useEffect(() => { fetchRecords(); }, [searchQuery, statusFilter, yearFilter]);
 
   // ─── Handlers ───
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -315,13 +316,20 @@ export const DashboardNIS = () => {
                     <option value="mutasi">Mutasi</option>
                     <option value="alumni">Alumni</option>
                   </select>
+                  <select value={yearFilter} onChange={e => setYearFilter(e.target.value)}
+                    className="bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-md px-2 py-1.5 text-xs outline-none">
+                    <option value="">Semua Tahun Ajaran</option>
+                    {academicYears.map(y => (
+                      <option key={y.id} value={y.kodeTahun}>{y.tahunAjaran}</option>
+                    ))}
+                  </select>
                   <div className="relative">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                       placeholder="Cari NIS atau nama..."
                       className="pl-8 pr-2 py-1.5 text-xs bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-md outline-none focus:ring-2 focus:ring-primary/30 w-40" />
                   </div>
-                  <a href={`${API_BASE_URL}/nis/export?search=${searchQuery}&status=${statusFilter}`}
+                  <a href={`${API_BASE_URL}/nis/export?search=${searchQuery}&status=${statusFilter}&yearCode=${yearFilter}`}
                     className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
                     <Download size={12} /> Ekspor Excel
                   </a>

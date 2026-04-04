@@ -277,6 +277,7 @@ export class NISService {
   static async getAllRecords(filters: {
     search?: string;
     status?: string;
+    yearCode?: string;
     page?: number;
     limit?: number;
   }) {
@@ -299,6 +300,10 @@ export class NISService {
 
     if (filters.status) {
       whereConditions.push(eq(studentProfiles.status, filters.status));
+    }
+
+    if (filters.yearCode) {
+      whereConditions.push(ilike(studentProfiles.nis, `${filters.yearCode}%`));
     }
 
     const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;

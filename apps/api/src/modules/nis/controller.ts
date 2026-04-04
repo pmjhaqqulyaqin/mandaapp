@@ -182,6 +182,7 @@ export class NISController {
       const result = await NISService.getAllRecords({
         search: req.query.search as string,
         status: req.query.status as string,
+        yearCode: req.query.yearCode as string,
         page: parseInt(req.query.page as string) || 1,
         limit: parseInt(req.query.limit as string) || 10,
       });
@@ -210,6 +211,7 @@ export class NISController {
       const result = await NISService.getAllRecords({
         search: req.query.search as string,
         status: req.query.status as string,
+        yearCode: req.query.yearCode as string,
         page: 1,
         limit: 99999,
       });
