@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { eventsService, SchoolEvent } from '../lib/services/events';
 import { apiClient } from '../lib/api';
@@ -80,10 +80,7 @@ function countWeeklyHE(year: number, month: number, holidayDates: Set<string>): 
   const firstDay = firstDayOfMonth(year, month);
   const weeks: number[] = [];
   let weekHE = 0;
-  // Pad before first day
-  for (let i = 0; i < firstDay; i++) {
-    // padding
-  }
+  for (let i = 0; i < firstDay; i++) { /* padding */ }
   let cellIndex = firstDay;
   for (let d = 1; d <= total; d++) {
     const date = new Date(year, month, d);
@@ -99,6 +96,34 @@ function countWeeklyHE(year: number, month: number, holidayDates: Set<string>): 
   return weeks;
 }
 
+// ── Paper Size Config ──
+type PaperSize = 'a4' | 'legal' | 'folio';
+type Orientation = 'landscape' | 'portrait';
+type MarginSize = 'normal' | 'narrow' | 'minimal';
+
+const PAPER_SIZES: Record<PaperSize, { label: string; desc: string; cssLandscape: string; cssPortrait: string; widthMm: number; heightMm: number }> = {
+  a4:    { label: 'A4',             desc: '210 × 297 mm',     cssLandscape: 'A4 landscape',         cssPortrait: 'A4 portrait',         widthMm: 297, heightMm: 210 },
+  legal: { label: 'Legal',          desc: '216 × 356 mm',     cssLandscape: 'legal landscape',      cssPortrait: 'legal portrait',      widthMm: 356, heightMm: 216 },
+  folio: { label: 'Folio',          desc: '8.5 × 13 in',      cssLandscape: '13in 8.5in',           cssPortrait: '8.5in 13in',          widthMm: 330, heightMm: 216 },
+};
+
+const MARGIN_VALUES: Record<MarginSize, { label: string; value: string; mm: number }> = {
+  normal:  { label: 'Normal',  value: '10mm', mm: 10 },
+  narrow:  { label: 'Sempit',  value: '5mm',  mm: 5  },
+  minimal: { label: 'Minimal', value: '3mm',  mm: 3  },
+};
+
+const SCALE_OPTIONS = [
+  { label: 'Auto (Fit 1 Page)', value: 'auto' },
+  { label: '100%', value: '100' },
+  { label: '95%',  value: '95' },
+  { label: '90%',  value: '90' },
+  { label: '85%',  value: '85' },
+  { label: '80%',  value: '80' },
+  { label: '75%',  value: '75' },
+  { label: '70%',  value: '70' },
+];
+
 // ── Main Print Component ──
 export const PrintAcademicCalendar = () => {
   const [params] = useSearchParams();
@@ -108,6 +133,16 @@ export const PrintAcademicCalendar = () => {
   const [events, setEvents] = useState<SchoolEvent[]>([]);
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+
+  // ── Print Settings State ──
+  const [paperSize, setPaperSize] = useState<PaperSize>('a4');
+  const [orientation, setOrientation] = useState<Orientation>('landscape');
+  const [scaleMode, setScaleMode] = useState<string>('auto');
+  const [marginSize, setMarginSize] = useState<MarginSize>('narrow');
+  const [computedScale, setComputedScale] = useState(1);
+  const [settingsCollapsed, setSettingsCollapsed] = useState(false);
+
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -129,13 +164,44 @@ export const PrintAcademicCalendar = () => {
     fetchData();
   }, [academicYear]);
 
-  // Auto print after load
+  // ── Compute Scale ──
+  const calculateScale = useCallback(() => {
+    if (scaleMode !== 'auto') {
+      setComputedScale(parseInt(scaleMode) / 100);
+      return;
+    }
+
+    // Auto-fit: measure content height vs available page height
+    if (!contentRef.current) { setComputedScale(1); return; }
+
+    const contentHeight = contentRef.current.scrollHeight;
+    const contentWidth = contentRef.current.scrollWidth;
+
+    const paper = PAPER_SIZES[paperSize];
+    const margin = MARGIN_VALUES[marginSize];
+
+    // Available dimensions in pixels (96 DPI for screen)
+    const pxPerMm = 96 / 25.4;
+    const pageW = (orientation === 'landscape' ? paper.widthMm : paper.heightMm) - margin.mm * 2;
+    const pageH = (orientation === 'landscape' ? paper.heightMm : paper.widthMm) - margin.mm * 2;
+    const availW = pageW * pxPerMm;
+    const availH = pageH * pxPerMm;
+
+    const scaleW = availW / contentWidth;
+    const scaleH = availH / contentHeight;
+    const optimalScale = Math.min(scaleW, scaleH, 1); // never exceed 100%
+
+    setComputedScale(Math.max(0.55, optimalScale)); // minimum 55%
+  }, [scaleMode, paperSize, orientation, marginSize]);
+
+  // Recalculate on settings change and after data loads
   useEffect(() => {
-    if (!loading && events !== undefined) {
-      const timeout = setTimeout(() => window.print(), 800);
+    if (!loading) {
+      // Small delay to allow DOM to update
+      const timeout = setTimeout(calculateScale, 100);
       return () => clearTimeout(timeout);
     }
-  }, [loading]);
+  }, [loading, calculateScale, paperSize, orientation, marginSize, scaleMode, events]);
 
   // Parse academic year
   const [startYearNum, endYearNum] = useMemo(() => {
@@ -146,14 +212,11 @@ export const PrintAcademicCalendar = () => {
   // Determine months to show
   const months = useMemo(() => {
     if (mode === 'ganjil') {
-      // July to December of start year
-      return Array.from({ length: 6 }, (_, i) => ({ year: startYearNum, month: 6 + i })); // 6=July
+      return Array.from({ length: 6 }, (_, i) => ({ year: startYearNum, month: 6 + i }));
     }
     if (mode === 'genap') {
-      // January to June of end year
-      return Array.from({ length: 6 }, (_, i) => ({ year: endYearNum, month: i })); // 0=January
+      return Array.from({ length: 6 }, (_, i) => ({ year: endYearNum, month: i }));
     }
-    // Full year: July of start year to June of end year
     const m: { year: number; month: number }[] = [];
     for (let i = 6; i < 12; i++) m.push({ year: startYearNum, month: i });
     for (let i = 0; i < 6; i++) m.push({ year: endYearNum, month: i });
@@ -173,7 +236,6 @@ export const PrintAcademicCalendar = () => {
         map.get(key)!.push(ev);
       }
     });
-    // Holiday priority: only show holiday/cuti events on those dates
     map.forEach((dayEvents, key) => {
       const hasHoliday = dayEvents.some((e) => HOLIDAY_CATEGORIES.has(e.category));
       if (hasHoliday) {
@@ -223,6 +285,44 @@ export const PrintAcademicCalendar = () => {
   const modeLabel = mode === 'ganjil' ? 'SEMESTER GANJIL' : mode === 'genap' ? 'SEMESTER GENAP' : '';
   const titleStr = `KALENDER PENDIDIKAN ${schoolName.toUpperCase()} TAHUN AJARAN ${academicYear}`;
 
+  // ── Dynamic CSS ──
+  const pageCss = useMemo(() => {
+    const paper = PAPER_SIZES[paperSize];
+    const margin = MARGIN_VALUES[marginSize];
+    const sizeValue = orientation === 'landscape' ? paper.cssLandscape : paper.cssPortrait;
+
+    return `
+      @media print {
+        @page { size: ${sizeValue}; margin: ${margin.value}; }
+        body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0; }
+        .no-print { display: none !important; }
+        .print-container {
+          transform: scale(${computedScale}) !important;
+          transform-origin: top left !important;
+          width: ${100 / computedScale}% !important;
+        }
+      }
+      .print-calendar * { font-family: 'Arial', 'Helvetica', sans-serif; }
+      .mini-cal-table { border-collapse: collapse; width: 100%; }
+      .mini-cal-table th, .mini-cal-table td { font-size: 7.5pt; text-align: center; padding: 1px; width: 14.28%; height: 16px; }
+      .mini-cal-table th { font-weight: 700; font-size: 6.5pt; background: #166534; color: white; }
+      .mini-cal-month-header { background: #fef08a; font-weight: 700; font-size: 8pt; text-align: center; padding: 2px; }
+      .event-table { border-collapse: collapse; width: 100%; font-size: 7pt; }
+      .event-table th { background: #166534; color: white; font-weight: 700; font-size: 7pt; padding: 2px 4px; border: 1px solid #333; }
+      .event-table td { padding: 1.5px 4px; border: 1px solid #aaa; vertical-align: top; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+    `;
+  }, [paperSize, orientation, marginSize, computedScale]);
+
+  // Scale percentage for display
+  const scalePercent = Math.round(computedScale * 100);
+
+  const handlePrint = () => {
+    // Recalculate before printing
+    calculateScale();
+    setTimeout(() => window.print(), 200);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-white">
@@ -233,39 +333,156 @@ export const PrintAcademicCalendar = () => {
 
   return (
     <>
-      <style>{`
-        @media print {
-          @page { size: A4 landscape; margin: 8mm; }
-          body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0; }
-          .no-print { display: none !important; }
-        }
-        .print-calendar * { font-family: 'Arial', 'Helvetica', sans-serif; }
-        .mini-cal-table { border-collapse: collapse; width: 100%; }
-        .mini-cal-table th, .mini-cal-table td { font-size: 7.5pt; text-align: center; padding: 1px; width: 14.28%; height: 16px; }
-        .mini-cal-table th { font-weight: 700; font-size: 6.5pt; background: #166534; color: white; }
-        .mini-cal-month-header { background: #fef08a; font-weight: 700; font-size: 8pt; text-align: center; padding: 2px; }
-        .event-table { border-collapse: collapse; width: 100%; font-size: 7pt; }
-        .event-table th { background: #166534; color: white; font-weight: 700; font-size: 7pt; padding: 2px 4px; border: 1px solid #333; }
-        .event-table td { padding: 1.5px 4px; border: 1px solid #aaa; vertical-align: top; }
-      `}</style>
+      <style>{pageCss}</style>
 
-      {/* Print/Back buttons */}
-      <div className="no-print fixed top-4 right-4 z-50 flex gap-2">
+      {/* ── Settings Bar (hidden on print) ── */}
+      <div className="no-print fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-lg" style={{ animation: 'fadeIn .25s ease-out' }}>
+        {/* Collapse toggle */}
         <button
-          onClick={() => window.print()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium shadow-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          onClick={() => setSettingsCollapsed(!settingsCollapsed)}
+          className="w-full flex items-center justify-between px-4 py-2 bg-gradient-to-r from-green-700 to-green-800 text-white text-sm font-semibold hover:from-green-800 hover:to-green-900 transition-colors"
         >
-          🖨️ Cetak
+          <div className="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            📐 Pengaturan Cetak Kalender
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: settingsCollapsed ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform .2s' }}><path d="m6 9 6 6 6-6"/></svg>
         </button>
-        <button
-          onClick={() => window.close()}
-          className="px-4 py-2 bg-gray-600 text-white rounded-lg text-sm font-medium shadow-lg hover:bg-gray-700 transition-colors"
-        >
-          ✕ Tutup
-        </button>
+
+        {!settingsCollapsed && (
+          <div className="px-4 py-4" style={{ animation: 'fadeIn .2s ease-out' }}>
+            <div className="max-w-5xl mx-auto">
+              {/* Row 1: Paper Size */}
+              <div className="flex flex-wrap items-center gap-6 mb-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Ukuran Kertas</label>
+                  <div className="flex gap-1.5">
+                    {(Object.keys(PAPER_SIZES) as PaperSize[]).map((key) => {
+                      const p = PAPER_SIZES[key];
+                      const isActive = paperSize === key;
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => setPaperSize(key)}
+                          className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all duration-200 border ${
+                            isActive
+                              ? 'bg-green-700 text-white border-green-700 shadow-md shadow-green-700/20'
+                              : 'bg-white text-gray-700 border-gray-200 hover:border-green-400 hover:bg-green-50'
+                          }`}
+                        >
+                          <div>{p.label}</div>
+                          <div className={`text-[9px] font-medium mt-0.5 ${isActive ? 'text-green-200' : 'text-gray-400'}`}>{p.desc}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Orientasi</label>
+                  <div className="flex gap-1.5">
+                    {([['landscape', '↔ Landscape'], ['portrait', '↕ Portrait']] as const).map(([key, label]) => (
+                      <button
+                        key={key}
+                        onClick={() => setOrientation(key)}
+                        className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all duration-200 border ${
+                          orientation === key
+                            ? 'bg-green-700 text-white border-green-700 shadow-md shadow-green-700/20'
+                            : 'bg-white text-gray-700 border-gray-200 hover:border-green-400 hover:bg-green-50'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Margin</label>
+                  <div className="flex gap-1.5">
+                    {(Object.keys(MARGIN_VALUES) as MarginSize[]).map((key) => {
+                      const m = MARGIN_VALUES[key];
+                      const isActive = marginSize === key;
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => setMarginSize(key)}
+                          className={`px-3 py-2 rounded-lg text-xs font-bold transition-all duration-200 border ${
+                            isActive
+                              ? 'bg-green-700 text-white border-green-700 shadow-md shadow-green-700/20'
+                              : 'bg-white text-gray-700 border-gray-200 hover:border-green-400 hover:bg-green-50'
+                          }`}
+                        >
+                          {m.label}
+                          <div className={`text-[9px] font-medium mt-0.5 ${isActive ? 'text-green-200' : 'text-gray-400'}`}>{m.value}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Skala</label>
+                  <select
+                    value={scaleMode}
+                    onChange={(e) => setScaleMode(e.target.value)}
+                    className="px-3 py-2 rounded-lg text-xs font-bold border border-gray-200 bg-white text-gray-700 focus:ring-2 focus:ring-green-500/30 focus:border-green-500 outline-none cursor-pointer min-w-[150px]"
+                  >
+                    {SCALE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 2: Info + Actions */}
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                <div className="flex items-center gap-4 text-xs text-gray-500">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-green-500" />
+                    {PAPER_SIZES[paperSize].label} {orientation === 'landscape' ? 'Landscape' : 'Portrait'}
+                  </span>
+                  <span>•</span>
+                  <span>Margin: {MARGIN_VALUES[marginSize].value}</span>
+                  <span>•</span>
+                  <span className={`font-bold ${scalePercent < 85 ? 'text-amber-600' : 'text-green-600'}`}>
+                    Skala: {scalePercent}%
+                    {scaleMode === 'auto' && ' (Auto)'}
+                  </span>
+                  {scalePercent < 75 && (
+                    <span className="text-amber-500 font-medium">⚠️ Teks mungkin terlalu kecil</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => window.close()}
+                    className="px-4 py-2 rounded-lg text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+                  >
+                    ✕ Tutup
+                  </button>
+                  <button
+                    onClick={handlePrint}
+                    className="px-6 py-2 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/25 transition-all hover:shadow-blue-500/40 flex items-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+                    🖨️ Cetak Sekarang
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="print-calendar bg-white min-h-screen" style={{ padding: '8mm' }}>
+      {/* ── Print Content ── */}
+      <div
+        ref={contentRef}
+        className="print-calendar print-container bg-white"
+        style={{
+          padding: MARGIN_VALUES[marginSize].value,
+          marginTop: settingsCollapsed ? '36px' : '170px', // Offset for settings bar (no-print only)
+        }}
+      >
         {/* Title */}
         <div style={{ textAlign: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: '12pt', fontWeight: 700, color: '#166534', letterSpacing: 1 }}>
@@ -286,7 +503,6 @@ export const PrintAcademicCalendar = () => {
             const weeklyHE = countWeeklyHE(year, month, holidayDates);
             const monthHE = countEffectiveDays(year, month, holidayDates);
 
-            // Build grid
             const cells: (number | null)[] = [];
             for (let i = 0; i < start; i++) cells.push(null);
             for (let d = 1; d <= total; d++) cells.push(d);
