@@ -6,6 +6,7 @@ import { apiClient } from '../lib/api';
 // ── Category colors ──
 const CATEGORY_COLORS: Record<string, string> = {
   holiday:             '#EF4444',
+  cuti_bersama:        '#F43F5E',
   semester_ganjil:     '#F97316',
   semester_genap:      '#FBBF24',
   first_day:           '#22C55E',
@@ -20,6 +21,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 const CATEGORY_LABELS: Record<string, string> = {
   holiday:             'Hari Libur Umum',
+  cuti_bersama:        'Libur Cuti Bersama',
   semester_ganjil:     'Libur Semester Ganjil',
   semester_genap:      'Libur Semester Genap',
   first_day:           'Hari Pertama Masuk',
@@ -31,6 +33,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   report_distribution: 'Penyerahan Raport',
   general:             'Umum',
 };
+
+const HOLIDAY_CATEGORIES = new Set(['holiday', 'cuti_bersama', 'semester_ganjil', 'semester_genap']);
 
 // ── Date Helpers ──
 const MONTH_NAMES_ID = [
@@ -156,7 +160,7 @@ export const PrintAcademicCalendar = () => {
     return m;
   }, [mode, startYearNum, endYearNum]);
 
-  // Map events by date for coloring
+  // Map events by date for coloring (with holiday priority)
   const eventsByDate = useMemo(() => {
     const map = new Map<string, SchoolEvent[]>();
     events.forEach((ev) => {
@@ -169,6 +173,13 @@ export const PrintAcademicCalendar = () => {
         map.get(key)!.push(ev);
       }
     });
+    // Holiday priority: only show holiday/cuti events on those dates
+    map.forEach((dayEvents, key) => {
+      const hasHoliday = dayEvents.some((e) => HOLIDAY_CATEGORIES.has(e.category));
+      if (hasHoliday) {
+        map.set(key, dayEvents.filter((e) => HOLIDAY_CATEGORIES.has(e.category)));
+      }
+    });
     return map;
   }, [events]);
 
@@ -176,7 +187,7 @@ export const PrintAcademicCalendar = () => {
   const holidayDates = useMemo(() => {
     const s = new Set<string>();
     events.forEach((ev) => {
-      if (['holiday', 'semester_ganjil', 'semester_genap'].includes(ev.category)) {
+      if (['holiday', 'cuti_bersama', 'semester_ganjil', 'semester_genap'].includes(ev.category)) {
         const [sy, sm, sd] = ev.eventDate.split('-').map(Number);
         const startD = new Date(sy, sm - 1, sd);
         const endD = ev.endDate ? (() => { const [ey, em, ed] = ev.endDate.split('-').map(Number); return new Date(ey, em - 1, ed); })() : startD;

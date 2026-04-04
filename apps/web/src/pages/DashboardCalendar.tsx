@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 // ── Category Config ──
 const EVENT_CATEGORIES: Record<string, { label: string; color: string; emoji: string }> = {
   holiday:             { label: 'Hari Libur Umum',                    color: '#EF4444', emoji: '🔴' },
+  cuti_bersama:        { label: 'Libur Cuti Bersama',                 color: '#F43F5E', emoji: '🔻' },
   semester_ganjil:     { label: 'Libur Semester Ganjil',              color: '#F97316', emoji: '🟠' },
   semester_genap:      { label: 'Libur Semester Genap',               color: '#FBBF24', emoji: '🟡' },
   first_day:           { label: 'Hari Pertama Masuk',                 color: '#22C55E', emoji: '🟢' },
@@ -18,6 +19,9 @@ const EVENT_CATEGORIES: Record<string, { label: string; color: string; emoji: st
   report_distribution: { label: 'Penyerahan Raport',                  color: '#EC4899', emoji: '🎓' },
   general:             { label: 'Umum',                               color: '#6B7280', emoji: '⚪' },
 };
+
+// Categories that take priority — when present on a date, other events are hidden
+const HOLIDAY_CATEGORIES = new Set(['holiday', 'cuti_bersama', 'semester_ganjil', 'semester_genap']);
 
 const CATEGORY_KEYS = Object.keys(EVENT_CATEGORIES);
 
@@ -140,6 +144,7 @@ export const DashboardCalendar = () => {
   }, [events, categoryFilters]);
 
   // Group events by date for the calendar grid
+  // Holiday priority: if a date has holiday/cuti events, only show those
   const eventsByDate = useMemo(() => {
     const map = new Map<string, SchoolEvent[]>();
     visibleEvents.forEach((ev) => {
@@ -149,6 +154,13 @@ export const DashboardCalendar = () => {
         const key = fmt(d);
         if (!map.has(key)) map.set(key, []);
         map.get(key)!.push(ev);
+      }
+    });
+    // Apply holiday priority: filter out non-holiday events on holiday dates
+    map.forEach((dayEvents, key) => {
+      const hasHoliday = dayEvents.some((e) => HOLIDAY_CATEGORIES.has(e.category));
+      if (hasHoliday) {
+        map.set(key, dayEvents.filter((e) => HOLIDAY_CATEGORIES.has(e.category)));
       }
     });
     return map;
