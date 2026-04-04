@@ -50,7 +50,15 @@ export class EventService {
     academicYear: string;
     createdBy?: string;
   }) {
-    const results = await db.insert(schoolEvents).values(data).returning();
+    // Sanitize: convert empty strings to null for optional fields
+    const clean = {
+      ...data,
+      description: data.description || null,
+      endDate: data.endDate || null,
+      color: data.color || null,
+      createdBy: data.createdBy || null,
+    };
+    const results = await db.insert(schoolEvents).values(clean).returning();
     return results[0];
   }
 
@@ -66,9 +74,14 @@ export class EventService {
       academicYear: string;
     }>
   ) {
+    // Sanitize: convert empty strings to null for date/optional fields
+    const clean: Record<string, any> = { ...data, updatedAt: new Date() };
+    if (clean.endDate === '') clean.endDate = null;
+    if (clean.description === '') clean.description = null;
+    if (clean.color === '') clean.color = null;
     const results = await db
       .update(schoolEvents)
-      .set({ ...data, updatedAt: new Date() })
+      .set(clean)
       .where(eq(schoolEvents.id, id))
       .returning();
     return results[0];
