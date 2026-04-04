@@ -164,6 +164,17 @@ export const PrintAcademicCalendar = () => {
     fetchData();
   }, [academicYear]);
 
+  // ── Compute printable dimensions in mm ──
+  const printDimensions = useMemo(() => {
+    const paper = PAPER_SIZES[paperSize];
+    const margin = MARGIN_VALUES[marginSize];
+    // Use a printer-safe extra buffer (most inkjets need ~3-5mm beyond CSS margin)
+    const printerBufferMm = 2;
+    const pageW = (orientation === 'landscape' ? paper.widthMm : paper.heightMm) - (margin.mm + printerBufferMm) * 2;
+    const pageH = (orientation === 'landscape' ? paper.heightMm : paper.widthMm) - (margin.mm + printerBufferMm) * 2;
+    return { pageW, pageH };
+  }, [paperSize, orientation, marginSize]);
+
   // ── Compute Scale ──
   const calculateScale = useCallback(() => {
     if (scaleMode !== 'auto') {
@@ -171,33 +182,26 @@ export const PrintAcademicCalendar = () => {
       return;
     }
 
-    // Auto-fit: measure content height vs available page height
+    // Auto-fit: measure content dimensions vs available page dimensions
     if (!contentRef.current) { setComputedScale(1); return; }
 
     const contentHeight = contentRef.current.scrollHeight;
     const contentWidth = contentRef.current.scrollWidth;
 
-    const paper = PAPER_SIZES[paperSize];
-    const margin = MARGIN_VALUES[marginSize];
-
-    // Available dimensions in pixels (96 DPI for screen)
     const pxPerMm = 96 / 25.4;
-    
-    // Add a safety buffer for browser default print headers/footers
-    const safeOffsetMm = 8; 
-    
-    const pageW = (orientation === 'landscape' ? paper.widthMm : paper.heightMm) - margin.mm * 2;
-    const pageH = (orientation === 'landscape' ? paper.heightMm : paper.widthMm) - margin.mm * 2 - safeOffsetMm;
-    const availW = pageW * pxPerMm;
-    const availH = pageH * pxPerMm;
+    // Additional buffer for browser headers/footers in print
+    const headerFooterMm = 8;
+
+    const availW = printDimensions.pageW * pxPerMm;
+    const availH = (printDimensions.pageH - headerFooterMm) * pxPerMm;
 
     const scaleW = availW / contentWidth;
     const scaleH = availH / contentHeight;
-    const optimalScale = Math.min(scaleW, scaleH, 1); // never exceed 100%
+    const optimalScale = Math.min(scaleW, scaleH, 1);
 
-    // Subract a tiny bit more just to be absolutely sure we don't trigger a page break overflow
-    setComputedScale(Math.max(0.55, optimalScale * 0.98)); // minimum 55%
-  }, [scaleMode, paperSize, orientation, marginSize]);
+    // Small safety factor to prevent page-break edge cases
+    setComputedScale(Math.max(0.55, optimalScale * 0.97));
+  }, [scaleMode, printDimensions]);
 
   // Recalculate on settings change and after data loads
   useEffect(() => {
@@ -296,20 +300,41 @@ export const PrintAcademicCalendar = () => {
     const margin = MARGIN_VALUES[marginSize];
     const sizeValue = orientation === 'landscape' ? paper.cssLandscape : paper.cssPortrait;
 
+    // Printable area in mm (matches printDimensions)
+    const { pageW } = printDimensions;
+
     return `
       @media print {
         @page { size: ${sizeValue}; margin: ${margin.value}; }
-        html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0 !important; padding: 0 !important; }
+        html, body {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: visible !important;
+        }
         .no-print { display: none !important; }
         .print-container {
-          zoom: ${computedScale} !important;
-          -moz-transform: scale(${computedScale}) !important;
-          -moz-transform-origin: top left !important;
-          width: ${100 / computedScale}% !important;
+          /* Use transform instead of zoom — purely visual, no layout overflow */
+          transform: scale(${computedScale}) !important;
+          transform-origin: top left !important;
+          /* Set width to printable area / scale so content refills page after scaling */
+          width: ${pageW / computedScale}mm !important;
+          max-width: none !important;
+          box-sizing: border-box !important;
           margin: 0 !important;
-          padding: 2mm !important;
+          padding: 0 !important;
           page-break-inside: avoid !important;
           overflow: visible !important;
+        }
+      }
+      /* Screen: constrain content to approximate printable width for accurate measurement */
+      @media screen {
+        .print-container {
+          max-width: ${pageW}mm;
+          margin-left: auto !important;
+          margin-right: auto !important;
+          box-sizing: border-box;
         }
       }
       .print-calendar * { font-family: 'Arial', 'Helvetica', sans-serif; }
@@ -323,7 +348,7 @@ export const PrintAcademicCalendar = () => {
       .event-table td { padding: 1px 3px; border: 1px solid #aaa; vertical-align: top; }
       @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
     `;
-  }, [paperSize, orientation, marginSize, computedScale]);
+  }, [paperSize, orientation, marginSize, computedScale, printDimensions]);
 
   // Scale percentage for display
   const scalePercent = Math.round(computedScale * 100);
