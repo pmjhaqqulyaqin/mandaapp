@@ -1,393 +1,374 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@mandaapp/ui/src/components/Button';
-import { Input } from '@mandaapp/ui/src/components/Input';
-import { Modal } from '@mandaapp/ui/src/components/Modal';
+import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Upload, Download, Edit2, Trash2, FileSpreadsheet } from 'lucide-react';
+import { apiClient } from '../lib/api';
 import * as XLSX from 'xlsx';
-import { apiClient, API_BASE_URL } from '../lib/api';
+import {
+  Users, Search, Settings2, RefreshCw, FileSpreadsheet, Download,
+  UserPlus, Edit2, Trash2, ChevronLeft, ChevronRight, Loader2,
+  CheckCircle2, GraduationCap, AlertCircle
+} from 'lucide-react';
+
+// Sub-components
+import { ClassMajorView } from './students/ClassMajorView';
+import { PullNISModal } from './students/PullNISModal';
+import { ImportExcelModal } from './students/ImportExcelModal';
+import { AddStudentModal } from './students/AddStudentModal';
+
+type Tab = 'students' | 'classes';
+
+// Avatar color from name hash
+const avatarColor = (name: string) => {
+  const colors = ['bg-blue-500','bg-emerald-500','bg-amber-500','bg-rose-500','bg-violet-500','bg-cyan-500','bg-orange-500','bg-teal-500'];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+};
+
+const initials = (name: string) => {
+  const parts = name.trim().split(/\s+/);
+  return parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.slice(0, 2).toUpperCase();
+};
+
+// Status badge
+const StatusBadge = ({ status }: { status: string }) => {
+  const s = (status || 'Aktif').toLowerCase();
+  const cfg = s === 'aktif' || s === 'active' ? { dot: 'bg-emerald-500', text: 'text-emerald-700 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20', label: 'Aktif' }
+    : s === 'lulus' ? { dot: 'bg-blue-500', text: 'text-blue-700 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20', label: 'Lulus' }
+    : s === 'mutasi' ? { dot: 'bg-red-500', text: 'text-red-700 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20', label: 'Mutasi' }
+    : { dot: 'bg-gray-400', text: 'text-gray-600', bg: 'bg-gray-100 dark:bg-gray-800', label: status || 'Aktif' };
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full ${cfg.bg} ${cfg.text}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+      {cfg.label}
+    </span>
+  );
+};
+
+const ITEMS_PER_PAGE = 10;
 
 export const DashboardStudents = () => {
-  const { user } = useAuth();
+  useAuth();
+  const [activeTab, setActiveTab] = useState<Tab>('students');
   const [students, setStudents] = useState<any[]>([]);
   const [classesList, setClassesList] = useState<any[]>([]);
   const [majorsList, setMajorsList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterClass, setFilterClass] = useState('');
-  const [uploadProgress, setUploadProgress] = useState({ show: false, percent: 0 });
-  
-  // Add Student State
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    fullName: '',
-    nisn: '',
-    nis: '',
-    className: '',
-    gender: '',
-    birthPlace: '',
-    birthDate: '',
-    address: ''
-  });
+  const [teachers, setTeachers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchStudents();
-    fetchClasses();
-    fetchMajors();
-  }, [user]);
+  // Filters
+  const [searchQuery, setSearchQuery] = useState(() => sessionStorage.getItem('sm_search') || '');
+  const [filterClass, setFilterClass] = useState(() => sessionStorage.getItem('sm_class') || '');
+  const [filterMajor, setFilterMajor] = useState(() => sessionStorage.getItem('sm_major') || '');
+  const [page, setPage] = useState(1);
 
-  const fetchMajors = async () => {
-    try {
-      const mjrData = await apiClient<any[]>('/majors');
-      setMajorsList(mjrData);
-    } catch (e) {
-      console.error('Failed to fetch majors');
-    }
-  };
+  // Modals
+  const [pullNISOpen, setPullNISOpen] = useState(false);
+  const [importExcelOpen, setImportExcelOpen] = useState(false);
+  const [addStudentOpen, setAddStudentOpen] = useState(false);
+  const [editStudent, setEditStudent] = useState<any>(null);
 
-  const fetchClasses = async () => {
-    try {
-      const clsData = await apiClient<any[]>('/classes');
-      setClassesList(clsData);
-    } catch (e) {
-      console.error('Failed to fetch classes');
-    }
-  };
+  // Persist filters
+  useEffect(() => { sessionStorage.setItem('sm_search', searchQuery); }, [searchQuery]);
+  useEffect(() => { sessionStorage.setItem('sm_class', filterClass); }, [filterClass]);
+  useEffect(() => { sessionStorage.setItem('sm_major', filterMajor); }, [filterMajor]);
 
-  const fetchStudents = async () => {
+  // Data fetching
+  const fetchAll = async () => {
     setLoading(true);
     try {
-      // If user is a teacher, API should ideally filter. For now we pass all.
-      // E.g., const res = await apiClient<any[]>(`/students${user?.role === 'teacher' ? '?classId=...' : ''}`);
-      const studentsData = await apiClient<any[]>('/students');
-      setStudents(studentsData);
-    } catch (error) {
-      console.error('Failed to fetch students', error);
-    } finally {
-      setLoading(false);
-    }
+      const [s, c, m, t] = await Promise.all([
+        apiClient<any[]>('/students'),
+        apiClient<any[]>('/classes'),
+        apiClient<any[]>('/majors'),
+        apiClient<any[]>('/employees?type=Guru').catch(() => []),
+      ]);
+      setStudents(s); setClassesList(c); setMajorsList(m); setTeachers(t);
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  useEffect(() => { fetchAll(); }, []);
 
-    setLoading(true);
-    setUploadProgress({ show: true, percent: 10 });
-    const formData = new FormData();
-    formData.append('file', file);
-
-    // Simulated progress leading up to 90%
-    const progressInterval = setInterval(() => {
-      setUploadProgress(prev => ({ 
-        show: true, 
-        percent: prev.percent >= 90 ? 90 : prev.percent + 15 
-      }));
-    }, 300);
-
-    try {
-      const res = await apiClient<{message:string}>('/students/upload', {
-        method: 'POST',
-        data: formData
-      });
-      
-      clearInterval(progressInterval);
-      setUploadProgress({ show: true, percent: 100 });
-      
-      setTimeout(() => {
-        alert(res.message || 'Import berhasil!');
-        setUploadProgress({ show: false, percent: 0 });
-        fetchStudents();
-      }, 500);
-      
-    } catch (error: any) {
-      clearInterval(progressInterval);
-      setUploadProgress({ show: false, percent: 0 });
-      console.error('Failed to import', error);
-      alert('Gagal import: ' + (error.response?.data?.error || error.message));
-    } finally {
-      setLoading(false);
-      e.target.value = '';
-    }
-  };
-
-  const handleEditClick = (student: any) => {
-    setFormData({
-      fullName: student.fullName || '',
-      nisn: student.nisn || '',
-      nis: student.nis || '',
-      className: student.className || '',
-      gender: student.gender || '',
-      birthPlace: student.birthPlace || '',
-      birthDate: student.birthDate ? student.birthDate.split('T')[0] : '',
-      address: student.address || ''
+  // Filtered & paginated students
+  const filtered = useMemo(() => {
+    return students.filter(s => {
+      const q = searchQuery.toLowerCase();
+      const matchSearch = !q || (s.fullName || '').toLowerCase().includes(q) || (s.nis || '').includes(q) || (s.nisn || '').includes(q);
+      const matchClass = !filterClass || s.classId === filterClass;
+      const matchMajor = !filterMajor || (() => {
+        const cls = classesList.find(c => c.id === s.classId);
+        return cls?.majorId === filterMajor;
+      })();
+      return matchSearch && matchClass && matchMajor;
     });
-    setEditId(student.id);
-    setIsAddModalOpen(true);
-  };
+  }, [students, searchQuery, filterClass, filterMajor, classesList]);
 
-  const handleAddSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      if (editId) {
-        await apiClient(`/students/${editId}`, { method: 'PUT', data: formData });
-        alert('Data siswa berhasil diupdate!');
-      } else {
-        await apiClient('/students', { method: 'POST', data: formData });
-        alert('Siswa berhasil ditambahkan!');
-      }
-      setIsAddModalOpen(false);
-      setEditId(null);
-      setFormData({ fullName: '', nisn: '', nis: '', className: '', gender: '', birthPlace: '', birthDate: '', address: '' });
-      fetchStudents();
-    } catch (error: any) {
-      alert(`Gagal ${editId ? 'mengupdate' : 'menambah'} siswa: ` + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  useEffect(() => { setPage(1); }, [searchQuery, filterClass, filterMajor]);
 
+  // Stats
+  const stats = useMemo(() => ({
+    total: filtered.length,
+    aktif: filtered.filter(s => !s.status || s.status.toLowerCase() === 'aktif' || s.status.toLowerCase() === 'active').length,
+    lulus: filtered.filter(s => (s.status || '').toLowerCase() === 'lulus').length,
+    mutasi: filtered.filter(s => (s.status || '').toLowerCase() === 'mutasi').length,
+  }), [filtered]);
+
+  // Handlers
   const handleDelete = async (id: string, name: string) => {
-    if(!window.confirm(`Yakin ingin menghapus data siswa ${name}?`)) return;
-    setLoading(true);
-    try {
-      await apiClient(`/students/${id}`, { method: 'DELETE' });
-      alert('Data siswa berhasil dihapus.');
-      fetchStudents();
-    } catch (error: any) {
-      alert('Gagal menghapus siswa: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
+    if (!window.confirm(`Yakin hapus data siswa "${name}"?`)) return;
+    try { await apiClient(`/students/${id}`, { method: 'DELETE' }); fetchAll(); }
+    catch (err: any) { alert('Gagal: ' + err.message); }
   };
 
-  const downloadTemplate = () => {
-    window.location.href = `${API_BASE_URL}/students/template`;
+  const handleEdit = (student: any) => {
+    setEditStudent(student);
+    setAddStudentOpen(true);
   };
 
+  // Export Excel with active filters
   const handleExportExcel = () => {
-    const data = students.map((student, idx) => {
-      const classObj = classesList.find(c => c.id === student.classId);
-      const majorName = classObj ? majorsList.find(m => m.id === classObj.majorId)?.name : '';
-      const kelasLabel = classObj ? (majorName ? `${classObj.name} - ${majorName}` : classObj.name) : (student.className || '-');
-
+    const data = filtered.map((s, idx) => {
+      const cls = classesList.find(c => c.id === s.classId);
+      const mjr = cls ? majorsList.find(m => m.id === cls.majorId)?.name : '';
+      const kelasLabel = cls ? (mjr ? `${cls.name} - ${mjr}` : cls.name) : (s.className || '-');
       return {
         'No': idx + 1,
-        'Nama Lengkap': student.fullName || '-',
-        'NISN': student.nisn || '-',
-        'NIS': student.nis || '-',
+        'Nama Lengkap': s.fullName || '-',
+        'NISN': s.nisn || '-',
+        'NIS': s.nis || '-',
         'Kelas': kelasLabel,
-        'Jenis Kelamin': student.gender || '-',
-        'Tempat Lahir': student.birthPlace || '-',
-        'Tanggal Lahir': student.birthDate ? new Date(student.birthDate).toLocaleDateString('id-ID') : '-',
-        'Alamat': student.address || '-'
+        'Jurusan': mjr || '-',
+        'Jenis Kelamin': s.gender || '-',
+        'Tempat Lahir': s.birthPlace || '-',
+        'Tanggal Lahir': s.birthDate ? new Date(s.birthDate).toLocaleDateString('id-ID') : '-',
+        'Status': s.status || 'Aktif',
+        'Alamat': s.address || '-',
       };
     });
-    
     const ws = XLSX.utils.json_to_sheet(data);
+    // Auto column width
+    const colWidths = Object.keys(data[0] || {}).map(key => ({ wch: Math.max(key.length, ...data.map(r => String((r as any)[key]).length).slice(0, 50)) + 2 }));
+    ws['!cols'] = colWidths;
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Data Siswa");
-    XLSX.writeFile(wb, "Data_Siswa.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, 'Data Siswa');
+    const filterLabel = [filterClass && 'kelas', filterMajor && 'jurusan', searchQuery && 'search'].filter(Boolean).join('_');
+    XLSX.writeFile(wb, `Data_Siswa${filterLabel ? '_' + filterLabel : ''}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
+  // Get class label
+  const getClassLabel = (s: any) => {
+    const cls = classesList.find(c => c.id === s.classId);
+    return cls?.name || s.className || '-';
+  };
+  const getMajorLabel = (s: any) => {
+    const cls = classesList.find(c => c.id === s.classId);
+    if (!cls) return '-';
+    return majorsList.find(m => m.id === cls.majorId)?.name || '-';
+  };
+
+  // Unique majors for filter
+  const uniqueMajorsForFilter = majorsList;
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="animate-spin text-primary" size={32} />
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary dark:text-text-darkPrimary">Data Siswa</h1>
-          <p className="text-sm text-text-secondary dark:text-gray-400 mt-1">
-            Kelola data siswa dan import dari Excel.
-          </p>
+          <Breadcrumbs items={[
+            { label: 'Database', href: '/dashboard' },
+            { label: activeTab === 'students' ? 'Data Siswa' : 'Kelas & Jurusan' },
+          ]} />
+          <h1 className="text-xl font-bold text-text-primary dark:text-text-darkPrimary mt-1">Manajemen Data Siswa</h1>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <input 
-            type="file" 
-            accept=".xlsx, .xls, .csv" 
-            id="excel-upload" 
-            style={{ display: 'none' }} 
-            onChange={handleFileUpload} 
-          />
-          <Button 
-            variant="outline" 
-            className="flex items-center gap-2"
-            onClick={downloadTemplate}
-          >
-            <Download size={18} /> Download Template
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
+            onClick={() => setActiveTab(activeTab === 'students' ? 'classes' : 'students')}>
+            <Settings2 size={14} /> {activeTab === 'students' ? 'Kelas & Jurusan' : 'Data Siswa'}
           </Button>
-          <Button 
-            variant="outline" 
-            className="flex items-center gap-2"
-            onClick={() => document.getElementById('excel-upload')?.click()}
-            disabled={loading}
-          >
-            <Upload size={18} /> Import Excel
+          <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
+            onClick={() => setPullNISOpen(true)}>
+            <RefreshCw size={14} /> Pull dari NIS
           </Button>
-          <Button 
-            variant="outline" 
-            className="flex items-center gap-2"
-            onClick={handleExportExcel}
-            title="Export ke format Excel"
-          >
-            <FileSpreadsheet size={18} className="text-emerald-500" /> Export Excel
+          <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
+            onClick={() => setImportExcelOpen(true)}>
+            <FileSpreadsheet size={14} /> Import Excel
           </Button>
-          <Button className="flex items-center gap-2" onClick={() => {
-            setEditId(null);
-            setFormData({ fullName: '', nisn: '', nis: '', className: '', gender: '', birthPlace: '', birthDate: '', address: '' });
-            setIsAddModalOpen(true);
-          }}>
-            <UserPlus size={18} /> Tambah Siswa
+          <Button size="sm" className="flex items-center gap-1.5 text-xs"
+            onClick={() => { setEditStudent(null); setAddStudentOpen(true); }}>
+            <UserPlus size={14} /> Tambah Siswa
           </Button>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#111] rounded-2xl shadow-sm border border-gray-200 dark:border-[#222] overflow-hidden">
-        {uploadProgress.show && (
-          <div className="w-full bg-gray-200 dark:bg-[#333] h-1.5">
-            <div className="bg-primary h-1.5 transition-all duration-300" style={{ width: `${uploadProgress.percent}%` }} />
+      {/* Tab Content */}
+      {activeTab === 'students' ? (
+        <>
+          {/* Filter Bar */}
+          <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+              <div className="sm:col-span-5">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1 block">Cari Nama atau NIS</label>
+                <div className="relative">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input className="w-full h-10 pl-10 pr-3 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder="Masukkan nama siswa atau nomor induk..."
+                    value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                </div>
+              </div>
+              <div className="sm:col-span-3">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1 block">Filter Kelas</label>
+                <select className="w-full h-10 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  value={filterClass} onChange={e => setFilterClass(e.target.value)}>
+                  <option value="">Semua Kelas</option>
+                  {classesList.map(c => {
+                    const mjr = majorsList.find(m => m.id === c.majorId)?.name || '';
+                    return <option key={c.id} value={c.id}>{c.name}{mjr ? ` - ${mjr}` : ''}</option>;
+                  })}
+                </select>
+              </div>
+              <div className="sm:col-span-3">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1 block">Filter Jurusan</label>
+                <select className="w-full h-10 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  value={filterMajor} onChange={e => setFilterMajor(e.target.value)}>
+                  <option value="">Semua Jurusan</option>
+                  {uniqueMajorsForFilter.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                </select>
+              </div>
+              <div className="sm:col-span-1 flex justify-end">
+                <Button variant="outline" size="icon" title="Export Excel (sesuai filter aktif)"
+                  onClick={handleExportExcel} className="h-10 w-10">
+                  <Download size={16} className="text-emerald-600" />
+                </Button>
+              </div>
+            </div>
           </div>
-        )}
-        <div className="p-4 border-b border-gray-100 dark:border-[#2a2a2a] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          <select
-            className="bg-gray-50 dark:bg-[#2a2a2a] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50 min-w-[180px]"
-            value={filterClass}
-            onChange={e => setFilterClass(e.target.value)}
-          >
-            <option value="">Semua Kelas</option>
-            {classesList.map(c => {
-              const majorName = majorsList.find(m => m.id === c.majorId)?.name || '';
-              return <option key={c.id} value={c.id}>{c.name}{majorName ? ` - ${majorName}` : ''}</option>;
-            })}
-          </select>
-          <Input 
-            placeholder="Cari NISN atau Nama..." 
-            className="max-w-xs ml-auto" 
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <div className="min-h-[300px] flex items-center justify-center text-gray-500">
-          {loading ? 'Memuat data...' : (
-            <div className="w-full overflow-x-auto p-4">
-              <table className="w-full text-left border-collapse">
+
+          {/* Data Table */}
+          <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-gray-100 dark:border-[#2a2a2a] text-sm text-text-secondary">
-                    <th className="pb-3 px-4 font-medium text-center w-10">No</th>
-                    <th className="pb-3 px-4 font-medium">Nama Siswa</th>
-                    <th className="pb-3 px-4 font-medium">NISN</th>
-                    <th className="pb-3 px-4 font-medium">NIS</th>
-                    <th className="pb-3 px-4 font-medium">TTL</th>
-                    <th className="pb-3 px-4 font-medium">L/P</th>
-                    <th className="pb-3 px-4 font-medium">Kelas</th>
-                    <th className="pb-3 px-4 font-medium text-center">Aksi</th>
+                  <tr className="border-b border-gray-100 dark:border-[#222] text-[10px] uppercase tracking-wider text-text-secondary">
+                    <th className="py-3 px-4 font-semibold w-8"><input type="checkbox" className="accent-primary w-3.5 h-3.5" /></th>
+                    <th className="py-3 px-4 font-semibold">NIS</th>
+                    <th className="py-3 px-4 font-semibold">Nama Siswa</th>
+                    <th className="py-3 px-4 font-semibold">Kelas</th>
+                    <th className="py-3 px-4 font-semibold">Jurusan</th>
+                    <th className="py-3 px-4 font-semibold">Status</th>
+                    <th className="py-3 px-4 font-semibold text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {students
-                    .filter(s => {
-                      const matchClass = !filterClass || s.classId === filterClass;
-                      const q = searchQuery.toLowerCase();
-                      const matchSearch = !q || (s.fullName || '').toLowerCase().includes(q) || (s.nisn || '').includes(q);
-                      return matchClass && matchSearch;
-                    })
-                    .map((student, idx) => {
-                    const classObj = classesList.find(c => c.id === student.classId);
-                    const majorName = classObj ? majorsList.find(m => m.id === classObj.majorId)?.name : '';
-                    const kelasLabel = classObj ? (majorName ? `${classObj.name} - ${majorName}` : classObj.name) : (student.className || '-');
-                    const ttl = [student.birthPlace, student.birthDate ? new Date(student.birthDate).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''].filter(Boolean).join(', ');
-                    return (
-                    <tr key={student.id} className="group border-b border-gray-50 dark:border-[#222]">
-                      <td className="py-3 px-4 text-center text-text-secondary">{idx + 1}</td>
-                      <td className="py-3 px-4">{student.fullName || '-'}</td>
-                      <td className="py-3 px-4">{student.nisn || '-'}</td>
-                      <td className="py-3 px-4">{student.nis || '-'}</td>
-                      <td className="py-3 px-4 whitespace-nowrap">{ttl || '-'}</td>
-                      <td className="py-3 px-4">{student.gender === 'Laki-laki' ? 'L' : student.gender === 'Perempuan' ? 'P' : '-'}</td>
-                      <td className="py-3 px-4">{kelasLabel}</td>
+                  {paginated.map(s => (
+                    <tr key={s.id} className="group border-b border-gray-50 dark:border-[#1a1a1a] hover:bg-gray-50/50 dark:hover:bg-[#0a0a0a] transition-colors">
+                      <td className="py-3 px-4"><input type="checkbox" className="accent-primary w-3.5 h-3.5" /></td>
+                      <td className="py-3 px-4 text-xs font-mono text-text-secondary">{s.nis || s.nisn || '-'}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-8 h-8 rounded-full ${avatarColor(s.fullName || '')} text-white text-[11px] font-bold flex items-center justify-center shrink-0`}>
+                            {initials(s.fullName || '?')}
+                          </div>
+                          <span className="text-sm font-medium text-text-primary dark:text-text-darkPrimary">{s.fullName || '-'}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-xs text-text-primary dark:text-text-darkPrimary">{getClassLabel(s)}</td>
+                      <td className="py-3 px-4 text-xs"><span className="text-primary font-medium">{getMajorLabel(s)}</span></td>
+                      <td className="py-3 px-4"><StatusBadge status={s.status} /></td>
                       <td className="py-3 px-4 text-center">
-                        <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => handleEditClick(student)} className="text-blue-500 hover:text-blue-700" title="Edit Siswa"><Edit2 size={16} /></button>
-                          <button onClick={() => handleDelete(student.id, student.fullName)} className="text-red-500 hover:text-red-700" title="Hapus Siswa"><Trash2 size={16} /></button>
+                        <div className="flex justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => handleEdit(s)} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-blue-500 transition-colors" title="Edit"><Edit2 size={14} /></button>
+                          <button onClick={() => handleDelete(s.id, s.fullName)} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-red-500 transition-colors" title="Hapus"><Trash2 size={14} /></button>
                         </div>
                       </td>
                     </tr>
-                    );
-                  })}
-                  {students.length === 0 && !loading && (
-                    <tr>
-                      <td colSpan={8} className="py-8 text-center text-gray-400">Belum ada data siswa.</td>
-                    </tr>
+                  ))}
+                  {paginated.length === 0 && (
+                    <tr><td colSpan={7} className="py-12 text-center text-gray-400 text-sm">
+                      {searchQuery || filterClass || filterMajor ? 'Tidak ada siswa yang sesuai filter.' : 'Belum ada data siswa.'}
+                    </td></tr>
                   )}
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
-      </div>
-
-      <Modal isOpen={isAddModalOpen} onClose={() => { setIsAddModalOpen(false); setEditId(null); }} title={editId ? "Edit Data Siswa" : "Tambah Data Siswa Spesifik"}>
-        <form onSubmit={handleAddSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Nama Lengkap*</label>
-              <Input required placeholder="Budi Santoso" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">NISN*</label>
-              <Input required placeholder="1234567890" value={formData.nisn} onChange={e => setFormData({...formData, nisn: e.target.value})} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">NIS</label>
-              <Input placeholder="1001" value={formData.nis} onChange={e => setFormData({...formData, nis: e.target.value})} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Kelas</label>
-              <select 
-                className="w-full flex h-10 w-full rounded-md border border-input bg-background dark:bg-background-dark dark:border-border-dark px-3 py-2 text-sm text-text-primary dark:text-text-darkPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                value={formData.className} 
-                onChange={e => setFormData({...formData, className: e.target.value})}
-              >
-                <option value="">-- Pilih Kelas --</option>
-                {classesList.map(c => {
-                  const majorName = majorsList.find(m => m.id === c.majorId)?.name || 'Tanpa Jurusan';
-                  return <option key={c.id} value={c.name}>{c.name} {majorName}</option>;
+            {/* Pagination */}
+            <div className="px-4 py-3 border-t border-gray-100 dark:border-[#222] flex items-center justify-between">
+              <p className="text-xs text-primary font-medium">
+                Showing {filtered.length > 0 ? (page - 1) * ITEMS_PER_PAGE + 1 : 0}-{Math.min(page * ITEMS_PER_PAGE, filtered.length)} of {filtered.length.toLocaleString()} students
+              </p>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setPage(1)} disabled={page <= 1} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] disabled:opacity-30 text-xs font-bold">«</button>
+                <button onClick={() => setPage(p => p - 1)} disabled={page <= 1} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] disabled:opacity-30"><ChevronLeft size={16} /></button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let p: number;
+                  if (totalPages <= 5) p = i + 1;
+                  else if (page <= 3) p = i + 1;
+                  else if (page >= totalPages - 2) p = totalPages - 4 + i;
+                  else p = page - 2 + i;
+                  return (
+                    <button key={p} onClick={() => setPage(p)}
+                      className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${p === page ? 'bg-primary text-white' : 'hover:bg-gray-100 dark:hover:bg-[#222] text-text-secondary'}`}>
+                      {p}
+                    </button>
+                  );
                 })}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Jenis Kelamin</label>
-              <select 
-                className="w-full flex h-10 w-full rounded-md border border-input bg-background dark:bg-background-dark dark:border-border-dark px-3 py-2 text-sm text-text-primary dark:text-text-darkPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                value={formData.gender} 
-                onChange={e => setFormData({...formData, gender: e.target.value})}
-              >
-                <option value="">-- Pilih --</option>
-                <option value="Laki-laki">Laki-laki</option>
-                <option value="Perempuan">Perempuan</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Tempat Lahir</label>
-              <Input placeholder="Jakarta" value={formData.birthPlace} onChange={e => setFormData({...formData, birthPlace: e.target.value})} />
-            </div>
-            <div className="col-span-2 space-y-1">
-              <label className="text-sm font-medium">Tanggal Lahir</label>
-              <Input type="date" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} />
-            </div>
-            <div className="col-span-2 space-y-1">
-              <label className="text-sm font-medium">Alamat</label>
-              <Input placeholder="Jl. Raya..." value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+                {totalPages > 5 && page < totalPages - 2 && <span className="text-xs text-text-secondary px-1">...</span>}
+                {totalPages > 5 && page < totalPages - 2 && (
+                  <button onClick={() => setPage(totalPages)}
+                    className="w-8 h-8 rounded-lg text-xs font-medium hover:bg-gray-100 dark:hover:bg-[#222] text-text-secondary">{totalPages}</button>
+                )}
+                <button onClick={() => setPage(p => p + 1)} disabled={page >= totalPages} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] disabled:opacity-30"><ChevronRight size={16} /></button>
+                <button onClick={() => setPage(totalPages)} disabled={page >= totalPages} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] disabled:opacity-30 text-xs font-bold">»</button>
+              </div>
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-4 border-t border-gray-100 dark:border-[#222]">
-            <Button type="button" variant="ghost" onClick={() => { setIsAddModalOpen(false); setEditId(null); }}>Batal</Button>
-            <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={loading}>
-              {loading ? 'Menyimpan...' : 'Simpan Siswa'}
-            </Button>
+
+          {/* Stat Cards Footer */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { icon: <Users size={18} className="text-blue-500" />, label: 'Total Siswa', value: stats.total, bg: 'bg-blue-500/10' },
+              { icon: <CheckCircle2 size={18} className="text-emerald-500" />, label: 'Aktif', value: stats.aktif, bg: 'bg-emerald-500/10' },
+              { icon: <GraduationCap size={18} className="text-amber-500" />, label: 'Lulus', value: stats.lulus, bg: 'bg-amber-500/10' },
+              { icon: <AlertCircle size={18} className="text-red-500" />, label: 'Mutasi', value: stats.mutasi, bg: 'bg-red-500/10' },
+            ].map(card => (
+              <div key={card.label} className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-4 flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-lg ${card.bg} flex items-center justify-center shrink-0`}>{card.icon}</div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary">{card.label}</p>
+                  <p className="text-xl font-bold text-text-primary dark:text-text-darkPrimary">{card.value.toLocaleString()}</p>
+                </div>
+              </div>
+            ))}
           </div>
-        </form>
-      </Modal>
+        </>
+      ) : (
+        <ClassMajorView
+          classes={classesList}
+          majors={majorsList}
+          teachers={teachers}
+          students={students}
+          loading={loading}
+          onRefresh={fetchAll}
+          apiClient={apiClient}
+        />
+      )}
+
+      {/* Modals */}
+      <PullNISModal isOpen={pullNISOpen} onClose={() => setPullNISOpen(false)}
+        classes={classesList} majors={majorsList} apiClient={apiClient} onSuccess={fetchAll} />
+      <ImportExcelModal isOpen={importExcelOpen} onClose={() => setImportExcelOpen(false)}
+        apiClient={apiClient} onSuccess={fetchAll} />
+      <AddStudentModal isOpen={addStudentOpen} onClose={() => { setAddStudentOpen(false); setEditStudent(null); }}
+        classes={classesList} majors={majorsList} apiClient={apiClient} onSuccess={fetchAll} editStudent={editStudent} />
     </div>
   );
 };

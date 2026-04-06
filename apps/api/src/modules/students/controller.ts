@@ -13,6 +13,24 @@ export class StudentController {
     }
   }
 
+  static async pullFromNIS(req: Request, res: Response) {
+    try {
+      const { studentIds, classId } = req.body;
+      if (!studentIds?.length || !classId) {
+        return res.status(400).json({ error: "studentIds dan classId wajib diisi" });
+      }
+      // Update each student's classId
+      const results = [];
+      for (const id of studentIds) {
+        const updated = await StudentService.updateStudent(id, { classId });
+        if (updated) results.push(updated);
+      }
+      res.json({ message: `${results.length} siswa berhasil di-assign ke kelas.`, count: results.length });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to pull from NIS" });
+    }
+  }
+
   static async downloadTemplate(req: Request, res: Response) {
     try {
       const ExcelJS = require('exceljs');

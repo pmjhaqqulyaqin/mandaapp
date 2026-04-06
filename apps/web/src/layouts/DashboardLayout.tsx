@@ -15,7 +15,6 @@ import {
   ListTree,
   Settings as SettingsIcon,
   Users,
-  BookOpen,
   UserSquare2,
   Hash,
   ChevronDown,
@@ -77,15 +76,8 @@ const ALL_MENU_ITEMS = [
     group: 'main',
   },
   {
-    key: 'classes',
-    label: 'Kelas & Jurusan',
-    href: '/dashboard/classes',
-    icon: <BookOpen size={16} />,
-    group: 'main',
-  },
-  {
     key: 'students',
-    label: 'Data Siswa',
+    label: 'Manajemen Siswa',
     href: '/dashboard/students',
     icon: <Users size={16} />,
     group: 'main',
@@ -167,7 +159,6 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'updates': 'updates',
   'students': 'students',
   'nis': 'nis',
-  'classes': 'classes',
   'employees': 'employees',
 };
 

@@ -19,7 +19,6 @@ import { DashboardMenus } from './pages/dashboard/DashboardMenus';
 import { DashboardServices } from './pages/dashboard/DashboardServices';
 import { DashboardStudents } from './pages/DashboardStudents';
 import { DashboardNIS } from './pages/DashboardNIS';
-import { DashboardClasses } from './pages/DashboardClasses';
 import { DashboardEmployees } from './pages/DashboardEmployees';
 import { SelectRolePage } from './pages/SelectRolePage';
 import { AuthProvider } from './contexts/AuthContext';
@@ -80,7 +79,6 @@ function App() {
           <Route path="users" element={<DashboardUsers />} />
           <Route path="students" element={<DashboardStudents />} />
           <Route path="nis" element={<DashboardNIS />} />
-          <Route path="classes" element={<DashboardClasses />} />
           <Route path="employees" element={<DashboardEmployees />} />
           <Route path="pages" element={<DashboardPages />} />
           <Route path="menus" element={<DashboardMenus />} />
