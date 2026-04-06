@@ -70,6 +70,16 @@ export class NISController {
     }
   }
 
+  // GET /api/nis/pull-candidates
+  static async getPullCandidates(req: Request, res: Response) {
+    try {
+      const students = await NISService.getPullCandidates();
+      res.json(students);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to fetch pull candidates" });
+    }
+  }
+
   // POST /api/nis/preview-batch
   static async previewBatch(req: Request, res: Response) {
     try {

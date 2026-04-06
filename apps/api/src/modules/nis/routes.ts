@@ -17,6 +17,7 @@ router.put("/academic-years/:id/activate", NISController.activateYear);
 
 // Students without NIS
 router.get("/students-without-nis", NISController.getStudentsWithoutNIS);
+router.get("/pull-candidates", NISController.getPullCandidates);
 
 // Batch Operations
 router.post("/preview-batch", NISController.previewBatch);

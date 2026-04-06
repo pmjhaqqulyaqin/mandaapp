@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
-import { Info, Loader2 } from 'lucide-react';
+import { Info, Loader2, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 import type { NISStudent, ClassItem, Major } from './types';
 
 interface Props {
@@ -19,14 +20,28 @@ export const PullNISModal: React.FC<Props> = ({ isOpen, onClose, classes, majors
   const [selectedClassId, setSelectedClassId] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const fetchCandidates = async (isSync = false) => {
+    if (isSync) setIsSyncing(true);
+    else setLoading(true);
+
+    try {
+      const data = await apiClient('/nis/pull-candidates');
+      setNisStudents(data);
+      if (isSync) toast.success('Data dari Manajemen NIS berhasil disinkronkan');
+    } catch (err) {
+      setNisStudents([]);
+      if (isSync) toast.error('Gagal merefresh data');
+    } finally {
+      setLoading(false);
+      setIsSyncing(false);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
-      setLoading(true);
-      apiClient('/nis/students-without-nis')
-        .then((data: NISStudent[]) => setNisStudents(data))
-        .catch(() => setNisStudents([]))
-        .finally(() => setLoading(false));
+      fetchCandidates();
       setSelectedIds([]);
       setSelectedClassId('');
     }
@@ -70,9 +85,18 @@ export const PullNISModal: React.FC<Props> = ({ isOpen, onClose, classes, majors
       <div className="space-y-5">
         {/* Step 1 */}
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">1</span>
-            <span className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary">Select Student Table</span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">1</span>
+              <span className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary">Select Student Table</span>
+            </div>
+            <button 
+              onClick={() => fetchCandidates(true)} 
+              disabled={isSyncing || loading} 
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 rounded-md transition-colors disabled:opacity-50">
+              <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
+              Sinkronisasi
+            </button>
           </div>
           <div className="border border-gray-200 dark:border-[#222] rounded-lg overflow-hidden max-h-60 overflow-y-auto">
             {loading ? (

@@ -41,10 +41,10 @@ export class StudentController {
       if (!studentIds?.length || !classId) {
         return res.status(400).json({ error: "studentIds dan classId wajib diisi" });
       }
-      // Update each student's classId
+      // Update each student's classId and status
       const results = [];
       for (const id of studentIds) {
-        const updated = await StudentService.updateStudent(id, { classId });
+        const updated = await StudentService.updateStudent(id, { classId, status: 'active' });
         if (updated) results.push(updated);
       }
       res.json({ message: `${results.length} siswa berhasil di-assign ke kelas.`, count: results.length });

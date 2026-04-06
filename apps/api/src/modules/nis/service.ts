@@ -443,6 +443,18 @@ export class NISService {
       .orderBy(studentProfiles.fullName);
   }
 
+  // ─── Students created in NIS but not yet assigned a class ───
+  static async getPullCandidates() {
+    return db.select().from(studentProfiles)
+      .where(
+        and(
+          eq(studentProfiles.createdSource, 'nis_module'),
+          or(isNull(studentProfiles.classId), eq(studentProfiles.status, 'mutasi'), eq(studentProfiles.status, 'pending'))
+        )
+      )
+      .orderBy(studentProfiles.fullName);
+  }
+
   // ─── Batch history ───
   static async getBatchHistory() {
     const batches = await db.select({
