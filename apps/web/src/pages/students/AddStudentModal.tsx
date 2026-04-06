@@ -16,7 +16,7 @@ interface Props {
 }
 
 const INITIAL_FORM = {
-  fullName: '', nisn: '', nis: '', gender: '', birthPlace: '', birthDate: '', className: '', address: ''
+  fullName: '', nisn: '', nis: '', gender: '', birthPlace: '', birthDate: '', classId: '', className: '', address: ''
 };
 
 export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, majors, apiClient, onSuccess, editStudent }) => {
@@ -32,6 +32,7 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, maj
         gender: editStudent.gender || '',
         birthPlace: editStudent.birthPlace || '',
         birthDate: editStudent.birthDate ? editStudent.birthDate.split('T')[0] : '',
+        classId: editStudent.classId || '',
         className: editStudent.className || '',
         address: editStudent.address || '',
       });
@@ -133,11 +134,15 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, maj
             subtitle="Informasi kelas dan jurusan." color="bg-emerald-500/10" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2 space-y-1.5">
-              <label className="text-xs font-medium text-text-secondary">Kelas</label>
-              <select className="w-full h-10 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-                value={form.className} onChange={e => setForm({ ...form, className: e.target.value })}>
-                <option value="">Pilih Tingkat Kelas</option>
-                {classOptions.map(c => <option key={c.id} value={c.name}>{c.label}</option>)}
+              <label className="text-xs font-medium text-text-secondary">Kelas & Jurusan *</label>
+              <select required className="w-full h-10 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                value={form.classId} onChange={e => {
+                  const id = e.target.value;
+                  const selectedClass = classOptions.find(c => c.id === id);
+                  setForm({ ...form, classId: id, className: selectedClass ? selectedClass.name : '' });
+                }}>
+                <option value="">Pilih Kelas & Jurusan...</option>
+                {classOptions.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
             </div>
           </div>
