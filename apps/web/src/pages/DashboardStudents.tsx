@@ -264,20 +264,20 @@ export const DashboardStudents = () => {
       {activeTab === 'students' ? (
         <>
           {/* Filter Bar */}
-          <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-3">
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
-              <div className="sm:col-span-4">
-                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1 block">Cari Nama atau NIS</label>
+          <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] px-3 py-2">
+            <div className="flex flex-col sm:flex-row gap-2 items-end">
+              <div className="flex-[3] min-w-0">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-0.5 block">Cari Nama atau NIS</label>
                 <div className="relative">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input className="w-full h-10 pl-10 pr-3 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input className="w-full h-8 pl-8 pr-3 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] text-xs outline-none focus:ring-2 focus:ring-primary/30"
                     placeholder="Masukkan nama siswa atau nomor induk..."
                     value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                 </div>
               </div>
-              <div className="sm:col-span-3">
-                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1 block">Filter Tingkat Kelas</label>
-                <select className="w-full h-10 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+              <div className="flex-[2] min-w-0">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-0.5 block">Filter Tingkat Kelas</label>
+                <select className="w-full h-8 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] px-2.5 text-xs outline-none focus:ring-2 focus:ring-primary/30"
                   value={filterClass} onChange={e => setFilterClass(e.target.value)}>
                   <option value="">Semua Tingkat</option>
                   {uniqueGradesForFilter.map(g => (
@@ -285,17 +285,17 @@ export const DashboardStudents = () => {
                   ))}
                 </select>
               </div>
-              <div className="sm:col-span-3">
-                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1 block">Filter Jurusan</label>
-                <select className="w-full h-10 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+              <div className="flex-[2] min-w-0">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-0.5 block">Filter Jurusan</label>
+                <select className="w-full h-8 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] px-2.5 text-xs outline-none focus:ring-2 focus:ring-primary/30"
                   value={filterMajor} onChange={e => setFilterMajor(e.target.value)}>
                   <option value="">Semua Jurusan</option>
                   {uniqueMajorsForFilter.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
               </div>
-              <div className="sm:col-span-2">
-                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1 block">Filter Status</label>
-                <select className="w-full h-10 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+              <div className="flex-[1.5] min-w-0">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-0.5 block">Filter Status</label>
+                <select className="w-full h-8 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] px-2.5 text-xs outline-none focus:ring-2 focus:ring-primary/30"
                   value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
                   <option value="Aktif">Aktif</option>
                   <option value="Lulus">Lulus (Alumni)</option>
@@ -304,9 +304,9 @@ export const DashboardStudents = () => {
                   <option value="Semua">Semua Status</option>
                 </select>
               </div>
-              <div className="sm:col-span-1 flex justify-end">
+              <div className="shrink-0">
                 <Button variant="outline" size="icon" title="Export Excel (sesuai filter aktif)"
-                  onClick={handleExportExcel} className="h-9 w-9">
+                  onClick={handleExportExcel} className="h-8 w-8">
                   <Download size={14} className="text-emerald-600" />
                 </Button>
               </div>
