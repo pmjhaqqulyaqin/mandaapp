@@ -120,7 +120,7 @@ export const ClassMajorView: React.FC<Props> = ({ classes, majors, teachers, stu
             <Plus size={14} /> Tambah Kelas
           </Button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {sortedGrades.map(grade => {
             const classesInGrade = gradeGroups[grade];
             const count = studentCountByGrade(grade);
@@ -128,18 +128,18 @@ export const ClassMajorView: React.FC<Props> = ({ classes, majors, teachers, stu
             const gradientClass = GRADE_COLORS[grade] || 'from-gray-500 to-gray-600';
             const labels: Record<string, string> = { 'X': 'Kelas Sepuluh', 'XI': 'Kelas Sebelas', 'XII': 'Kelas Dua Belas' };
             return (
-              <div key={grade} className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-4 hover:shadow-md transition-all duration-300 group">
-                <div className={`inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br ${gradientClass} text-white font-bold text-sm mb-3`}>
+              <div key={grade} className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-3 hover:shadow-md transition-all duration-300 group">
+                <div className={`inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br ${gradientClass} text-white font-bold text-xs mb-2.5`}>
                   {grade}
                 </div>
-                <h3 className="font-semibold text-text-primary dark:text-text-darkPrimary text-sm">{labels[grade] || `Kelas ${grade}`}</h3>
-                <p className="text-xs text-text-secondary mt-0.5 flex items-center gap-1">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                <h3 className="font-semibold text-text-primary dark:text-text-darkPrimary text-[13px] leading-snug">{labels[grade] || `Kelas ${grade}`}</h3>
+                <p className="text-[11px] text-text-secondary mt-0.5 flex items-center gap-1">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                   {count} Total Siswa
                 </p>
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-[#222]">
-                  <span className="text-[10px] font-semibold text-primary uppercase tracking-wider">{rombel} ROMBEL</span>
-                  <button className="text-xs text-primary font-medium hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
+                <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-gray-100 dark:border-[#222]">
+                  <span className="text-[9.5px] font-semibold text-primary uppercase tracking-wider">{rombel} ROMBEL</span>
+                  <button className="text-[11.5px] text-primary font-medium hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => onViewDetails?.(grade)}>Detail Kelas</button>
                 </div>
               </div>
@@ -162,11 +162,11 @@ export const ClassMajorView: React.FC<Props> = ({ classes, majors, teachers, stu
         <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] overflow-hidden">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-gray-100 dark:border-[#222] text-[10px] uppercase tracking-wider text-text-secondary">
-                <th className="py-3 px-4 font-semibold">Kode</th>
-                <th className="py-3 px-4 font-semibold">Nama Jurusan</th>
-                <th className="py-3 px-4 font-semibold">Jumlah Siswa</th>
-                <th className="py-3 px-4 font-semibold text-right">Aksi</th>
+              <tr className="border-b border-gray-100 dark:border-[#222] text-[9.5px] uppercase tracking-wider text-text-secondary">
+                <th className="py-2.5 px-3 font-semibold">Kode</th>
+                <th className="py-2.5 px-3 font-semibold">Nama Jurusan</th>
+                <th className="py-2.5 px-3 font-semibold">Jumlah Siswa</th>
+                <th className="py-2.5 px-3 font-semibold text-right">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -175,20 +175,20 @@ export const ClassMajorView: React.FC<Props> = ({ classes, majors, teachers, stu
                 const pct = Math.round((count / maxMajorStudents) * 100);
                 return (
                   <tr key={m.id} className="group border-b border-gray-50 dark:border-[#1a1a1a] hover:bg-gray-50/50 dark:hover:bg-[#0a0a0a] transition-colors">
-                    <td className="py-3 px-4 text-xs text-text-secondary font-mono">J-{String(idx + 1).padStart(3, '0')}</td>
-                    <td className="py-3 px-4 text-sm font-medium text-primary hover:underline cursor-pointer">{m.name}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-2 px-3 text-[11px] text-text-secondary font-mono">J-{String(idx + 1).padStart(3, '0')}</td>
+                    <td className="py-2 px-3 text-[13px] font-semibold text-primary hover:underline cursor-pointer">{m.name}</td>
+                    <td className="py-2 px-3">
                       <div className="flex items-center gap-3">
-                        <span className="text-xs font-medium text-text-primary dark:text-text-darkPrimary min-w-[60px]">{count} Siswa</span>
+                        <span className="text-[11px] font-medium text-text-primary dark:text-text-darkPrimary min-w-[60px]">{count} Siswa</span>
                         <div className="flex-1 max-w-[120px] bg-gray-200 dark:bg-[#222] rounded-full h-1.5 overflow-hidden">
                           <div className="bg-primary h-1.5 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openMajorModal(m)} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-500 hover:text-blue-500 transition-colors"><Edit2 size={14} /></button>
-                        <button onClick={() => deleteMajor(m.id, m.name)} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-500 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
+                    <td className="py-2 px-3 text-right">
+                      <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => openMajorModal(m)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-500 hover:text-blue-500 transition-colors"><Edit2 size={13} /></button>
+                        <button onClick={() => deleteMajor(m.id, m.name)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-500 hover:text-red-500 transition-colors"><Trash2 size={13} /></button>
                       </div>
                     </td>
                   </tr>

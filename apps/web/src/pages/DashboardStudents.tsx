@@ -264,8 +264,8 @@ export const DashboardStudents = () => {
       {activeTab === 'students' ? (
         <>
           {/* Filter Bar */}
-          <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+          <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-3">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
               <div className="sm:col-span-4">
                 <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1 block">Cari Nama atau NIS</label>
                 <div className="relative">
@@ -306,8 +306,8 @@ export const DashboardStudents = () => {
               </div>
               <div className="sm:col-span-1 flex justify-end">
                 <Button variant="outline" size="icon" title="Export Excel (sesuai filter aktif)"
-                  onClick={handleExportExcel} className="h-10 w-10">
-                  <Download size={16} className="text-emerald-600" />
+                  onClick={handleExportExcel} className="h-9 w-9">
+                  <Download size={14} className="text-emerald-600" />
                 </Button>
               </div>
             </div>
@@ -318,8 +318,8 @@ export const DashboardStudents = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-gray-100 dark:border-[#222] text-[10px] uppercase tracking-wider text-text-secondary">
-                    <th className="py-3 px-4 font-semibold w-8">
+                  <tr className="border-b border-gray-100 dark:border-[#222] text-[9.5px] uppercase tracking-wider text-text-secondary">
+                    <th className="py-2.5 px-3 font-semibold w-8">
                       <input type="checkbox" className="accent-primary w-3.5 h-3.5"
                         checked={paginated.length > 0 && paginated.every(s => selectedStudentIds.includes(s.id))}
                         onChange={(e) => {
@@ -328,18 +328,18 @@ export const DashboardStudents = () => {
                         }}
                       />
                     </th>
-                    <th className="py-3 px-4 font-semibold">NIS</th>
-                    <th className="py-3 px-4 font-semibold">Nama Siswa</th>
-                    <th className="py-3 px-4 font-semibold">Kelas</th>
-                    <th className="py-3 px-4 font-semibold">Jurusan</th>
-                    <th className="py-3 px-4 font-semibold">Status</th>
-                    <th className="py-3 px-4 font-semibold text-center">Actions</th>
+                    <th className="py-2.5 px-3 font-semibold">NIS</th>
+                    <th className="py-2.5 px-3 font-semibold">Nama Siswa</th>
+                    <th className="py-2.5 px-3 font-semibold">Kelas</th>
+                    <th className="py-2.5 px-3 font-semibold">Jurusan</th>
+                    <th className="py-2.5 px-3 font-semibold">Status</th>
+                    <th className="py-2.5 px-3 font-semibold text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginated.map(s => (
                     <tr key={s.id} className="group border-b border-gray-50 dark:border-[#1a1a1a] hover:bg-gray-50/50 dark:hover:bg-[#0a0a0a] transition-colors">
-                      <td className="py-3 px-4">
+                      <td className="py-2 px-3">
                         <input type="checkbox" className="accent-primary w-3.5 h-3.5"
                           checked={selectedStudentIds.includes(s.id)}
                           onChange={(e) => {
@@ -348,23 +348,23 @@ export const DashboardStudents = () => {
                           }}
                         />
                       </td>
-                      <td className="py-3 px-4 text-xs font-mono text-text-secondary">{s.nis || s.nisn || '-'}</td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <div className={`w-8 h-8 rounded-full ${avatarColor(s.fullName || '')} text-white text-[11px] font-bold flex items-center justify-center shrink-0`}>
+                      <td className="py-2 px-3 text-[11px] font-mono text-text-secondary">{s.nis || s.nisn || '-'}</td>
+                      <td className="py-2 px-3">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-6 h-6 rounded-full ${avatarColor(s.fullName || '')} text-white text-[9px] font-bold flex items-center justify-center shrink-0`}>
                             {initials(s.fullName || '?')}
                           </div>
-                          <span className="text-sm font-medium text-text-primary dark:text-text-darkPrimary">{s.fullName || '-'}</span>
+                          <span className="text-[12.5px] font-semibold text-text-primary dark:text-text-darkPrimary">{s.fullName || '-'}</span>
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-xs text-text-primary dark:text-text-darkPrimary">{getClassLabel(s)}</td>
-                      <td className="py-3 px-4 text-xs"><span className="text-primary font-medium">{getMajorLabel(s)}</span></td>
-                      <td className="py-3 px-4"><StatusBadge status={s.status} /></td>
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => { setStatusStudent(s); setUpdateStatusOpen(true); }} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-amber-500 transition-colors" title="Ubah Status"><UserCog size={14} /></button>
-                          <button onClick={() => handleEdit(s)} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-blue-500 transition-colors" title="Edit"><Edit2 size={14} /></button>
-                          <button onClick={() => handleDelete(s.id, s.fullName)} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-red-500 transition-colors" title="Hapus"><Trash2 size={14} /></button>
+                      <td className="py-2 px-3 text-[11px] text-text-primary dark:text-text-darkPrimary">{getClassLabel(s)}</td>
+                      <td className="py-2 px-3 text-[11px]"><span className="text-primary font-medium">{getMajorLabel(s)}</span></td>
+                      <td className="py-2 px-3"><StatusBadge status={s.status} /></td>
+                      <td className="py-2 px-3 text-center">
+                        <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => { setStatusStudent(s); setUpdateStatusOpen(true); }} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-amber-500 transition-colors" title="Ubah Status"><UserCog size={13} /></button>
+                          <button onClick={() => handleEdit(s)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-blue-500 transition-colors" title="Edit"><Edit2 size={13} /></button>
+                          <button onClick={() => handleDelete(s.id, s.fullName)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-red-500 transition-colors" title="Hapus"><Trash2 size={13} /></button>
                         </div>
                       </td>
                     </tr>
@@ -410,19 +410,19 @@ export const DashboardStudents = () => {
           </div>
 
           {/* Stat Cards Footer */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
-              { icon: <Users size={18} className="text-blue-500" />, label: 'Total Siswa', value: stats.total, bg: 'bg-blue-500/10', mode: 'Semua' },
-              { icon: <CheckCircle2 size={18} className="text-emerald-500" />, label: 'Aktif', value: stats.aktif, bg: 'bg-emerald-500/10', mode: 'Aktif' },
-              { icon: <GraduationCap size={18} className="text-amber-500" />, label: 'Lulus', value: stats.lulus, bg: 'bg-amber-500/10', mode: 'Lulus' },
-              { icon: <AlertCircle size={18} className="text-red-500" />, label: 'Mutasi', value: stats.mutasi, bg: 'bg-red-500/10', mode: 'Mutasi' },
+              { icon: <Users size={16} className="text-blue-500" />, label: 'Total Siswa', value: stats.total, bg: 'bg-blue-500/10', mode: 'Semua' },
+              { icon: <CheckCircle2 size={16} className="text-emerald-500" />, label: 'Aktif', value: stats.aktif, bg: 'bg-emerald-500/10', mode: 'Aktif' },
+              { icon: <GraduationCap size={16} className="text-amber-500" />, label: 'Lulus', value: stats.lulus, bg: 'bg-amber-500/10', mode: 'Lulus' },
+              { icon: <AlertCircle size={16} className="text-red-500" />, label: 'Mutasi', value: stats.mutasi, bg: 'bg-red-500/10', mode: 'Mutasi' },
             ].map(card => (
               <div key={card.label} onClick={() => setFilterStatus(card.mode)} 
-                className={`bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-4 flex items-center gap-3 cursor-pointer hover:border-primary/50 transition-colors ${filterStatus === card.mode ? 'ring-1 ring-primary shadow-sm' : ''}`}>
-                <div className={`w-10 h-10 rounded-lg ${card.bg} flex items-center justify-center shrink-0`}>{card.icon}</div>
+                className={`bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-3 flex items-center gap-2.5 cursor-pointer hover:border-primary/50 transition-colors ${filterStatus === card.mode ? 'ring-1 ring-primary shadow-sm' : ''}`}>
+                <div className={`w-8 h-8 rounded-lg ${card.bg} flex items-center justify-center shrink-0`}>{card.icon}</div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary">{card.label}</p>
-                  <p className="text-xl font-bold text-text-primary dark:text-text-darkPrimary">{card.value.toLocaleString()}</p>
+                  <p className="text-[9px] font-semibold uppercase tracking-wider text-text-secondary">{card.label}</p>
+                  <p className="text-base font-bold text-text-primary dark:text-text-darkPrimary leading-tight">{card.value.toLocaleString()}</p>
                 </div>
               </div>
             ))}
