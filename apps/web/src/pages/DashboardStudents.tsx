@@ -394,6 +394,10 @@ export const DashboardStudents = () => {
           loading={loading}
           onRefresh={fetchAll}
           apiClient={apiClient}
+          onViewDetails={(grade) => {
+            setFilterClass(grade);
+            setActiveTab('students');
+          }}
         />
       )}
 

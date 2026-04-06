@@ -13,6 +13,7 @@ interface Props {
   loading: boolean;
   onRefresh: () => void;
   apiClient: any;
+  onViewDetails?: (grade: string) => void;
 }
 
 // Get grade level from class name (e.g., "X RPL 1" → "X")
@@ -30,7 +31,7 @@ const GRADE_COLORS: Record<string, string> = {
   'XII': 'from-amber-500 to-amber-600',
 };
 
-export const ClassMajorView: React.FC<Props> = ({ classes, majors, teachers, students, loading, onRefresh, apiClient }) => {
+export const ClassMajorView: React.FC<Props> = ({ classes, majors, teachers, students, onRefresh, apiClient, onViewDetails }) => {
   const [isMajorModalOpen, setIsMajorModalOpen] = useState(false);
   const [majorForm, setMajorForm] = useState({ id: '', name: '' });
   const [isEditingMajor, setIsEditingMajor] = useState(false);
@@ -103,14 +104,6 @@ export const ClassMajorView: React.FC<Props> = ({ classes, majors, teachers, stu
     finally { setSaving(false); }
   };
 
-  const deleteClass = async (id: string, name: string) => {
-    const count = students.filter(s => s.classId === id).length;
-    if (count > 0) { alert(`Tidak bisa hapus kelas "${name}" karena masih memiliki ${count} siswa.`); return; }
-    if (!window.confirm(`Hapus kelas "${name}"?`)) return;
-    try { await apiClient(`/classes/${id}`, { method: 'DELETE' }); onRefresh(); }
-    catch (err: any) { alert('Gagal: ' + err.message); }
-  };
-
   const gradeOrder = ['X', 'XI', 'XII'];
   const sortedGrades = Object.keys(gradeGroups).sort((a, b) => gradeOrder.indexOf(a) - gradeOrder.indexOf(b));
 
@@ -147,7 +140,7 @@ export const ClassMajorView: React.FC<Props> = ({ classes, majors, teachers, stu
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-[#222]">
                   <span className="text-[10px] font-semibold text-primary uppercase tracking-wider">{rombel} ROMBEL</span>
                   <button className="text-xs text-primary font-medium hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => {}}>Detail Kelas</button>
+                    onClick={() => onViewDetails?.(grade)}>Detail Kelas</button>
                 </div>
               </div>
             );
