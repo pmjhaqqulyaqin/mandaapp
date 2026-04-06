@@ -14,6 +14,7 @@ router.get("/revisions", StudentController.getRevisions); // Must be before /:id
 router.post("/public-search", StudentController.publicSearch); // Must be before /:id
 router.get("/search-autocomplete", StudentController.autocompleteSearch); // Public: for izin siswa form
 router.post("/pull-from-nis", StudentController.pullFromNIS);
+router.put("/bulk-update", StudentController.bulkUpdate); // Must be before /:id
 router.get("/:id", StudentController.getById);
 router.put("/:id", StudentController.update);
 router.delete("/:id", StudentController.delete);

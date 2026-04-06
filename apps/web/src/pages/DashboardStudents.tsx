@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import {
   Users, Search, Settings2, RefreshCw, FileSpreadsheet, Download,
   UserPlus, Edit2, Trash2, ChevronLeft, ChevronRight, Loader2,
-  CheckCircle2, GraduationCap, AlertCircle
+  CheckCircle2, GraduationCap, AlertCircle, UserCog, ArrowUpRight, X
 } from 'lucide-react';
 
 // Sub-components
@@ -15,6 +15,8 @@ import { ClassMajorView } from './students/ClassMajorView';
 import { PullNISModal } from './students/PullNISModal';
 import { ImportExcelModal } from './students/ImportExcelModal';
 import { AddStudentModal } from './students/AddStudentModal';
+import { UpdateStatusModal } from './students/UpdateStatusModal';
+import { BulkPromotionModal } from './students/BulkPromotionModal';
 
 type Tab = 'students' | 'classes';
 
@@ -69,18 +71,25 @@ export const DashboardStudents = () => {
   const [searchQuery, setSearchQuery] = useState(() => sessionStorage.getItem('sm_search') || '');
   const [filterClass, setFilterClass] = useState(() => sessionStorage.getItem('sm_class') || '');
   const [filterMajor, setFilterMajor] = useState(() => sessionStorage.getItem('sm_major') || '');
+  const [filterStatus, setFilterStatus] = useState(() => sessionStorage.getItem('sm_status') || 'Aktif');
   const [page, setPage] = useState(1);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
 
   // Modals
   const [pullNISOpen, setPullNISOpen] = useState(false);
   const [importExcelOpen, setImportExcelOpen] = useState(false);
   const [addStudentOpen, setAddStudentOpen] = useState(false);
   const [editStudent, setEditStudent] = useState<any>(null);
+  
+  const [updateStatusOpen, setUpdateStatusOpen] = useState(false);
+  const [statusStudent, setStatusStudent] = useState<any>(null);
+  const [bulkPromotionOpen, setBulkPromotionOpen] = useState(false);
 
   // Persist filters
   useEffect(() => { sessionStorage.setItem('sm_search', searchQuery); }, [searchQuery]);
   useEffect(() => { sessionStorage.setItem('sm_class', filterClass); }, [filterClass]);
   useEffect(() => { sessionStorage.setItem('sm_major', filterMajor); }, [filterMajor]);
+  useEffect(() => { sessionStorage.setItem('sm_status', filterStatus); }, [filterStatus]);
 
   // Data fetching
   const fetchAll = async () => {
@@ -113,9 +122,14 @@ export const DashboardStudents = () => {
         const cls = classesList.find(c => c.id === s.classId);
         return cls?.majorId === filterMajor;
       })();
-      return matchSearch && matchClass && matchMajor;
+      const matchStatus = filterStatus === 'Semua' || (() => {
+        const status = (s.status || 'Aktif').toLowerCase();
+        if (filterStatus === 'Aktif') return status === 'aktif' || status === 'active';
+        return status === filterStatus.toLowerCase();
+      })();
+      return matchSearch && matchClass && matchMajor && matchStatus;
     });
-  }, [students, searchQuery, filterClass, filterMajor, classesList]);
+  }, [students, searchQuery, filterClass, filterMajor, filterStatus, classesList]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
@@ -252,7 +266,7 @@ export const DashboardStudents = () => {
           {/* Filter Bar */}
           <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-4">
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-              <div className="sm:col-span-5">
+              <div className="sm:col-span-4">
                 <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1 block">Cari Nama atau NIS</label>
                 <div className="relative">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -279,6 +293,17 @@ export const DashboardStudents = () => {
                   {uniqueMajorsForFilter.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
               </div>
+              <div className="sm:col-span-2">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1 block">Filter Status</label>
+                <select className="w-full h-10 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                  <option value="Aktif">Aktif</option>
+                  <option value="Lulus">Lulus (Alumni)</option>
+                  <option value="Mutasi">Mutasi</option>
+                  <option value="DO">Berhenti (DO)</option>
+                  <option value="Semua">Semua Status</option>
+                </select>
+              </div>
               <div className="sm:col-span-1 flex justify-end">
                 <Button variant="outline" size="icon" title="Export Excel (sesuai filter aktif)"
                   onClick={handleExportExcel} className="h-10 w-10">
@@ -294,7 +319,15 @@ export const DashboardStudents = () => {
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-[#222] text-[10px] uppercase tracking-wider text-text-secondary">
-                    <th className="py-3 px-4 font-semibold w-8"><input type="checkbox" className="accent-primary w-3.5 h-3.5" /></th>
+                    <th className="py-3 px-4 font-semibold w-8">
+                      <input type="checkbox" className="accent-primary w-3.5 h-3.5"
+                        checked={paginated.length > 0 && paginated.every(s => selectedStudentIds.includes(s.id))}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedStudentIds(prev => Array.from(new Set([...prev, ...paginated.map(s => s.id)])));
+                          else setSelectedStudentIds(prev => prev.filter(id => !paginated.some(s => s.id === id)));
+                        }}
+                      />
+                    </th>
                     <th className="py-3 px-4 font-semibold">NIS</th>
                     <th className="py-3 px-4 font-semibold">Nama Siswa</th>
                     <th className="py-3 px-4 font-semibold">Kelas</th>
@@ -306,7 +339,15 @@ export const DashboardStudents = () => {
                 <tbody>
                   {paginated.map(s => (
                     <tr key={s.id} className="group border-b border-gray-50 dark:border-[#1a1a1a] hover:bg-gray-50/50 dark:hover:bg-[#0a0a0a] transition-colors">
-                      <td className="py-3 px-4"><input type="checkbox" className="accent-primary w-3.5 h-3.5" /></td>
+                      <td className="py-3 px-4">
+                        <input type="checkbox" className="accent-primary w-3.5 h-3.5"
+                          checked={selectedStudentIds.includes(s.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedStudentIds(prev => [...prev, s.id]);
+                            else setSelectedStudentIds(prev => prev.filter(id => id !== s.id));
+                          }}
+                        />
+                      </td>
                       <td className="py-3 px-4 text-xs font-mono text-text-secondary">{s.nis || s.nisn || '-'}</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2.5">
@@ -321,6 +362,7 @@ export const DashboardStudents = () => {
                       <td className="py-3 px-4"><StatusBadge status={s.status} /></td>
                       <td className="py-3 px-4 text-center">
                         <div className="flex justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => { setStatusStudent(s); setUpdateStatusOpen(true); }} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-amber-500 transition-colors" title="Ubah Status"><UserCog size={14} /></button>
                           <button onClick={() => handleEdit(s)} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-blue-500 transition-colors" title="Edit"><Edit2 size={14} /></button>
                           <button onClick={() => handleDelete(s.id, s.fullName)} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-red-500 transition-colors" title="Hapus"><Trash2 size={14} /></button>
                         </div>
@@ -370,12 +412,13 @@ export const DashboardStudents = () => {
           {/* Stat Cards Footer */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { icon: <Users size={18} className="text-blue-500" />, label: 'Total Siswa', value: stats.total, bg: 'bg-blue-500/10' },
-              { icon: <CheckCircle2 size={18} className="text-emerald-500" />, label: 'Aktif', value: stats.aktif, bg: 'bg-emerald-500/10' },
-              { icon: <GraduationCap size={18} className="text-amber-500" />, label: 'Lulus', value: stats.lulus, bg: 'bg-amber-500/10' },
-              { icon: <AlertCircle size={18} className="text-red-500" />, label: 'Mutasi', value: stats.mutasi, bg: 'bg-red-500/10' },
+              { icon: <Users size={18} className="text-blue-500" />, label: 'Total Siswa', value: stats.total, bg: 'bg-blue-500/10', mode: 'Semua' },
+              { icon: <CheckCircle2 size={18} className="text-emerald-500" />, label: 'Aktif', value: stats.aktif, bg: 'bg-emerald-500/10', mode: 'Aktif' },
+              { icon: <GraduationCap size={18} className="text-amber-500" />, label: 'Lulus', value: stats.lulus, bg: 'bg-amber-500/10', mode: 'Lulus' },
+              { icon: <AlertCircle size={18} className="text-red-500" />, label: 'Mutasi', value: stats.mutasi, bg: 'bg-red-500/10', mode: 'Mutasi' },
             ].map(card => (
-              <div key={card.label} className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-4 flex items-center gap-3">
+              <div key={card.label} onClick={() => setFilterStatus(card.mode)} 
+                className={`bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-4 flex items-center gap-3 cursor-pointer hover:border-primary/50 transition-colors ${filterStatus === card.mode ? 'ring-1 ring-primary shadow-sm' : ''}`}>
                 <div className={`w-10 h-10 rounded-lg ${card.bg} flex items-center justify-center shrink-0`}>{card.icon}</div>
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary">{card.label}</p>
@@ -408,6 +451,24 @@ export const DashboardStudents = () => {
         apiClient={apiClient} onSuccess={fetchAll} />
       <AddStudentModal isOpen={addStudentOpen} onClose={() => { setAddStudentOpen(false); setEditStudent(null); }}
         classes={classesList} majors={majorsList} apiClient={apiClient} onSuccess={fetchAll} editStudent={editStudent} />
+      <UpdateStatusModal isOpen={updateStatusOpen} onClose={() => { setUpdateStatusOpen(false); setStatusStudent(null); }}
+        student={statusStudent} apiClient={apiClient} onSuccess={fetchAll} />
+      <BulkPromotionModal isOpen={bulkPromotionOpen} onClose={() => { setBulkPromotionOpen(false); setSelectedStudentIds([]); }}
+        selectedStudents={filtered.filter(s => selectedStudentIds.includes(s.id))} classes={classesList} majors={majorsList}
+        apiClient={apiClient} onSuccess={() => { fetchAll(); setSelectedStudentIds([]); }} />
+
+      {/* Floating Action Bar */}
+      {selectedStudentIds.length > 0 && activeTab === 'students' && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white dark:bg-[#1a1a1a] shadow-xl border border-gray-200 dark:border-[#333] px-4 py-3 rounded-full flex items-center gap-4 z-50 animate-in slide-in-from-bottom h-14">
+          <div className="bg-primary/10 text-primary font-bold w-8 h-8 rounded-full flex items-center justify-center text-sm">{selectedStudentIds.length}</div>
+          <span className="text-sm font-medium text-text-primary dark:text-text-darkPrimary pr-2 hidden sm:inline">Siswa Terpilih</span>
+          <div className="w-px h-6 bg-gray-200 dark:bg-[#333]" />
+          <Button size="sm" onClick={() => setBulkPromotionOpen(true)} className="flex items-center gap-1.5 whitespace-nowrap">
+            <ArrowUpRight size={14} /> Proses Seleksi
+          </Button>
+          <button onClick={() => setSelectedStudentIds([])} className="ml-1 p-1 hover:bg-gray-100 dark:hover:bg-[#222] rounded-full transition-colors"><X size={16} className="text-text-secondary" /></button>
+        </div>
+      )}
     </div>
   );
 };

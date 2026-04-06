@@ -13,6 +13,28 @@ export class StudentController {
     }
   }
 
+  static async bulkUpdate(req: Request, res: Response) {
+    try {
+      const { studentIds, classId, status } = req.body;
+      if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+        return res.status(400).json({ error: "studentIds array is required" });
+      }
+      
+      const updateData: any = {};
+      if (classId !== undefined) updateData.classId = classId;
+      if (status !== undefined) updateData.status = status;
+
+      const results = [];
+      for (const id of studentIds) {
+        const updated = await StudentService.updateStudent(id, updateData);
+        if (updated) results.push(updated);
+      }
+      res.json({ message: "Bulk update successful", count: results.length, data: results });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to perform bulk update" });
+    }
+  }
+
   static async pullFromNIS(req: Request, res: Response) {
     try {
       const { studentIds, classId } = req.body;
