@@ -31,6 +31,14 @@ const initials = (name: string) => {
   return parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.slice(0, 2).toUpperCase();
 };
 
+const getGradeLevel = (name: string): string => {
+  const n = (name || '').trim().toUpperCase();
+  if (n.startsWith('XII')) return 'XII';
+  if (n.startsWith('XI')) return 'XI';
+  if (n.startsWith('X')) return 'X';
+  return name;
+};
+
 // Status badge
 const StatusBadge = ({ status }: { status: string }) => {
   const s = (status || 'Aktif').toLowerCase();
@@ -96,7 +104,11 @@ export const DashboardStudents = () => {
     return students.filter(s => {
       const q = searchQuery.toLowerCase();
       const matchSearch = !q || (s.fullName || '').toLowerCase().includes(q) || (s.nis || '').includes(q) || (s.nisn || '').includes(q);
-      const matchClass = !filterClass || s.classId === filterClass;
+      const matchClass = !filterClass || (() => {
+        const cls = classesList.find(c => c.id === s.classId);
+        const name = cls?.name || s.className || '';
+        return getGradeLevel(name) === filterClass;
+      })();
       const matchMajor = !filterMajor || (() => {
         const cls = classesList.find(c => c.id === s.classId);
         return cls?.majorId === filterMajor;
@@ -170,8 +182,32 @@ export const DashboardStudents = () => {
     return majorsList.find(m => m.id === cls.majorId)?.name || '-';
   };
 
-  // Unique majors for filter
+  // Unique majors and grades for filter
   const uniqueMajorsForFilter = majorsList;
+  const uniqueGradesForFilter = useMemo(() => {
+    const grades = new Set<string>();
+    classesList.forEach(c => {
+      const grade = getGradeLevel(c.name);
+      if (grade) grades.add(grade);
+    });
+    // Add grades from students if they don't have a matching class in classesList
+    students.forEach(s => {
+      if (s.className) {
+        const grade = getGradeLevel(s.className);
+        if (grade) grades.add(grade);
+      }
+    });
+
+    const gradeOrder = ['X', 'XI', 'XII'];
+    return Array.from(grades).sort((a, b) => {
+      const idxA = gradeOrder.indexOf(a);
+      const idxB = gradeOrder.indexOf(b);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return a.localeCompare(b);
+    });
+  }, [classesList, students]);
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -226,14 +262,13 @@ export const DashboardStudents = () => {
                 </div>
               </div>
               <div className="sm:col-span-3">
-                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1 block">Filter Kelas</label>
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1 block">Filter Tingkat Kelas</label>
                 <select className="w-full h-10 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
                   value={filterClass} onChange={e => setFilterClass(e.target.value)}>
-                  <option value="">Semua Kelas</option>
-                  {classesList.map(c => {
-                    const mjr = majorsList.find(m => m.id === c.majorId)?.name || '';
-                    return <option key={c.id} value={c.id}>{c.name}{mjr ? ` - ${mjr}` : ''}</option>;
-                  })}
+                  <option value="">Semua Tingkat</option>
+                  {uniqueGradesForFilter.map(g => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
                 </select>
               </div>
               <div className="sm:col-span-3">
