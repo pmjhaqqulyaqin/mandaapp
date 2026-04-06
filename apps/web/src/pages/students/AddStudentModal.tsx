@@ -16,7 +16,7 @@ interface Props {
 }
 
 const INITIAL_FORM = {
-  fullName: '', nisn: '', nis: '', gender: '', birthPlace: '', birthDate: '', className: '', address: ''
+  fullName: '', nisn: '', nis: '', gender: '', birthPlace: '', birthDate: '', className: '', address: '', status: 'Aktif'
 };
 
 export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, majors, apiClient, onSuccess, editStudent }) => {
@@ -34,6 +34,7 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, maj
         birthDate: editStudent.birthDate ? editStudent.birthDate.split('T')[0] : '',
         className: editStudent.className || '',
         address: editStudent.address || '',
+        status: editStudent.status || 'Aktif',
       });
     } else if (isOpen) {
       setForm(INITIAL_FORM);
@@ -132,7 +133,7 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, maj
           <SectionHeader icon={<GraduationCap size={16} className="text-emerald-600" />} title="Data Akademik"
             subtitle="Informasi kelas dan jurusan." color="bg-emerald-500/10" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2 space-y-1.5">
+            <div className="space-y-1.5">
               <label className="text-xs font-medium text-text-secondary">Kelas</label>
               <select className="w-full h-10 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
                 value={form.className} onChange={e => setForm({ ...form, className: e.target.value })}>
@@ -140,6 +141,18 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, maj
                 {classOptions.map(c => <option key={c.id} value={c.name}>{c.label}</option>)}
               </select>
             </div>
+            
+            {isEditing && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-text-secondary">Status Siswa</label>
+                <select className="w-full h-10 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+                  <option value="Aktif">Aktif</option>
+                  <option value="Lulus">Lulus</option>
+                  <option value="Mutasi">Mutasi</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
