@@ -233,9 +233,7 @@ export class NISController {
         'NIS': s.nis || '-',
         'Nama Lengkap': s.fullName || '-',
         'NISN': s.nisn || '-',
-        'Kelas': s.className || '-',
         'Jenis Kelamin': s.gender || '-',
-        'Status': s.status || '-',
       }));
 
       const ws = xlsx.utils.json_to_sheet(data);

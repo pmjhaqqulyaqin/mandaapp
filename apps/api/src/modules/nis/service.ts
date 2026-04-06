@@ -1,11 +1,21 @@
 import { db } from "../../db";
 import { academicYears, nisBatches, nisActivityLogs, studentProfiles, user } from "../../db/schema";
-import { eq, desc, sql, ilike, or, and, isNull, count } from "drizzle-orm";
+import { eq, desc, sql, ilike, or, and, isNull, count, exists } from "drizzle-orm";
 
 export class NISService {
   // ─── Dashboard Stats ───
   static async getStats() {
-    const totalStudents = await db.select({ count: count() }).from(studentProfiles);
+    const totalStudents = await db.select({ count: count() }).from(studentProfiles)
+      .where(exists(
+        db.select()
+          .from(nisActivityLogs)
+          .where(
+            and(
+              eq(nisActivityLogs.studentId, studentProfiles.id),
+              or(eq(nisActivityLogs.action, 'batch_generate'), eq(nisActivityLogs.action, 'single_assign'))
+            )
+          )
+      ));
     const withoutNIS = await db.select({ count: count() }).from(studentProfiles)
       .where(or(isNull(studentProfiles.nis), eq(studentProfiles.nis, '')));
     const activeYear = await db.select().from(academicYears).where(eq(academicYears.isActive, true)).limit(1);
@@ -143,7 +153,7 @@ export class NISService {
       }
 
       await db.update(studentProfiles)
-        .set({ nis, updatedAt: new Date() })
+        .set({ nis, createdSource: 'nis_module', updatedAt: new Date() })
         .where(eq(studentProfiles.id, student.id));
 
       generated.push({ id: student.id, fullName: student.fullName, nis });
@@ -235,6 +245,7 @@ export class NISService {
           address: data.address || null,
           className: data.className || null,
           status: 'mutasi',
+          createdSource: 'nis_module',
           updatedAt: new Date()
         })
         .where(eq(studentProfiles.id, existingNisn[0].id))
@@ -252,6 +263,7 @@ export class NISService {
         address: data.address || null,
         className: data.className || null,
         status: 'mutasi',
+        createdSource: 'nis_module',
       }).returning();
       student = created[0];
     }
@@ -298,13 +310,12 @@ export class NISService {
       );
     }
 
-    if (filters.status) {
-      whereConditions.push(eq(studentProfiles.status, filters.status));
-    }
-
     if (filters.yearCode) {
       whereConditions.push(ilike(studentProfiles.nis, `${filters.yearCode}%`));
     }
+
+    // Filter to ONLY students who have been processed through the NIS module natively.
+    whereConditions.push(eq(studentProfiles.createdSource, 'nis_module'));
 
     const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 

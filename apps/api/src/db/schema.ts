@@ -102,6 +102,7 @@ export const studentProfiles = pgTable("student_profiles", {
   address: text("address"),
   photoUrl: varchar("photo_url", { length: 255 }),
   status: varchar("status", { length: 20 }).default("active"),
+  createdSource: varchar("created_source", { length: 50 }).default("student_module"), // student_module or nis_module
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });

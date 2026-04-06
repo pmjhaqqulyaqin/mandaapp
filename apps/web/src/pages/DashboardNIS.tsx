@@ -101,7 +101,6 @@ export const DashboardNIS = () => {
   const [recordsPage, setRecordsPage] = useState(1);
   const [recordsTotalPages, setRecordsTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('');
 
   // Batch state
@@ -152,10 +151,10 @@ export const DashboardNIS = () => {
 
   const fetchRecords = useCallback(async (page = 1) => {
     try {
-      const res = await apiClient<any>(`/nis/records?page=${page}&limit=10&search=${searchQuery}&status=${statusFilter}&yearCode=${yearFilter}`);
+      const res = await apiClient<any>(`/nis/records?page=${page}&limit=10&search=${searchQuery}&yearCode=${yearFilter}`);
       setRecords(res.records); setRecordsTotal(res.total); setRecordsTotalPages(res.totalPages); setRecordsPage(res.page);
     } catch (e) { console.error(e); }
-  }, [searchQuery, statusFilter, yearFilter]);
+  }, [searchQuery, yearFilter]);
 
   const fetchStudentsWithoutNIS = useCallback(async () => {
     try { setStudentsWithoutNIS(await apiClient<StudentRecord[]>('/nis/students-without-nis')); } catch (e) { console.error(e); }
@@ -165,7 +164,7 @@ export const DashboardNIS = () => {
     Promise.all([fetchStats(), fetchActivity(), fetchAcademicYears(), fetchRecords()]).finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { fetchRecords(); }, [searchQuery, statusFilter, yearFilter]);
+  useEffect(() => { fetchRecords(); }, [searchQuery, yearFilter]);
 
   // ─── Handlers ───
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -270,12 +269,10 @@ export const DashboardNIS = () => {
   useEffect(() => { if (activeTab === 'batch') fetchStudentsWithoutNIS(); }, [activeTab]);
 
   const tabs = [
-    { key: 'records' as const, label: 'Semua Data' },
+    { key: 'records' as const, label: 'Bank Data NIS' },
     { key: 'batch' as const, label: 'Generate Batch' },
     { key: 'single' as const, label: 'Entri Satuan' },
   ];
-
-  const quotaPercent = stats.totalStudents > 0 ? Math.round(((stats.totalStudents - stats.withoutNIS) / stats.totalStudents) * 100) : 0;
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -300,7 +297,7 @@ export const DashboardNIS = () => {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-        <StatCard icon={<Users size={16} className="text-blue-600" />} label="Total Siswa" value={stats.totalStudents.toLocaleString()} color="bg-blue-500" />
+        <StatCard icon={<Users size={16} className="text-blue-600" />} label="Total Di Bank Data" value={stats.totalStudents.toLocaleString()} color="bg-blue-500" />
         <StatCard icon={<AlertCircle size={16} className="text-amber-600" />} label="Belum Ada NIS" value={stats.withoutNIS} sub="Perlu perhatian" color="bg-amber-500" />
         <StatCard icon={<Calendar size={16} className="text-emerald-600" />} label="Tahun Ajaran Aktif" value={stats.activeYear?.tahunAjaran || '-'} color="bg-emerald-500" />
       </div>
@@ -324,15 +321,8 @@ export const DashboardNIS = () => {
           {activeTab === 'records' && (
             <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] overflow-hidden">
               <div className="px-3 py-2.5 border-b border-gray-100 dark:border-[#222] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-                <h3 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary">Daftar & Manajemen NIS</h3>
+                <h3 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary">Bank Data NIS</h3>
                 <div className="flex items-center gap-2">
-                  <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-                    className="bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-md px-2 py-1.5 text-xs outline-none">
-                    <option value="">Semua Status</option>
-                    <option value="active">Aktif</option>
-                    <option value="mutasi">Mutasi</option>
-                    <option value="alumni">Alumni</option>
-                  </select>
                   <select value={yearFilter} onChange={e => setYearFilter(e.target.value)}
                     className="bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-md px-2 py-1.5 text-xs outline-none">
                     <option value="">Semua Tahun Ajaran</option>
@@ -346,7 +336,7 @@ export const DashboardNIS = () => {
                       placeholder="Cari NIS atau nama..."
                       className="pl-8 pr-2 py-1.5 text-xs bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-md outline-none focus:ring-2 focus:ring-primary/30 w-40" />
                   </div>
-                  <a href={`${API_BASE_URL}/nis/export?search=${searchQuery}&status=${statusFilter}&yearCode=${yearFilter}`}
+                  <a href={`${API_BASE_URL}/nis/export?search=${searchQuery}&yearCode=${yearFilter}`}
                     className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
                     <Download size={12} /> Ekspor Excel
                   </a>
@@ -359,7 +349,6 @@ export const DashboardNIS = () => {
                       <th className="py-2 px-3 font-semibold">NIS</th>
                       <th className="py-2 px-3 font-semibold">Nama Lengkap</th>
                       <th className="py-2 px-3 font-semibold">NISN</th>
-                      <th className="py-2 px-3 font-semibold">Status</th>
                       <th className="py-2 px-3 font-semibold text-center">Aksi</th>
                     </tr>
                   </thead>
@@ -369,7 +358,6 @@ export const DashboardNIS = () => {
                         <td className="py-2 px-3 text-xs font-mono text-primary font-semibold">#{r.nis || '-'}</td>
                         <td className="py-2 px-3 text-xs font-medium text-text-primary dark:text-text-darkPrimary">{r.fullName || '-'}</td>
                         <td className="py-2 px-3 text-xs text-text-secondary">{r.nisn || '-'}</td>
-                        <td className="py-2 px-3"><StatusBadge status={r.status} /></td>
                         <td className="py-2 px-3 text-center">
                           <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onClick={() => { setEditModal({ open: true, student: r }); setEditNisValue(r.nis || ''); }}
@@ -379,7 +367,7 @@ export const DashboardNIS = () => {
                       </tr>
                     ))}
                     {records.length === 0 && (
-                      <tr><td colSpan={5} className="py-8 text-center text-gray-400 text-xs">Belum ada data NIS.</td></tr>
+                      <tr><td colSpan={4} className="py-8 text-center text-gray-400 text-xs">Belum ada data di Bank NIS.</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -631,17 +619,9 @@ export const DashboardNIS = () => {
               <button onClick={fetchActivity} className="text-[10px] text-primary hover:underline">Lihat Semua</button>
             </div>
             <div className="divide-y divide-gray-100 dark:divide-[#1a1a1a]">
-              {activity.length > 0 ? activity.slice(0, 5).map(log => <ActivityItem key={log.id} log={log} />)
+              {activity.length > 0 ? activity.slice(0, 10).map(log => <ActivityItem key={log.id} log={log} />)
                 : <p className="py-4 text-center text-xs text-gray-400">Belum ada aktivitas</p>}
             </div>
-          </div>
-          <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-3">
-            <h4 className="text-xs font-semibold text-text-primary dark:text-text-darkPrimary mb-2">Kuota Penggunaan</h4>
-            <p className="text-2xl font-bold text-text-primary dark:text-text-darkPrimary">{quotaPercent}%</p>
-            <div className="w-full bg-gray-200 dark:bg-[#222] rounded-full h-1.5 mt-1.5 overflow-hidden">
-              <div className="bg-primary h-1.5 rounded-full transition-all duration-500" style={{ width: `${quotaPercent}%` }} />
-            </div>
-            <p className="text-[10px] text-text-secondary mt-1.5">{stats.totalStudents - stats.withoutNIS} dari {stats.totalStudents} NIS telah diterbitkan</p>
           </div>
         </div>
       </div>
