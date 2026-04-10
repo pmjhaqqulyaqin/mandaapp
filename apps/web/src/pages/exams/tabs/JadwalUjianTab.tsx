@@ -9,6 +9,7 @@ interface Props {
 
 const HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
+export const JadwalUjianTab = ({ ujianId }: Props) => {
   const [jadwal, setJadwal] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
