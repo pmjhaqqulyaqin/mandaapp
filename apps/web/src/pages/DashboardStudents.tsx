@@ -267,7 +267,7 @@ export const DashboardStudents = () => {
           <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] px-3 py-2">
             <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end">
               <div className="flex-[3] min-w-0">
-                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-0.5 block">Cari Nama atau NIS</label>
+                <label className="text-[9px] font-semibold uppercase tracking-wider text-text-secondary mb-0.5 block">Cari Nama atau NIS</label>
                 <div className="relative">
                   <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input className="w-full h-8 pl-8 pr-3 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] text-xs outline-none focus:ring-2 focus:ring-primary/30"
@@ -276,7 +276,7 @@ export const DashboardStudents = () => {
                 </div>
               </div>
               <div className="flex-[2] min-w-0">
-                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-0.5 block">Filter Tingkat Kelas</label>
+                <label className="text-[9px] font-semibold uppercase tracking-wider text-text-secondary mb-0.5 block">Filter Tingkat Kelas</label>
                 <select className="w-full h-8 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] px-2.5 text-xs outline-none focus:ring-2 focus:ring-primary/30"
                   value={filterClass} onChange={e => setFilterClass(e.target.value)}>
                   <option value="">Semua Tingkat</option>
@@ -286,7 +286,7 @@ export const DashboardStudents = () => {
                 </select>
               </div>
               <div className="flex-[2] min-w-0">
-                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-0.5 block">Filter Jurusan</label>
+                <label className="text-[9px] font-semibold uppercase tracking-wider text-text-secondary mb-0.5 block">Filter Jurusan</label>
                 <select className="w-full h-8 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] px-2.5 text-xs outline-none focus:ring-2 focus:ring-primary/30"
                   value={filterMajor} onChange={e => setFilterMajor(e.target.value)}>
                   <option value="">Semua Jurusan</option>
@@ -294,7 +294,7 @@ export const DashboardStudents = () => {
                 </select>
               </div>
               <div className="flex-[1.5] min-w-0">
-                <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-0.5 block">Filter Status</label>
+                <label className="text-[9px] font-semibold uppercase tracking-wider text-text-secondary mb-0.5 block">Filter Status</label>
                 <select className="w-full h-8 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] px-2.5 text-xs outline-none focus:ring-2 focus:ring-primary/30"
                   value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
                   <option value="Aktif">Aktif</option>
