@@ -90,8 +90,8 @@ export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, onSuccess }: P
   if (!isOpen) return null;
 
   const filteredEmployees = employees.filter(e => {
-    // Only show employees of type "Guru" (exclude Tenaga Kependidikan)
-    if (e.type !== 'Guru') return false;
+    // Only show employees of type "Guru" (exclude Tenaga Kependidikan). Case insensitive.
+    if ((e.type || '').toLowerCase().trim() !== 'guru') return false;
 
     // Exclude committee members (panitia + ketua panitia)
     const isCommittee = committeeIds.includes(e.id);
