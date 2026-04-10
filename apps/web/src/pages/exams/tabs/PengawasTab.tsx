@@ -240,6 +240,7 @@ export const PengawasTab = ({ ujianId }: Props) => {
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         ujian={ujian}
+        allEmployees={allEmployees}
         onSuccess={fetchData}
       />
     </div>

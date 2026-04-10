@@ -7,11 +7,11 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   ujian: any;
+  allEmployees: any[];
   onSuccess: () => void;
 }
 
-export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, onSuccess }: Props) => {
-  const [employees, setEmployees] = useState<any[]>([]);
+export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, allEmployees, onSuccess }: Props) => {
   const [loading, setLoading] = useState(true);
   const [group1, setGroup1] = useState<string[]>([]);
   const [group2, setGroup2] = useState<string[]>([]);
@@ -31,16 +31,6 @@ export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, onSuccess }: P
   const fetchData = async () => {
     if (!ujian?.id) return;
     setLoading(true);
-
-    // Fetch employees independently - don't let one failure kill the other
-    let empData: any[] = [];
-    try {
-      const result = await apiClient<any[]>('/employees');
-      empData = Array.isArray(result) ? result : [];
-    } catch (err) {
-      console.error('Failed to fetch employees:', err);
-    }
-    setEmployees(empData);
 
     // Fetch panitia data independently
     try {
@@ -89,7 +79,7 @@ export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, onSuccess }: P
 
   if (!isOpen) return null;
 
-  const filteredEmployees = employees.filter(e => {
+  const filteredEmployees = (allEmployees || []).filter(e => {
     // Only show employees of type "Guru" (exclude Tenaga Kependidikan). Case insensitive.
     if ((e.type || '').toLowerCase().trim() !== 'guru') return false;
 
@@ -102,12 +92,12 @@ export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, onSuccess }: P
       (e.task?.toLowerCase() || '').includes('kepala sekolah');
 
     const isAlreadyInGroup = group1.includes(e.id) || group2.includes(e.id);
-    const matchesSearch = e.name.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = (e.name || '').toLowerCase().includes(search.toLowerCase());
 
     return matchesSearch && !isCommittee && !isHeadmaster && !isAlreadyInGroup;
   });
 
-  const getEmpName = (id: string) => employees.find(e => e.id === id)?.name || 'Loading...';
+  const getEmpName = (id: string) => (allEmployees || []).find(e => e.id === id)?.name || 'Loading...';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
