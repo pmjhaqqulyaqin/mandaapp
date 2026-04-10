@@ -197,11 +197,11 @@ export class ExamService {
 
     const holidayDates = new Set<string>();
     holidayList.forEach(h => {
-       const hStart = new Date(h.eventDate);
-       const hEnd = h.endDate ? new Date(h.endDate) : hStart;
-       for (let d = new Date(hStart); d <= hEnd; d.setDate(d.getDate() + 1)) {
-         holidayDates.add(d.toISOString().split('T')[0]);
-       }
+      const hStart = new Date(h.eventDate);
+      const hEnd = h.endDate ? new Date(h.endDate) : hStart;
+      for (let d = new Date(hStart); d <= hEnd; d.setDate(d.getDate() + 1)) {
+        holidayDates.add(d.toISOString().split('T')[0]);
+      }
     });
 
     let no = 1;
@@ -216,9 +216,9 @@ export class ExamService {
       const hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
       const dateStr = `${hariNames[d.getDay()]}, ${d.toLocaleDateString('id-ID')}`;
 
-      const row1: any = { no: no++, hariTanggal: dateStr, waktu: `${sesi[0]?.mulai||''} - ${sesi[0]?.selesai||''}` };
+      const row1: any = { no: no++, hariTanggal: dateStr, waktu: `${sesi[0]?.mulai || ''} - ${sesi[0]?.selesai || ''}` };
       sheet.addRow(row1);
-      const row2: any = { no: no++, hariTanggal: '', waktu: `${sesi[1]?.mulai||''} - ${sesi[1]?.selesai||''}` };
+      const row2: any = { no: no++, hariTanggal: '', waktu: `${sesi[1]?.mulai || ''} - ${sesi[1]?.selesai || ''}` };
       sheet.addRow(row2);
     }
 
@@ -249,8 +249,8 @@ export class ExamService {
           const rawDateStr = parts[1].trim();
           const [d, m, y] = rawDateStr.split(/[\/\-]/); // Works for DD/MM/YYYY
           if (d && m && y) {
-             const yearObj = y.length === 2 ? `20${y}` : y;
-             lastTanggal = `${yearObj}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+            const yearObj = y.length === 2 ? `20${y}` : y;
+            lastTanggal = `${yearObj}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
           } else lastTanggal = rawDateStr;
         } else {
           lastTanggal = ht;
@@ -284,16 +284,16 @@ export class ExamService {
     });
 
     const finalRows = Object.entries(grouped).map(([key, classes]) => {
-       const [tanggal, waktuMulai, waktuSelesai, mapel] = key.split('__');
-       return {
-            id: uuidv4(),
-            ujianId,
-            tanggal,
-            waktuMulai,
-            waktuSelesai,
-            mataPelajaran: mapel,
-            kelas: classes.join(', ')
-       };
+      const [tanggal, waktuMulai, waktuSelesai, mapel] = key.split('__');
+      return {
+        id: uuidv4(),
+        ujianId,
+        tanggal,
+        waktuMulai,
+        waktuSelesai,
+        mataPelajaran: mapel,
+        kelas: classes.join(', ')
+      };
     });
 
     const importHolidays = await db.select().from(schoolEvents).where(
@@ -301,11 +301,11 @@ export class ExamService {
     );
     const holidayDates = new Set<string>();
     importHolidays.forEach(h => {
-       const hStart = new Date(h.eventDate);
-       const hEnd = h.endDate ? new Date(h.endDate) : hStart;
-       for (let d = new Date(hStart); d <= hEnd; d.setDate(d.getDate() + 1)) {
-         holidayDates.add(d.toISOString().split('T')[0]);
-       }
+      const hStart = new Date(h.eventDate);
+      const hEnd = h.endDate ? new Date(h.endDate) : hStart;
+      for (let d = new Date(hStart); d <= hEnd; d.setDate(d.getDate() + 1)) {
+        holidayDates.add(d.toISOString().split('T')[0]);
+      }
     });
 
     for (const row of finalRows) {
@@ -382,7 +382,7 @@ export class ExamService {
     sheet.getCell(4, 1).alignment = { horizontal: 'center' };
 
     const headerBorderObj = { bottom: { style: 'double' } } as any;
-    for(let c = 1; c <= totalCols; c++) {
+    for (let c = 1; c <= totalCols; c++) {
       sheet.getCell(4, c).border = headerBorderObj;
     }
 
@@ -399,101 +399,101 @@ export class ExamService {
     sheet.mergeCells(8, 2, 9, 2); sheet.getCell(8, 2).value = 'Hari / Tanggal';
     sheet.mergeCells(8, 3, 9, 3); sheet.getCell(8, 3).value = 'Waktu';
 
-    if(classNames.length > 0) {
+    if (classNames.length > 0) {
       sheet.mergeCells(8, 4, 8, totalCols);
       sheet.getCell(8, 4).value = 'Kelas / Jurusan';
       sheet.getCell(8, 4).alignment = { horizontal: 'center' };
       classNames.forEach((n, idx) => {
-         sheet.getCell(9, 4 + idx).value = n;
+        sheet.getCell(9, 4 + idx).value = n;
       });
     }
 
-    for(let r=8; r<=9; r++) {
-        for(let c=1; c<=totalCols; c++) {
-            const cell = sheet.getCell(r, c);
-            cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            cell.font = { bold: true, size: 10 };
-        }
+    for (let r = 8; r <= 9; r++) {
+      for (let c = 1; c <= totalCols; c++) {
+        const cell = sheet.getCell(r, c);
+        cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.font = { bold: true, size: 10 };
+      }
     }
 
     const hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
     const dateMap = new Map();
     jadwal.forEach((r: any) => {
-       if(!dateMap.has(r.tanggal)) {
-         const d = new Date(r.tanggal);
-         dateMap.set(r.tanggal, { dateStr: `${hariNames[d.getDay()]}, ${d.toLocaleDateString('id-ID')}`, tDate: d.getTime(), sessions: new Map() });
-       }
-       const dObj = dateMap.get(r.tanggal);
-       const tKey = `${r.waktuMulai} - ${r.waktuSelesai}`;
+      if (!dateMap.has(r.tanggal)) {
+        const d = new Date(r.tanggal);
+        dateMap.set(r.tanggal, { dateStr: `${hariNames[d.getDay()]}, ${d.toLocaleDateString('id-ID')}`, tDate: d.getTime(), sessions: new Map() });
+      }
+      const dObj = dateMap.get(r.tanggal);
+      const tKey = `${r.waktuMulai} - ${r.waktuSelesai}`;
 
-       if(!dObj.sessions.has(tKey)) dObj.sessions.set(tKey, {});
-       const sObj = dObj.sessions.get(tKey);
-       
-       const classesInRow = (r.kelas || '').split(',').map((c:string) => c.trim());
-       classesInRow.forEach((c:string) => {
-         if(c && c !== '') sObj[c] = r.mataPelajaran;
-       });
+      if (!dObj.sessions.has(tKey)) dObj.sessions.set(tKey, {});
+      const sObj = dObj.sessions.get(tKey);
+
+      const classesInRow = (r.kelas || '').split(',').map((c: string) => c.trim());
+      classesInRow.forEach((c: string) => {
+        if (c && c !== '') sObj[c] = r.mataPelajaran;
+      });
     });
 
-    const dateArray = Array.from(dateMap.values()).sort((a,b) => a.tDate - b.tDate);
-    
+    const dateArray = Array.from(dateMap.values()).sort((a, b) => a.tDate - b.tDate);
+
     let currentRowNum = 10;
     let no = 1;
 
     dateArray.forEach(dObj => {
-       const sessions = Array.from(dObj.sessions.entries()).sort((a:any, b:any) => a[0].localeCompare(b[0]));
-       
-       sessions.forEach((sess:any, idx: number) => {
-          const rowData = [];
-          if(idx === 0) {
-             rowData.push(no++);
-             rowData.push(dObj.dateStr);
-          } else {
-             rowData.push('');
-             rowData.push('');
-          }
-          rowData.push(sess[0]);
+      const sessions = Array.from(dObj.sessions.entries()).sort((a: any, b: any) => a[0].localeCompare(b[0]));
 
-          classNames.forEach(cn => {
-             rowData.push(sess[1][cn] || '-');
-          });
+      sessions.forEach((sess: any, idx: number) => {
+        const rowData = [];
+        if (idx === 0) {
+          rowData.push(no++);
+          rowData.push(dObj.dateStr);
+        } else {
+          rowData.push('');
+          rowData.push('');
+        }
+        rowData.push(sess[0]);
 
-          sheet.addRow(rowData);
-          for(let c=1; c<=totalCols; c++) {
-              const cell = sheet.getCell(currentRowNum, c);
-              cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-              cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-              cell.font = { size: 10 };
-          }
-          currentRowNum++;
-       });
-       
-       if(sessions.length > 1) {
-          const startR = currentRowNum - sessions.length;
-          const endR = currentRowNum - 1;
-          sheet.mergeCells(startR, 1, endR, 1); // No
-          sheet.mergeCells(startR, 2, endR, 2); // Hari/Tgl
-       }
+        classNames.forEach(cn => {
+          rowData.push(sess[1][cn] || '-');
+        });
+
+        sheet.addRow(rowData);
+        for (let c = 1; c <= totalCols; c++) {
+          const cell = sheet.getCell(currentRowNum, c);
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+          cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+          cell.font = { size: 10 };
+        }
+        currentRowNum++;
+      });
+
+      if (sessions.length > 1) {
+        const startR = currentRowNum - sessions.length;
+        const endR = currentRowNum - 1;
+        sheet.mergeCells(startR, 1, endR, 1); // No
+        sheet.mergeCells(startR, 2, endR, 2); // Hari/Tgl
+      }
     });
 
     sheet.addRow([]); sheet.addRow([]);
     const ttdR = currentRowNum + 2;
     const ttdColStr = Math.max(1, totalCols - 2);
 
-    const dStr = ttd.tanggal ? new Date(ttd.tanggal).toLocaleDateString('id-ID', {day: '2-digit', month: 'long', year: 'numeric'}) : '';
+    const dStr = ttd.tanggal ? new Date(ttd.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
     sheet.getCell(ttdR, ttdColStr).value = `${ttd.tempat || 'Tempat'}, ${dStr}`;
-    sheet.getCell(ttdR+1, ttdColStr).value = ttd.jabatan || 'Kepala Madrasah';
-    
-    sheet.getCell(ttdR+5, ttdColStr).value = ttd.nama || '';
-    sheet.getCell(ttdR+5, ttdColStr).font = { bold: true };
-    sheet.getCell(ttdR+6, ttdColStr).value = `NIP. ${ttd.nip || ''}`;
+    sheet.getCell(ttdR + 1, ttdColStr).value = ttd.jabatan || 'Kepala Madrasah';
+
+    sheet.getCell(ttdR + 5, ttdColStr).value = ttd.nama || '';
+    sheet.getCell(ttdR + 5, ttdColStr).font = { bold: true };
+    sheet.getCell(ttdR + 6, ttdColStr).value = `NIP. ${ttd.nip || ''}`;
 
     // Columns width
     sheet.getColumn(1).width = 5;
     sheet.getColumn(2).width = 20;
     sheet.getColumn(3).width = 18;
-    for(let c=4; c<=totalCols; c++) sheet.getColumn(c).width = 18;
+    for (let c = 4; c <= totalCols; c++) sheet.getColumn(c).width = 18;
 
     return await workbook.xlsx.writeBuffer();
   }
@@ -581,7 +581,7 @@ export class ExamService {
   }
 
   static async generatePengawas(ujianId: string) {
-    const ujianData = await this.getById(ujianId);
+    const ujianData = await this.getUjianById(ujianId);
     if (!ujianData) throw new Error('Ujian tidak ditemukan');
 
     const config = ujianData.pengaturan as any || {};
@@ -605,21 +605,21 @@ export class ExamService {
     // Identify unique sessions (Tanggal + Waktu)
     const sessionMap = new Map();
     jadwalList.forEach((j: any) => {
-       const key = `${j.tanggal}_${j.waktuMulai}_${j.waktuSelesai}`;
-       if (!sessionMap.has(key)) {
-         sessionMap.set(key, { 
-           tanggal: j.tanggal, 
-           waktuMulai: j.waktuMulai, 
-           waktuSelesai: j.waktuSelesai,
-           ids: [] 
-         });
-       }
-       sessionMap.get(key).ids.push(j.id);
+      const key = `${j.tanggal}_${j.waktuMulai}_${j.waktuSelesai}`;
+      if (!sessionMap.has(key)) {
+        sessionMap.set(key, {
+          tanggal: j.tanggal,
+          waktuMulai: j.waktuMulai,
+          waktuSelesai: j.waktuSelesai,
+          ids: []
+        });
+      }
+      sessionMap.get(key).ids.push(j.id);
     });
 
-    const sessions = Array.from(sessionMap.values()).sort((a,b) => {
-       if (a.tanggal !== b.tanggal) return a.tanggal.localeCompare(b.tanggal);
-       return a.waktuMulai.localeCompare(b.waktuMulai);
+    const sessions = Array.from(sessionMap.values()).sort((a, b) => {
+      if (a.tanggal !== b.tanggal) return a.tanggal.localeCompare(b.tanggal);
+      return a.waktuMulai.localeCompare(b.waktuMulai);
     });
 
     // Clear existing
@@ -631,34 +631,34 @@ export class ExamService {
     const L2 = group2.length;
 
     sessions.forEach((sess, sIdx) => {
-       ruangList.forEach((ruang, rIdx) => {
-          // Algorithm: G1 shifts -1, G2 shifts +1
-          const idx1 = (((rIdx - sIdx) % L1) + L1) % L1;
-          const idx2 = (rIdx + sIdx) % L2;
+      ruangList.forEach((ruang, rIdx) => {
+        // Algorithm: G1 shifts -1, G2 shifts +1
+        const idx1 = (((rIdx - sIdx) % L1) + L1) % L1;
+        const idx2 = (rIdx + sIdx) % L2;
 
-          const p1Id = group1[idx1];
-          const p2Id = group2[idx2];
+        const p1Id = group1[idx1];
+        const p2Id = group2[idx2];
 
-          // Assign both to every jadwal ID in this session
-          sess.ids.forEach((jId: string) => {
-             // Proctor 1 (Numeric)
-             assignments.push({
-               id: uuidv4(),
-               jadwalId: jId,
-               ruangId: ruang.id,
-               pengawasId: p1Id,
-               kodeLabel: (idx1 + 1).toString()
-             });
-             // Proctor 2 (Alphabetic)
-             assignments.push({
-               id: uuidv4(),
-               jadwalId: jId,
-               ruangId: ruang.id,
-               pengawasId: p2Id,
-               kodeLabel: this.getAlphaCode(idx2)
-             });
+        // Assign both to every jadwal ID in this session
+        sess.ids.forEach((jId: string) => {
+          // Proctor 1 (Numeric)
+          assignments.push({
+            id: uuidv4(),
+            jadwalId: jId,
+            ruangId: ruang.id,
+            pengawasId: p1Id,
+            kodeLabel: (idx1 + 1).toString()
           });
-       });
+          // Proctor 2 (Alphabetic)
+          assignments.push({
+            id: uuidv4(),
+            jadwalId: jId,
+            ruangId: ruang.id,
+            pengawasId: p2Id,
+            kodeLabel: this.getAlphaCode(idx2)
+          });
+        });
+      });
     });
 
     if (assignments.length > 0) {
@@ -669,23 +669,23 @@ export class ExamService {
   }
 
   static async exportPengawasExcel(ujianId: string) {
-    const ujianData = await this.getById(ujianId);
+    const ujianData = await this.getUjianById(ujianId);
     if (!ujianData) throw new Error('Ujian tidak ditemukan');
 
     const config = ujianData.pengaturan as any || {};
     const ttd = config.ttd || {};
     const kop = config.kop || {};
-    
+
     const ruangList = await this.getRuang(ujianId);
     const jadwalList = await this.getJadwal(ujianId);
     const pengawasData = await this.getPengawas(ujianId);
 
     const group1Ids = config.pengawasGroups?.group1 || [];
     const group2Ids = config.pengawasGroups?.group2 || [];
-    
+
     // Fetch employee names for legend
     const allGroupIds = [...new Set([...group1Ids, ...group2Ids])];
-    const employeesData = allGroupIds.length > 0 
+    const employeesData = allGroupIds.length > 0
       ? await db.select().from(employees).where(inArray(employees.id, allGroupIds))
       : [];
     const employeeMap = new Map(employeesData.map(e => [e.id, e.name]));
@@ -742,7 +742,7 @@ export class ExamService {
     sheet.getCell(headRow, 5).alignment = { horizontal: 'center' };
 
     ruangList.forEach((r, idx) => {
-       sheet.getCell(headRow + 1, 5 + idx).value = r.namaRuang;
+      sheet.getCell(headRow + 1, 5 + idx).value = r.namaRuang;
     });
 
     // Style Header
@@ -759,32 +759,32 @@ export class ExamService {
     // 4. DATA MATRIX
     const sessionMap = new Map();
     jadwalList.forEach((j: any) => {
-       const key = `${j.tanggal}_${j.waktuMulai}_${j.waktuSelesai}`;
-       if (!sessionMap.has(key)) {
-         const d = new Date(j.tanggal);
-         const hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-         sessionMap.set(key, { 
-           tanggal: j.tanggal,
-           dateStr: `${hariNames[d.getDay()]}\n${d.toLocaleDateString('id-ID')}`, 
-           waktu: `${j.waktuMulai} - ${j.waktuSelesai}`,
-           tDate: d.getTime(), 
-           wStart: j.waktuMulai,
-           ids: [] 
-         });
-       }
-       sessionMap.get(key).ids.push(j.id);
+      const key = `${j.tanggal}_${j.waktuMulai}_${j.waktuSelesai}`;
+      if (!sessionMap.has(key)) {
+        const d = new Date(j.tanggal);
+        const hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        sessionMap.set(key, {
+          tanggal: j.tanggal,
+          dateStr: `${hariNames[d.getDay()]}\n${d.toLocaleDateString('id-ID')}`,
+          waktu: `${j.waktuMulai} - ${j.waktuSelesai}`,
+          tDate: d.getTime(),
+          wStart: j.waktuMulai,
+          ids: []
+        });
+      }
+      sessionMap.get(key).ids.push(j.id);
     });
 
-    const sessions = Array.from(sessionMap.values()).sort((a,b) => {
-       if (a.tDate !== b.tDate) return a.tDate - b.tDate;
-       return a.wStart.localeCompare(b.wStart);
+    const sessions = Array.from(sessionMap.values()).sort((a, b) => {
+      if (a.tDate !== b.tDate) return a.tDate - b.tDate;
+      return a.wStart.localeCompare(b.wStart);
     });
 
     const assignmentsMap = new Map(); // key: jadwalId_ruangId, value: codes[]
     pengawasData.forEach(p => {
-       const key = `${p.jadwalId}_${p.ruangId}`;
-       if(!assignmentsMap.has(key)) assignmentsMap.set(key, []);
-       assignmentsMap.get(key).push(p.kodeLabel);
+      const key = `${p.jadwalId}_${p.ruangId}`;
+      if (!assignmentsMap.has(key)) assignmentsMap.set(key, []);
+      assignmentsMap.get(key).push(p.kodeLabel);
     });
 
     let currentRowNum = headRow + 2;
@@ -792,58 +792,58 @@ export class ExamService {
     let lastDate = '';
 
     sessions.forEach((sess, sIdx) => {
-        const rowData = [];
-        
-        // No & Tanggal merging logic
-        if (sess.tanggal !== lastDate) {
-            rowData.push(noCounter++);
-            rowData.push(sess.dateStr);
-            lastDate = sess.tanggal;
-        } else {
-            rowData.push('');
-            rowData.push('');
-        }
+      const rowData = [];
 
-        // Sesi (Jam)
-        // Find session order for this day
-        const daySessions = sessions.filter(s => s.tanggal === sess.tanggal);
-        const sessIdxOnDay = daySessions.indexOf(sess);
-        const roman = ['I', 'II', 'III', 'IV', 'V'][sessIdxOnDay] || (sessIdxOnDay + 1).toString();
-        rowData.push(roman);
-        rowData.push(sess.waktu);
+      // No & Tanggal merging logic
+      if (sess.tanggal !== lastDate) {
+        rowData.push(noCounter++);
+        rowData.push(sess.dateStr);
+        lastDate = sess.tanggal;
+      } else {
+        rowData.push('');
+        rowData.push('');
+      }
 
-        // Rooms
-        ruangList.forEach(ruang => {
-           // We need one of the jadwalIds from this session
-           const jId = sess.ids[0];
-           const codes = assignmentsMap.get(`${jId}_${ruang.id}`) || [];
-           rowData.push(codes.sort().join('   ')); // Space between codes
-        });
+      // Sesi (Jam)
+      // Find session order for this day
+      const daySessions = sessions.filter(s => s.tanggal === sess.tanggal);
+      const sessIdxOnDay = daySessions.indexOf(sess);
+      const roman = ['I', 'II', 'III', 'IV', 'V'][sessIdxOnDay] || (sessIdxOnDay + 1).toString();
+      rowData.push(roman);
+      rowData.push(sess.waktu);
 
-        const row = sheet.addRow(rowData);
-        row.height = 25;
+      // Rooms
+      ruangList.forEach(ruang => {
+        // We need one of the jadwalIds from this session
+        const jId = sess.ids[0];
+        const codes = assignmentsMap.get(`${jId}_${ruang.id}`) || [];
+        rowData.push(codes.sort().join('   ')); // Space between codes
+      });
 
-        for (let c = 1; c <= totalCols; c++) {
-          const cell = sheet.getCell(currentRowNum, c);
-          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-          cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          cell.font = { size: 9 };
-        }
-        currentRowNum++;
+      const row = sheet.addRow(rowData);
+      row.height = 25;
+
+      for (let c = 1; c <= totalCols; c++) {
+        const cell = sheet.getCell(currentRowNum, c);
+        cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.font = { size: 9 };
+      }
+      currentRowNum++;
     });
 
     // Merge cells for No and Hari/Tanggal
     let mergeStart = headRow + 2;
-    for(let i=0; i<sessions.length; i++) {
-        const current = sessions[i];
-        const next = sessions[i+1];
-        if(!next || next.tanggal !== current.tanggal) {
-            if(mergeStart < headRow + 2 + i) {
-                sheet.mergeCells(mergeStart, 1, headRow + 2 + i, 1);
-                sheet.mergeCells(mergeStart, 2, headRow + 2 + i, 2);
-            }
-            mergeStart = headRow + 2 + i + 1;
+    for (let i = 0; i < sessions.length; i++) {
+      const current = sessions[i];
+      const next = sessions[i + 1];
+      if (!next || next.tanggal !== current.tanggal) {
+        if (mergeStart < headRow + 2 + i) {
+          sheet.mergeCells(mergeStart, 1, headRow + 2 + i, 1);
+          sheet.mergeCells(mergeStart, 2, headRow + 2 + i, 2);
         }
+        mergeStart = headRow + 2 + i + 1;
+      }
     }
 
     // 5. LEGEND TABLE (KODE & NAMA PENGAWAS)
@@ -853,43 +853,43 @@ export class ExamService {
     sheet.mergeCells(legendStartRow, 1, legendStartRow, 4);
     sheet.getCell(legendStartRow, 1).alignment = { horizontal: 'center' };
     sheet.getCell(legendStartRow, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
-    sheet.getCell(legendStartRow, 1).border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+    sheet.getCell(legendStartRow, 1).border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
 
     const legendHead = sheet.addRow(['', 'Pengawas I', '', 'Pengawas II']);
     legendHead.font = { bold: true, size: 8 };
     sheet.getRow(legendStartRow + 1).height = 15;
-    for(let c=1; c<=4; c++) {
-        const cell = sheet.getCell(legendStartRow+1, c);
-        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-        cell.alignment = { horizontal: 'center' };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+    for (let c = 1; c <= 4; c++) {
+      const cell = sheet.getCell(legendStartRow + 1, c);
+      cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+      cell.alignment = { horizontal: 'center' };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
     }
-    sheet.mergeCells(legendStartRow+1, 1, legendStartRow+1, 2);
-    sheet.mergeCells(legendStartRow+1, 3, legendStartRow+1, 4);
+    sheet.mergeCells(legendStartRow + 1, 1, legendStartRow + 1, 2);
+    sheet.mergeCells(legendStartRow + 1, 3, legendStartRow + 1, 4);
 
     const maxLegend = Math.max(group1Ids.length, group2Ids.length);
-    for(let i=0; i<maxLegend; i++) {
-        const p1Id = group1Ids[i];
-        const p1Name = p1Id ? employeeMap.get(p1Id) || '-' : '';
-        const p1Code = p1Id ? (i + 1).toString() : '';
+    for (let i = 0; i < maxLegend; i++) {
+      const p1Id = group1Ids[i];
+      const p1Name = p1Id ? employeeMap.get(p1Id) || '-' : '';
+      const p1Code = p1Id ? (i + 1).toString() : '';
 
-        const p2Id = group2Ids[i];
-        const p2Name = p2Id ? employeeMap.get(p2Id) || '-' : '';
-        const p2Code = p2Id ? this.getAlphaCode(i) : '';
+      const p2Id = group2Ids[i];
+      const p2Name = p2Id ? employeeMap.get(p2Id) || '-' : '';
+      const p2Code = p2Id ? this.getAlphaCode(i) : '';
 
-        const row = sheet.addRow([p1Code, p1Name, p2Code, p2Name]);
-        row.font = { size: 8 };
-        for(let c=1; c<=4; c++) {
-            sheet.getCell(legendStartRow + 2 + i, c).border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-            if(c === 1 || c === 3) sheet.getCell(legendStartRow + 2 + i, c).alignment = { horizontal: 'center' };
-        }
+      const row = sheet.addRow([p1Code, p1Name, p2Code, p2Name]);
+      row.font = { size: 8 };
+      for (let c = 1; c <= 4; c++) {
+        sheet.getCell(legendStartRow + 2 + i, c).border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        if (c === 1 || c === 3) sheet.getCell(legendStartRow + 2 + i, c).alignment = { horizontal: 'center' };
+      }
     }
 
     // 6. SIGNATURES
     const ttdRow = legendStartRow + 2;
     const ttdColStr = Math.max(6, totalCols - 1);
-    const dStr = ttd.tanggal ? new Date(ttd.tanggal).toLocaleDateString('id-ID', {day: '2-digit', month: 'long', year: 'numeric'}) : '';
-    
+    const dStr = ttd.tanggal ? new Date(ttd.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
+
     sheet.getCell(ttdRow, ttdColStr).value = `${ttd.tempat || 'Wanasaba'}, ${dStr}`;
     sheet.getCell(ttdRow + 1, ttdColStr).value = ttd.jabatan || 'Kepala Madrasah';
     sheet.getCell(ttdRow + 5, ttdColStr).value = ttd.nama || '';
@@ -901,7 +901,7 @@ export class ExamService {
     sheet.getColumn(2).width = 15;
     sheet.getColumn(3).width = 5;
     sheet.getColumn(4).width = 14;
-    for(let c=5; c<=totalCols; c++) sheet.getColumn(c).width = 8;
+    for (let c = 5; c <= totalCols; c++) sheet.getColumn(c).width = 8;
 
     return await workbook.xlsx.writeBuffer();
   }
@@ -999,7 +999,7 @@ export class ExamService {
             nomorMeja: currentCount + 1
           });
           placed = true;
-          
+
           // Move to next room when full
           if (currentCount + 1 >= currentRuang.kapasitas) {
             ruangIdx++;
