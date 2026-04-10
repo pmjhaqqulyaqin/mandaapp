@@ -16,6 +16,7 @@ export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, onSuccess }: P
   const [group1, setGroup1] = useState<string[]>([]);
   const [group2, setGroup2] = useState<string[]>([]);
   const [committeeIds, setCommitteeIds] = useState<string[]>([]);
+  const [headmasterNip, setHeadmasterNip] = useState<string>('');
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -30,21 +31,42 @@ export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, onSuccess }: P
   const fetchData = async () => {
     if (!ujian?.id) return;
     setLoading(true);
+
+    // Fetch employees independently - don't let one failure kill the other
+    let empData: any[] = [];
     try {
-      const [empData, panitiaData] = await Promise.all([
-        apiClient<any[]>('/employees'),
-        apiClient<any[]>(`/exams/${ujian.id}/panitia`)
-      ]);
-      setEmployees(Array.isArray(empData) ? empData : []);
-      
+      const result = await apiClient<any[]>('/employees');
+      empData = Array.isArray(result) ? result : [];
+    } catch (err) {
+      console.error('Failed to fetch employees:', err);
+    }
+    setEmployees(empData);
+
+    // Fetch panitia data independently
+    try {
+      const panitiaData = await apiClient<any[]>(`/exams/${ujian.id}/panitia`);
       const pList = Array.isArray(panitiaData) ? panitiaData : [];
       const ids = pList.map(p => p.pegawaiId).filter(Boolean);
       if (ujian.ketuaPanitiaId) ids.push(ujian.ketuaPanitiaId);
       setCommitteeIds([...new Set(ids)]);
-    } catch (err) { 
-      console.error('Failed to fetch proctor data:', err);
+    } catch (err) {
+      console.error('Failed to fetch panitia:', err);
+      // Still exclude ketua panitia even if panitia list fails
+      if (ujian.ketuaPanitiaId) setCommitteeIds([ujian.ketuaPanitiaId]);
     }
-    finally { setLoading(false); }
+
+    // Fetch headmaster NIP from site settings
+    try {
+      const settings = await apiClient<any[]>('/settings');
+      const nipSetting = Array.isArray(settings)
+        ? settings.find((s: any) => s.key === 'principal_nip')
+        : null;
+      setHeadmasterNip(nipSetting?.value || '');
+    } catch (err) {
+      console.error('Failed to fetch site settings:', err);
+    }
+
+    setLoading(false);
   };
 
   const handleSave = async () => {
@@ -68,9 +90,17 @@ export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, onSuccess }: P
   if (!isOpen) return null;
 
   const filteredEmployees = employees.filter(e => {
+    // Only show employees of type "Guru" (exclude Tenaga Kependidikan)
+    if (e.type !== 'Guru') return false;
+
+    // Exclude committee members (panitia + ketua panitia)
     const isCommittee = committeeIds.includes(e.id);
-    const pos = e.position?.toLowerCase() || '';
-    const isHeadmaster = pos.includes('kepala madrasah') || pos.includes('kepala sekolah');
+
+    // Exclude headmaster: match by NIP from site settings, or fallback to task field
+    const isHeadmaster = (headmasterNip && e.nip === headmasterNip) ||
+      (e.task?.toLowerCase() || '').includes('kepala madrasah') ||
+      (e.task?.toLowerCase() || '').includes('kepala sekolah');
+
     const isAlreadyInGroup = group1.includes(e.id) || group2.includes(e.id);
     const matchesSearch = e.name.toLowerCase().includes(search.toLowerCase());
 
