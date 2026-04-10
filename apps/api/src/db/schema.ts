@@ -345,3 +345,63 @@ export const nisActivityLogs = pgTable("nis_activity_logs", {
   userId: text("user_id").references(() => user.id),
   createdAt: timestamp("created_at").defaultNow()
 });
+
+// Exam Management (Manajemen Ujian)
+export const ujian = pgTable("ujian", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  namaUjian: varchar("nama_ujian", { length: 255 }).notNull(),
+  jenis: varchar("jenis", { length: 50 }).notNull(), // PTS, PAS, US, UMBK, or custom
+  tahunAjaran: varchar("tahun_ajaran", { length: 20 }).notNull(),
+  semester: varchar("semester", { length: 10 }).notNull(), // Ganjil, Genap
+  tanggalMulai: date("tanggal_mulai").notNull(),
+  tanggalSelesai: date("tanggal_selesai").notNull(),
+  ketuaPanitiaId: uuid("ketua_panitia_id").references(() => employees.id),
+  status: varchar("status", { length: 20 }).default("aktif"), // aktif, selesai, draft
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const panitiaUjian = pgTable("panitia_ujian", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ujianId: uuid("ujian_id").references(() => ujian.id, { onDelete: "cascade" }).notNull(),
+  pegawaiId: uuid("pegawai_id").references(() => employees.id).notNull(),
+  jabatan: varchar("jabatan", { length: 100 }).notNull(), // Ketua, Sekretaris, Anggota, etc.
+  urutan: integer("urutan").default(0),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const jadwalUjian = pgTable("jadwal_ujian", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ujianId: uuid("ujian_id").references(() => ujian.id, { onDelete: "cascade" }).notNull(),
+  tanggal: date("tanggal").notNull(),
+  waktuMulai: time("waktu_mulai").notNull(),
+  waktuSelesai: time("waktu_selesai").notNull(),
+  mataPelajaran: varchar("mata_pelajaran", { length: 150 }).notNull(),
+  kelas: text("kelas"), // comma-separated class names or JSON array
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const ruangUjian = pgTable("ruang_ujian", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ujianId: uuid("ujian_id").references(() => ujian.id, { onDelete: "cascade" }).notNull(),
+  namaRuang: varchar("nama_ruang", { length: 100 }).notNull(),
+  kapasitas: integer("kapasitas").notNull().default(30),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const penugasanPengawas = pgTable("penugasan_pengawas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  jadwalId: uuid("jadwal_id").references(() => jadwalUjian.id, { onDelete: "cascade" }).notNull(),
+  ruangId: uuid("ruang_id").references(() => ruangUjian.id, { onDelete: "cascade" }).notNull(),
+  pengawasId: uuid("pengawas_id").references(() => employees.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const distribusiPeserta = pgTable("distribusi_peserta", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ujianId: uuid("ujian_id").references(() => ujian.id, { onDelete: "cascade" }).notNull(),
+  ruangId: uuid("ruang_id").references(() => ruangUjian.id, { onDelete: "cascade" }).notNull(),
+  siswaId: uuid("siswa_id").references(() => studentProfiles.id).notNull(),
+  nomorMeja: integer("nomor_meja"),
+  createdAt: timestamp("created_at").defaultNow()
+});

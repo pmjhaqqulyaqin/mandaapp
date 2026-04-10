@@ -25,6 +25,7 @@ import employeesRoutes from './modules/employees/routes';
 import { ptspRoutes } from './modules/ptsp/routes';
 import { eventsRoutes } from './modules/events/routes';
 import { nisRoutes } from './modules/nis/routes';
+import { examRoutes } from './modules/exams/routes';
 
 dotenv.config();
 
@@ -141,6 +142,7 @@ app.use("/api/employees", employeesRoutes);
 app.use("/api/ptsp", ptspRoutes);
 app.use("/api/events", eventsRoutes);
 app.use("/api/nis", nisRoutes);
+app.use("/api/exams", examRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

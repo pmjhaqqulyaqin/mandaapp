@@ -20,6 +20,7 @@ import {
   ChevronDown,
   User as UserIcon,
   LogOut,
+  ClipboardCheck,
 } from 'lucide-react';
 import { ProfileModal } from '../components/modals/ProfileModal';
 
@@ -87,6 +88,13 @@ const ALL_MENU_ITEMS = [
     label: 'Korespondensi Dinas',
     href: '/dashboard/e-office',
     icon: <FileText size={16} />,
+    group: 'main',
+  },
+  {
+    key: 'exams',
+    label: 'Manajemen Ujian',
+    href: '/dashboard/exams',
+    icon: <ClipboardCheck size={16} />,
     group: 'main',
   },
   {
@@ -160,6 +168,7 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'students': 'students',
   'nis': 'nis',
   'employees': 'employees',
+  'exams': 'exams',
 };
 
 const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');

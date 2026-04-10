@@ -27,6 +27,7 @@ import { MaintenanceGuard } from './components/MaintenanceGuard';
 import { useFavicon } from './hooks/useFavicon';
 import { ServicePageRoute } from './pages/layanan/ServicePageRoute';
 import { EOfficePage } from './pages/eoffice/EOfficePage';
+import { ExamManagementPage } from './pages/exams/ExamManagementPage';
 import { SystemUpdateCenter } from './pages/dashboard/SystemUpdateCenter';
 import { BatchPrintPage } from './pages/BatchPrintPage';
 import { PrintAcademicCalendar } from './pages/PrintAcademicCalendar';
@@ -83,6 +84,7 @@ function App() {
           <Route path="pages" element={<DashboardPages />} />
           <Route path="menus" element={<DashboardMenus />} />
           <Route path="e-office" element={<EOfficePage />} />
+          <Route path="exams" element={<ExamManagementPage />} />
           <Route path="updates" element={<SystemUpdateCenter />} />
           <Route path="services" element={<DashboardServices />} />
         </Route>
