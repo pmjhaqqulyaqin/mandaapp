@@ -113,6 +113,16 @@ export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, allEmployees, 
           {/* Employee Pool */}
           <div className="flex flex-col h-full border-r border-gray-100 dark:border-[#111] pr-4">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Daftar Pegawai Aktif</p>
+            
+            {/* DEBUG BAR */}
+            <div className="mb-2 p-2 bg-red-100 border border-red-300 text-red-800 text-[10px] rounded">
+              DEBUG: Total={allEmployees?.length || 0} | 
+              Guru={ (allEmployees||[]).filter(e=>(e.type||'').toLowerCase().trim()==='guru').length } | 
+              Panitia={committeeIds.length} |  
+              Filtered={filteredEmployees.length} |
+              HM_NIP={headmasterNip}
+            </div>
+
             <div className="relative mb-3">
               <input 
                 className="w-full h-8 pl-3 pr-3 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] text-xs outline-none focus:ring-2 focus:ring-indigo-500/30"
