@@ -21,16 +21,17 @@ export const PengawasTab = ({ ujianId }: Props) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [pData, rData, uData, eData] = await Promise.all([
+      const results = await Promise.allSettled([
         apiClient<any[]>(`/exams/${ujianId}/pengawas`),
         apiClient<any[]>(`/exams/${ujianId}/ruang`),
         apiClient<any>(`/exams/${ujianId}`),
         apiClient<any[]>('/employees')
       ]);
-      setData(pData);
-      setRuangList(rData);
-      setUjian(uData);
-      setAllEmployees(eData || []);
+      
+      setData(results[0].status === 'fulfilled' ? results[0].value : []);
+      setRuangList(results[1].status === 'fulfilled' ? results[1].value : []);
+      setUjian(results[2].status === 'fulfilled' ? results[2].value : null);
+      setAllEmployees(results[3].status === 'fulfilled' ? results[3].value : []);
     } catch { }
     finally { setLoading(false); }
   };
