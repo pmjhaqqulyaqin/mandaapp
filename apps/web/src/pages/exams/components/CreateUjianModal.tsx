@@ -46,7 +46,10 @@ export const CreateUjianModal = ({ isOpen, onClose, onSuccess, editData }: Props
           tanggalSelesai: editData.tanggalSelesai || '',
           ketuaPanitiaId: editData.ketuaPanitiaId || '',
           status: editData.status || 'aktif',
-          pengaturan: editData.pengaturan || { kelasPeserta: [] }
+          pengaturan: {
+             ...editData.pengaturan,
+             kelasPeserta: editData.pengaturan?.kelasPeserta || []
+          }
         });
         setUseCustomJenis(!isPreset);
       } else {
@@ -196,17 +199,18 @@ export const CreateUjianModal = ({ isOpen, onClose, onSuccess, editData }: Props
           <div className="border border-gray-200 dark:border-[#333] rounded-lg p-3 bg-white dark:bg-[#0a0a0a] max-h-32 overflow-y-auto w-full">
             <div className="grid grid-cols-3 gap-2">
               {classList.map(cls => {
-                const checked = form.pengaturan.kelasPeserta.includes(cls.id);
+                const checked = (form.pengaturan.kelasPeserta || []).includes(cls.id);
                 return (
                   <label key={cls.id} className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" className="accent-indigo-600 rounded text-indigo-600"
                       checked={checked}
                       onChange={(e) => {
                         const newSettings = { ...form.pengaturan };
+                        const prevKelasArr = newSettings.kelasPeserta || [];
                         if (e.target.checked) {
-                          newSettings.kelasPeserta = [...newSettings.kelasPeserta, cls.id];
+                          newSettings.kelasPeserta = [...prevKelasArr, cls.id];
                         } else {
-                          newSettings.kelasPeserta = newSettings.kelasPeserta.filter((id: string) => id !== cls.id);
+                          newSettings.kelasPeserta = prevKelasArr.filter((id: string) => id !== cls.id);
                         }
                         setForm({ ...form, pengaturan: newSettings });
                       }} />
