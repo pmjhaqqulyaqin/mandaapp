@@ -208,7 +208,8 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
                 <input className={inputClass} placeholder="X-IPA-1 - IPA, X-IPA-2 - IPA" value={form.kelas} onChange={e => setForm({...form, kelas: e.target.value})} />
                 <div className="flex flex-wrap gap-1 mt-1">
                   {classList.filter(c => (ujianData?.pengaturan?.kelasPeserta || []).includes(c.id)).map(c => {
-                    const label = `${c.name}${c.majorCode || c.majorName ? ` - ${c.majorCode || c.majorName}` : ''}`;
+                    const major = c.majorName || c.majorCode;
+                    const label = major ? (/^\d+$/.test(major) ? `${c.name}-${major}` : `${c.name} ${major}`) : c.name;
                     const isSelected = form.kelas.includes(label);
                     return (
                       <button key={c.id} onClick={(e) => {

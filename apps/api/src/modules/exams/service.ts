@@ -169,7 +169,8 @@ export class ExamService {
       { header: 'Waktu', key: 'waktu', width: 20 },
     ];
     classList.forEach((c: any) => {
-      const display = `${c.name}${c.majorCode || c.majorName ? ` - ${c.majorCode || c.majorName}` : ''}`;
+      const major = c.majorName || c.majorCode;
+      const display = major ? (/^\d+$/.test(major) ? `${c.name}-${major}` : `${c.name} ${major}`) : c.name;
       cols.push({ header: display, key: display, width: 20 });
     });
     sheet.columns = cols;
@@ -308,7 +309,10 @@ export class ExamService {
         .leftJoin(majors, eq(classes.majorId, majors.id))
         .orderBy(asc(classes.name));
     }
-    const classNames = classList.map((c: any) => `${c.name}${c.majorCode || c.majorName ? ` - ${c.majorCode || c.majorName}` : ''}`);
+    const classNames = classList.map((c: any) => {
+      const major = c.majorName || c.majorCode;
+      return major ? (/^\d+$/.test(major) ? `${c.name}-${major}` : `${c.name} ${major}`) : c.name;
+    });
     const totalCols = 3 + classNames.length;
 
     // Kop Surat
