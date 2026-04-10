@@ -214,7 +214,9 @@ export const CreateUjianModal = ({ isOpen, onClose, onSuccess, editData }: Props
                         }
                         setForm({ ...form, pengaturan: newSettings });
                       }} />
-                    <span className="text-xs text-text-primary dark:text-text-darkPrimary">{cls.name}</span>
+                    <span className="text-xs text-text-primary dark:text-text-darkPrimary">
+                      {cls.name} {cls.majorCode || cls.majorName ? `- ${cls.majorCode || cls.majorName}` : ''}
+                    </span>
                   </label>
                 );
               })}

@@ -14,6 +14,7 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [classList, setClassList] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [ujianData, setUjianData] = useState<any>(null);
   const [form, setForm] = useState({
@@ -23,10 +24,14 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
   const fetchJadwal = async () => {
     setLoading(true);
     try {
-      const data = await apiClient<any[]>(`/exams/${ujianId}/jadwal`);
-      const uData = await apiClient<any>(`/exams/${ujianId}`);
+      const [data, uData, cData] = await Promise.all([
+        apiClient<any[]>(`/exams/${ujianId}/jadwal`),
+        apiClient<any>(`/exams/${ujianId}`),
+        apiClient<any[]>('/classes')
+      ]);
       setJadwal(data);
       setUjianData(uData);
+      setClassList(cData);
     } catch { }
     finally { setLoading(false); }
   };
@@ -198,8 +203,29 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
               <input className={inputClass} placeholder="Matematika" value={form.mataPelajaran} onChange={e => setForm({...form, mataPelajaran: e.target.value})} />
             </div>
             <div>
-              <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Kelas</label>
-              <input className={inputClass} placeholder="X-IPA-1, X-IPA-2" value={form.kelas} onChange={e => setForm({...form, kelas: e.target.value})} />
+              <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Kelas (Gunakan format: Nama - Jurusan)</label>
+              <div className="flex flex-col gap-1">
+                <input className={inputClass} placeholder="X-IPA-1 - IPA, X-IPA-2 - IPA" value={form.kelas} onChange={e => setForm({...form, kelas: e.target.value})} />
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {classList.filter(c => (ujianData?.pengaturan?.kelasPeserta || []).includes(c.id)).map(c => {
+                    const label = `${c.name}${c.majorCode || c.majorName ? ` - ${c.majorCode || c.majorName}` : ''}`;
+                    const isSelected = form.kelas.includes(label);
+                    return (
+                      <button key={c.id} onClick={(e) => {
+                        e.preventDefault();
+                        const current = form.kelas.split(',').map(s => s.trim()).filter(Boolean);
+                        if (current.includes(label)) {
+                          setForm({...form, kelas: current.filter(s => s !== label).join(', ')});
+                        } else {
+                          setForm({...form, kelas: [...current, label].join(', ')});
+                        }
+                      }} className={`px-2 py-0.5 rounded text-[9px] font-medium border transition-colors ${isSelected ? 'bg-indigo-100 border-indigo-200 text-indigo-700' : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-indigo-300'}`}>
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-1">

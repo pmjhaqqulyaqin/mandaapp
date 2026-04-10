@@ -2,7 +2,7 @@ import { db } from '../../db';
 import {
   ujian, panitiaUjian, jadwalUjian, ruangUjian,
   penugasanPengawas, distribusiPeserta, employees,
-  studentProfiles, classes
+  studentProfiles, classes, majors
 } from '../../db/schema';
 import { eq, desc, asc, and, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -143,10 +143,24 @@ export class ExamService {
 
     let classList;
     const peng = ujianData.pengaturan as any || {};
+    const selectFields = {
+      id: classes.id,
+      name: classes.name,
+      majorCode: majors.code,
+      majorName: majors.name
+    };
+
     if (peng.kelasPeserta && peng.kelasPeserta.length > 0) {
-      classList = await db.select().from(classes).where(inArray(classes.id, peng.kelasPeserta)).orderBy(asc(classes.name));
+      classList = await db.select(selectFields)
+        .from(classes)
+        .leftJoin(majors, eq(classes.majorId, majors.id))
+        .where(inArray(classes.id, peng.kelasPeserta))
+        .orderBy(asc(classes.name));
     } else {
-      classList = await db.select().from(classes).orderBy(asc(classes.name));
+      classList = await db.select(selectFields)
+        .from(classes)
+        .leftJoin(majors, eq(classes.majorId, majors.id))
+        .orderBy(asc(classes.name));
     }
 
     const cols = [
@@ -154,7 +168,10 @@ export class ExamService {
       { header: 'Hari/Tanggal', key: 'hariTanggal', width: 25 },
       { header: 'Waktu', key: 'waktu', width: 20 },
     ];
-    classList.forEach((c: any) => cols.push({ header: c.name, key: c.name, width: 20 }));
+    classList.forEach((c: any) => {
+      const display = `${c.name}${c.majorCode || c.majorName ? ` - ${c.majorCode || c.majorName}` : ''}`;
+      cols.push({ header: display, key: display, width: 20 });
+    });
     sheet.columns = cols;
     sheet.getRow(1).font = { bold: true };
 
@@ -272,12 +289,26 @@ export class ExamService {
     const ttd = peng.ttd || {};
 
     let classList;
+    const selectFields = {
+      id: classes.id,
+      name: classes.name,
+      majorCode: majors.code,
+      majorName: majors.name
+    };
+
     if (peng.kelasPeserta && peng.kelasPeserta.length > 0) {
-      classList = await db.select().from(classes).where(inArray(classes.id, peng.kelasPeserta)).orderBy(asc(classes.name));
+      classList = await db.select(selectFields)
+        .from(classes)
+        .leftJoin(majors, eq(classes.majorId, majors.id))
+        .where(inArray(classes.id, peng.kelasPeserta))
+        .orderBy(asc(classes.name));
     } else {
-      classList = await db.select().from(classes).orderBy(asc(classes.name));
+      classList = await db.select(selectFields)
+        .from(classes)
+        .leftJoin(majors, eq(classes.majorId, majors.id))
+        .orderBy(asc(classes.name));
     }
-    const classNames = classList.map((c: any) => c.name);
+    const classNames = classList.map((c: any) => `${c.name}${c.majorCode || c.majorName ? ` - ${c.majorCode || c.majorName}` : ''}`);
     const totalCols = 3 + classNames.length;
 
     // Kop Surat
