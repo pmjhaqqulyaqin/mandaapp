@@ -32,12 +32,13 @@ export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, onSuccess }: P
     setLoading(true);
     try {
       const [empData, panitiaData] = await Promise.all([
-        apiClient<any[]>('/employees?status=active'),
+        apiClient<any[]>('/employees'),
         apiClient<any[]>(`/exams/${ujian.id}/panitia`)
       ]);
-      setEmployees(empData || []);
+      setEmployees(Array.isArray(empData) ? empData : []);
       
-      const ids = panitiaData.map(p => p.pegawaiId);
+      const pList = Array.isArray(panitiaData) ? panitiaData : [];
+      const ids = pList.map(p => p.pegawaiId).filter(Boolean);
       if (ujian.ketuaPanitiaId) ids.push(ujian.ketuaPanitiaId);
       setCommitteeIds([...new Set(ids)]);
     } catch (err) { 

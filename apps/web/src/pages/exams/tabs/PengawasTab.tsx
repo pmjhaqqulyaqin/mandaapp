@@ -25,7 +25,7 @@ export const PengawasTab = ({ ujianId }: Props) => {
         apiClient<any[]>(`/exams/${ujianId}/pengawas`),
         apiClient<any[]>(`/exams/${ujianId}/ruang`),
         apiClient<any>(`/exams/${ujianId}`),
-        apiClient<any[]>('/employees?status=active')
+        apiClient<any[]>('/employees')
       ]);
       setData(pData);
       setRuangList(rData);
