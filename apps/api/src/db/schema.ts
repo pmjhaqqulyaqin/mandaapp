@@ -395,6 +395,7 @@ export const penugasanPengawas = pgTable("penugasan_pengawas", {
   jadwalId: uuid("jadwal_id").references(() => jadwalUjian.id, { onDelete: "cascade" }).notNull(),
   ruangId: uuid("ruang_id").references(() => ruangUjian.id, { onDelete: "cascade" }).notNull(),
   pengawasId: uuid("pengawas_id").references(() => employees.id).notNull(),
+  kodeLabel: varchar("kode_label", { length: 10 }),
   createdAt: timestamp("created_at").defaultNow()
 });
 

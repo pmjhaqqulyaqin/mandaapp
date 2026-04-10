@@ -570,77 +570,338 @@ export class ExamService {
     return await db.delete(penugasanPengawas).where(eq(penugasanPengawas.id, id));
   }
 
+  private static getAlphaCode(index: number): string {
+    let code = '';
+    let i = index;
+    while (i >= 0) {
+      code = String.fromCharCode((i % 26) + 65) + code;
+      i = Math.floor(i / 26) - 1;
+    }
+    return code;
+  }
+
   static async generatePengawas(ujianId: string) {
-    // Get all jadwal and ruang for this ujian
+    const ujianData = await this.getById(ujianId);
+    if (!ujianData) throw new Error('Ujian tidak ditemukan');
+
+    const config = ujianData.pengaturan as any || {};
+    const group1 = config.pengawasGroups?.group1 || [];
+    const group2 = config.pengawasGroups?.group2 || [];
+
+    if (group1.length === 0 || group2.length === 0) {
+      throw new Error('Daftar Kelompok Pengawas (I & II) belum diatur.');
+    }
+
     const jadwalList = await this.getJadwal(ujianId);
     const ruangList = await this.getRuang(ujianId);
-    
-    // Get available employees (teachers)
-    const teacherList = await db.select()
-      .from(employees)
-      .where(eq(employees.status, 'active'))
-      .orderBy(asc(employees.name));
 
     if (jadwalList.length === 0) throw new Error('Belum ada jadwal ujian');
     if (ruangList.length === 0) throw new Error('Belum ada ruang ujian');
-    if (teacherList.length === 0) throw new Error('Tidak ada pegawai aktif');
 
-    // Clear existing penugasan for this ujian
-    const jadwalIds = jadwalList.map((j: any) => j.id);
-    if (jadwalIds.length > 0) {
-      await db.delete(penugasanPengawas).where(inArray(penugasanPengawas.jadwalId, jadwalIds));
+    if (group1.length < ruangList.length || group2.length < ruangList.length) {
+      throw new Error(`Jumlah pengawas dalam kelompok (${group1.length}/${group2.length}) kurang dari jumlah ruang (${ruangList.length}).`);
     }
 
-    // Round-robin assignment
+    // Identify unique sessions (Tanggal + Waktu)
+    const sessionMap = new Map();
+    jadwalList.forEach((j: any) => {
+       const key = `${j.tanggal}_${j.waktuMulai}_${j.waktuSelesai}`;
+       if (!sessionMap.has(key)) {
+         sessionMap.set(key, { 
+           tanggal: j.tanggal, 
+           waktuMulai: j.waktuMulai, 
+           waktuSelesai: j.waktuSelesai,
+           ids: [] 
+         });
+       }
+       sessionMap.get(key).ids.push(j.id);
+    });
+
+    const sessions = Array.from(sessionMap.values()).sort((a,b) => {
+       if (a.tanggal !== b.tanggal) return a.tanggal.localeCompare(b.tanggal);
+       return a.waktuMulai.localeCompare(b.waktuMulai);
+    });
+
+    // Clear existing
+    const allJadwalIds = jadwalList.map((j: any) => j.id);
+    await db.delete(penugasanPengawas).where(inArray(penugasanPengawas.jadwalId, allJadwalIds));
+
     const assignments: any[] = [];
-    let teacherIdx = 0;
+    const L1 = group1.length;
+    const L2 = group2.length;
 
-    for (const jadwal of jadwalList) {
-      for (const ruang of ruangList) {
-        assignments.push({
-          id: uuidv4(),
-          jadwalId: (jadwal as any).id,
-          ruangId: (ruang as any).id,
-          pengawasId: teacherList[teacherIdx % teacherList.length].id
-        });
-        teacherIdx++;
-      }
-    }
+    sessions.forEach((sess, sIdx) => {
+       ruangList.forEach((ruang, rIdx) => {
+          // Algorithm: G1 shifts -1, G2 shifts +1
+          const idx1 = (((rIdx - sIdx) % L1) + L1) % L1;
+          const idx2 = (rIdx + sIdx) % L2;
+
+          const p1Id = group1[idx1];
+          const p2Id = group2[idx2];
+
+          // Assign both to every jadwal ID in this session
+          sess.ids.forEach((jId: string) => {
+             // Proctor 1 (Numeric)
+             assignments.push({
+               id: uuidv4(),
+               jadwalId: jId,
+               ruangId: ruang.id,
+               pengawasId: p1Id,
+               kodeLabel: (idx1 + 1).toString()
+             });
+             // Proctor 2 (Alphabetic)
+             assignments.push({
+               id: uuidv4(),
+               jadwalId: jId,
+               ruangId: ruang.id,
+               pengawasId: p2Id,
+               kodeLabel: this.getAlphaCode(idx2)
+             });
+          });
+       });
+    });
 
     if (assignments.length > 0) {
       await db.insert(penugasanPengawas).values(assignments);
     }
 
-    return { generated: assignments.length };
+    return { generated: assignments.length, sessions: sessions.length };
   }
 
   static async exportPengawasExcel(ujianId: string) {
+    const ujianData = await this.getById(ujianId);
+    if (!ujianData) throw new Error('Ujian tidak ditemukan');
+
+    const config = ujianData.pengaturan as any || {};
+    const ttd = config.ttd || {};
+    const kop = config.kop || {};
+    
+    const ruangList = await this.getRuang(ujianId);
+    const jadwalList = await this.getJadwal(ujianId);
     const pengawasData = await this.getPengawas(ujianId);
 
+    const group1Ids = config.pengawasGroups?.group1 || [];
+    const group2Ids = config.pengawasGroups?.group2 || [];
+    
+    // Fetch employee names for legend
+    const allGroupIds = [...new Set([...group1Ids, ...group2Ids])];
+    const employeesData = allGroupIds.length > 0 
+      ? await db.select().from(employees).where(inArray(employees.id, allGroupIds))
+      : [];
+    const employeeMap = new Map(employeesData.map(e => [e.id, e.name]));
+
     const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet('Penugasan Pengawas');
+    const sheet = workbook.addWorksheet('Jadwal Pengawas');
 
-    sheet.columns = [
-      { header: 'No', key: 'no', width: 5 },
-      { header: 'Tanggal', key: 'tanggal', width: 15 },
-      { header: 'Waktu', key: 'waktu', width: 18 },
-      { header: 'Mata Pelajaran', key: 'mapel', width: 25 },
-      { header: 'Ruang', key: 'ruang', width: 15 },
-      { header: 'Pengawas', key: 'pengawas', width: 30 },
-    ];
+    // 1. KOP SURAT
+    sheet.mergeCells(1, 1, 1, Math.max(8, ruangList.length + 4));
+    sheet.getCell(1, 1).value = kop.kementerian || 'KEMENTERIAN AGAMA REPUBLIK INDONESIA';
+    sheet.getCell(1, 1).alignment = { horizontal: 'center' };
+    sheet.getCell(1, 1).font = { bold: true };
 
-    sheet.getRow(1).font = { bold: true };
+    sheet.mergeCells(2, 1, 2, Math.max(8, ruangList.length + 4));
+    sheet.getCell(2, 1).value = kop.instansi || 'MADRASAH ALIYAH NEGERI 2 LOMBOK TIMUR';
+    sheet.getCell(2, 1).alignment = { horizontal: 'center' };
+    sheet.getCell(2, 1).font = { bold: true, size: 12 };
 
-    pengawasData.forEach((row: any, i: number) => {
-      sheet.addRow({
-        no: i + 1,
-        tanggal: row.jadwal?.tanggal ? new Date(row.jadwal.tanggal).toLocaleDateString('id-ID') : '-',
-        waktu: `${row.jadwal?.waktuMulai || ''} - ${row.jadwal?.waktuSelesai || ''}`,
-        mapel: row.jadwal?.mataPelajaran || '-',
-        ruang: row.ruang?.namaRuang || '-',
-        pengawas: row.pengawas?.name || '-',
-      });
+    sheet.mergeCells(3, 1, 3, Math.max(8, ruangList.length + 4));
+    sheet.getCell(3, 1).value = kop.panitia || 'PANITIA ASESMEN SUMATIF...';
+    sheet.getCell(3, 1).alignment = { horizontal: 'center' };
+    sheet.getCell(3, 1).font = { bold: true };
+
+    sheet.mergeCells(4, 1, 4, Math.max(8, ruangList.length + 4));
+    sheet.getCell(4, 1).value = kop.alamat || 'Jl. Beririjarak...';
+    sheet.getCell(4, 1).alignment = { horizontal: 'center' };
+    sheet.getCell(4, 1).font = { italic: true, size: 9 };
+
+    sheet.getRow(5).border = { bottom: { style: 'double' } };
+
+    // 2. TITLE
+    const titleRow = 7;
+    sheet.mergeCells(titleRow, 1, titleRow, Math.max(8, ruangList.length + 4));
+    sheet.getCell(titleRow, 1).value = 'JADWAL PENGAWAS DAN RUANG KEPENGAWASAN';
+    sheet.getCell(titleRow, 1).alignment = { horizontal: 'center' };
+    sheet.getCell(titleRow, 1).font = { bold: true, underline: true };
+
+    sheet.mergeCells(titleRow + 1, 1, titleRow + 1, Math.max(8, ruangList.length + 4));
+    sheet.getCell(titleRow + 1, 1).value = `${kop.instansi || 'MADRASAH'} TAHUN PELAJARAN ${ujianData.tahunAjaran || '-'}`;
+    sheet.getCell(titleRow + 1, 1).alignment = { horizontal: 'center' };
+    sheet.getCell(titleRow + 1, 1).font = { bold: true };
+
+    // 3. TABLE HEADER
+    const headRow = 10;
+    const totalCols = 4 + ruangList.length;
+
+    sheet.mergeCells(headRow, 1, headRow + 1, 1); sheet.getCell(headRow, 1).value = 'No';
+    sheet.mergeCells(headRow, 2, headRow + 1, 2); sheet.getCell(headRow, 2).value = 'Hari/Tanggal';
+    sheet.mergeCells(headRow, 3, headRow + 1, 3); sheet.getCell(headRow, 3).value = 'Jam';
+    sheet.mergeCells(headRow, 4, headRow + 1, 4); sheet.getCell(headRow, 4).value = 'Waktu';
+
+    sheet.mergeCells(headRow, 5, headRow, totalCols);
+    sheet.getCell(headRow, 5).value = 'Ruang/Kode Pengawas';
+    sheet.getCell(headRow, 5).alignment = { horizontal: 'center' };
+
+    ruangList.forEach((r, idx) => {
+       sheet.getCell(headRow + 1, 5 + idx).value = r.namaRuang;
     });
+
+    // Style Header
+    for (let r = headRow; r <= headRow + 1; r++) {
+      for (let c = 1; c <= totalCols; c++) {
+        const cell = sheet.getCell(r, c);
+        cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.font = { bold: true, size: 9 };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+      }
+    }
+
+    // 4. DATA MATRIX
+    const sessionMap = new Map();
+    jadwalList.forEach((j: any) => {
+       const key = `${j.tanggal}_${j.waktuMulai}_${j.waktuSelesai}`;
+       if (!sessionMap.has(key)) {
+         const d = new Date(j.tanggal);
+         const hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+         sessionMap.set(key, { 
+           tanggal: j.tanggal,
+           dateStr: `${hariNames[d.getDay()]}\n${d.toLocaleDateString('id-ID')}`, 
+           waktu: `${j.waktuMulai} - ${j.waktuSelesai}`,
+           tDate: d.getTime(), 
+           wStart: j.waktuMulai,
+           ids: [] 
+         });
+       }
+       sessionMap.get(key).ids.push(j.id);
+    });
+
+    const sessions = Array.from(sessionMap.values()).sort((a,b) => {
+       if (a.tDate !== b.tDate) return a.tDate - b.tDate;
+       return a.wStart.localeCompare(b.wStart);
+    });
+
+    const assignmentsMap = new Map(); // key: jadwalId_ruangId, value: codes[]
+    pengawasData.forEach(p => {
+       const key = `${p.jadwalId}_${p.ruangId}`;
+       if(!assignmentsMap.has(key)) assignmentsMap.set(key, []);
+       assignmentsMap.get(key).push(p.kodeLabel);
+    });
+
+    let currentRowNum = headRow + 2;
+    let noCounter = 1;
+    let lastDate = '';
+
+    sessions.forEach((sess, sIdx) => {
+        const rowData = [];
+        
+        // No & Tanggal merging logic
+        if (sess.tanggal !== lastDate) {
+            rowData.push(noCounter++);
+            rowData.push(sess.dateStr);
+            lastDate = sess.tanggal;
+        } else {
+            rowData.push('');
+            rowData.push('');
+        }
+
+        // Sesi (Jam)
+        // Find session order for this day
+        const daySessions = sessions.filter(s => s.tanggal === sess.tanggal);
+        const sessIdxOnDay = daySessions.indexOf(sess);
+        const roman = ['I', 'II', 'III', 'IV', 'V'][sessIdxOnDay] || (sessIdxOnDay + 1).toString();
+        rowData.push(roman);
+        rowData.push(sess.waktu);
+
+        // Rooms
+        ruangList.forEach(ruang => {
+           // We need one of the jadwalIds from this session
+           const jId = sess.ids[0];
+           const codes = assignmentsMap.get(`${jId}_${ruang.id}`) || [];
+           rowData.push(codes.sort().join('   ')); // Space between codes
+        });
+
+        const row = sheet.addRow(rowData);
+        row.height = 25;
+
+        for (let c = 1; c <= totalCols; c++) {
+          const cell = sheet.getCell(currentRowNum, c);
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+          cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+          cell.font = { size: 9 };
+        }
+        currentRowNum++;
+    });
+
+    // Merge cells for No and Hari/Tanggal
+    let mergeStart = headRow + 2;
+    for(let i=0; i<sessions.length; i++) {
+        const current = sessions[i];
+        const next = sessions[i+1];
+        if(!next || next.tanggal !== current.tanggal) {
+            if(mergeStart < headRow + 2 + i) {
+                sheet.mergeCells(mergeStart, 1, headRow + 2 + i, 1);
+                sheet.mergeCells(mergeStart, 2, headRow + 2 + i, 2);
+            }
+            mergeStart = headRow + 2 + i + 1;
+        }
+    }
+
+    // 5. LEGEND TABLE (KODE & NAMA PENGAWAS)
+    const legendStartRow = currentRowNum + 2;
+    sheet.getCell(legendStartRow, 1).value = 'KODE & NAMA PENGAWAS';
+    sheet.getCell(legendStartRow, 1).font = { bold: true, size: 9 };
+    sheet.mergeCells(legendStartRow, 1, legendStartRow, 4);
+    sheet.getCell(legendStartRow, 1).alignment = { horizontal: 'center' };
+    sheet.getCell(legendStartRow, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+    sheet.getCell(legendStartRow, 1).border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+
+    const legendHead = sheet.addRow(['', 'Pengawas I', '', 'Pengawas II']);
+    legendHead.font = { bold: true, size: 8 };
+    sheet.getRow(legendStartRow + 1).height = 15;
+    for(let c=1; c<=4; c++) {
+        const cell = sheet.getCell(legendStartRow+1, c);
+        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+        cell.alignment = { horizontal: 'center' };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+    }
+    sheet.mergeCells(legendStartRow+1, 1, legendStartRow+1, 2);
+    sheet.mergeCells(legendStartRow+1, 3, legendStartRow+1, 4);
+
+    const maxLegend = Math.max(group1Ids.length, group2Ids.length);
+    for(let i=0; i<maxLegend; i++) {
+        const p1Id = group1Ids[i];
+        const p1Name = p1Id ? employeeMap.get(p1Id) || '-' : '';
+        const p1Code = p1Id ? (i + 1).toString() : '';
+
+        const p2Id = group2Ids[i];
+        const p2Name = p2Id ? employeeMap.get(p2Id) || '-' : '';
+        const p2Code = p2Id ? this.getAlphaCode(i) : '';
+
+        const row = sheet.addRow([p1Code, p1Name, p2Code, p2Name]);
+        row.font = { size: 8 };
+        for(let c=1; c<=4; c++) {
+            sheet.getCell(legendStartRow + 2 + i, c).border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+            if(c === 1 || c === 3) sheet.getCell(legendStartRow + 2 + i, c).alignment = { horizontal: 'center' };
+        }
+    }
+
+    // 6. SIGNATURES
+    const ttdRow = legendStartRow + 2;
+    const ttdColStr = Math.max(6, totalCols - 1);
+    const dStr = ttd.tanggal ? new Date(ttd.tanggal).toLocaleDateString('id-ID', {day: '2-digit', month: 'long', year: 'numeric'}) : '';
+    
+    sheet.getCell(ttdRow, ttdColStr).value = `${ttd.tempat || 'Wanasaba'}, ${dStr}`;
+    sheet.getCell(ttdRow + 1, ttdColStr).value = ttd.jabatan || 'Kepala Madrasah';
+    sheet.getCell(ttdRow + 5, ttdColStr).value = ttd.nama || '';
+    sheet.getCell(ttdRow + 5, ttdColStr).font = { bold: true };
+    sheet.getCell(ttdRow + 6, ttdColStr).value = `NIP. ${ttd.nip || ''}`;
+
+    // Column widths
+    sheet.getColumn(1).width = 4;
+    sheet.getColumn(2).width = 15;
+    sheet.getColumn(3).width = 5;
+    sheet.getColumn(4).width = 14;
+    for(let c=5; c<=totalCols; c++) sheet.getColumn(c).width = 8;
 
     return await workbook.xlsx.writeBuffer();
   }
