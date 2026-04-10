@@ -15,6 +15,7 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [classList, setClassList] = useState<any[]>([]);
+  const [holidays, setHolidays] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [ujianData, setUjianData] = useState<any>(null);
   const [form, setForm] = useState({
@@ -32,6 +33,13 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
       setJadwal(data);
       setUjianData(uData);
       setClassList(cData);
+
+      if (uData.tanggalMulai && uData.tanggalSelesai) {
+        try {
+          const hData = await apiClient<any[]>(`/events/range?start=${uData.tanggalMulai}&end=${uData.tanggalSelesai}`);
+          setHolidays(hData.filter((e: any) => ['holiday', 'cuti_bersama', 'semester_ganjil', 'semester_genap'].includes(e.category)));
+        } catch { }
+      }
     } catch { }
     finally { setLoading(false); }
   };
@@ -153,10 +161,23 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
           <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
             <div>
               <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Tanggal</label>
-              <input type="date" className={inputClass} value={form.tanggal} onChange={e => {
-                 const t = e.target.value;
-                 let wm = form.waktuMulai, ws = form.waktuSelesai;
-                 if(t && ujianData?.pengaturan?.waktuSesi) {
+              <input type="date" className={inputClass} 
+                min={ujianData?.tanggalMulai}
+                max={ujianData?.tanggalSelesai}
+                value={form.tanggal} onChange={e => {
+                  const t = e.target.value;
+                  if (!t) return setForm({...form, tanggal: ''});
+                  if (new Date(t).getDay() === 0) {
+                    toast.error('Hari Minggu tidak diperbolehkan');
+                    return setForm({...form, tanggal: ''});
+                  }
+                  const isHoliday = holidays.find(h => t >= h.eventDate && t <= (h.endDate || h.eventDate));
+                  if (isHoliday) {
+                    toast.error(`Hari libur: ${isHoliday.title}`);
+                    return setForm({...form, tanggal: ''});
+                  }
+                  let wm = form.waktuMulai, ws = form.waktuSelesai;
+                  if(t && ujianData?.pengaturan?.waktuSesi) {
                     const d = new Date(t);
                     const isJumat = d.getDay() === 5;
                     const wcfg = isJumat ? ujianData.pengaturan.waktuSesi.jumat : ujianData.pengaturan.waktuSesi.normal;

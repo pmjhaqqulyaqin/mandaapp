@@ -2,9 +2,9 @@ import { db } from '../../db';
 import {
   ujian, panitiaUjian, jadwalUjian, ruangUjian,
   penugasanPengawas, distribusiPeserta, employees,
-  studentProfiles, classes, majors
+  studentProfiles, classes, majors, schoolEvents
 } from '../../db/schema';
-import { eq, desc, asc, and, inArray } from 'drizzle-orm';
+import { eq, desc, asc, and, inArray, gte, lte, or } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import ExcelJS from 'exceljs';
 
@@ -183,10 +183,33 @@ export class ExamService {
 
     const start = new Date(ujianData.tanggalMulai);
     const end = new Date(ujianData.tanggalSelesai);
+
+    // Fetch Holidays
+    const holidayList = await db.select().from(schoolEvents).where(
+      and(
+        inArray(schoolEvents.category, ['holiday', 'cuti_bersama', 'semester_ganjil', 'semester_genap']),
+        or(
+          and(gte(schoolEvents.eventDate, ujianData.tanggalMulai), lte(schoolEvents.eventDate, ujianData.tanggalSelesai)),
+          and(gte(schoolEvents.endDate, ujianData.tanggalMulai), lte(schoolEvents.endDate, ujianData.tanggalSelesai))
+        )
+      )
+    );
+
+    const holidayDates = new Set<string>();
+    holidayList.forEach(h => {
+       const hStart = new Date(h.eventDate);
+       const hEnd = h.endDate ? new Date(h.endDate) : hStart;
+       for (let d = new Date(hStart); d <= hEnd; d.setDate(d.getDate() + 1)) {
+         holidayDates.add(d.toISOString().split('T')[0]);
+       }
+    });
+
     let no = 1;
 
-    for (let d = start; d <= end; d.setDate(d.getDate() + 1)) {
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dateKey = d.toISOString().split('T')[0];
       if (d.getDay() === 0) continue; // Skip Sunday
+      if (holidayDates.has(dateKey)) continue; // Skip Holiday
 
       const isJumat = d.getDay() === 5;
       const sesi = isJumat ? w.jumat : w.normal;
@@ -272,6 +295,28 @@ export class ExamService {
             kelas: classes.join(', ')
        };
     });
+
+    const importHolidays = await db.select().from(schoolEvents).where(
+      inArray(schoolEvents.category, ['holiday', 'cuti_bersama', 'semester_ganjil', 'semester_genap'])
+    );
+    const holidayDates = new Set<string>();
+    importHolidays.forEach(h => {
+       const hStart = new Date(h.eventDate);
+       const hEnd = h.endDate ? new Date(h.endDate) : hStart;
+       for (let d = new Date(hStart); d <= hEnd; d.setDate(d.getDate() + 1)) {
+         holidayDates.add(d.toISOString().split('T')[0]);
+       }
+    });
+
+    for (const row of finalRows) {
+      const d = new Date(row.tanggal);
+      if (d.getDay() === 0) {
+        throw new Error(`Gagal Import: Tanggal ${row.tanggal} adalah hari Minggu.`);
+      }
+      if (holidayDates.has(row.tanggal)) {
+        throw new Error(`Gagal Import: Tanggal ${row.tanggal} terdeteksi sebagai Hari Libur/Cuti Bersama.`);
+      }
+    }
 
     await db.insert(jadwalUjian).values(finalRows);
     return { imported: finalRows.length };
