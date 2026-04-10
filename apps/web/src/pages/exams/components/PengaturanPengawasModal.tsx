@@ -15,22 +15,30 @@ export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, onSuccess }: P
   const [loading, setLoading] = useState(true);
   const [group1, setGroup1] = useState<string[]>([]);
   const [group2, setGroup2] = useState<string[]>([]);
+  const [committeeIds, setCommitteeIds] = useState<string[]>([]);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
     if (isOpen) {
-      fetchEmployees();
+      fetchData();
       const config = ujian?.pengaturan || {};
       setGroup1(config.pengawasGroups?.group1 || []);
       setGroup2(config.pengawasGroups?.group2 || []);
     }
   }, [isOpen, ujian]);
 
-  const fetchEmployees = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const data = await apiClient<any[]>('/employees?status=active');
-      setEmployees(data || []);
+      const [empData, panitiaData] = await Promise.all([
+        apiClient<any[]>('/employees?status=active'),
+        apiClient<any[]>(`/exams/${ujian.id}/panitia`)
+      ]);
+      setEmployees(empData || []);
+      
+      const ids = panitiaData.map(p => p.pegawaiId);
+      if (ujian.ketuaPanitiaId) ids.push(ujian.ketuaPanitiaId);
+      setCommitteeIds([...new Set(ids)]);
     } catch { }
     finally { setLoading(false); }
   };
@@ -55,10 +63,15 @@ export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, onSuccess }: P
 
   if (!isOpen) return null;
 
-  const filteredEmployees = employees.filter(e => 
-    e.name.toLowerCase().includes(search.toLowerCase()) &&
-    !group1.includes(e.id) && !group2.includes(e.id)
-  );
+  const filteredEmployees = employees.filter(e => {
+    const isCommittee = committeeIds.includes(e.id);
+    const isHeadmaster = e.position?.toLowerCase().includes('kepala madrasah') || 
+                        e.position?.toLowerCase().includes('kepala sekolah');
+    const isAlreadyInGroup = group1.includes(e.id) || group2.includes(e.id);
+    const matchesSearch = e.name.toLowerCase().includes(search.toLowerCase());
+
+    return matchesSearch && !isCommittee && !isHeadmaster && !isAlreadyInGroup;
+  });
 
   const getEmpName = (id: string) => employees.find(e => e.id === id)?.name || 'Loading...';
 
