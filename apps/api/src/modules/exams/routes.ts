@@ -23,6 +23,7 @@ router.post('/:ujianId/jadwal', ExamController.addJadwal);
 router.put('/jadwal/:id', ExamController.updateJadwal);
 router.delete('/jadwal/:id', ExamController.deleteJadwal);
 router.post('/:ujianId/jadwal/upload', upload.single('file'), ExamController.importJadwal);
+router.get('/:ujianId/jadwal/template', ExamController.downloadJadwalTemplate);
 router.get('/:ujianId/jadwal/export', ExamController.exportJadwal);
 
 // Ruang

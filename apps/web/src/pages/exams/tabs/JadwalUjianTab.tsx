@@ -9,21 +9,23 @@ interface Props {
 
 const HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
-export const JadwalUjianTab = ({ ujianId }: Props) => {
   const [jadwal, setJadwal] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [ujianData, setUjianData] = useState<any>(null);
   const [form, setForm] = useState({
-    tanggal: '', waktuMulai: '', waktuSelesai: '', mataPelajaran: '', kelas: ''
+    tanggal: '', waktuMulai: '', waktuSelesai: '', mataPelajaran: '', kelas: '', sesiKe: '1'
   });
 
   const fetchJadwal = async () => {
     setLoading(true);
     try {
       const data = await apiClient<any[]>(`/exams/${ujianId}/jadwal`);
+      const uData = await apiClient<any>(`/exams/${ujianId}`);
       setJadwal(data);
+      setUjianData(uData);
     } catch { }
     finally { setLoading(false); }
   };
@@ -31,7 +33,7 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
   useEffect(() => { fetchJadwal(); }, [ujianId]);
 
   const resetForm = () => {
-    setForm({ tanggal: '', waktuMulai: '', waktuSelesai: '', mataPelajaran: '', kelas: '' });
+    setForm({ tanggal: '', waktuMulai: '', waktuSelesai: '', mataPelajaran: '', kelas: '', sesiKe: '1' });
     setEditId(null);
     setShowAdd(false);
   };
@@ -93,7 +95,12 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
 
   const handleExport = () => {
     window.open(`${import.meta.env.VITE_API_URL}/exams/${ujianId}/jadwal/export`, '_blank');
-    toast.success('Mengunduh jadwal...');
+    toast.success('Mengunduh Laporan Jadwal Ujian...');
+  };
+
+  const handleDownloadTemplate = () => {
+    window.open(`${import.meta.env.VITE_API_URL}/exams/${ujianId}/jadwal/template`, '_blank');
+    toast.success('Mengunduh Template Excel...');
   };
 
   const handlePrint = () => { window.print(); };
@@ -113,17 +120,17 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-all active:scale-95">
           <Plus size={14} /> Input Manual
         </button>
-        <label className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] cursor-pointer transition-colors">
+        <button onClick={handleDownloadTemplate}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors">
+          <Download size={14} /> Template Excel
+        </button>
+        <label className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-[#333] hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600 cursor-pointer transition-colors">
           <Upload size={14} /> Upload Excel
           <input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleUploadExcel} />
         </label>
         <button onClick={handleExport}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors">
-          <Download size={14} /> Export Excel
-        </button>
-        <button onClick={handlePrint}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors">
-          <Printer size={14} /> Cetak
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-[#333] bg-gray-900 dark:bg-white text-white dark:text-black hover:opacity-90 transition-colors">
+          <Printer size={14} /> Export / Cetak Jadwal
         </button>
         <div className="flex-1" />
         <div className="relative">
@@ -137,10 +144,45 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
       {showAdd && (
         <div className="bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800/30 rounded-lg p-3 space-y-2">
           <p className="text-xs font-semibold text-indigo-600 mb-2">{editId ? '✏️ Edit Jadwal' : '✚ Tambah Jadwal Baru'}</p>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
             <div>
               <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Tanggal</label>
-              <input type="date" className={inputClass} value={form.tanggal} onChange={e => setForm({...form, tanggal: e.target.value})} />
+              <input type="date" className={inputClass} value={form.tanggal} onChange={e => {
+                 const t = e.target.value;
+                 let wm = form.waktuMulai, ws = form.waktuSelesai;
+                 if(t && ujianData?.pengaturan?.waktuSesi) {
+                    const d = new Date(t);
+                    const isJumat = d.getDay() === 5;
+                    const wcfg = isJumat ? ujianData.pengaturan.waktuSesi.jumat : ujianData.pengaturan.waktuSesi.normal;
+                    const sIdx = form.sesiKe === '2' ? 1 : 0;
+                    if(wcfg && wcfg[sIdx]) {
+                       wm = wcfg[sIdx].mulai;
+                       ws = wcfg[sIdx].selesai;
+                    }
+                 }
+                 setForm({...form, tanggal: t, waktuMulai: wm, waktuSelesai: ws});
+              }} />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Sesi</label>
+              <select className={inputClass} value={form.sesiKe} onChange={e => {
+                 const sVal = e.target.value;
+                 let wm = form.waktuMulai, ws = form.waktuSelesai;
+                 if(form.tanggal && ujianData?.pengaturan?.waktuSesi) {
+                    const d = new Date(form.tanggal);
+                    const isJumat = d.getDay() === 5;
+                    const wcfg = isJumat ? ujianData.pengaturan.waktuSesi.jumat : ujianData.pengaturan.waktuSesi.normal;
+                    const sIdx = sVal === '2' ? 1 : 0;
+                    if(wcfg && wcfg[sIdx]) {
+                       wm = wcfg[sIdx].mulai;
+                       ws = wcfg[sIdx].selesai;
+                    }
+                 }
+                 setForm({...form, sesiKe: sVal, waktuMulai: wm, waktuSelesai: ws});
+              }}>
+                <option value="1">Sesi 1</option>
+                <option value="2">Sesi 2</option>
+              </select>
             </div>
             <div>
               <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Waktu Mulai</label>
@@ -168,51 +210,88 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
         </div>
       )}
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-gray-100 dark:border-[#222]">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-gray-50/80 dark:bg-black/20 text-[10px] uppercase tracking-wider text-gray-500">
-            <tr>
-              <th className="px-3 py-2.5 font-semibold">No</th>
-              <th className="px-3 py-2.5 font-semibold">Hari</th>
-              <th className="px-3 py-2.5 font-semibold">Tanggal</th>
-              <th className="px-3 py-2.5 font-semibold">Waktu</th>
-              <th className="px-3 py-2.5 font-semibold">Mata Pelajaran</th>
-              <th className="px-3 py-2.5 font-semibold">Kelas</th>
-              <th className="px-3 py-2.5 font-semibold text-center">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50 dark:divide-[#1a1a1a]">
-            {filtered.map((item: any, i: number) => {
-              const d = new Date(item.tanggal);
-              return (
-                <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-[#0a0a0a] transition-colors group">
-                  <td className="px-3 py-2 text-gray-400">{i + 1}</td>
-                  <td className="px-3 py-2 font-medium text-text-primary dark:text-text-darkPrimary">{HARI[d.getDay()]}</td>
-                  <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{d.toLocaleDateString('id-ID')}</td>
-                  <td className="px-3 py-2 font-mono text-indigo-600 dark:text-indigo-400">{item.waktuMulai} — {item.waktuSelesai}</td>
-                  <td className="px-3 py-2 font-semibold text-text-primary dark:text-text-darkPrimary">{item.mataPelajaran}</td>
-                  <td className="px-3 py-2 text-gray-500">{item.kelas || '-'}</td>
-                  <td className="px-3 py-2 text-center">
-                    <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleEdit(item)} className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-500"><Edit2 size={12} /></button>
-                      <button onClick={() => handleDelete(item.id)} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"><Trash2 size={12} /></button>
-                    </div>
-                  </td>
+      {/* Pivot Matrix Implementation */}
+      <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#0a0a0a]">
+        {(() => {
+          // Discover unique classes and times
+          const uniqueClasses = Array.from(new Set(filtered.flatMap(j => (j.kelas || '').split(',').map((c: string) => c.trim()).filter(Boolean)))).sort();
+          if (uniqueClasses.length === 0 && filtered.length > 0) uniqueClasses.push('-');
+
+          const dateMap = new Map();
+          filtered.forEach(j => {
+            if (!dateMap.has(j.tanggal)) dateMap.set(j.tanggal, { date: new Date(j.tanggal), sessions: new Map() });
+            const dObj = dateMap.get(j.tanggal);
+            const wKey = `${j.waktuMulai} - ${j.waktuSelesai}`;
+            if (!dObj.sessions.has(wKey)) dObj.sessions.set(wKey, { waktuMulai: j.waktuMulai, waktuSelesai: j.waktuSelesai, mapels: {} });
+            const sObj = dObj.sessions.get(wKey);
+            const clArr = (j.kelas || '-').split(',').map((c:string) => c.trim());
+            clArr.forEach((c:string) => {
+              if (c) sObj.mapels[c] = j.mataPelajaran;
+            });
+            // Attach random id for manual editing/deletion preview (we take the first one found)
+            if(!sObj.idRef) sObj.idRef = j.id; 
+            if(!sObj.itemRef) sObj.itemRef = j;
+          });
+
+          const summary = Array.from(dateMap.values()).sort((a,b) => a.date.getTime() - b.date.getTime());
+
+          return (
+            <table className="w-full text-left text-xs min-w-max">
+              <thead className="bg-[#f8fafc] dark:bg-[#111] text-[10px] uppercase font-bold text-gray-600 dark:text-gray-300">
+                <tr>
+                  <th className="px-3 py-3 border-b border-r border-gray-200 dark:border-[#333] w-8 text-center" rowSpan={2}>No</th>
+                  <th className="px-3 py-3 border-b border-r border-gray-200 dark:border-[#333] min-w-[120px]" rowSpan={2}>Hari / Tanggal</th>
+                  <th className="px-3 py-3 border-b border-r border-gray-200 dark:border-[#333] w-[140px]" rowSpan={2}>Waktu</th>
+                  {uniqueClasses.length > 0 && <th className="px-3 py-2 border-b border-gray-200 dark:border-[#333] text-center" colSpan={uniqueClasses.length}>Kelas / Jurusan</th>}
+                  <th className="px-3 py-3 border-b border-l border-gray-200 dark:border-[#333] text-center" rowSpan={2}>Aksi</th>
                 </tr>
-              );
-            })}
-            {filtered.length === 0 && (
-              <tr><td colSpan={7} className="px-3 py-8 text-center text-gray-400 italic">
-                {loading ? 'Memuat...' : 'Belum ada jadwal ujian. Tambahkan jadwal secara manual atau upload Excel.'}
-              </td></tr>
-            )}
-          </tbody>
-        </table>
+                {uniqueClasses.length > 0 && (
+                  <tr>
+                    {uniqueClasses.map(c => <th key={c} className="px-3 py-2 border-b border-r border-gray-200 dark:border-[#333] text-center">{c}</th>)}
+                  </tr>
+                )}
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
+                {summary.length === 0 ? (
+                  <tr><td colSpan={5 + uniqueClasses.length} className="px-3 py-12 text-center text-gray-400 italic">
+                    {loading ? 'Memuat data jadwal...' : 'Belum ada jadwal ujian. Silakan klik "Input Manual" atau "Template Excel".'}
+                  </td></tr>
+                ) : summary.map((dObj, dIdx) => {
+                  const sessions = Array.from(dObj.sessions.values()).sort((a:any, b:any) => a.waktuMulai.localeCompare(b.waktuMulai));
+                  return sessions.map((sess:any, sIdx: number) => (
+                    <tr key={`${dIdx}-${sIdx}`} className="hover:bg-gray-50/50 dark:hover:bg-[#111]/50 group transition-colors">
+                      {sIdx === 0 && (
+                        <>
+                          <td className="px-3 py-2 border-r border-gray-100 dark:border-[#222] align-top text-center text-gray-500" rowSpan={sessions.length}>{dIdx + 1}</td>
+                          <td className="px-3 py-2 border-r border-gray-100 dark:border-[#222] align-top font-medium" rowSpan={sessions.length}>
+                            {HARI[dObj.date.getDay()]}, {dObj.date.toLocaleDateString('id-ID')}
+                          </td>
+                        </>
+                      )}
+                      <td className="px-3 py-2 border-r border-gray-100 dark:border-[#222] font-mono text-indigo-600 dark:text-indigo-400">
+                        {sess.waktuMulai} - {sess.waktuSelesai}
+                      </td>
+                      {uniqueClasses.map((c:string) => (
+                        <td key={c} className="px-3 py-2 border-r border-gray-100 dark:border-[#222] text-center font-semibold text-text-primary dark:text-gray-100">
+                          {sess.mapels[c] || '-'}
+                        </td>
+                      ))}
+                      <td className="px-3 py-2 text-center border-l dark:border-[#222]">
+                        <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => handleDelete(sess.idRef)} className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"><Trash2 size={12} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ));
+                })}
+              </tbody>
+            </table>
+          );
+        })()}
       </div>
 
       <p className="text-[10px] text-gray-400">
-        Total: {filtered.length} jadwal • Template Excel: Tanggal | Waktu Mulai | Waktu Selesai | Mata Pelajaran | Kelas
+        Total: {jadwal.length} sesi ujian • Gunakan fitur "Template Excel" untuk mempermudah upload massal dengan format yang tepat.
       </p>
     </div>
   );

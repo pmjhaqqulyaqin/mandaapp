@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, uuid, varchar, date, integer, time } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, uuid, varchar, date, integer, time, jsonb } from "drizzle-orm/pg-core";
 
 // Users (Integrated with better-auth)
 export const user = pgTable("user", {
@@ -357,6 +357,7 @@ export const ujian = pgTable("ujian", {
   tanggalSelesai: date("tanggal_selesai").notNull(),
   ketuaPanitiaId: uuid("ketua_panitia_id").references(() => employees.id),
   status: varchar("status", { length: 20 }).default("aktif"), // aktif, selesai, draft
+  pengaturan: jsonb("pengaturan").default({}),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
 import { CreateUjianModal } from '../components/CreateUjianModal';
-import { Edit2, Trash2, Plus, UserPlus, Users } from 'lucide-react';
+import { Edit2, Trash2, Plus, UserPlus, Users, Settings } from 'lucide-react';
+import { PengaturanUjianModal } from '../components/PengaturanUjianModal';
 
 interface Props {
   ujian: any;
@@ -11,6 +12,7 @@ interface Props {
 
 export const MasterUjianTab = ({ ujian, onRefresh }: Props) => {
   const [editOpen, setEditOpen] = useState(false);
+  const [pengaturanOpen, setPengaturanOpen] = useState(false);
   const [panitia, setPanitia] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [addPanitiaOpen, setAddPanitiaOpen] = useState(false);
@@ -92,10 +94,14 @@ export const MasterUjianTab = ({ ujian, onRefresh }: Props) => {
               </div>
             ))}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button onClick={() => setEditOpen(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 hover:bg-indigo-100 transition-colors">
               <Edit2 size={12} /> Edit Ujian
+            </button>
+            <button onClick={() => setPengaturanOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 hover:bg-cyan-100 transition-colors">
+              <Settings size={12} /> Pengaturan Cetak & Waktu
             </button>
             <button onClick={handleDeleteUjian}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 hover:bg-red-100 transition-colors">
@@ -178,6 +184,14 @@ export const MasterUjianTab = ({ ujian, onRefresh }: Props) => {
         onClose={() => setEditOpen(false)}
         onSuccess={() => { setEditOpen(false); onRefresh(); toast.success('Ujian diperbarui'); }}
         editData={ujian}
+      />
+
+      <PengaturanUjianModal
+        isOpen={pengaturanOpen}
+        onClose={() => setPengaturanOpen(false)}
+        ujianId={ujian.id}
+        ujian={ujian}
+        onSuccess={() => { setPengaturanOpen(false); onRefresh(); }}
       />
     </div>
   );

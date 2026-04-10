@@ -139,6 +139,17 @@ export class ExamController {
     }
   }
 
+  static async downloadJadwalTemplate(req: Request, res: Response) {
+    try {
+      const buffer = await ExamService.downloadJadwalTemplateExcel(req.params.ujianId);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="Template_Jadwal_Ujian.xlsx"');
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   // ============ RUANG ============
 
   static async getRuang(req: Request, res: Response) {

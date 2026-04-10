@@ -43,7 +43,8 @@ export class ExamService {
       tanggalMulai: data.tanggalMulai,
       tanggalSelesai: data.tanggalSelesai,
       ketuaPanitiaId: data.ketuaPanitiaId || null,
-      status: data.status || 'aktif'
+      status: data.status || 'aktif',
+      pengaturan: data.pengaturan || {}
     }).returning();
     return result[0];
   }
@@ -58,6 +59,7 @@ export class ExamService {
       tanggalSelesai: data.tanggalSelesai,
       ketuaPanitiaId: data.ketuaPanitiaId || null,
       status: data.status,
+      pengaturan: data.pengaturan,
       updatedAt: new Date()
     }).where(eq(ujian.id, id)).returning();
   }
@@ -132,71 +134,286 @@ export class ExamService {
     return await db.delete(jadwalUjian).where(eq(jadwalUjian.id, id));
   }
 
+  static async downloadJadwalTemplateExcel(ujianId: string) {
+    const ujianData = await this.getUjianById(ujianId);
+    if (!ujianData) throw new Error('Ujian tidak ditemukan');
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Template Jadwal Pivot');
+
+    let classList;
+    const peng = ujianData.pengaturan as any || {};
+    if (peng.kelasPeserta && peng.kelasPeserta.length > 0) {
+      classList = await db.select().from(classes).where(inArray(classes.id, peng.kelasPeserta)).orderBy(asc(classes.name));
+    } else {
+      classList = await db.select().from(classes).orderBy(asc(classes.name));
+    }
+
+    const cols = [
+      { header: 'No', key: 'no', width: 5 },
+      { header: 'Hari/Tanggal', key: 'hariTanggal', width: 25 },
+      { header: 'Waktu', key: 'waktu', width: 20 },
+    ];
+    classList.forEach((c: any) => cols.push({ header: c.name, key: c.name, width: 20 }));
+    sheet.columns = cols;
+    sheet.getRow(1).font = { bold: true };
+
+    const w = peng.waktuSesi || {
+      normal: [{ mulai: '07:30', selesai: '09:30' }, { mulai: '10:00', selesai: '12:00' }],
+      jumat: [{ mulai: '07:15', selesai: '09:15' }, { mulai: '09:30', selesai: '11:30' }]
+    };
+
+    const start = new Date(ujianData.tanggalMulai);
+    const end = new Date(ujianData.tanggalSelesai);
+    let no = 1;
+
+    for (let d = start; d <= end; d.setDate(d.getDate() + 1)) {
+      if (d.getDay() === 0) continue; // Skip Sunday
+
+      const isJumat = d.getDay() === 5;
+      const sesi = isJumat ? w.jumat : w.normal;
+      const hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const dateStr = `${hariNames[d.getDay()]}, ${d.toLocaleDateString('id-ID')}`;
+
+      const row1: any = { no: no++, hariTanggal: dateStr, waktu: `${sesi[0]?.mulai||''} - ${sesi[0]?.selesai||''}` };
+      sheet.addRow(row1);
+      const row2: any = { no: no++, hariTanggal: '', waktu: `${sesi[1]?.mulai||''} - ${sesi[1]?.selesai||''}` };
+      sheet.addRow(row2);
+    }
+
+    return await workbook.xlsx.writeBuffer();
+  }
+
   static async importJadwalFromExcel(ujianId: string, buffer: any) {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer as any);
     const sheet = workbook.worksheets[0];
     if (!sheet) throw new Error('File Excel kosong');
 
-    const rows: any[] = [];
-    sheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return; // Skip header
-      const tanggal = row.getCell(1).text?.trim();
-      const waktuMulai = row.getCell(2).text?.trim();
-      const waktuSelesai = row.getCell(3).text?.trim();
-      const mataPelajaran = row.getCell(4).text?.trim();
-      const kelas = row.getCell(5).text?.trim();
-
-      if (tanggal && waktuMulai && waktuSelesai && mataPelajaran) {
-        rows.push({
-          id: uuidv4(),
-          ujianId,
-          tanggal,
-          waktuMulai,
-          waktuSelesai,
-          mataPelajaran,
-          kelas: kelas || null
-        });
-      }
+    const classesCols: string[] = [];
+    sheet.getRow(1).eachCell((cell, colNumber) => {
+      if (colNumber > 3) classesCols.push(cell.text?.trim() || '');
     });
 
-    if (rows.length === 0) throw new Error('Tidak ada data valid dalam file');
-    await db.insert(jadwalUjian).values(rows);
-    return { imported: rows.length };
+    const parsedRows: any[] = [];
+    let lastTanggal = '';
+
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header
+
+      const ht = row.getCell(2).text?.trim(); // Hari/Tanggal
+      if (ht) {
+        const parts = ht.split(',');
+        if (parts.length > 1) {
+          const rawDateStr = parts[1].trim();
+          const [d, m, y] = rawDateStr.split(/[\/\-]/); // Works for DD/MM/YYYY
+          if (d && m && y) {
+             const yearObj = y.length === 2 ? `20${y}` : y;
+             lastTanggal = `${yearObj}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+          } else lastTanggal = rawDateStr;
+        } else {
+          lastTanggal = ht;
+        }
+      }
+
+      const waktu = row.getCell(3).text?.trim();
+      let waktuMulai = '';
+      let waktuSelesai = '';
+      if (waktu) {
+        const span = waktu.split('-');
+        waktuMulai = span[0]?.trim();
+        waktuSelesai = span[1]?.trim() || '';
+      }
+
+      classesCols.forEach((className, idx) => {
+        const mapel = row.getCell(4 + idx).text?.trim();
+        if (mapel && mapel !== '' && mapel !== '-') {
+          parsedRows.push({ tanggal: lastTanggal, waktuMulai, waktuSelesai, mataPelajaran: mapel, kelas: className });
+        }
+      });
+    });
+
+    if (parsedRows.length === 0) throw new Error('Tidak ada data valid dalam file');
+
+    const grouped: Record<string, string[]> = {};
+    parsedRows.forEach(r => {
+      const key = `${r.tanggal}__${r.waktuMulai}__${r.waktuSelesai}__${r.mataPelajaran}`;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(r.kelas);
+    });
+
+    const finalRows = Object.entries(grouped).map(([key, classes]) => {
+       const [tanggal, waktuMulai, waktuSelesai, mapel] = key.split('__');
+       return {
+            id: uuidv4(),
+            ujianId,
+            tanggal,
+            waktuMulai,
+            waktuSelesai,
+            mataPelajaran: mapel,
+            kelas: classes.join(', ')
+       };
+    });
+
+    await db.insert(jadwalUjian).values(finalRows);
+    return { imported: finalRows.length };
   }
 
   static async exportJadwalExcel(ujianId: string) {
     const jadwal = await this.getJadwal(ujianId);
+    if (!jadwal.length) throw new Error("Jadwal masih kosong");
     const ujianData = await this.getUjianById(ujianId);
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Jadwal Ujian');
 
-    sheet.columns = [
-      { header: 'No', key: 'no', width: 5 },
-      { header: 'Hari', key: 'hari', width: 12 },
-      { header: 'Tanggal', key: 'tanggal', width: 15 },
-      { header: 'Waktu Mulai', key: 'waktuMulai', width: 12 },
-      { header: 'Waktu Selesai', key: 'waktuSelesai', width: 12 },
-      { header: 'Mata Pelajaran', key: 'mataPelajaran', width: 30 },
-      { header: 'Kelas', key: 'kelas', width: 20 },
-    ];
+    const peng = ujianData?.pengaturan as any || {};
+    const kop = peng.kop || {};
+    const ttd = peng.ttd || {};
 
-    sheet.getRow(1).font = { bold: true };
+    let classList;
+    if (peng.kelasPeserta && peng.kelasPeserta.length > 0) {
+      classList = await db.select().from(classes).where(inArray(classes.id, peng.kelasPeserta)).orderBy(asc(classes.name));
+    } else {
+      classList = await db.select().from(classes).orderBy(asc(classes.name));
+    }
+    const classNames = classList.map((c: any) => c.name);
+    const totalCols = 3 + classNames.length;
+
+    // Kop Surat
+    sheet.mergeCells(1, 1, 1, totalCols);
+    sheet.getCell(1, 1).value = kop.kementerian || 'KEMENTERIAN AGAMA REPUBLIK INDONESIA';
+    sheet.getCell(1, 1).font = { bold: true, size: 12 };
+    sheet.getCell(1, 1).alignment = { horizontal: 'center' };
+
+    sheet.mergeCells(2, 1, 2, totalCols);
+    sheet.getCell(2, 1).value = kop.instansi || 'MADRASAH ALIYAH NEGERI';
+    sheet.getCell(2, 1).font = { bold: true, size: 14 };
+    sheet.getCell(2, 1).alignment = { horizontal: 'center' };
+
+    sheet.mergeCells(3, 1, 3, totalCols);
+    sheet.getCell(3, 1).value = kop.panitia || 'PANITIA UJIAN';
+    sheet.getCell(3, 1).font = { bold: true, size: 12 };
+    sheet.getCell(3, 1).alignment = { horizontal: 'center' };
+
+    sheet.mergeCells(4, 1, 4, totalCols);
+    sheet.getCell(4, 1).value = kop.alamat || 'Alamat';
+    sheet.getCell(4, 1).font = { size: 10 };
+    sheet.getCell(4, 1).alignment = { horizontal: 'center' };
+
+    const headerBorderObj = { bottom: { style: 'double' } } as any;
+    for(let c = 1; c <= totalCols; c++) {
+      sheet.getCell(4, c).border = headerBorderObj;
+    }
+
+    sheet.addRow([]);
+    sheet.mergeCells(6, 1, 6, totalCols);
+    sheet.getCell(6, 1).value = `JADWAL ${ujianData?.namaUjian?.toUpperCase() || 'UJIAN'}`;
+    sheet.getCell(6, 1).font = { bold: true, size: 12 };
+    sheet.getCell(6, 1).alignment = { horizontal: 'center' };
+
+    sheet.addRow([]);
+
+    // Tabel Header Pivot
+    sheet.mergeCells(8, 1, 9, 1); sheet.getCell(8, 1).value = 'No';
+    sheet.mergeCells(8, 2, 9, 2); sheet.getCell(8, 2).value = 'Hari / Tanggal';
+    sheet.mergeCells(8, 3, 9, 3); sheet.getCell(8, 3).value = 'Waktu';
+
+    if(classNames.length > 0) {
+      sheet.mergeCells(8, 4, 8, totalCols);
+      sheet.getCell(8, 4).value = 'Kelas / Jurusan';
+      sheet.getCell(8, 4).alignment = { horizontal: 'center' };
+      classNames.forEach((n, idx) => {
+         sheet.getCell(9, 4 + idx).value = n;
+      });
+    }
+
+    for(let r=8; r<=9; r++) {
+        for(let c=1; c<=totalCols; c++) {
+            const cell = sheet.getCell(r, c);
+            cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            cell.font = { bold: true, size: 10 };
+        }
+    }
 
     const hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    jadwal.forEach((row: any, i: number) => {
-      const d = new Date(row.tanggal);
-      sheet.addRow({
-        no: i + 1,
-        hari: hariNames[d.getDay()] || '',
-        tanggal: d.toLocaleDateString('id-ID'),
-        waktuMulai: row.waktuMulai,
-        waktuSelesai: row.waktuSelesai,
-        mataPelajaran: row.mataPelajaran,
-        kelas: row.kelas || '-'
-      });
+    const dateMap = new Map();
+    jadwal.forEach((r: any) => {
+       if(!dateMap.has(r.tanggal)) {
+         const d = new Date(r.tanggal);
+         dateMap.set(r.tanggal, { dateStr: `${hariNames[d.getDay()]}, ${d.toLocaleDateString('id-ID')}`, tDate: d.getTime(), sessions: new Map() });
+       }
+       const dObj = dateMap.get(r.tanggal);
+       const tKey = `${r.waktuMulai} - ${r.waktuSelesai}`;
+
+       if(!dObj.sessions.has(tKey)) dObj.sessions.set(tKey, {});
+       const sObj = dObj.sessions.get(tKey);
+       
+       const classesInRow = (r.kelas || '').split(',').map((c:string) => c.trim());
+       classesInRow.forEach((c:string) => {
+         if(c && c !== '') sObj[c] = r.mataPelajaran;
+       });
     });
+
+    const dateArray = Array.from(dateMap.values()).sort((a,b) => a.tDate - b.tDate);
+    
+    let currentRowNum = 10;
+    let no = 1;
+
+    dateArray.forEach(dObj => {
+       const sessions = Array.from(dObj.sessions.entries()).sort((a:any, b:any) => a[0].localeCompare(b[0]));
+       
+       sessions.forEach((sess:any, idx: number) => {
+          const rowData = [];
+          if(idx === 0) {
+             rowData.push(no++);
+             rowData.push(dObj.dateStr);
+          } else {
+             rowData.push('');
+             rowData.push('');
+          }
+          rowData.push(sess[0]);
+
+          classNames.forEach(cn => {
+             rowData.push(sess[1][cn] || '-');
+          });
+
+          sheet.addRow(rowData);
+          for(let c=1; c<=totalCols; c++) {
+              const cell = sheet.getCell(currentRowNum, c);
+              cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+              cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+              cell.font = { size: 10 };
+          }
+          currentRowNum++;
+       });
+       
+       if(sessions.length > 1) {
+          const startR = currentRowNum - sessions.length;
+          const endR = currentRowNum - 1;
+          sheet.mergeCells(startR, 1, endR, 1); // No
+          sheet.mergeCells(startR, 2, endR, 2); // Hari/Tgl
+       }
+    });
+
+    sheet.addRow([]); sheet.addRow([]);
+    const ttdR = currentRowNum + 2;
+    const ttdColStr = Math.max(1, totalCols - 2);
+
+    const dStr = ttd.tanggal ? new Date(ttd.tanggal).toLocaleDateString('id-ID', {day: '2-digit', month: 'long', year: 'numeric'}) : '';
+    sheet.getCell(ttdR, ttdColStr).value = `${ttd.tempat || 'Tempat'}, ${dStr}`;
+    sheet.getCell(ttdR+1, ttdColStr).value = ttd.jabatan || 'Kepala Madrasah';
+    
+    sheet.getCell(ttdR+5, ttdColStr).value = ttd.nama || '';
+    sheet.getCell(ttdR+5, ttdColStr).font = { bold: true };
+    sheet.getCell(ttdR+6, ttdColStr).value = `NIP. ${ttd.nip || ''}`;
+
+    // Columns width
+    sheet.getColumn(1).width = 5;
+    sheet.getColumn(2).width = 20;
+    sheet.getColumn(3).width = 18;
+    for(let c=4; c<=totalCols; c++) sheet.getColumn(c).width = 18;
 
     return await workbook.xlsx.writeBuffer();
   }

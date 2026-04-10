@@ -23,14 +23,17 @@ export const CreateUjianModal = ({ isOpen, onClose, onSuccess, editData }: Props
     tanggalSelesai: '',
     ketuaPanitiaId: '',
     status: 'aktif',
+    pengaturan: { kelasPeserta: [] as string[] }
   });
   const [employees, setEmployees] = useState<any[]>([]);
+  const [classList, setClassList] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [useCustomJenis, setUseCustomJenis] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       apiClient<any[]>('/employees').then(setEmployees).catch(() => {});
+      apiClient<any[]>('/classes').then(setClassList).catch(() => {});
       if (editData) {
         const isPreset = JENIS_PRESETS.includes(editData.jenis);
         setForm({
@@ -43,6 +46,7 @@ export const CreateUjianModal = ({ isOpen, onClose, onSuccess, editData }: Props
           tanggalSelesai: editData.tanggalSelesai || '',
           ketuaPanitiaId: editData.ketuaPanitiaId || '',
           status: editData.status || 'aktif',
+          pengaturan: editData.pengaturan || { kelasPeserta: [] }
         });
         setUseCustomJenis(!isPreset);
       } else {
@@ -56,6 +60,7 @@ export const CreateUjianModal = ({ isOpen, onClose, onSuccess, editData }: Props
           tanggalSelesai: '',
           ketuaPanitiaId: '',
           status: 'aktif',
+          pengaturan: { kelasPeserta: [] }
         });
         setUseCustomJenis(false);
       }
@@ -177,13 +182,41 @@ export const CreateUjianModal = ({ isOpen, onClose, onSuccess, editData }: Props
         </div>
 
         <div>
-          <label className={labelClass}>Status</label>
+          <label className={labelClass}>Status Pelaksanaan</label>
           <select className={inputClass}
             value={form.status} onChange={e => setForm({...form, status: e.target.value})}>
             <option value="aktif">Aktif</option>
             <option value="draft">Draft</option>
             <option value="selesai">Selesai</option>
           </select>
+        </div>
+
+        <div>
+          <label className={labelClass}>Kelas Peserta Ujian</label>
+          <div className="border border-gray-200 dark:border-[#333] rounded-lg p-3 bg-white dark:bg-[#0a0a0a] max-h-32 overflow-y-auto w-full">
+            <div className="grid grid-cols-3 gap-2">
+              {classList.map(cls => {
+                const checked = form.pengaturan.kelasPeserta.includes(cls.id);
+                return (
+                  <label key={cls.id} className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" className="accent-indigo-600 rounded text-indigo-600"
+                      checked={checked}
+                      onChange={(e) => {
+                        const newSettings = { ...form.pengaturan };
+                        if (e.target.checked) {
+                          newSettings.kelasPeserta = [...newSettings.kelasPeserta, cls.id];
+                        } else {
+                          newSettings.kelasPeserta = newSettings.kelasPeserta.filter((id: string) => id !== cls.id);
+                        }
+                        setForm({ ...form, pengaturan: newSettings });
+                      }} />
+                    <span className="text-xs text-text-primary dark:text-text-darkPrimary">{cls.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+          <p className="text-[10px] text-gray-400 mt-1">Kosongkan jika melibatkan seluruh kelas</p>
         </div>
       </div>
 
