@@ -36,7 +36,15 @@ export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, allEmployees, 
     try {
       const panitiaData = await apiClient<any[]>(`/exams/${ujian.id}/panitia`);
       const pList = Array.isArray(panitiaData) ? panitiaData : [];
-      const ids = pList.map(p => p.pegawaiId).filter(Boolean);
+      const ids: string[] = [];
+      pList.forEach(p => {
+        // Extract from direct field (Drizzle camelCase mapping)
+        if (p.pegawaiId) ids.push(p.pegawaiId);
+        // Also check nested pegawai object as fallback
+        if (p.pegawai?.id) ids.push(p.pegawai.id);
+        // Also check snake_case variant (raw SQL response)
+        if (p.pegawai_id) ids.push(p.pegawai_id);
+      });
       if (ujian.ketuaPanitiaId) ids.push(ujian.ketuaPanitiaId);
       setCommitteeIds([...new Set(ids)]);
     } catch (err) {
@@ -44,6 +52,7 @@ export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, allEmployees, 
       // Still exclude ketua panitia even if panitia list fails
       if (ujian.ketuaPanitiaId) setCommitteeIds([ujian.ketuaPanitiaId]);
     }
+
 
     // Fetch headmaster NIP from site settings
     try {
@@ -114,14 +123,6 @@ export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, allEmployees, 
           <div className="flex flex-col h-full border-r border-gray-100 dark:border-[#111] pr-4">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Daftar Pegawai Aktif</p>
             
-            {/* DEBUG BAR */}
-            <div className="mb-2 p-2 bg-red-100 border border-red-300 text-red-800 text-[10px] rounded">
-              DEBUG: Total={allEmployees?.length || 0} | 
-              Guru={ (allEmployees||[]).filter(e=>(e.type||'').toLowerCase().trim()==='guru').length } | 
-              Panitia={committeeIds.length} |  
-              Filtered={filteredEmployees.length} |
-              HM_NIP={headmasterNip}
-            </div>
 
             <div className="relative mb-3">
               <input 
