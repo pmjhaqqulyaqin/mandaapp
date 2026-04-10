@@ -28,6 +28,7 @@ export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, onSuccess }: P
   }, [isOpen, ujian]);
 
   const fetchData = async () => {
+    if (!ujian?.id) return;
     setLoading(true);
     try {
       const [empData, panitiaData] = await Promise.all([
@@ -39,7 +40,9 @@ export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, onSuccess }: P
       const ids = panitiaData.map(p => p.pegawaiId);
       if (ujian.ketuaPanitiaId) ids.push(ujian.ketuaPanitiaId);
       setCommitteeIds([...new Set(ids)]);
-    } catch { }
+    } catch (err) { 
+      console.error('Failed to fetch proctor data:', err);
+    }
     finally { setLoading(false); }
   };
 
@@ -65,8 +68,8 @@ export const PengaturanPengawasModal = ({ isOpen, onClose, ujian, onSuccess }: P
 
   const filteredEmployees = employees.filter(e => {
     const isCommittee = committeeIds.includes(e.id);
-    const isHeadmaster = e.position?.toLowerCase().includes('kepala madrasah') || 
-                        e.position?.toLowerCase().includes('kepala sekolah');
+    const pos = e.position?.toLowerCase() || '';
+    const isHeadmaster = pos.includes('kepala madrasah') || pos.includes('kepala sekolah');
     const isAlreadyInGroup = group1.includes(e.id) || group2.includes(e.id);
     const matchesSearch = e.name.toLowerCase().includes(search.toLowerCase());
 
