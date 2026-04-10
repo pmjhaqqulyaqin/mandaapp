@@ -265,7 +265,7 @@ export const DashboardStudents = () => {
         <>
           {/* Filter Bar */}
           <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] px-3 py-2">
-            <div className="flex flex-col sm:flex-row gap-2 items-end">
+            <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end">
               <div className="flex-[3] min-w-0">
                 <label className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-0.5 block">Cari Nama atau NIS</label>
                 <div className="relative">
@@ -304,7 +304,7 @@ export const DashboardStudents = () => {
                   <option value="Semua">Semua Status</option>
                 </select>
               </div>
-              <div className="shrink-0">
+              <div className="shrink-0 self-end sm:self-auto">
                 <Button variant="outline" size="icon" title="Export Excel (sesuai filter aktif)"
                   onClick={handleExportExcel} className="h-8 w-8">
                   <Download size={14} className="text-emerald-600" />
