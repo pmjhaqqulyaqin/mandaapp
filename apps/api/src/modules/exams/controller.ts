@@ -269,7 +269,8 @@ export class ExamController {
 
   static async exportDistribusi(req: Request, res: Response) {
     try {
-      const buffer = await ExamService.exportDistribusiExcel(req.params.ujianId);
+      const ruangId = req.query.ruangId as string | undefined;
+      const buffer = await ExamService.exportDistribusiExcel(req.params.ujianId, ruangId);
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename="Distribusi_Peserta.xlsx"');
       res.send(buffer);

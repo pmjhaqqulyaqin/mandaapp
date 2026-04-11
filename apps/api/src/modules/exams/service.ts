@@ -1119,7 +1119,7 @@ export class ExamService {
     return await db.delete(distribusiPeserta).where(eq(distribusiPeserta.ujianId, ujianId));
   }
 
-  static async exportDistribusiExcel(ujianId: string) {
+  static async exportDistribusiExcel(ujianId: string, ruangId?: string) {
     const ujianData = await this.getUjianById(ujianId);
     if (!ujianData) throw new Error('Ujian tidak ditemukan');
 
@@ -1128,7 +1128,12 @@ export class ExamService {
     const distribusiTtd = config.distribusiTtd || config.ttd || {};
 
     const distribusi = await this.getDistribusi(ujianId);
-    const ruangList = await this.getRuang(ujianId);
+    let ruangList = await this.getRuang(ujianId);
+
+    // Filter by specific room if requested
+    if (ruangId) {
+      ruangList = ruangList.filter(r => r.id === ruangId);
+    }
 
     const workbook = new ExcelJS.Workbook();
     const totalCols = 7; // No, NIS, NISN, NAMA SISWA, L/P, TEMPAT LAHIR, TANGGAL LAHIR

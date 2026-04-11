@@ -244,7 +244,11 @@ export const RuangPesertaTab = ({ ujianId }: Props) => {
   };
 
   const handleExport = () => {
-    window.open(`${import.meta.env.VITE_API_URL}/exams/${ujianId}/distribusi/export`, '_blank');
+    let url = `${import.meta.env.VITE_API_URL}/exams/${ujianId}/distribusi/export`;
+    if (filterRuang) {
+      url += `?ruangId=${filterRuang}`;
+    }
+    window.open(url, '_blank');
   };
 
   const filtered = distribusi.filter(d => {
