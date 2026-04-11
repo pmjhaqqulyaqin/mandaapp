@@ -50,18 +50,27 @@ export class ExamService {
   }
 
   static async updateUjian(id: string, data: any) {
-    return await db.update(ujian).set({
-      namaUjian: data.namaUjian,
-      jenis: data.jenis,
-      tahunAjaran: data.tahunAjaran,
-      semester: data.semester,
-      tanggalMulai: data.tanggalMulai,
-      tanggalSelesai: data.tanggalSelesai,
-      ketuaPanitiaId: data.ketuaPanitiaId || null,
-      status: data.status,
-      pengaturan: data.pengaturan,
-      updatedAt: new Date()
-    }).where(eq(ujian.id, id)).returning();
+    // Build update object dynamically — only include fields that are explicitly provided.
+    // This prevents callers sending partial data from accidentally wiping out existing fields
+    // (e.g., PengaturanPengawasModal sends only { pengaturan } which should NOT clear namaUjian, etc.)
+    const updateFields: Record<string, any> = { updatedAt: new Date() };
+
+    if (data.namaUjian !== undefined) updateFields.namaUjian = data.namaUjian;
+    if (data.jenis !== undefined) updateFields.jenis = data.jenis;
+    if (data.tahunAjaran !== undefined) updateFields.tahunAjaran = data.tahunAjaran;
+    if (data.semester !== undefined) updateFields.semester = data.semester;
+    if (data.tanggalMulai !== undefined) updateFields.tanggalMulai = data.tanggalMulai;
+    if (data.tanggalSelesai !== undefined) updateFields.tanggalSelesai = data.tanggalSelesai;
+    if (data.ketuaPanitiaId !== undefined) updateFields.ketuaPanitiaId = data.ketuaPanitiaId || null;
+    if (data.status !== undefined) updateFields.status = data.status;
+    if (data.pengaturan !== undefined) {
+      // Merge pengaturan with existing data to avoid losing nested keys (like pengawasGroups)
+      const existing = await this.getUjianById(id);
+      const existingPengaturan = (existing?.pengaturan as any) || {};
+      updateFields.pengaturan = { ...existingPengaturan, ...data.pengaturan };
+    }
+
+    return await db.update(ujian).set(updateFields).where(eq(ujian.id, id)).returning();
   }
 
   static async deleteUjian(id: string) {
