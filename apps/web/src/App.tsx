@@ -31,6 +31,7 @@ import { ExamManagementPage } from './pages/exams/ExamManagementPage';
 import { SystemUpdateCenter } from './pages/dashboard/SystemUpdateCenter';
 import { BatchPrintPage } from './pages/BatchPrintPage';
 import { PrintAcademicCalendar } from './pages/PrintAcademicCalendar';
+import { PrintKartuPeserta } from './pages/exams/print/PrintKartuPeserta';
 import { FloatingActionButton, ScrollToTopButton } from '@mandaapp/ui';
 import { Toaster } from 'sonner';
 
@@ -62,6 +63,11 @@ function App() {
         <Route path="/dashboard/print-calendar" element={
           <ProtectedRoute>
             <PrintAcademicCalendar />
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard/print-kartu-peserta/:ujianId" element={
+          <ProtectedRoute>
+            <PrintKartuPeserta />
           </ProtectedRoute>
         } />
         
