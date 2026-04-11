@@ -538,6 +538,61 @@ export const RuangPesertaTab = ({ ujianId }: Props) => {
           </div>
         )}
 
+        {/* TTD Settings Panel */}
+        {showTtdSettings && (
+          <div className="bg-gray-50/80 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#222] rounded-xl p-4 mb-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-semibold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
+                <Settings size={13} className="text-violet-500" /> Pengaturan Tanda Tangan Export
+              </h4>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div>
+                <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Tempat</label>
+                <input className={inputClass} placeholder="Wanasaba" value={ttdForm.tempat} onChange={e => setTtdForm({...ttdForm, tempat: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Tanggal</label>
+                <input type="date" className={inputClass} value={ttdForm.tanggal} onChange={e => setTtdForm({...ttdForm, tanggal: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Jabatan</label>
+                <input className={inputClass} placeholder="Ketua Panitia" value={ttdForm.jabatan} onChange={e => setTtdForm({...ttdForm, jabatan: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Nama Penanda Tangan</label>
+                <input className={inputClass} placeholder="Muhammad Yusri, SS" value={ttdForm.nama} onChange={e => setTtdForm({...ttdForm, nama: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">NIP</label>
+                <input className={inputClass} placeholder="197905262009011005" value={ttdForm.nip} onChange={e => setTtdForm({...ttdForm, nip: e.target.value})} />
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={async () => {
+                  setSavingTtd(true);
+                  try {
+                    await apiClient(`/exams/${ujianId}`, {
+                      method: 'PUT',
+                      data: { pengaturan: { distribusiTtd: ttdForm } }
+                    });
+                    toast.success('Pengaturan tanda tangan disimpan');
+                    setShowTtdSettings(false);
+                  } catch (err: any) {
+                    toast.error('Gagal menyimpan: ' + err.message);
+                  } finally {
+                    setSavingTtd(false);
+                  }
+                }}
+                disabled={savingTtd}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold rounded-md bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 transition-all">
+                <Save size={12} /> Simpan TTD
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Peserta table */}
         <div className="flex items-center gap-2 mb-2">
           <div className="relative flex-1">
@@ -593,61 +648,6 @@ export const RuangPesertaTab = ({ ujianId }: Props) => {
           <p className="text-[10px] text-amber-500 mt-1">Menampilkan 100 dari {filtered.length} peserta. Export Excel untuk data lengkap.</p>
         )}
         <p className="text-[10px] text-gray-400">Total: {filtered.length} peserta • {ruangList.length} ruang</p>
-
-        {/* TTD Settings Panel */}
-        {showTtdSettings && (
-          <div className="mt-4 bg-gray-50/80 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#222] rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-semibold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
-                <Settings size={13} className="text-violet-500" /> Pengaturan Tanda Tangan Export
-              </h4>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <div>
-                <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Tempat</label>
-                <input className={inputClass} placeholder="Wanasaba" value={ttdForm.tempat} onChange={e => setTtdForm({...ttdForm, tempat: e.target.value})} />
-              </div>
-              <div>
-                <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Tanggal</label>
-                <input type="date" className={inputClass} value={ttdForm.tanggal} onChange={e => setTtdForm({...ttdForm, tanggal: e.target.value})} />
-              </div>
-              <div>
-                <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Jabatan</label>
-                <input className={inputClass} placeholder="Ketua Panitia" value={ttdForm.jabatan} onChange={e => setTtdForm({...ttdForm, jabatan: e.target.value})} />
-              </div>
-              <div>
-                <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Nama Penanda Tangan</label>
-                <input className={inputClass} placeholder="Muhammad Yusri, SS" value={ttdForm.nama} onChange={e => setTtdForm({...ttdForm, nama: e.target.value})} />
-              </div>
-              <div>
-                <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">NIP</label>
-                <input className={inputClass} placeholder="197905262009011005" value={ttdForm.nip} onChange={e => setTtdForm({...ttdForm, nip: e.target.value})} />
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <button
-                onClick={async () => {
-                  setSavingTtd(true);
-                  try {
-                    await apiClient(`/exams/${ujianId}`, {
-                      method: 'PUT',
-                      data: { pengaturan: { distribusiTtd: ttdForm } }
-                    });
-                    toast.success('Pengaturan tanda tangan disimpan');
-                    setShowTtdSettings(false);
-                  } catch (err: any) {
-                    toast.error('Gagal menyimpan: ' + err.message);
-                  } finally {
-                    setSavingTtd(false);
-                  }
-                }}
-                disabled={savingTtd}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold rounded-md bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 transition-all">
-                <Save size={12} /> Simpan TTD
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
