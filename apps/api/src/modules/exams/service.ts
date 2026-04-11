@@ -918,18 +918,40 @@ export class ExamService {
   // ============ DISTRIBUSI PESERTA ============
 
   static async getDistribusi(ujianId: string) {
-    const list = await db.select()
+    const list = await db.select({
+      distribusi: distribusiPeserta,
+      ruang: ruangUjian,
+      siswa: studentProfiles,
+      kelasName: classes.name,
+      majorName: majors.name,
+      majorCode: majors.code,
+    })
       .from(distribusiPeserta)
       .leftJoin(ruangUjian, eq(distribusiPeserta.ruangId, ruangUjian.id))
       .leftJoin(studentProfiles, eq(distribusiPeserta.siswaId, studentProfiles.id))
+      .leftJoin(classes, eq(studentProfiles.classId, classes.id))
+      .leftJoin(majors, eq(classes.majorId, majors.id))
       .where(eq(distribusiPeserta.ujianId, ujianId))
       .orderBy(asc(ruangUjian.namaRuang), asc(distribusiPeserta.nomorMeja));
 
-    return list.map(item => ({
-      ...item.distribusi_peserta,
-      ruang: item.ruang_ujian,
-      siswa: item.student_profiles
-    }));
+    return list.map(item => {
+      // Build full class display name (e.g. "XII IPA" or "XI-1")
+      const cName = item.kelasName || item.siswa?.className || '';
+      const major = item.majorName || item.majorCode || '';
+      let fullClassName = cName;
+      if (major) {
+        fullClassName = /^\d+$/.test(major) ? `${cName}-${major}` : `${cName} ${major}`;
+      }
+
+      return {
+        ...item.distribusi,
+        ruang: item.ruang,
+        siswa: {
+          ...item.siswa,
+          fullClassName, // enhanced class name with major
+        }
+      };
+    });
   }
 
   static async generateDistribusi(
@@ -1098,34 +1120,162 @@ export class ExamService {
   }
 
   static async exportDistribusiExcel(ujianId: string) {
+    const ujianData = await this.getUjianById(ujianId);
+    if (!ujianData) throw new Error('Ujian tidak ditemukan');
+
+    const config = (ujianData.pengaturan as any) || {};
+    const kop = config.kop || {};
+    const distribusiTtd = config.distribusiTtd || config.ttd || {};
+
     const distribusi = await this.getDistribusi(ujianId);
+    const ruangList = await this.getRuang(ujianId);
 
     const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet('Distribusi Peserta');
+    const totalCols = 7; // No, NIS, NISN, NAMA SISWA, L/P, TEMPAT LAHIR, TANGGAL LAHIR
 
-    sheet.columns = [
-      { header: 'No', key: 'no', width: 5 },
-      { header: 'Ruang', key: 'ruang', width: 15 },
-      { header: 'No. Meja', key: 'meja', width: 10 },
-      { header: 'NIS', key: 'nis', width: 15 },
-      { header: 'NISN', key: 'nisn', width: 15 },
-      { header: 'Nama Peserta', key: 'nama', width: 35 },
-      { header: 'Kelas', key: 'kelas', width: 15 },
-    ];
+    const thinBorder: any = {
+      top: { style: 'thin' }, left: { style: 'thin' },
+      bottom: { style: 'thin' }, right: { style: 'thin' }
+    };
 
-    sheet.getRow(1).font = { bold: true };
+    for (const ruang of ruangList) {
+      const ruangStudents = distribusi.filter((d: any) => d.ruangId === ruang.id);
+      if (ruangStudents.length === 0) continue;
 
-    distribusi.forEach((row: any, i: number) => {
-      sheet.addRow({
-        no: i + 1,
-        ruang: row.ruang?.namaRuang || '-',
-        meja: row.nomorMeja || '-',
-        nis: row.siswa?.nis || '-',
-        nisn: row.siswa?.nisn || '-',
-        nama: row.siswa?.fullName || '-',
-        kelas: row.siswa?.className || '-'
+      // Determine classes in this room
+      const classNames = [...new Set(ruangStudents.map((d: any) => d.siswa?.fullClassName || d.siswa?.className || '-'))];
+      const classLabel = classNames.join(', ');
+
+      const sheetName = (ruang.namaRuang || 'Ruang').substring(0, 31); // Excel sheet name max 31 chars
+      const sheet = workbook.addWorksheet(sheetName);
+
+      // ===== KOP SURAT =====
+      sheet.mergeCells(1, 1, 1, totalCols);
+      sheet.getCell(1, 1).value = kop.kementerian || 'KEMENTERIAN AGAMA REPUBLIK INDONESIA';
+      sheet.getCell(1, 1).font = { bold: true, size: 11 };
+      sheet.getCell(1, 1).alignment = { horizontal: 'center' };
+
+      sheet.mergeCells(2, 1, 2, totalCols);
+      sheet.getCell(2, 1).value = kop.instansi || 'MADRASAH ALIYAH NEGERI 2 LOMBOK TIMUR';
+      sheet.getCell(2, 1).font = { bold: true, size: 13 };
+      sheet.getCell(2, 1).alignment = { horizontal: 'center' };
+
+      sheet.mergeCells(3, 1, 3, totalCols);
+      sheet.getCell(3, 1).value = kop.panitia || `PANITIA ${ujianData.namaUjian?.toUpperCase() || 'UJIAN'}`;
+      sheet.getCell(3, 1).font = { bold: true, size: 11 };
+      sheet.getCell(3, 1).alignment = { horizontal: 'center' };
+
+      sheet.mergeCells(4, 1, 4, totalCols);
+      sheet.getCell(4, 1).value = `TAHUN PELAJARAN ${ujianData.tahunAjaran || '-'}`;
+      sheet.getCell(4, 1).font = { bold: true, size: 11 };
+      sheet.getCell(4, 1).alignment = { horizontal: 'center' };
+
+      sheet.mergeCells(5, 1, 5, totalCols);
+      sheet.getCell(5, 1).value = kop.alamat || 'Alamat';
+      sheet.getCell(5, 1).font = { italic: true, size: 9 };
+      sheet.getCell(5, 1).alignment = { horizontal: 'center' };
+
+      // Double line under kop
+      for (let c = 1; c <= totalCols; c++) {
+        sheet.getCell(5, c).border = { bottom: { style: 'double' } };
+      }
+
+      // ===== TITLE =====
+      sheet.addRow([]); // row 6 spacer
+
+      sheet.mergeCells(7, 1, 7, totalCols);
+      sheet.getCell(7, 1).value = `DATA PESERTA ${ujianData.namaUjian?.toUpperCase() || 'UJIAN'}`;
+      sheet.getCell(7, 1).font = { bold: true, size: 11 };
+      sheet.getCell(7, 1).alignment = { horizontal: 'center' };
+
+      sheet.mergeCells(8, 1, 8, totalCols);
+      sheet.getCell(8, 1).value = `RUANG : ${ruang.namaRuang}   KELAS ${classLabel}`;
+      sheet.getCell(8, 1).font = { bold: true, size: 11 };
+      sheet.getCell(8, 1).alignment = { horizontal: 'center' };
+
+      sheet.addRow([]); // row 9 spacer
+
+      // ===== TABLE HEADER =====
+      const headerRow = 10;
+      const headers = ['No', 'NIS', 'NISN', 'NAMA SISWA', 'L/P', 'TEMPAT LAHIR', 'TANGGAL LAHIR'];
+      headers.forEach((h, idx) => {
+        const cell = sheet.getCell(headerRow, idx + 1);
+        cell.value = h;
+        cell.font = { bold: true, size: 10 };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = thinBorder;
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8E8E8' } };
       });
-    });
+
+      // ===== DATA ROWS =====
+      ruangStudents.forEach((row: any, i: number) => {
+        const dataRow = headerRow + 1 + i;
+        const siswa = row.siswa || {};
+        const gender = (siswa.gender || '').toLowerCase();
+        const lp = gender.includes('laki') ? 'Laki-laki' : gender.includes('perempuan') ? 'Perempuan' : siswa.gender || '-';
+
+        const rowData = [
+          i + 1,
+          siswa.nis || '-',
+          siswa.nisn || '-',
+          siswa.fullName || '-',
+          lp,
+          siswa.birthPlace || '-',
+          siswa.birthDate || '-'
+        ];
+
+        rowData.forEach((val, idx) => {
+          const cell = sheet.getCell(dataRow, idx + 1);
+          cell.value = val;
+          cell.font = { size: 10 };
+          cell.border = thinBorder;
+          cell.alignment = { vertical: 'middle', ...(idx === 0 ? { horizontal: 'center' } : {}) };
+        });
+      });
+
+      // ===== SIGNATURE =====
+      const lastDataRow = headerRow + 1 + ruangStudents.length;
+      const ttdStartRow = lastDataRow + 2;
+
+      const dStr = distribusiTtd.tanggal
+        ? new Date(distribusiTtd.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })
+        : '';
+      const ttdLocation = `${distribusiTtd.tempat || 'Wanasaba'}, ${dStr}`;
+
+      sheet.mergeCells(ttdStartRow, 4, ttdStartRow, totalCols);
+      sheet.getCell(ttdStartRow, 4).value = ttdLocation;
+      sheet.getCell(ttdStartRow, 4).alignment = { horizontal: 'center' };
+      sheet.getCell(ttdStartRow, 4).font = { size: 10 };
+
+      sheet.mergeCells(ttdStartRow + 1, 4, ttdStartRow + 1, totalCols);
+      sheet.getCell(ttdStartRow + 1, 4).value = distribusiTtd.jabatan || 'Ketua Panitia';
+      sheet.getCell(ttdStartRow + 1, 4).alignment = { horizontal: 'center' };
+      sheet.getCell(ttdStartRow + 1, 4).font = { size: 10 };
+
+      // Space for signature
+      sheet.mergeCells(ttdStartRow + 5, 4, ttdStartRow + 5, totalCols);
+      sheet.getCell(ttdStartRow + 5, 4).value = distribusiTtd.nama || '';
+      sheet.getCell(ttdStartRow + 5, 4).alignment = { horizontal: 'center' };
+      sheet.getCell(ttdStartRow + 5, 4).font = { bold: true, size: 10 };
+
+      sheet.mergeCells(ttdStartRow + 6, 4, ttdStartRow + 6, totalCols);
+      sheet.getCell(ttdStartRow + 6, 4).value = distribusiTtd.nip ? `NIP. ${distribusiTtd.nip}` : '';
+      sheet.getCell(ttdStartRow + 6, 4).alignment = { horizontal: 'center' };
+      sheet.getCell(ttdStartRow + 6, 4).font = { size: 10 };
+
+      // Column widths
+      sheet.getColumn(1).width = 5;   // No
+      sheet.getColumn(2).width = 12;  // NIS
+      sheet.getColumn(3).width = 15;  // NISN
+      sheet.getColumn(4).width = 30;  // NAMA SISWA
+      sheet.getColumn(5).width = 12;  // L/P
+      sheet.getColumn(6).width = 22;  // TEMPAT LAHIR
+      sheet.getColumn(7).width = 15;  // TANGGAL LAHIR
+    }
+
+    if (workbook.worksheets.length === 0) {
+      throw new Error('Tidak ada data distribusi untuk di-export');
+    }
 
     return await workbook.xlsx.writeBuffer();
   }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
-import { Plus, Trash2, Edit2, Wand2, Download, Printer, Search, DoorOpen, Users, RefreshCw, GripVertical, X, ArrowRight, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Edit2, Wand2, Download, Search, DoorOpen, Users, RefreshCw, GripVertical, X, ArrowRight, AlertTriangle, Settings, Save } from 'lucide-react';
 
 interface Props {
   ujianId: string;
@@ -18,6 +18,7 @@ export const RuangPesertaTab = ({ ujianId }: Props) => {
   const [ruangList, setRuangList] = useState<any[]>([]);
   const [distribusi, setDistribusi] = useState<any[]>([]);
   const [classesList, setClassesList] = useState<any[]>([]);
+  const [ujian, setUjian] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showAddRuang, setShowAddRuang] = useState(false);
   const [ruangForm, setRuangForm] = useState({ namaRuang: '', kapasitas: 30 });
@@ -34,17 +35,35 @@ export const RuangPesertaTab = ({ ujianId }: Props) => {
   const [dropTargetRuangId, setDropTargetRuangId] = useState<string | null>(null);
   const [selectedClassForAssign, setSelectedClassForAssign] = useState<string | null>(null);
 
+  // TTD settings
+  const [showTtdSettings, setShowTtdSettings] = useState(false);
+  const [ttdForm, setTtdForm] = useState({ tempat: '', tanggal: '', jabatan: 'Ketua Panitia', nama: '', nip: '' });
+  const [savingTtd, setSavingTtd] = useState(false);
+
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [r, d, c] = await Promise.all([
+      const [r, d, c, u] = await Promise.all([
         apiClient<any[]>(`/exams/${ujianId}/ruang`),
         apiClient<any[]>(`/exams/${ujianId}/distribusi`),
         apiClient<any[]>('/classes').catch(() => []),
+        apiClient<any>(`/exams/${ujianId}`).catch(() => null),
       ]);
       setRuangList(r);
       setDistribusi(d);
       setClassesList(c);
+      setUjian(u);
+      // Populate TTD form from saved settings
+      if (u?.pengaturan?.distribusiTtd) {
+        const t = u.pengaturan.distribusiTtd;
+        setTtdForm({
+          tempat: t.tempat || '',
+          tanggal: t.tanggal || '',
+          jabatan: t.jabatan || 'Ketua Panitia',
+          nama: t.nama || '',
+          nip: t.nip || ''
+        });
+      }
     } catch { }
     finally { setLoading(false); }
   };
@@ -325,16 +344,20 @@ export const RuangPesertaTab = ({ ujianId }: Props) => {
                   className="flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium rounded-md border border-gray-200 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#1a1a1a]">
                   <Download size={12} /> Export
                 </button>
-                <button onClick={() => window.print()}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium rounded-md border border-gray-200 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#1a1a1a]">
-                  <Printer size={12} /> Cetak
-                </button>
                 <button onClick={handleClearDistribusi}
                   className="flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium rounded-md border border-red-200 dark:border-red-800/30 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10">
                   <Trash2 size={12} /> Reset
                 </button>
               </>
             )}
+            <button onClick={() => setShowTtdSettings(!showTtdSettings)}
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium rounded-md border transition-all ${
+                showTtdSettings
+                  ? 'border-violet-400 bg-violet-50 dark:bg-violet-900/20 text-violet-600'
+                  : 'border-gray-200 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] text-gray-600 dark:text-gray-400'
+              }`}>
+              <Settings size={12} /> TTD Export
+            </button>
           </div>
         </div>
 
@@ -555,7 +578,7 @@ export const RuangPesertaTab = ({ ujianId }: Props) => {
                   <td className="px-3 py-2 font-mono text-gray-500">{item.siswa?.nis || '-'}</td>
                   <td className="px-3 py-2 font-mono text-gray-500">{item.siswa?.nisn || '-'}</td>
                   <td className="px-3 py-2 font-semibold text-text-primary dark:text-text-darkPrimary">{item.siswa?.fullName || '-'}</td>
-                  <td className="px-3 py-2 text-gray-500">{item.siswa?.className || '-'}</td>
+                  <td className="px-3 py-2 text-gray-500">{item.siswa?.fullClassName || item.siswa?.className || '-'}</td>
                 </tr>
               ))}
               {filtered.length === 0 && (
@@ -570,6 +593,61 @@ export const RuangPesertaTab = ({ ujianId }: Props) => {
           <p className="text-[10px] text-amber-500 mt-1">Menampilkan 100 dari {filtered.length} peserta. Export Excel untuk data lengkap.</p>
         )}
         <p className="text-[10px] text-gray-400">Total: {filtered.length} peserta • {ruangList.length} ruang</p>
+
+        {/* TTD Settings Panel */}
+        {showTtdSettings && (
+          <div className="mt-4 bg-gray-50/80 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#222] rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-semibold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
+                <Settings size={13} className="text-violet-500" /> Pengaturan Tanda Tangan Export
+              </h4>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div>
+                <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Tempat</label>
+                <input className={inputClass} placeholder="Wanasaba" value={ttdForm.tempat} onChange={e => setTtdForm({...ttdForm, tempat: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Tanggal</label>
+                <input type="date" className={inputClass} value={ttdForm.tanggal} onChange={e => setTtdForm({...ttdForm, tanggal: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Jabatan</label>
+                <input className={inputClass} placeholder="Ketua Panitia" value={ttdForm.jabatan} onChange={e => setTtdForm({...ttdForm, jabatan: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Nama Penanda Tangan</label>
+                <input className={inputClass} placeholder="Muhammad Yusri, SS" value={ttdForm.nama} onChange={e => setTtdForm({...ttdForm, nama: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">NIP</label>
+                <input className={inputClass} placeholder="197905262009011005" value={ttdForm.nip} onChange={e => setTtdForm({...ttdForm, nip: e.target.value})} />
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={async () => {
+                  setSavingTtd(true);
+                  try {
+                    await apiClient(`/exams/${ujianId}`, {
+                      method: 'PUT',
+                      data: { pengaturan: { distribusiTtd: ttdForm } }
+                    });
+                    toast.success('Pengaturan tanda tangan disimpan');
+                    setShowTtdSettings(false);
+                  } catch (err: any) {
+                    toast.error('Gagal menyimpan: ' + err.message);
+                  } finally {
+                    setSavingTtd(false);
+                  }
+                }}
+                disabled={savingTtd}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold rounded-md bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 transition-all">
+                <Save size={12} /> Simpan TTD
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
