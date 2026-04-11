@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../../../lib/api';
 import { Loader2 } from 'lucide-react';
+import QRCode from 'qrcode';
 
 function formatDate(dateStr: string): string {
   try {
@@ -11,6 +12,29 @@ function formatDate(dateStr: string): string {
     return dateStr || '-';
   }
 }
+
+/** Komponen QR Code yang di-render client-side via canvas */
+const QrCodeImage = ({ data, size = 54 }: { data: string; size?: number }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (canvasRef.current) {
+      QRCode.toCanvas(canvasRef.current, data, {
+        width: size * 2,
+        margin: 0,
+        errorCorrectionLevel: 'M',
+      }).catch(console.error);
+    }
+  }, [data, size]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ width: size, height: size }}
+      className="mix-blend-multiply"
+    />
+  );
+};
 
 export const PrintKartuPeserta = () => {
   const { ujianId } = useParams();
@@ -68,7 +92,7 @@ export const PrintKartuPeserta = () => {
   const ttdDist = ujian.pengaturan?.distribusiTtd || {};
   const config = ujian.pengaturan?.kartuPeserta || {};
 
-  const logoKiri = config.logoKiri || globalSettings?.kemenagLogoUrl || globalSettings?.schoolLogoUrl || 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png';
+  const logoKiri = config.logoKiri || globalSettings?.kemenagLogoUrl || globalSettings?.schoolLogoUrl || '';
   const logoKanan = config.logoKanan || '';
   const tempat = config.tempat || ttdDist.tempat || ttdMaster.tempat || 'Tempat';
   const tanggal = config.tanggal || ttdDist.tanggal || ttdMaster.tanggal || new Date().toISOString();
@@ -77,8 +101,10 @@ export const PrintKartuPeserta = () => {
   const nip = config.nip || ttdDist.nip || ttdMaster.nip || '-';
   const signatureUrl = config.signatureUrl || '';
 
-  const title = ujian.jenisUjian?.toUpperCase() || ujian.title?.toUpperCase() || 'UJIAN SEKOLAH';
-  const academicYear = ujian.academicYear || new Date().getFullYear().toString();
+  // Nama ujian mengikuti field namaUjian di master ujian
+  const namaUjian = (ujian.namaUjian || ujian.jenisUjian || ujian.title || 'UJIAN SEKOLAH').toUpperCase();
+  // Tahun Ajaran mengikuti field tahunAjaran di master ujian
+  const tahunAjaran = ujian.tahunAjaran || new Date().getFullYear().toString();
 
   // Membagi peserta per halaman (3 baris x 2 kartu)
   const studentsPerPage = 3;
@@ -91,9 +117,8 @@ export const PrintKartuPeserta = () => {
     const s = item.siswa || {};
     const ruang = item.ruang?.namaRuang || item.ruangId || '-';
     
-    // QR Code (menggunakan google charts agar lebih stabil dan tidak kena rate limit besar-besaran)
+    // QR Code data
     const qrData = `Nama: ${s.fullName}\nNIS: ${s.nis}\nNISN: ${s.nisn}\nKelas: ${s.fullClassName || s.className}\nRuang: ${ruang}`;
-    const qrUrl = `https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl=${encodeURIComponent(qrData)}&choe=UTF-8`;
 
     // Penentuan foto avatar
     let photoSrc = s.photoUrl;
@@ -110,12 +135,16 @@ export const PrintKartuPeserta = () => {
         {/* HEADER */}
         <div className="flex items-start gap-2 mb-3 border-b-2 border-black pb-2 text-center pt-1">
           <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center">
-             <img src={logoKiri} alt="Logo Kiri" className="max-w-full max-h-full object-contain" />
+             {logoKiri ? (
+               <img src={logoKiri} alt="Logo Kiri" className="max-w-full max-h-full object-contain" />
+             ) : (
+               <div className="w-12 h-12" />
+             )}
           </div>
           <div className="flex-1 px-1 flex flex-col justify-center min-h-[48px]">
             <h1 className="text-[12px] font-bold leading-tight m-0">KARTU PESERTA</h1>
-            <h2 className="text-[12px] font-bold leading-tight m-0">{title}</h2>
-            <h3 className="text-[11px] font-bold leading-tight m-0 mt-0.5 mt-0.5">TAHUN AJARAN {academicYear}</h3>
+            <h2 className="text-[12px] font-bold leading-tight m-0">{namaUjian}</h2>
+            <h3 className="text-[11px] font-bold leading-tight m-0 mt-0.5">TAHUN AJARAN {tahunAjaran}</h3>
           </div>
           <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center">
              {logoKanan ? <img src={logoKanan} alt="Logo Kanan" className="max-w-full max-h-full object-contain" /> : <div className="w-12 h-12" />}
@@ -178,8 +207,8 @@ export const PrintKartuPeserta = () => {
               </div>
               
               {/* QR CODE */}
-              <div className="w-[54px] h-[54px] pb-1 border-gray-400 mix-blend-multiply">
-                 <img src={qrUrl} alt="QR Code" className="w-full h-full object-contain mix-blend-multiply" />
+              <div className="w-[54px] h-[54px] pb-1 flex-shrink-0">
+                 <QrCodeImage data={qrData} size={54} />
               </div>
             </div>
           </div>
@@ -197,12 +226,12 @@ export const PrintKartuPeserta = () => {
           margin: 10mm;
         }
         @media print {
-          body {
+          html, body {
             background-color: white !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-            margin: 0;
-            padding: 0;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           .page-break {
             page-break-after: always;

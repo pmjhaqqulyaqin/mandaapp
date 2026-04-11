@@ -179,10 +179,26 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
 
             <div className="lg:col-span-2 space-y-4">
                <h5 className="text-xs font-semibold text-gray-500 flex items-center gap-1.5">
-                <ImageIcon size={12} /> Gambar & Logo Tambahan
+                <ImageIcon size={12} /> Gambar & Logo
               </h5>
               <div className="flex flex-wrap gap-4">
-                <div className="flex-1 min-w-[120px]">
+                <div className="flex-1 min-w-[100px]">
+                  <label className="text-[10px] font-semibold text-gray-500 mb-1.5 block text-center">Logo Kiri</label>
+                  <div className="flex justify-center">
+                    <div className="scale-75 origin-top">
+                      <PhotoUploader currentPhotoUrl={formConfig.logoKiri} onPhotoChange={url => setFormConfig({...formConfig, logoKiri: url})} />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-[100px]">
+                  <label className="text-[10px] font-semibold text-gray-500 mb-1.5 block text-center">Logo Kanan</label>
+                  <div className="flex justify-center">
+                    <div className="scale-75 origin-top">
+                      <PhotoUploader currentPhotoUrl={formConfig.logoKanan} onPhotoChange={url => setFormConfig({...formConfig, logoKanan: url})} />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-[100px]">
                   <label className="text-[10px] font-semibold text-gray-500 mb-1.5 block text-center">Tanda Tangan</label>
                   <div className="flex justify-center">
                     <div className="scale-75 origin-top">
@@ -190,17 +206,9 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
                     </div>
                   </div>
                 </div>
-                <div className="flex-1 min-w-[120px]">
-                  <label className="text-[10px] font-semibold text-gray-500 mb-1.5 block text-center">Logo Kanan (Opsional)</label>
-                  <div className="flex justify-center">
-                    <div className="scale-75 origin-top">
-                      <PhotoUploader currentPhotoUrl={formConfig.logoKanan} onPhotoChange={url => setFormConfig({...formConfig, logoKanan: url})} />
-                    </div>
-                  </div>
-                </div>
               </div>
               <p className="text-[10px] text-gray-400 leading-relaxed">
-                Biarkan logo kanan kosong jika Anda belum memilikinya. Logo Kiri akan selalu menggunakan logo Kemenag.
+                Upload logo kiri (mis. Logo Kemenag) dan logo kanan (mis. Logo Sekolah). Biarkan kosong jika tidak diperlukan.
               </p>
             </div>
           </div>
