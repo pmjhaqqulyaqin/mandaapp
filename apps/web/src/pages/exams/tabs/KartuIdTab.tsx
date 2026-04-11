@@ -56,9 +56,18 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
     blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 border-blue-100 dark:border-blue-800/30',
   };
 
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [selectedRoomId, setSelectedRoomId] = useState<string>('ALL');
+
+  useEffect(() => {
+    apiClient('/rooms').then(res => setRooms(res.data || res)).catch(console.error);
+  }, []);
+
   const handleCetak = (key: string) => {
     if (key === 'kartu-peserta') {
-      window.open(`/dashboard/print-kartu-peserta/${ujianId}`, '_blank');
+      let url = `/dashboard/print-kartu-peserta/${ujianId}`;
+      if (selectedRoomId !== 'ALL') url += `?ruangId=${selectedRoomId}`;
+      window.open(url, '_blank');
     } else {
       alert('Fitur cetak ini belum dikonfigurasikan');
     }
@@ -99,13 +108,26 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
               </div>
               <p className="text-[11px] opacity-80">{doc.desc}</p>
               
-              <div className="flex flex-wrap gap-2 pt-1">
-                <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {doc.key === 'kartu-peserta' && (
+                  <select 
+                    value={selectedRoomId}
+                    onChange={e => setSelectedRoomId(e.target.value)}
+                    className="h-7 cursor-pointer text-[10px] font-semibold rounded-lg bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary focus:ring-1 focus:ring-violet-500 outline-none"
+                  >
+                    <option value="ALL">Semua Ruang</option>
+                    {rooms.map((r: any) => (
+                      <option key={r.id} value={r.id}>{r.namaRuang}</option>
+                    ))}
+                  </select>
+                )}
+                
+                <button className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-semibold bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
                   onClick={() => handleCetak(doc.key)}>
                   <Printer size={12} /> Cetak PDF
                 </button>
                 {doc.key === 'kartu-peserta' && (
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
+                  <button className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-medium bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
                     onClick={() => setShowSettings(showSettings === doc.key ? null : doc.key as any)}>
                     <Settings size={12} /> Pengaturan
                   </button>
