@@ -98,12 +98,10 @@ export const PrintKartuPeserta = () => {
     // Penentuan foto avatar
     let photoSrc = s.photoUrl;
     if (!photoSrc) {
-       // Buat avatar fallback berdasarkan L/P
-       const isFemale = s.gender === 'P';
-       // Menggunakan avatar netral SVG dari dicebear atau UI Avatars jika tidak ada gender
-       photoSrc = isFemale 
-         ? `https://api.dicebear.com/7.x/notionists/svg?seed=${s.fullName || 'F'}&gender=female&backgroundColor=f1f5f9`
-         : `https://api.dicebear.com/7.x/notionists/svg?seed=${s.fullName || 'M'}&gender=male&backgroundColor=f1f5f9`;
+       // Buat avatar fallback berdasarkan L/P menggunakan gambar lokal
+       const genderLower = (s.gender || '').toLowerCase();
+       const isFemale = genderLower === 'p' || genderLower === 'perempuan';
+       photoSrc = isFemale ? '/avatar-female.png' : '/avatar-male.png';
     }
 
     return (
@@ -117,7 +115,7 @@ export const PrintKartuPeserta = () => {
           <div className="flex-1 px-1 flex flex-col justify-center min-h-[48px]">
             <h1 className="text-[12px] font-bold leading-tight m-0">KARTU PESERTA</h1>
             <h2 className="text-[12px] font-bold leading-tight m-0">{title}</h2>
-            <h3 className="text-[11px] font-bold leading-tight m-0 mt-0.5 mt-0.5">TAHUN PELAJARAN {academicYear}</h3>
+            <h3 className="text-[11px] font-bold leading-tight m-0 mt-0.5 mt-0.5">TAHUN AJARAN {academicYear}</h3>
           </div>
           <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center">
              {logoKanan ? <img src={logoKanan} alt="Logo Kanan" className="max-w-full max-h-full object-contain" /> : <div className="w-12 h-12" />}

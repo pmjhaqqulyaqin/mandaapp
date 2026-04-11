@@ -60,8 +60,10 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
   const [selectedRoomId, setSelectedRoomId] = useState<string>('ALL');
 
   useEffect(() => {
-    apiClient('/rooms').then(res => setRooms(res.data || res)).catch(console.error);
-  }, []);
+    if (ujianId) {
+      apiClient(`/exams/${ujianId}/ruang`).then(res => setRooms(res.data || res)).catch(console.error);
+    }
+  }, [ujianId]);
 
   const handleCetak = (key: string) => {
     if (key === 'kartu-peserta') {
