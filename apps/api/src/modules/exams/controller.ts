@@ -250,8 +250,8 @@ export class ExamController {
 
   static async generateDistribusi(req: Request, res: Response) {
     try {
-      const { mode, kelasIds } = req.body;
-      const result = await ExamService.generateDistribusi(req.params.ujianId, mode || 'kelas', kelasIds);
+      const { mode, kelasIds, roomAssignments } = req.body;
+      const result = await ExamService.generateDistribusi(req.params.ujianId, mode || 'kelas', kelasIds, roomAssignments);
       res.json(result);
     } catch (error: any) {
       res.status(400).json({ error: error.message });

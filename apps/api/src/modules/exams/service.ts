@@ -932,11 +932,74 @@ export class ExamService {
     }));
   }
 
-  static async generateDistribusi(ujianId: string, mode: 'kelas' | 'acak' | 'urut', kelasIds?: string[]) {
+  static async generateDistribusi(
+    ujianId: string,
+    mode: 'kelas' | 'acak' | 'urut',
+    kelasIds?: string[],
+    roomAssignments?: { ruangId: string; kelasIds: string[] }[]
+  ) {
     // Get ruang
     const ruangList = await this.getRuang(ujianId);
     if (ruangList.length === 0) throw new Error('Belum ada ruang ujian');
 
+    // Clear existing distribusi
+    await db.delete(distribusiPeserta).where(eq(distribusiPeserta.ujianId, ujianId));
+
+    const assignments: any[] = [];
+
+    // ===== NEW: Room-specific class mapping (drag & drop mode) =====
+    if (roomAssignments && roomAssignments.length > 0) {
+      for (const ra of roomAssignments) {
+        if (!ra.kelasIds || ra.kelasIds.length === 0) continue;
+
+        const ruang = ruangList.find(r => r.id === ra.ruangId);
+        if (!ruang) continue;
+
+        // Get students for these classes
+        let students = await db.select()
+          .from(studentProfiles)
+          .where(and(
+            eq(studentProfiles.status, 'active'),
+            inArray(studentProfiles.classId as any, ra.kelasIds)
+          ))
+          .orderBy(asc(studentProfiles.fullName));
+
+        // Fallback: try without status filter
+        if (students.length === 0) {
+          students = await db.select()
+            .from(studentProfiles)
+            .where(inArray(studentProfiles.classId as any, ra.kelasIds))
+            .orderBy(asc(studentProfiles.fullName));
+        }
+
+        // Sort based on mode
+        if (mode === 'acak') {
+          for (let i = students.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [students[i], students[j]] = [students[j], students[i]];
+          }
+        } else if (mode === 'urut') {
+          students.sort((a, b) => (a.nis || '').localeCompare(b.nis || ''));
+        }
+
+        students.forEach((student, idx) => {
+          assignments.push({
+            id: uuidv4(),
+            ujianId,
+            ruangId: ra.ruangId,
+            siswaId: student.id,
+            nomorMeja: idx + 1
+          });
+        });
+      }
+
+      if (assignments.length > 0) {
+        await db.insert(distribusiPeserta).values(assignments);
+      }
+      return { distributed: assignments.length };
+    }
+
+    // ===== LEGACY: Auto-distribute to all rooms =====
     // Get students (active only)
     let studentList: any[];
     if (kelasIds && kelasIds.length > 0) {
@@ -970,13 +1033,9 @@ export class ExamService {
 
     if (studentList.length === 0) throw new Error('Tidak ada siswa yang tersedia');
 
-    // Clear existing distribusi
-    await db.delete(distribusiPeserta).where(eq(distribusiPeserta.ujianId, ujianId));
-
     // Sort based on mode
     let sortedStudents = [...studentList];
     if (mode === 'acak') {
-      // Shuffle
       for (let i = sortedStudents.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [sortedStudents[i], sortedStudents[j]] = [sortedStudents[j], sortedStudents[i]];
@@ -984,15 +1043,12 @@ export class ExamService {
     } else if (mode === 'urut') {
       sortedStudents.sort((a, b) => (a.nis || '').localeCompare(b.nis || ''));
     }
-    // 'kelas' mode keeps the original order (grouped by classId, then name)
 
     // Distribute students to rooms
-    const assignments: any[] = [];
     let ruangIdx = 0;
     let mejaCounter: Record<string, number> = {};
 
     for (const student of sortedStudents) {
-      // Find a room with capacity
       let placed = false;
       for (let attempt = 0; attempt < ruangList.length; attempt++) {
         const currentRuang = ruangList[ruangIdx % ruangList.length];
@@ -1008,8 +1064,6 @@ export class ExamService {
             nomorMeja: currentCount + 1
           });
           placed = true;
-
-          // Move to next room when full
           if (currentCount + 1 >= currentRuang.kapasitas) {
             ruangIdx++;
           }
@@ -1019,7 +1073,6 @@ export class ExamService {
       }
 
       if (!placed) {
-        // All rooms full, still assign to last room
         const lastRuang = ruangList[ruangList.length - 1];
         const currentCount = mejaCounter[lastRuang.id] || 0;
         mejaCounter[lastRuang.id] = currentCount + 1;

@@ -1,11 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
-import { Plus, Trash2, Edit2, Wand2, Download, Printer, Search, DoorOpen, Users, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Edit2, Wand2, Download, Printer, Search, DoorOpen, Users, RefreshCw, GripVertical, X, ArrowRight, AlertTriangle } from 'lucide-react';
 
 interface Props {
   ujianId: string;
 }
+
+// Helper to format class display name
+const formatClassName = (c: any) => {
+  const major = c.majorName || c.majorCode;
+  if (!major) return c.name;
+  return /^\d+$/.test(major) ? `${c.name}-${major}` : `${c.name} ${major}`;
+};
 
 export const RuangPesertaTab = ({ ujianId }: Props) => {
   const [ruangList, setRuangList] = useState<any[]>([]);
@@ -17,10 +24,15 @@ export const RuangPesertaTab = ({ ujianId }: Props) => {
   const [editRuangId, setEditRuangId] = useState<string | null>(null);
   const [showDistribusi, setShowDistribusi] = useState(false);
   const [distMode, setDistMode] = useState<'kelas' | 'acak' | 'urut'>('kelas');
-  const [selectedKelasIds, setSelectedKelasIds] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
   const [search, setSearch] = useState('');
   const [filterRuang, setFilterRuang] = useState('');
+
+  // Drag & Drop state: map of ruangId -> classId[]
+  const [roomAssignments, setRoomAssignments] = useState<Record<string, string[]>>({});
+  const [draggedClassId, setDraggedClassId] = useState<string | null>(null);
+  const [dropTargetRuangId, setDropTargetRuangId] = useState<string | null>(null);
+  const [selectedClassForAssign, setSelectedClassForAssign] = useState<string | null>(null);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -38,6 +50,14 @@ export const RuangPesertaTab = ({ ujianId }: Props) => {
   };
 
   useEffect(() => { fetchAll(); }, [ujianId]);
+
+  // Reset assignments when opening distribution panel
+  useEffect(() => {
+    if (showDistribusi) {
+      setRoomAssignments({});
+      setSelectedClassForAssign(null);
+    }
+  }, [showDistribusi]);
 
   // Ruang CRUD
   const handleSaveRuang = async () => {
@@ -73,13 +93,117 @@ export const RuangPesertaTab = ({ ujianId }: Props) => {
     setShowAddRuang(true);
   };
 
-  // Distribusi
+  // ===== Drag & Drop handlers =====
+  const handleDragStart = (e: React.DragEvent, classId: string) => {
+    setDraggedClassId(classId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', classId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, ruangId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTargetRuangId(ruangId);
+  };
+
+  const handleDragLeave = () => {
+    setDropTargetRuangId(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, ruangId: string) => {
+    e.preventDefault();
+    const classId = e.dataTransfer.getData('text/plain') || draggedClassId;
+    if (classId) {
+      assignClassToRoom(classId, ruangId);
+    }
+    setDraggedClassId(null);
+    setDropTargetRuangId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedClassId(null);
+    setDropTargetRuangId(null);
+  };
+
+  // Click-to-assign (mobile friendly / alternative)
+  const handleClassClick = (classId: string) => {
+    if (selectedClassForAssign === classId) {
+      setSelectedClassForAssign(null);
+    } else {
+      setSelectedClassForAssign(classId);
+    }
+  };
+
+  const handleRoomClickForAssign = (ruangId: string) => {
+    if (selectedClassForAssign) {
+      assignClassToRoom(selectedClassForAssign, ruangId);
+      setSelectedClassForAssign(null);
+    }
+  };
+
+  // Core: assign a class to a room (removing from any previous room)
+  const assignClassToRoom = (classId: string, ruangId: string) => {
+    setRoomAssignments(prev => {
+      const next = { ...prev };
+      // Remove from any existing room
+      Object.keys(next).forEach(rId => {
+        next[rId] = (next[rId] || []).filter(id => id !== classId);
+        if (next[rId].length === 0) delete next[rId];
+      });
+      // Add to target room
+      next[ruangId] = [...(next[ruangId] || []), classId];
+      return next;
+    });
+  };
+
+  // Remove a class from a room
+  const removeClassFromRoom = (classId: string, ruangId: string) => {
+    setRoomAssignments(prev => {
+      const next = { ...prev };
+      next[ruangId] = (next[ruangId] || []).filter(id => id !== classId);
+      if (next[ruangId].length === 0) delete next[ruangId];
+      return next;
+    });
+  };
+
+  // Get unassigned classes
+  const assignedClassIds = new Set(Object.values(roomAssignments).flat());
+  const unassignedClasses = classesList.filter(c => !assignedClassIds.has(c.id));
+
+  // Quick assign all: distribute classes evenly across rooms
+  const handleAutoAssign = () => {
+    const newAssignments: Record<string, string[]> = {};
+    classesList.forEach((c, idx) => {
+      const ruang = ruangList[idx % ruangList.length];
+      if (ruang) {
+        if (!newAssignments[ruang.id]) newAssignments[ruang.id] = [];
+        newAssignments[ruang.id].push(c.id);
+      }
+    });
+    setRoomAssignments(newAssignments);
+  };
+
+  // Clear all assignments
+  const handleClearAssignments = () => {
+    setRoomAssignments({});
+  };
+
+  // Generate distribusi using room assignments
   const handleGenerate = async () => {
+    const hasAssignments = Object.keys(roomAssignments).length > 0;
+    if (!hasAssignments) {
+      toast.error('Belum ada kelas yang di-assign ke ruang. Drag kelas ke ruang terlebih dahulu.');
+      return;
+    }
     if (distribusi.length > 0 && !confirm('Distribusi sebelumnya akan dihapus. Lanjutkan?')) return;
     setGenerating(true);
     try {
+      const raPayload = Object.entries(roomAssignments).map(([ruangId, kelasIds]) => ({
+        ruangId,
+        kelasIds
+      }));
       const result = await apiClient<any>(`/exams/${ujianId}/distribusi/generate`, {
-        data: { mode: distMode, kelasIds: selectedKelasIds.length > 0 ? selectedKelasIds : undefined }
+        data: { mode: distMode, roomAssignments: raPayload }
       });
       toast.success(`${result.distributed} peserta berhasil didistribusikan`);
       fetchAll();
@@ -118,6 +242,10 @@ export const RuangPesertaTab = ({ ujianId }: Props) => {
     ...r,
     pesertaCount: distribusi.filter(d => d.ruangId === r.id).length
   }));
+
+  // Count total assigned students (estimate)
+  const totalAssignedClasses = Object.values(roomAssignments).flat().length;
+  const totalUnassigned = classesList.length - totalAssignedClasses;
 
   const inputClass = "w-full h-8 px-3 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] text-xs outline-none focus:ring-2 focus:ring-indigo-500/30";
 
@@ -211,53 +339,178 @@ export const RuangPesertaTab = ({ ujianId }: Props) => {
         </div>
 
         {showDistribusi && (
-          <div className="bg-violet-50/50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-800/30 rounded-lg p-3 mb-3 space-y-3">
-            <p className="text-xs font-semibold text-violet-600">🎯 Pilih Mode Distribusi</p>
-            <div className="flex gap-3">
-              {([
-                ['kelas', '📚 By Kelas', 'Kelompokkan per kelas'],
-                ['acak', '🎲 Acak', 'Random seat assignment'],
-                ['urut', '📋 No. Urut', 'Berdasarkan NIS'],
-              ] as const).map(([mode, label, desc]) => (
-                <button key={mode} onClick={() => setDistMode(mode)}
-                  className={`flex-1 p-2.5 rounded-lg border text-left transition-all ${
-                    distMode === mode
-                      ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/30 ring-1 ring-violet-500/30'
-                      : 'border-gray-200 dark:border-[#333] hover:border-violet-300'
-                  }`}>
-                  <p className="text-xs font-semibold text-text-primary dark:text-text-darkPrimary">{label}</p>
-                  <p className="text-[10px] text-gray-500">{desc}</p>
+          <div className="bg-violet-50/30 dark:bg-violet-900/5 border border-violet-200 dark:border-violet-800/30 rounded-xl p-4 mb-4 space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold text-violet-700 dark:text-violet-400 flex items-center gap-2">
+                <Wand2 size={14} /> Distribusi Kelas ke Ruang Ujian
+              </p>
+              <div className="flex items-center gap-2">
+                <button onClick={handleAutoAssign}
+                  className="text-[10px] font-medium text-violet-600 hover:text-violet-700 px-2 py-1 rounded-md hover:bg-violet-100 dark:hover:bg-violet-900/20 transition-colors">
+                  ⚡ Atur Otomatis
                 </button>
-              ))}
-            </div>
-
-            <div>
-              <label className="text-[10px] font-semibold text-gray-500 mb-1 block">Filter Kelas (opsional)</label>
-              <div className="flex flex-wrap gap-1.5">
-                {classesList.map(c => (
-                  <button key={c.id} onClick={() => {
-                    setSelectedKelasIds(prev => prev.includes(c.id) ? prev.filter(id => id !== c.id) : [...prev, c.id]);
-                  }}
-                    className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors ${
-                      selectedKelasIds.includes(c.id)
-                        ? 'bg-violet-600 text-white'
-                        : 'bg-gray-100 dark:bg-[#222] text-gray-600 dark:text-gray-400 hover:bg-violet-50'
-                    }`}>
-                    {c.name}{(c.majorName || c.majorCode) ? (/^\d+$/.test(c.majorName || c.majorCode) ? `-${c.majorName || c.majorCode}` : ` ${c.majorName || c.majorCode}`) : ''}
+                {Object.keys(roomAssignments).length > 0 && (
+                  <button onClick={handleClearAssignments}
+                    className="text-[10px] font-medium text-gray-500 hover:text-red-500 px-2 py-1 rounded-md hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors">
+                    ↻ Reset
                   </button>
-                ))}
-                {classesList.length === 0 && <span className="text-[10px] text-gray-400 italic">Tidak ada kelas. Semua siswa aktif akan didistribusikan.</span>}
+                )}
               </div>
             </div>
 
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowDistribusi(false)}
-                className="px-3 py-1.5 text-[10px] font-medium rounded-md border border-gray-200 dark:border-[#333]">Batal</button>
-              <button onClick={handleGenerate} disabled={generating}
-                className="px-4 py-1.5 text-[10px] font-semibold rounded-md bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 flex items-center gap-1.5">
-                {generating ? <RefreshCw size={12} className="animate-spin" /> : <Wand2 size={12} />}
-                Generate Distribusi
-              </button>
+            {/* Sorting Mode */}
+            <div>
+              <p className="text-[10px] font-semibold text-gray-500 mb-1.5">Urutan Siswa dalam Ruang</p>
+              <div className="flex gap-2">
+                {([
+                  ['kelas', '📚 Nama (A-Z)'],
+                  ['acak', '🎲 Acak'],
+                  ['urut', '📋 NIS'],
+                ] as const).map(([mode, label]) => (
+                  <button key={mode} onClick={() => setDistMode(mode)}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${
+                      distMode === mode
+                        ? 'bg-violet-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-gray-600 dark:text-gray-400 hover:border-violet-300'
+                    }`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Available Classes Pool */}
+            <div>
+              <p className="text-[10px] font-semibold text-gray-500 mb-1.5">
+                Kelas Tersedia
+                {selectedClassForAssign && (
+                  <span className="text-violet-600 ml-2">— Klik ruang di bawah untuk memasukkan kelas</span>
+                )}
+              </p>
+              <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 rounded-lg bg-white dark:bg-[#0a0a0a] border border-dashed border-gray-200 dark:border-[#333]">
+                {unassignedClasses.length > 0 ? unassignedClasses.map(c => (
+                  <div
+                    key={c.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, c.id)}
+                    onDragEnd={handleDragEnd}
+                    onClick={() => handleClassClick(c.id)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold cursor-grab active:cursor-grabbing select-none transition-all ${
+                      selectedClassForAssign === c.id
+                        ? 'bg-violet-600 text-white ring-2 ring-violet-400 ring-offset-1 scale-105'
+                        : draggedClassId === c.id
+                          ? 'bg-violet-200 dark:bg-violet-800/50 text-violet-800 dark:text-violet-200 opacity-50'
+                          : 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 hover:bg-violet-200 dark:hover:bg-violet-900/50 hover:scale-[1.02]'
+                    }`}>
+                    <GripVertical size={10} className="opacity-40" />
+                    {formatClassName(c)}
+                  </div>
+                )) : (
+                  <p className="text-[10px] text-gray-400 italic py-1 px-2">
+                    {classesList.length === 0 ? 'Tidak ada data kelas.' : '✓ Semua kelas sudah di-assign ke ruang'}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Room Drop Zones */}
+            <div>
+              <p className="text-[10px] font-semibold text-gray-500 mb-1.5">
+                Ruang Ujian — <span className="text-violet-600">Drag kelas ke ruang atau klik kelas lalu klik ruang</span>
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                {ruangList.map(r => {
+                  const assignedIds = roomAssignments[r.id] || [];
+                  const assignedClasses = classesList.filter(c => assignedIds.includes(c.id));
+                  const isDropTarget = dropTargetRuangId === r.id;
+                  const isClickTarget = selectedClassForAssign !== null;
+
+                  return (
+                    <div
+                      key={r.id}
+                      onDragOver={(e) => handleDragOver(e, r.id)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, r.id)}
+                      onClick={() => handleRoomClickForAssign(r.id)}
+                      className={`relative rounded-xl border-2 transition-all min-h-[80px] ${
+                        isDropTarget
+                          ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20 shadow-lg shadow-violet-500/10 scale-[1.01]'
+                          : isClickTarget
+                            ? 'border-dashed border-violet-300 dark:border-violet-700 bg-violet-50/30 dark:bg-violet-900/5 cursor-pointer hover:border-violet-400'
+                            : assignedClasses.length > 0
+                              ? 'border-violet-200 dark:border-violet-800/40 bg-white dark:bg-[#0a0a0a]'
+                              : 'border-dashed border-gray-200 dark:border-[#333] bg-gray-50/50 dark:bg-[#0a0a0a]'
+                      }`}>
+                      {/* Room Header */}
+                      <div className="flex items-center justify-between px-3 pt-2.5 pb-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-bold ${assignedClasses.length > 0 ? 'text-violet-700 dark:text-violet-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                            {r.namaRuang}
+                          </span>
+                          <span className="text-[9px] text-gray-400 bg-gray-100 dark:bg-[#222] px-1.5 py-0.5 rounded-full">
+                            Kap. {r.kapasitas}
+                          </span>
+                        </div>
+                        {assignedClasses.length > 0 && (
+                          <span className="text-[9px] font-bold text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/30 px-1.5 py-0.5 rounded-full">
+                            {assignedClasses.length} kelas
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Assigned Classes */}
+                      <div className="px-2.5 pb-2.5 pt-1 flex flex-wrap gap-1 min-h-[32px]">
+                        {assignedClasses.length > 0 ? assignedClasses.map(c => (
+                          <span key={c.id}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-[10px] font-semibold group/chip">
+                            {formatClassName(c)}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); removeClassFromRoom(c.id, r.id); }}
+                              className="opacity-0 group-hover/chip:opacity-100 hover:text-red-500 transition-all ml-0.5 -mr-0.5">
+                              <X size={10} />
+                            </button>
+                          </span>
+                        )) : (
+                          <p className="text-[10px] text-gray-300 dark:text-gray-600 italic py-1 w-full text-center">
+                            {isDropTarget ? '⬇️ Lepas di sini' : isClickTarget ? '👆 Klik untuk assign' : 'Drag kelas ke sini'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Warning if classes not assigned */}
+            {totalUnassigned > 0 && Object.keys(roomAssignments).length > 0 && (
+              <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30">
+                <AlertTriangle size={14} className="text-amber-500 mt-0.5 shrink-0" />
+                <p className="text-[10px] text-amber-700 dark:text-amber-400">
+                  <strong>{totalUnassigned} kelas</strong> belum di-assign ke ruang dan tidak akan diikutkan dalam distribusi.
+                  Klik <strong>"Atur Otomatis"</strong> untuk mendistribusikan semua kelas.
+                </p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center justify-between pt-2 border-t border-violet-100 dark:border-violet-800/20">
+              <p className="text-[10px] text-gray-500">
+                {Object.keys(roomAssignments).length > 0
+                  ? `${totalAssignedClasses} kelas → ${Object.keys(roomAssignments).length} ruang`
+                  : 'Belum ada kelas yang di-assign'
+                }
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setShowDistribusi(false)}
+                  className="px-3 py-1.5 text-[10px] font-medium rounded-md border border-gray-200 dark:border-[#333] hover:bg-white dark:hover:bg-[#111] transition-colors">Batal</button>
+                <button onClick={handleGenerate} disabled={generating || Object.keys(roomAssignments).length === 0}
+                  className="px-4 py-1.5 text-[10px] font-semibold rounded-md bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 flex items-center gap-1.5 shadow-sm transition-all active:scale-95">
+                  {generating ? <RefreshCw size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                  Generate Distribusi
+                </button>
+              </div>
             </div>
           </div>
         )}
