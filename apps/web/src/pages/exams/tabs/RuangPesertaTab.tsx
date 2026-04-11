@@ -243,7 +243,7 @@ export const RuangPesertaTab = ({ ujianId }: Props) => {
                         ? 'bg-violet-600 text-white'
                         : 'bg-gray-100 dark:bg-[#222] text-gray-600 dark:text-gray-400 hover:bg-violet-50'
                     }`}>
-                    {c.name}
+                    {c.name}{(c.majorName || c.majorCode) ? (/^\d+$/.test(c.majorName || c.majorCode) ? `-${c.majorName || c.majorCode}` : ` ${c.majorName || c.majorCode}`) : ''}
                   </button>
                 ))}
                 {classesList.length === 0 && <span className="text-[10px] text-gray-400 italic">Tidak ada kelas. Semua siswa aktif akan didistribusikan.</span>}
