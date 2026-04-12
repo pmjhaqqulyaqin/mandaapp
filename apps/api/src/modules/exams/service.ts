@@ -1708,52 +1708,73 @@ export class ExamService {
       return letter;
     };
 
+    const resolveImageBuffer = async (urlOrPath: string | null | undefined): Promise<{buf: Buffer, ext: string} | null> => {
+      if (!urlOrPath) return null;
+      
+      // 1. Try local file first
+      const basename = path.basename(urlOrPath);
+      const localPath = path.join(process.cwd(), 'uploads', basename);
+      console.log('[LOGO] Trying local:', localPath, '| exists:', fs.existsSync(localPath));
+      
+      if (fs.existsSync(localPath)) {
+        let ext = path.extname(localPath).substring(1).toLowerCase();
+        if (ext === 'jpg') ext = 'jpeg';
+        const buf = fs.readFileSync(localPath);
+        console.log('[LOGO] Local OK, size:', buf.length, 'ext:', ext);
+        return { buf: buf as any, ext };
+      }
+      
+      // 2. Try downloading from URL (handles full URLs like https://... or relative /uploads/...)
+      try {
+        let downloadUrl = urlOrPath;
+        if (downloadUrl.startsWith('/')) {
+          // Relative URL — build full URL from FRONTEND_URL or BETTER_AUTH_URL
+          const baseUrl = process.env.FRONTEND_URL || process.env.BETTER_AUTH_URL || '';
+          if (baseUrl) {
+            downloadUrl = baseUrl.replace(/\/$/, '') + downloadUrl;
+          }
+        }
+        
+        if (downloadUrl.startsWith('http')) {
+          console.log('[LOGO] Downloading from:', downloadUrl);
+          const resp = await fetch(downloadUrl);
+          if (resp.ok) {
+            const arrayBuf = await resp.arrayBuffer();
+            const buf = Buffer.from(arrayBuf);
+            let ext = path.extname(basename).substring(1).toLowerCase();
+            if (ext === 'jpg') ext = 'jpeg';
+            if (!ext) ext = 'png'; // default
+            console.log('[LOGO] Download OK, size:', buf.length, 'ext:', ext);
+            return { buf, ext };
+          } else {
+            console.log('[LOGO] Download failed, status:', resp.status);
+          }
+        }
+      } catch (downloadErr) {
+        console.log('[LOGO] Download error:', downloadErr);
+      }
+      
+      console.log('[LOGO] Could not resolve image for:', urlOrPath);
+      return null;
+    };
+
     try {
-      console.log('[LOGO DEBUG] cwd:', process.cwd());
-      console.log('[LOGO DEBUG] kemenagLogoUrl from DB:', cardSetting.kemenagLogoUrl);
-      console.log('[LOGO DEBUG] schoolLogoUrl from DB:', cardSetting.schoolLogoUrl);
-      
-      // List files in uploads dir for debugging
-      const uploadsDir = path.join(process.cwd(), 'uploads');
-      if (fs.existsSync(uploadsDir)) {
-        const files = fs.readdirSync(uploadsDir);
-        console.log('[LOGO DEBUG] uploads dir files count:', files.length);
-        console.log('[LOGO DEBUG] uploads dir sample files:', files.slice(0, 10));
-      } else {
-        console.log('[LOGO DEBUG] uploads dir does NOT exist at:', uploadsDir);
+      // Logo Kiri (Kemenag)
+      const logoKiri = await resolveImageBuffer(cardSetting.kemenagLogoUrl);
+      if (logoKiri) {
+        const logoId = workbook.addImage({ buffer: logoKiri.buf as any, extension: logoKiri.ext as any });
+        sheet.addImage(logoId, 'A1:A4');
       }
       
-      if (cardSetting.kemenagLogoUrl) { // Kiri
-        const basename = path.basename(cardSetting.kemenagLogoUrl);
-        const logoKiriPath = path.join(process.cwd(), 'uploads', basename);
-        console.log('[LOGO DEBUG] Kiri basename:', basename, '| full path:', logoKiriPath, '| exists:', fs.existsSync(logoKiriPath));
-        if (fs.existsSync(logoKiriPath)) {
-          let ext = path.extname(logoKiriPath).substring(1).toLowerCase();
-          if (ext === 'jpg') ext = 'jpeg';
-          const buf = fs.readFileSync(logoKiriPath);
-          console.log('[LOGO DEBUG] Kiri file read OK, size:', buf.length, 'bytes, ext:', ext);
-          const logoId = workbook.addImage({ buffer: buf as any, extension: ext as any });
-          sheet.addImage(logoId, 'A1:A4');
-          console.log('[LOGO DEBUG] Kiri image added to sheet OK');
-        }
-      }
-      if (cardSetting.schoolLogoUrl) { // Kanan
-        const basename = path.basename(cardSetting.schoolLogoUrl);
-        const logoKananPath = path.join(process.cwd(), 'uploads', basename);
-        console.log('[LOGO DEBUG] Kanan basename:', basename, '| full path:', logoKananPath, '| exists:', fs.existsSync(logoKananPath));
-        if (fs.existsSync(logoKananPath)) {
-          let ext = path.extname(logoKananPath).substring(1).toLowerCase();
-          if (ext === 'jpg') ext = 'jpeg';
-          const buf = fs.readFileSync(logoKananPath);
-          console.log('[LOGO DEBUG] Kanan file read OK, size:', buf.length, 'bytes, ext:', ext);
-          const logoId = workbook.addImage({ buffer: buf as any, extension: ext as any });
-          const colLetter = getColLetter(totalCols);
-          sheet.addImage(logoId, `${colLetter}1:${colLetter}4`);
-          console.log('[LOGO DEBUG] Kanan image added to sheet OK');
-        }
+      // Logo Kanan (Madrasah)
+      const logoKanan = await resolveImageBuffer(cardSetting.schoolLogoUrl);
+      if (logoKanan) {
+        const logoId = workbook.addImage({ buffer: logoKanan.buf as any, extension: logoKanan.ext as any });
+        const colLetter = getColLetter(totalCols);
+        sheet.addImage(logoId, `${colLetter}1:${colLetter}4`);
       }
     } catch (e) {
-      console.error('[LOGO DEBUG] Error adding logo to excel:', e);
+      console.error('[LOGO] Error adding logo to excel:', e);
     }
 
     sheet.addRow([]); // Spacer row 5
@@ -1987,25 +2008,46 @@ export class ExamService {
       return letter;
     };
 
-    try {
-      if (cardSetting.kemenagLogoUrl) { 
-        const logoKiriPath = path.join(process.cwd(), 'uploads', path.basename(cardSetting.kemenagLogoUrl));
-        if (fs.existsSync(logoKiriPath)) {
-          let ext = path.extname(logoKiriPath).substring(1).toLowerCase();
-          if (ext === 'jpg') ext = 'jpeg';
-          const logoId = workbook.addImage({ buffer: fs.readFileSync(logoKiriPath) as any, extension: ext as any });
-          sheet.addImage(logoId, 'A1:A4');
-        }
+    const resolveImageBuffer = async (urlOrPath: string | null | undefined): Promise<{buf: Buffer, ext: string} | null> => {
+      if (!urlOrPath) return null;
+      const basename = path.basename(urlOrPath);
+      const localPath = path.join(process.cwd(), 'uploads', basename);
+      if (fs.existsSync(localPath)) {
+        let ext = path.extname(localPath).substring(1).toLowerCase();
+        if (ext === 'jpg') ext = 'jpeg';
+        return { buf: fs.readFileSync(localPath) as any, ext };
       }
-      if (cardSetting.schoolLogoUrl) { 
-        const logoKananPath = path.join(process.cwd(), 'uploads', path.basename(cardSetting.schoolLogoUrl));
-        if (fs.existsSync(logoKananPath)) {
-          let ext = path.extname(logoKananPath).substring(1).toLowerCase();
-          if (ext === 'jpg') ext = 'jpeg';
-          const logoId = workbook.addImage({ buffer: fs.readFileSync(logoKananPath) as any, extension: ext as any });
-          const colLetter = getColLetter(totalCols);
-          sheet.addImage(logoId, `${colLetter}1:${colLetter}4`);
+      try {
+        let downloadUrl = urlOrPath;
+        if (downloadUrl.startsWith('/')) {
+          const baseUrl = process.env.FRONTEND_URL || process.env.BETTER_AUTH_URL || '';
+          if (baseUrl) downloadUrl = baseUrl.replace(/\/$/, '') + downloadUrl;
         }
+        if (downloadUrl.startsWith('http')) {
+          const resp = await fetch(downloadUrl);
+          if (resp.ok) {
+            const arrayBuf = await resp.arrayBuffer();
+            let ext = path.extname(basename).substring(1).toLowerCase();
+            if (ext === 'jpg') ext = 'jpeg';
+            if (!ext) ext = 'png';
+            return { buf: Buffer.from(arrayBuf), ext };
+          }
+        }
+      } catch (e) {}
+      return null;
+    };
+
+    try {
+      const logoKiri = await resolveImageBuffer(cardSetting.kemenagLogoUrl);
+      if (logoKiri) {
+        const logoId = workbook.addImage({ buffer: logoKiri.buf as any, extension: logoKiri.ext as any });
+        sheet.addImage(logoId, 'A1:A4');
+      }
+      const logoKanan = await resolveImageBuffer(cardSetting.schoolLogoUrl);
+      if (logoKanan) {
+        const logoId = workbook.addImage({ buffer: logoKanan.buf as any, extension: logoKanan.ext as any });
+        const colLetter = getColLetter(totalCols);
+        sheet.addImage(logoId, `${colLetter}1:${colLetter}4`);
       }
     } catch (e) {}
 
