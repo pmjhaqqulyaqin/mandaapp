@@ -13,6 +13,118 @@ import * as fs from 'fs';
 
 export class ExamService {
 
+  // ============ SHARED: Logo Helper for Excel Exports ============
+
+  /**
+   * Resolves an image URL/path/dataURI to a Buffer for embedding in Excel.
+   * Handles: data: URIs, local uploads/ files, full URLs, and relative /uploads/ paths.
+   */
+  private static async resolveImageBuffer(urlOrPath: string | null | undefined): Promise<{buf: Buffer, ext: string} | null> {
+    if (!urlOrPath) return null;
+
+    // Handle data URIs (base64 encoded images, e.g. from siteSettings global logo)
+    if (urlOrPath.startsWith('data:')) {
+      try {
+        const matches = urlOrPath.match(/^data:image\/(\w+);base64,(.+)$/);
+        if (matches) {
+          let ext = matches[1].toLowerCase();
+          if (ext === 'jpg') ext = 'jpeg';
+          const buf = Buffer.from(matches[2], 'base64');
+          console.log('[LOGO] Data URI OK, size:', buf.length, 'ext:', ext);
+          return { buf, ext };
+        }
+      } catch (e) {
+        console.log('[LOGO] Data URI parse error:', e);
+      }
+    }
+
+    // Try local file (uploads/ directory)
+    const basename = path.basename(urlOrPath);
+    const localPath = path.join(process.cwd(), 'uploads', basename);
+    if (fs.existsSync(localPath)) {
+      let ext = path.extname(localPath).substring(1).toLowerCase();
+      if (ext === 'jpg') ext = 'jpeg';
+      const buf = fs.readFileSync(localPath);
+      console.log('[LOGO] Local OK, size:', buf.length, 'ext:', ext);
+      return { buf: buf as any, ext };
+    }
+
+    // Try downloading from URL
+    try {
+      let downloadUrl = urlOrPath;
+      if (downloadUrl.startsWith('/')) {
+        const baseUrl = process.env.FRONTEND_URL || process.env.BETTER_AUTH_URL || '';
+        if (baseUrl) downloadUrl = baseUrl.replace(/\/$/, '') + downloadUrl;
+      }
+      if (downloadUrl.startsWith('http')) {
+        console.log('[LOGO] Downloading from:', downloadUrl);
+        const resp = await fetch(downloadUrl);
+        if (resp.ok) {
+          const arrayBuf = await resp.arrayBuffer();
+          const buf = Buffer.from(arrayBuf);
+          let ext = path.extname(basename).substring(1).toLowerCase();
+          if (ext === 'jpg') ext = 'jpeg';
+          if (!ext) ext = 'png';
+          console.log('[LOGO] Download OK, size:', buf.length, 'ext:', ext);
+          return { buf, ext };
+        } else {
+          console.log('[LOGO] Download failed, status:', resp.status);
+        }
+      }
+    } catch (downloadErr) {
+      console.log('[LOGO] Download error:', downloadErr);
+    }
+
+    console.log('[LOGO] Could not resolve image for:', urlOrPath?.substring(0, 80));
+    return null;
+  }
+
+  /**
+   * Adds left (Kemenag) and right (Madrasah/school) logos to the kop surat area of an Excel sheet.
+   * Uses cardSettings for logo URLs, with siteSettings global logo as fallback for the right logo.
+   */
+  private static async addLogosToSheet(
+    workbook: ExcelJS.Workbook,
+    sheet: ExcelJS.Worksheet,
+    totalCols: number
+  ): Promise<void> {
+    try {
+      const cardSettingsList = await db.select().from(cardSettings).limit(1);
+      const cardSetting = cardSettingsList[0] || {} as any;
+
+      const siteSettingsList = await db.select().from(siteSettings);
+      const globalLogoUrl = siteSettingsList.find(s => s.key === 'logo_url')?.value;
+
+      // Set row heights for kop area so logo isn't vertically compressed
+      for (let r = 1; r <= 4; r++) {
+        sheet.getRow(r).height = 18;
+      }
+
+      // Logo Kiri (Kemenag)
+      const logoKiri = await this.resolveImageBuffer(cardSetting.kemenagLogoUrl);
+      if (logoKiri) {
+        const logoId = workbook.addImage({ buffer: logoKiri.buf as any, extension: logoKiri.ext as any });
+        sheet.addImage(logoId, {
+          tl: { col: 0.2, row: 0.2 },
+          ext: { width: 70, height: 70 }
+        } as any);
+      }
+
+      // Logo Kanan (Madrasah) — fallback to global siteSettings logo
+      const logoKananUrl = cardSetting.schoolLogoUrl || globalLogoUrl;
+      const logoKanan = await this.resolveImageBuffer(logoKananUrl);
+      if (logoKanan) {
+        const logoId = workbook.addImage({ buffer: logoKanan.buf as any, extension: logoKanan.ext as any });
+        sheet.addImage(logoId, {
+          tl: { col: totalCols - 1.0, row: 0.2 },
+          ext: { width: 70, height: 70 }
+        } as any);
+      }
+    } catch (e) {
+      console.error('[LOGO] Error adding logo to excel:', e);
+    }
+  }
+
   // ============ UJIAN (Master) ============
 
   static async getAllUjian() {
@@ -398,6 +510,9 @@ export class ExamService {
       sheet.getCell(4, c).border = headerBorderObj;
     }
 
+    // Add logos to kop surat
+    await this.addLogosToSheet(workbook, sheet, totalCols);
+
     sheet.addRow([]);
     sheet.mergeCells(6, 1, 6, totalCols);
     sheet.getCell(6, 1).value = `JADWAL ${ujianData?.namaUjian?.toUpperCase() || 'UJIAN'}`;
@@ -727,6 +842,10 @@ export class ExamService {
     sheet.getCell(4, 1).font = { italic: true, size: 9 };
 
     sheet.getRow(5).border = { bottom: { style: 'double' } };
+
+    // Add logos to kop surat
+    const kopTotalCols = Math.max(8, ruangList.length + 4);
+    await this.addLogosToSheet(workbook, sheet, kopTotalCols);
 
     // 2. TITLE
     const titleRow = 7;
@@ -1187,6 +1306,9 @@ export class ExamService {
       for (let c = 1; c <= totalCols; c++) {
         sheet.getCell(5, c).border = { bottom: { style: 'double' } };
       }
+
+      // Add logos to kop surat
+      await this.addLogosToSheet(workbook, sheet, totalCols);
 
       // ===== TITLE =====
       sheet.addRow([]); // row 6 spacer
@@ -1666,9 +1788,6 @@ export class ExamService {
     
     const totalCols = 2 + sessionColsCount + 1; // No, Nama/NIP, ...sessions..., KET
     
-    // Logo
-    const cardSettingsList = await db.select().from(cardSettings).limit(1);
-    const cardSetting = cardSettingsList[0] || {} as any;
     
     // Header KOP Text
     const configKop = config.kop || {};
@@ -1698,96 +1817,8 @@ export class ExamService {
        cell.border = { bottom: { style: 'double' } };
     }
 
-    const getColLetter = (colIndex: number) => {
-      let letter = '';
-      while (colIndex > 0) {
-        let mod = (colIndex - 1) % 26;
-        letter = String.fromCharCode(65 + mod) + letter;
-        colIndex = Math.floor((colIndex - mod) / 26);
-      }
-      return letter;
-    };
-
-    const resolveImageBuffer = async (urlOrPath: string | null | undefined): Promise<{buf: Buffer, ext: string} | null> => {
-      if (!urlOrPath) return null;
-      
-      // 1. Try local file first
-      const basename = path.basename(urlOrPath);
-      const localPath = path.join(process.cwd(), 'uploads', basename);
-      console.log('[LOGO] Trying local:', localPath, '| exists:', fs.existsSync(localPath));
-      
-      if (fs.existsSync(localPath)) {
-        let ext = path.extname(localPath).substring(1).toLowerCase();
-        if (ext === 'jpg') ext = 'jpeg';
-        const buf = fs.readFileSync(localPath);
-        console.log('[LOGO] Local OK, size:', buf.length, 'ext:', ext);
-        return { buf: buf as any, ext };
-      }
-      
-      // 2. Try downloading from URL (handles full URLs like https://... or relative /uploads/...)
-      try {
-        let downloadUrl = urlOrPath;
-        if (downloadUrl.startsWith('/')) {
-          // Relative URL — build full URL from FRONTEND_URL or BETTER_AUTH_URL
-          const baseUrl = process.env.FRONTEND_URL || process.env.BETTER_AUTH_URL || '';
-          if (baseUrl) {
-            downloadUrl = baseUrl.replace(/\/$/, '') + downloadUrl;
-          }
-        }
-        
-        if (downloadUrl.startsWith('http')) {
-          console.log('[LOGO] Downloading from:', downloadUrl);
-          const resp = await fetch(downloadUrl);
-          if (resp.ok) {
-            const arrayBuf = await resp.arrayBuffer();
-            const buf = Buffer.from(arrayBuf);
-            let ext = path.extname(basename).substring(1).toLowerCase();
-            if (ext === 'jpg') ext = 'jpeg';
-            if (!ext) ext = 'png'; // default
-            console.log('[LOGO] Download OK, size:', buf.length, 'ext:', ext);
-            return { buf, ext };
-          } else {
-            console.log('[LOGO] Download failed, status:', resp.status);
-          }
-        }
-      } catch (downloadErr) {
-        console.log('[LOGO] Download error:', downloadErr);
-      }
-      
-      console.log('[LOGO] Could not resolve image for:', urlOrPath);
-      return null;
-    };
-
-    try {
-      // Fetch global settings for fallback
-      const siteSettingsList = await db.select().from(siteSettings);
-      const globalLogoUrl = siteSettingsList.find(s => s.key === 'logo_url')?.value;
-
-      // Logo Kiri (Kemenag)
-      const logoKiri = await resolveImageBuffer(cardSetting.kemenagLogoUrl);
-      if (logoKiri) {
-        const logoId = workbook.addImage({ buffer: logoKiri.buf as any, extension: logoKiri.ext as any });
-        // Use tl and extents to maintain aspect ratio (anti-gepeng)
-        sheet.addImage(logoId, {
-          tl: { col: 0.1, row: 0.1 },
-          extents: { width: 65, height: 65 }
-        } as any);
-      }
-      
-      // Logo Kanan (Madrasah) - Fallback to global logo if schoolLogoUrl is missing
-      const logoKananUrl = cardSetting.schoolLogoUrl || globalLogoUrl;
-      const logoKanan = await resolveImageBuffer(logoKananUrl);
-      if (logoKanan) {
-        const logoId = workbook.addImage({ buffer: logoKanan.buf as any, extension: logoKanan.ext as any });
-        // Place on the rightmost column (totalCols - 1 because 0-indexed)
-        sheet.addImage(logoId, {
-          tl: { col: totalCols - 0.9, row: 0.1 },
-          extents: { width: 65, height: 65 }
-        } as any);
-      }
-    } catch (e) {
-      console.error('[LOGO] Error adding logo to excel:', e);
-    }
+    // Add logos to kop surat
+    await this.addLogosToSheet(workbook, sheet, totalCols);
 
     sheet.addRow([]); // Spacer row 5
 
@@ -1981,8 +2012,6 @@ export class ExamService {
     });
 
     // KOP
-    const cardSettingsList = await db.select().from(cardSettings).limit(1);
-    const cardSetting = cardSettingsList[0] || {} as any;
     const configKop = config.kop || {};
     
     sheet.mergeCells(1, 1, 1, totalCols);
@@ -2010,68 +2039,8 @@ export class ExamService {
        cell.border = { bottom: { style: 'double' } };
     }
 
-    const getColLetter = (colIndex: number) => {
-      let letter = '';
-      while (colIndex > 0) {
-        let mod = (colIndex - 1) % 26;
-        letter = String.fromCharCode(65 + mod) + letter;
-        colIndex = Math.floor((colIndex - mod) / 26);
-      }
-      return letter;
-    };
-
-    const resolveImageBuffer = async (urlOrPath: string | null | undefined): Promise<{buf: Buffer, ext: string} | null> => {
-      if (!urlOrPath) return null;
-      const basename = path.basename(urlOrPath);
-      const localPath = path.join(process.cwd(), 'uploads', basename);
-      if (fs.existsSync(localPath)) {
-        let ext = path.extname(localPath).substring(1).toLowerCase();
-        if (ext === 'jpg') ext = 'jpeg';
-        return { buf: fs.readFileSync(localPath) as any, ext };
-      }
-      try {
-        let downloadUrl = urlOrPath;
-        if (downloadUrl.startsWith('/')) {
-          const baseUrl = process.env.FRONTEND_URL || process.env.BETTER_AUTH_URL || '';
-          if (baseUrl) downloadUrl = baseUrl.replace(/\/$/, '') + downloadUrl;
-        }
-        if (downloadUrl.startsWith('http')) {
-          const resp = await fetch(downloadUrl);
-          if (resp.ok) {
-            const arrayBuf = await resp.arrayBuffer();
-            let ext = path.extname(basename).substring(1).toLowerCase();
-            if (ext === 'jpg') ext = 'jpeg';
-            if (!ext) ext = 'png';
-            return { buf: Buffer.from(arrayBuf), ext };
-          }
-        }
-      } catch (e) {}
-      return null;
-    };
-
-    try {
-      // Fetch global settings for fallback
-      const siteSettingsList = await db.select().from(siteSettings);
-      const globalLogoUrl = siteSettingsList.find(s => s.key === 'logo_url')?.value;
-
-      const logoKiri = await resolveImageBuffer(cardSetting.kemenagLogoUrl);
-      if (logoKiri) {
-        const logoId = workbook.addImage({ buffer: logoKiri.buf as any, extension: logoKiri.ext as any });
-        sheet.addImage(logoId, {
-          tl: { col: 0.1, row: 0.1 },
-          extents: { width: 65, height: 65 }
-        } as any);
-      }
-      const logoKananUrl = cardSetting.schoolLogoUrl || globalLogoUrl;
-      const logoKanan = await resolveImageBuffer(logoKananUrl);
-      if (logoKanan) {
-        const logoId = workbook.addImage({ buffer: logoKanan.buf as any, extension: logoKanan.ext as any });
-        sheet.addImage(logoId, {
-          tl: { col: totalCols - 0.9, row: 0.1 },
-          extents: { width: 65, height: 65 }
-        } as any);
-      }
-    } catch (e) {}
+    // Add logos to kop surat
+    await this.addLogosToSheet(workbook, sheet, totalCols);
 
     sheet.addRow([]);
 
