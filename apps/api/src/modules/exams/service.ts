@@ -1364,7 +1364,16 @@ export class ExamService {
         const tglStr = d ? d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
 
         const mapelStr = jad.mataPelajaran || '';
-        const sheetName = `${mapelStr ? mapelStr.substring(0, 15) : 'DH'}-${rng.namaRuang || 'R'}`.substring(0, 31);
+        let sheetName = `${mapelStr ? mapelStr.substring(0, 15) : 'DH'}-${rng.namaRuang || 'R'}`.substring(0, 31);
+        // Ensure unique sheet name
+        const existingNames = workbook.worksheets.map(ws => ws.name);
+        if (existingNames.includes(sheetName)) {
+          let counter = 2;
+          while (existingNames.includes(`${sheetName.substring(0, 28)}_${counter}`)) {
+            counter++;
+          }
+          sheetName = `${sheetName.substring(0, 28)}_${counter}`;
+        }
         const sheet = workbook.addWorksheet(sheetName);
 
         // ===== JUDUL (3 baris, center, bold) =====
