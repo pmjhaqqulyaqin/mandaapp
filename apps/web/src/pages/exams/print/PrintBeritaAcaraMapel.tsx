@@ -199,7 +199,7 @@ export const PrintBeritaAcaraMapel = () => {
         style={{ fontFamily: '"Times New Roman", Times, serif' }}
       >
         {/* HEADER KOP SURAT */}
-        <div className="flex items-center justify-between border-b-[3px] border-black pb-1 mb-6 relative px-2">
+        <div className="flex items-center justify-between border-b-[3px] border-black pb-1 mb-4 relative px-2">
           <div className="absolute left-0 right-0 bottom-[-4px] h-[1px] bg-black"></div>
 
           <div className="w-20 h-20 flex-shrink-0 flex items-center justify-center">
@@ -220,10 +220,10 @@ export const PrintBeritaAcaraMapel = () => {
         </div>
 
         {/* TITLE */}
-        <h3 className="text-center font-bold text-xl tracking-widest mt-8 mb-6 decoration-black decoration-2">BERITA ACARA</h3>
+        <h3 className="text-center font-bold text-xl tracking-widest mt-4 mb-4 decoration-black decoration-2">BERITA ACARA</h3>
 
         {/* PARAGRAF 1 */}
-        <div className="mb-4 leading-[1.8]">
+        <div className="mb-2 leading-[1.8]">
           <p className="mb-3" style={{ textIndent: '30px' }}>
              Pada Hari ini {hariStr ? <span className="italic mr-1 ml-1">{hariStr}</span> : <span className="border-b border-dotted border-black min-w-[70px] inline-block text-center mr-1 ml-1">&nbsp;</span>}
              Tanggal {tglStr ? <span className="italic mr-1 ml-1">{tglWordsStr}</span> : <span className="border-b border-dotted border-black min-w-[30px] inline-block text-center mr-1 ml-1">&nbsp;</span>}
@@ -385,7 +385,7 @@ export const PrintBeritaAcaraMapel = () => {
       <style dangerouslySetInnerHTML={{__html: `
         @page {
           size: A4 portrait;
-          margin: 15mm;
+          margin: 10mm;
         }
         @media print {
           html, body {
