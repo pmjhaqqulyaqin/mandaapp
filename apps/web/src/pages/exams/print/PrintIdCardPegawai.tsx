@@ -83,8 +83,8 @@ export const PrintIdCardPegawai = () => {
           {/* Header section: Always render over the template, template should be a clean background */}
           <div className="w-full flex-col items-center justify-center">
             {/* We can use the generic kemenag / left logo if configured, else default */}
-            {config.logoKiri && (
-              <img src={config.logoKiri} className="w-8 h-8 object-contain mx-auto mb-1" alt="Logo Kiri" />
+            {config.logoPegawaiUrl && (
+              <img src={config.logoPegawaiUrl} className="w-8 h-8 object-contain mx-auto mb-1" alt="Logo Instansi" />
             )}
             
             {!templateUrl && (

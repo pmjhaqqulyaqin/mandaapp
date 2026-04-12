@@ -10,7 +10,7 @@ interface Props {
 }
 
 export const KartuIdTab = ({ ujianId, ujian }: Props) => {
-  const [showSettings, setShowSettings] = useState<'kartu-peserta' | 'id-panitia' | 'id-pengawas' | null>(null);
+  const [showSettings, setShowSettings] = useState<'kartu-peserta' | 'id-pegawai' | null>(null);
   const [saving, setSaving] = useState(false);
 
   const [formConfig, setFormConfig] = useState({
@@ -23,7 +23,8 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
     nip: '',
     signatureUrl: '',
     templatePanitiaUrl: '',
-    templatePengawasUrl: ''
+    templatePengawasUrl: '',
+    logoPegawaiUrl: ''
   });
 
   useEffect(() => {
@@ -43,7 +44,8 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
         nip: config.nip || ttdDist.nip || ttdMaster.nip || '',
         signatureUrl: config.signatureUrl || '',
         templatePanitiaUrl: config.templatePanitiaUrl || '',
-        templatePengawasUrl: config.templatePengawasUrl || ''
+        templatePengawasUrl: config.templatePengawasUrl || '',
+        logoPegawaiUrl: config.logoPegawaiUrl || ''
       });
     }
   }, [ujian]);
@@ -74,6 +76,10 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
       let url = `/dashboard/print-kartu-peserta/${ujianId}`;
       if (selectedRoomId !== 'ALL') url += `?ruangId=${selectedRoomId}`;
       window.open(url, '_blank');
+    } else if (key === 'id-panitia') {
+      window.open(`/dashboard/print-id-pegawai/${ujianId}?type=panitia`, '_blank');
+    } else if (key === 'id-pengawas') {
+      window.open(`/dashboard/print-id-pegawai/${ujianId}?type=pengawas`, '_blank');
     } else {
       alert('Fitur cetak ini belum dikonfigurasikan');
     }
@@ -132,10 +138,18 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
                   onClick={() => handleCetak(doc.key)}>
                   <Printer size={12} /> Cetak PDF
                 </button>
-                <button className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-medium bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
-                  onClick={() => setShowSettings(showSettings === doc.key ? null : doc.key as any)}>
-                  <Settings size={12} /> Pengaturan
-                </button>
+                {doc.key === 'kartu-peserta' && (
+                  <button className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-medium bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
+                    onClick={() => setShowSettings(showSettings === doc.key ? null : doc.key as any)}>
+                    <Settings size={12} /> Pengaturan
+                  </button>
+                )}
+                {doc.key === 'id-panitia' && (
+                  <button className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-medium bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
+                    onClick={() => setShowSettings(showSettings === 'id-pegawai' ? null : 'id-pegawai')}>
+                    <Settings size={12} /> Pengaturan ID Card
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -147,11 +161,12 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-[#222] pb-3">
             <h4 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
               <Settings size={16} className="text-violet-500" /> 
-              {showSettings === 'kartu-peserta' ? 'Pengaturan Kartu Peserta' : showSettings === 'id-panitia' ? 'Pengaturan ID Card Panitia' : 'Pengaturan ID Card Pengawas'}
+              {showSettings === 'kartu-peserta' ? 'Pengaturan Kartu Peserta' : 'Pengaturan ID Card Panitia & Pengawas'}
             </h4>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {showSettings === 'kartu-peserta' ? (
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             <div className="lg:col-span-3 space-y-4">
               <h5 className="text-xs font-semibold text-gray-500 flex items-center gap-1.5">
                 <Users size={12} /> Data Tanda Tangan
@@ -210,33 +225,60 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
                   </div>
                 </div>
               </div>
-              
-              {showSettings === 'kartu-peserta' && (
-                <p className="text-[10px] text-gray-400 leading-relaxed mt-2 text-center mt-3">
-                  Upload logo kiri (mis. Logo Kemenag) dan logo kanan (mis. Logo Sekolah).
-                </p>
-              )}
-
-              {(showSettings === 'id-panitia' || showSettings === 'id-pengawas') && (
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-[#222]">
-                  <label className="text-[10px] font-bold text-gray-500 mb-1.5 block text-center uppercase tracking-wide">
-                    Template Background {showSettings === 'id-panitia' ? 'Panitia' : 'Pengawas'}
-                  </label>
-                  <div className="flex justify-center flex-col items-center gap-2">
-                    <div className="origin-top w-24 h-36">
-                      <PhotoUploader 
-                        currentPhotoUrl={showSettings === 'id-panitia' ? formConfig.templatePanitiaUrl : formConfig.templatePengawasUrl} 
-                        onPhotoChange={url => setFormConfig({...formConfig, [showSettings === 'id-panitia' ? 'templatePanitiaUrl' : 'templatePengawasUrl']: url})} 
-                      />
-                    </div>
-                    <p className="text-[9px] text-gray-400 max-w-[200px] text-center">
-                      Upload desain template format portrait (.PNG/JPG). Jika dikosongkan, akan otomatis menggunakan desain fallback elegan bawaan sistem.
-                    </p>
-                  </div>
-                </div>
-              )}
+              <p className="text-[10px] text-gray-400 leading-relaxed mt-2 text-center mt-3">
+                Upload logo kiri (mis. Logo Kemenag) dan logo kanan (mis. Logo Sekolah).
+              </p>
             </div>
           </div>
+          ) : (
+          <div className="space-y-6">
+            <div className="flex flex-wrap gap-10 justify-start items-start">
+              
+              <div className="flex flex-col items-center gap-2">
+                <label className="text-[10px] font-bold text-gray-500 mb-1.5 block text-center uppercase tracking-wide">
+                  Logo Atas
+                </label>
+                <div className="origin-top w-20 h-20">
+                  <PhotoUploader 
+                    currentPhotoUrl={formConfig.logoPegawaiUrl} 
+                    onPhotoChange={url => setFormConfig({...formConfig, logoPegawaiUrl: url})} 
+                  />
+                </div>
+                <p className="text-[9px] text-gray-400 max-w-[120px] text-center">
+                  Digunakan eksklusif untuk Panitia & Pengawas
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center gap-2">
+                <label className="text-[10px] font-bold text-gray-500 mb-1.5 block text-center uppercase tracking-wide">
+                  Template Panitia
+                </label>
+                <div className="origin-top w-24 h-36">
+                  <PhotoUploader 
+                    currentPhotoUrl={formConfig.templatePanitiaUrl} 
+                    onPhotoChange={url => setFormConfig({...formConfig, templatePanitiaUrl: url})} 
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center gap-2">
+                <label className="text-[10px] font-bold text-gray-500 mb-1.5 block text-center uppercase tracking-wide">
+                  Template Pengawas
+                </label>
+                <div className="origin-top w-24 h-36">
+                  <PhotoUploader 
+                    currentPhotoUrl={formConfig.templatePengawasUrl} 
+                    onPhotoChange={url => setFormConfig({...formConfig, templatePengawasUrl: url})} 
+                  />
+                </div>
+              </div>
+
+            </div>
+            <p className="text-[10px] text-gray-400 max-w-[400px]">
+              * Pastikan template ID berformat rasio portrait (.PNG/JPG). Jika dikosongkan, desain otomatis menggunakan tata letak bawaan.
+            </p>
+          </div>
+          )}
 
           <div className="flex justify-end pt-2 border-t border-gray-200 dark:border-[#222]">
             <button
