@@ -73,12 +73,18 @@ export const PrintDaftarHadirPeserta = () => {
 
             const classesInRoom = Array.from(new Set(studentsInRoom.map((d: any) => d.siswa?.fullClassName || d.siswa?.className).filter(Boolean)));
 
+            // Assign urutRuang (same as PrintKartuPeserta)
+            const studentsWithUrut = studentsInRoom.map((d: any, idx: number) => ({
+              ...d,
+              urutRuang: idx + 1,
+            }));
+
             result.push({
               jadwal: jad,
               ruang: rng,
               pengawas1: p1,
               pengawas2: p2,
-              students: studentsInRoom,
+              students: studentsWithUrut,
               kelasStr: classesInRoom.join(', '),
             });
           }
@@ -193,22 +199,48 @@ export const PrintDaftarHadirPeserta = () => {
         <table className="w-full border-collapse border border-black text-center" style={{ fontSize }}>
           <thead>
             <tr>
-              <th className="border border-black px-1 py-1 font-bold w-[30px]">No</th>
-              <th className="border border-black px-1 py-1 font-bold w-[22%]">No. Peserta Ujian</th>
-              <th className="border border-black px-1 py-1 font-bold">Nama Peserta</th>
-              <th className="border border-black px-1 py-1 font-bold w-[22%]">Tanda Tangan Peserta</th>
+              <th className="border border-black px-1 py-1 font-bold w-[30px]" rowSpan={2}>No</th>
+              <th className="border border-black px-1 py-1 font-bold w-[22%]" rowSpan={2}>No. Peserta Ujian</th>
+              <th className="border border-black px-1 py-1 font-bold" rowSpan={2}>Nama Peserta</th>
+              <th className="border border-black px-1 py-1 font-bold" colSpan={2}>Tanda Tangan Peserta</th>
+            </tr>
+            <tr>
+              <th className="border border-black px-1 py-0.5 font-normal w-[11%]" style={{ fontSize: '8pt' }}></th>
+              <th className="border border-black px-1 py-0.5 font-normal w-[11%]" style={{ fontSize: '8pt' }}></th>
             </tr>
           </thead>
           <tbody>
             {students.map((s: any, i: number) => {
               const nomor = i + 1;
+
+              // Generate nomor peserta kustom (sama dengan PrintKartuPeserta)
+              const siswa = s.siswa || {};
+              const lastYearStr = tahunAjaran.length >= 2 ? tahunAjaran.slice(-2) : '00';
+              const semesterLower = (ujian?.semester || '').toLowerCase();
+              const semCode = semesterLower.includes('ganjil') ? '01' : semesterLower.includes('genap') ? '02' : '00';
+              const kelasStr2 = (siswa.fullClassName || siswa.className || '').toUpperCase();
+              let gradeCode = '00';
+              if (kelasStr2.includes('XII') || kelasStr2.includes('12')) gradeCode = '12';
+              else if (kelasStr2.includes('XI') || kelasStr2.includes('11')) gradeCode = '11';
+              else if (kelasStr2.includes('X') || kelasStr2.includes('10')) gradeCode = '10';
+              const ruangMatch = (ruang?.namaRuang || '').match(/\d+/);
+              const ruangNumber = ruangMatch ? parseInt(ruangMatch[0], 10) : 0;
+              const ruangCode = ruangNumber.toString().padStart(2, '0');
+              const urutCode = (s.urutRuang || nomor).toString().padStart(3, '0');
+              const nomorPeserta = `${lastYearStr}-${semCode}-${gradeCode}-${ruangCode}-${urutCode}`;
+
               return (
                 <tr key={s.id || i}>
                   <td className={`border border-black px-1 ${rowPy}`}>{nomor}.</td>
-                  <td className={`border border-black px-1 ${rowPy} text-left`}>{s.siswa?.nis || s.siswa?.nisn || ''}</td>
-                  <td className={`border border-black px-1 ${rowPy} text-left`}>{s.siswa?.fullName || ''}</td>
-                  <td className={`border border-black px-1 ${rowPy}`} style={{ textAlign: nomor % 2 === 1 ? 'left' : 'right' }}>
-                    {nomor % 2 === 1 ? `${nomor}.` : nomor}
+                  <td className={`border border-black px-1 ${rowPy} text-left`}>{nomorPeserta}</td>
+                  <td className={`border border-black px-1 ${rowPy} text-left`}>{siswa.fullName || ''}</td>
+                  {/* TTD kolom ganjil */}
+                  <td className={`border border-black px-1 ${rowPy}`}>
+                    {nomor % 2 === 1 ? `${nomor}.` : ''}
+                  </td>
+                  {/* TTD kolom genap */}
+                  <td className={`border border-black px-1 ${rowPy}`}>
+                    {nomor % 2 === 0 ? `${nomor}.` : ''}
                   </td>
                 </tr>
               );
