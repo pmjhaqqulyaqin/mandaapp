@@ -10,6 +10,7 @@ export const PrintIdCardPegawai = () => {
   const [loading, setLoading] = useState(true);
   const [ujian, setUjian] = useState<any>(null);
   const [pegawaiList, setPegawaiList] = useState<any[]>([]);
+  const [schoolName, setSchoolName] = useState<string>('MAN 2 LOMBOK TIMUR');
 
   useEffect(() => {
     // Inject print styles to hide headers and page marign
@@ -29,13 +30,16 @@ export const PrintIdCardPegawai = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [uRes, dataRes] = await Promise.all([
+        const [uRes, dataRes, settingsRes] = await Promise.all([
           apiClient(`/exams/${ujianId}`),
-          apiClient(`/exams/${ujianId}/${type}`)
+          apiClient(`/exams/${ujianId}/${type}`),
+          apiClient('/settings')
         ]);
         
         setUjian(uRes);
         setPegawaiList(dataRes.data || dataRes);
+        const sn = (settingsRes.data || settingsRes).find((s: any) => s.key === 'school_name')?.value;
+        if (sn) setSchoolName(sn);
       } catch (error) {
         console.error('Failed to load ID card data', error);
       } finally {
@@ -82,19 +86,15 @@ export const PrintIdCardPegawai = () => {
           
           {/* Header section: Always render over the template, template should be a clean background */}
           <div className="w-full flex-col items-center justify-center">
-            {/* We can use the generic kemenag / left logo if configured, else default */}
+            {/* Header section: Always render text whether template exists or not */}
             {config.logoPegawaiUrl && (
               <img src={config.logoPegawaiUrl} className="w-8 h-8 object-contain mx-auto mb-1" alt="Logo Instansi" />
             )}
             
-            {!templateUrl && (
-              <>
-                <div className="text-[7px] font-bold mt-1 text-gray-800 tracking-wider">MAN 2 LOMBOK TIMUR</div>
-                <div className="text-[10px] uppercase font-black leading-tight mt-1 text-gray-900 border-b border-gray-800 pb-1 mb-1 inline-block">
-                  {ujian.namaUjian}<br/>TA {ujian.tahunAjaran}
-                </div>
-              </>
-            )}
+            <div className="text-[7px] font-bold mt-1 text-gray-800 tracking-wider uppercase text-center w-full bg-white/40">{schoolName}</div>
+            <div className="text-[10px] uppercase font-black leading-tight mt-1 text-gray-900 border-b border-gray-800 pb-1 mb-1 inline-block text-center w-full bg-white/40">
+              {ujian.namaUjian}<br/>TA {ujian.tahunAjaran}
+            </div>
           </div>
 
           <div className="flex-1 mt-1 mb-1"></div>
@@ -105,7 +105,7 @@ export const PrintIdCardPegawai = () => {
           </div>
 
           {/* Nama Pegawai */}
-          <div className="text-[10px] font-bold uppercase mt-auto mb-1 px-1 line-clamp-2 max-h-[28px] overflow-hidden leading-tight bg-white/60 rounded backdrop-blur-sm w-full">
+          <div className="text-[10px] font-bold uppercase mt-auto mb-1 px-1 line-clamp-2 max-h-[28px] overflow-hidden leading-tight bg-white/90 rounded w-full">
             {p.name}
           </div>
           
