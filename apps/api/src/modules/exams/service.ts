@@ -2086,10 +2086,7 @@ export class ExamService {
           const cttd = sheet.getCell(rIdx, c);
           cttd.border = thinBorder;
           if (c < totalCols) { // If it's a date/signature column
-              const isOdd = (index + 1) % 2 !== 0;
-              cttd.value = `${index + 1}.`;
-              cttd.alignment = isOdd ? { horizontal: 'left', vertical: 'top' } : { horizontal: 'center', vertical: 'middle' };
-              cttd.font = { size: 9 };
+              cttd.value = '';
           }
        }
        
