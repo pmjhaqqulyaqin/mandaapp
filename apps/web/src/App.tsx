@@ -34,6 +34,7 @@ import { PrintAcademicCalendar } from './pages/PrintAcademicCalendar';
 import { PrintKartuPeserta } from './pages/exams/print/PrintKartuPeserta';
 import { PrintIdCardPegawai } from './pages/exams/print/PrintIdCardPegawai';
 import { PrintBeritaAcaraMapel } from './pages/exams/print/PrintBeritaAcaraMapel';
+import { PrintPaktaIntegritas } from './pages/exams/print/PrintPaktaIntegritas';
 import { FloatingActionButton, ScrollToTopButton } from '@mandaapp/ui';
 import { Toaster } from 'sonner';
 
@@ -80,6 +81,11 @@ function App() {
         <Route path="/dashboard/print-ba-mapel/:ujianId" element={
           <ProtectedRoute>
             <PrintBeritaAcaraMapel />
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard/print-pakta/:ujianId" element={
+          <ProtectedRoute>
+            <PrintPaktaIntegritas />
           </ProtectedRoute>
         } />
         

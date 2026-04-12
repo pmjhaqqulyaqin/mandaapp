@@ -61,8 +61,12 @@ export const BeritaAcaraTab = ({ ujianId, ujian }: Props) => {
                         let url = `/dashboard/print-ba-mapel/${ujianId}`;
                         if (selectedRoomId !== 'ALL') url += `?ruangId=${selectedRoomId}`;
                         window.open(url, '_blank');
+                      } else if (doc.key === 'pakta-pengawas') {
+                        window.open(`/dashboard/print-pakta/${ujianId}?type=pengawas`, '_blank');
+                      } else if (doc.key === 'pakta-panitia') {
+                        window.open(`/dashboard/print-pakta/${ujianId}?type=panitia`, '_blank');
                       } else {
-                        alert('Fitur ini akan dikerjakan pada tahap selanjutnya. Silakan coba Berita Acara per Mata Pelajaran.');
+                        alert('Fitur ini akan dikerjakan pada tahap selanjutnya.');
                       }
                     }}>
                     <Printer size={12} /> Cetak PDF
@@ -74,7 +78,7 @@ export const BeritaAcaraTab = ({ ujianId, ujian }: Props) => {
                         if (selectedRoomId !== 'ALL') url += `&ruangId=${selectedRoomId}`;
                         window.open(url, '_blank');
                       } else {
-                        alert('Fitur ini akan dikerjakan pada tahap selanjutnya. Silakan coba Berita Acara per Mata Pelajaran.');
+                        alert('Fitur export Word hanya tersedia untuk Berita Acara per Mata Pelajaran saat ini. Silakan gunakan Cetak PDF untuk Pakta Integritas.');
                       }
                     }}>
                     <FileText size={12} /> Export Word
