@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
+import { EventCalendarPicker } from './EventCalendarPicker';
 
 interface Props {
   isOpen: boolean;
@@ -159,16 +160,24 @@ export const CreateUjianModal = ({ isOpen, onClose, onSuccess, editData }: Props
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 relative z-10">
           <div>
             <label className={labelClass}>Tanggal Mulai *</label>
-            <input type="date" className={inputClass}
-              value={form.tanggalMulai} onChange={e => setForm({...form, tanggalMulai: e.target.value})} />
+            <EventCalendarPicker 
+              className={inputClass}
+              value={form.tanggalMulai}
+              onChange={val => setForm({...form, tanggalMulai: val})}
+              tahunAjaran={form.tahunAjaran}
+            />
           </div>
           <div>
             <label className={labelClass}>Tanggal Selesai *</label>
-            <input type="date" className={inputClass}
-              value={form.tanggalSelesai} onChange={e => setForm({...form, tanggalSelesai: e.target.value})} />
+            <EventCalendarPicker 
+              className={inputClass}
+              value={form.tanggalSelesai}
+              onChange={val => setForm({...form, tanggalSelesai: val})}
+              tahunAjaran={form.tahunAjaran}
+            />
           </div>
         </div>
 
