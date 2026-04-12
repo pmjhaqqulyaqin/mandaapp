@@ -319,8 +319,8 @@ export const PrintBeritaAcaraMapel = () => {
         </p>
 
         {/* CATATAN */}
-        <p className="font-bold italic mt-4">Catatan:</p>
-        <div className="space-y-6 mt-1">
+        <p className="font-bold italic mt-3">Catatan:</p>
+        <div className="space-y-5 mt-1">
             <div className="w-full border-b border-dotted border-black"></div>
             <div className="w-full border-b border-dotted border-black"></div>
             <div className="w-full border-b border-dotted border-black"></div>
@@ -328,15 +328,15 @@ export const PrintBeritaAcaraMapel = () => {
             <div className="w-full border-b border-dotted border-black"></div>
         </div>
 
-        <p className="mt-4 mb-6">
+        <p className="mt-3 mb-4">
           Demikian berita acara ini dibuat dengan sesungguhnya.
         </p>
 
         {/* TANDA TANGAN SECTION */}
-        <div className="flex justify-between mt-2">
+        <div className="flex justify-between mt-1">
            {/* Kiri (Pengawas I) */}
-           <div className="w-[280px] flex flex-col pt-4">
-             <div className="mb-[80px] ml-4 text-center">Pengawas I</div>
+           <div className="w-[280px] flex flex-col pt-3">
+             <div className="mb-[60px] ml-4 text-center">Pengawas I</div>
              <div className="text-center font-bold">
                  {pengawas1?.name ? (
                     <>
@@ -354,12 +354,12 @@ export const PrintBeritaAcaraMapel = () => {
 
            {/* Center Text (Yang membuat) */}
            <div className="absolute left-1/2 -translate-x-1/2 text-center w-[250px]">
-             <div className="pb-4">Yang membuat berita acara</div>
+             <div className="pb-3">Yang membuat berita acara</div>
            </div>
 
            {/* Kanan (Pengawas II) */}
-           <div className="w-[280px] flex flex-col pt-4">
-             <div className="mb-[80px] ml-4 text-center">Pengawas II</div>
+           <div className="w-[280px] flex flex-col pt-3">
+             <div className="mb-[60px] ml-4 text-center">Pengawas II</div>
              <div className="text-center font-bold">
                  {pengawas2?.name ? (
                     <>
@@ -399,6 +399,9 @@ export const PrintBeritaAcaraMapel = () => {
             page-break-after: always;
             break-after: page;
           }
+          .page-container {
+            page-break-inside: avoid;
+          }
         }
         .page-container {
           background-color: white;
@@ -415,7 +418,9 @@ export const PrintBeritaAcaraMapel = () => {
             padding: 0;
             box-shadow: none;
             width: 100%;
-            height: 100%;
+            min-height: auto;
+            height: auto;
+            overflow: hidden;
           }
         }
       `}} />
