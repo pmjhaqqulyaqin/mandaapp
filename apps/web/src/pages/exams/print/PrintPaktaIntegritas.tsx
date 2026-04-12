@@ -97,7 +97,7 @@ export const PrintPaktaIntegritas = () => {
       <style dangerouslySetInnerHTML={{__html: `
         @page {
           size: A4 portrait;
-          margin: 20mm;
+          margin: 10mm;
         }
         @media print {
           html, body {
@@ -118,7 +118,7 @@ export const PrintPaktaIntegritas = () => {
           background-color: white;
           width: 210mm;
           min-height: 297mm;
-          padding: 20mm;
+          padding: 15mm;
           margin: 0 auto;
           box-shadow: 0 0 10px rgba(0,0,0,0.1);
           box-sizing: border-box;
@@ -148,9 +148,9 @@ export const PrintPaktaIntegritas = () => {
           <div key={idx} className={`page-container leading-relaxed text-justify ${idx < people.length - 1 ? 'page-break mb-10 print:mb-0' : ''}`}>
              
              {/* HEADER */}
-             <div className="text-center font-bold text-[12pt] mb-12">
-               <div className="mb-1">PAKTA INTEGRITAS</div>
-               <div className="mb-1">PELAKSANAAN {namaUjian}</div>
+             <div className="text-center font-bold text-[12pt] mb-8 leading-snug">
+               <div>PAKTA INTEGRITAS</div>
+               <div>PELAKSANAAN {namaUjian}</div>
                <div>TAHUN AJARAN {tahunAjaran}</div>
              </div>
 
@@ -202,15 +202,15 @@ export const PrintPaktaIntegritas = () => {
                 Demikian pakta integritas ini saya buat dengan sebenar-benarnya tanpa ada unsur paksaan dari pihak manapun.
              </div>
 
-             <div className="mb-16">
+             <div className="mb-8">
                 Apabila saya melanggar hal-hal yang telah dinyatakan dalam pakta integritas ini, saya bersedia dikenakan sanksi sesuai dengan hukum dan ketentuan peraturan perundang-undangan yang berlaku.
              </div>
 
              {/* TANDA TANGAN */}
-             <div className="flex justify-end mt-10">
+             <div className="flex justify-end mt-8">
                 <div className="w-72 text-left">
                   <div className="mb-1">{tempat}, {tanggalFormat}</div>
-                  <div className="mb-20">Yang Membuat Pakta Integritas</div>
+                  <div className="mb-16">Yang Membuat Pakta Integritas</div>
                   <div className="font-bold underline text-[11pt]">{person.name}</div>
                   {person.nip && person.nip !== '-' && (
                     <div className="text-[11pt]">NIP. {person.nip}</div>
