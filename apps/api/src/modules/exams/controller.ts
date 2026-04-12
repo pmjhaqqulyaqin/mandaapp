@@ -291,8 +291,7 @@ export class ExamController {
         buffer = await ExamService.exportDaftarHadirPengawasExcel(req.params.ujianId);
         filename = 'Daftar_Hadir_Pengawas.xlsx';
       } else if (type === 'panitia') {
-        // Placeholder for panitia
-        buffer = await ExamService.exportDaftarHadirExcel(req.params.ujianId, ruangId); 
+        buffer = await ExamService.exportDaftarHadirPanitiaExcel(req.params.ujianId); 
         filename = 'Daftar_Hadir_Panitia.xlsx';
       } else {
         buffer = await ExamService.exportDaftarHadirExcel(req.params.ujianId, ruangId);
