@@ -2,11 +2,13 @@ import { db } from '../../db';
 import {
   ujian, panitiaUjian, jadwalUjian, ruangUjian,
   penugasanPengawas, distribusiPeserta, employees,
-  studentProfiles, classes, majors, schoolEvents
+  studentProfiles, classes, majors, schoolEvents,
+  cardSettings
 } from '../../db/schema';
 import { eq, desc, asc, and, inArray, gte, lte, or } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import ExcelJS from 'exceljs';
+import * as path from 'path';
 
 export class ExamService {
 
@@ -1600,5 +1602,221 @@ export class ExamService {
 
     return await workbook.xlsx.writeBuffer();
   }
+
+  static async exportDaftarHadirPengawasExcel(ujianId: string) {
+    const ujianData = await this.getUjianById(ujianId);
+    if (!ujianData) throw new Error('Ujian tidak ditemukan');
+
+    const config = (ujianData.pengaturan as any) || {};
+    const jadwalList = await this.getJadwal(ujianId);
+    
+    // Employee Data for Pengawas Groups
+    const group1 = config.pengawasGroups?.group1 || [];
+    const group2 = config.pengawasGroups?.group2 || [];
+    const allEmpIds = [...new Set([...group1, ...group2])];
+    
+    const employeesData = allEmpIds.length > 0
+      ? await db.select().from(employees).where(inArray(employees.id, allEmpIds)).orderBy(asc(employees.name))
+      : [];
+
+    const namaUjian = (ujianData.namaUjian || (ujianData as any).jenisUjian || 'UJIAN').toUpperCase();
+    const tahunAjaran = ujianData.tahunAjaran || '';
+    
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Daftar Hadir Pengawas', {
+      pageSetup: {
+        paperSize: 9, // A4
+        orientation: 'landscape',
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0,
+        margins: { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 }
+      }
+    });
+
+    const thinBorder: any = {
+      top: { style: 'thin' }, left: { style: 'thin' },
+      bottom: { style: 'thin' }, right: { style: 'thin' }
+    };
+    
+    // Group Jadwal Dates and Sessions
+    const datesMap = new Map<string, Set<string>>();
+    for (const j of jadwalList) {
+       const tglStr = j.tanggal;
+       if (!datesMap.has(tglStr)) datesMap.set(tglStr, new Set());
+       datesMap.get(tglStr)!.add(j.waktuMulai);
+    }
+    
+    const sortedDateObj = Array.from(datesMap.keys()).sort().map(d => {
+       const wSet = datesMap.get(d)!;
+       const sortedWaktu = Array.from(wSet).sort();
+       return { date: d, sessions: sortedWaktu };
+    });
+
+    if (sortedDateObj.length === 0) {
+      sortedDateObj.push({ date: new Date().toISOString().split('T')[0], sessions: ['07:30'] });
+    }
+    
+    let sessionColsCount = 0;
+    for (const d of sortedDateObj) {
+      sessionColsCount += d.sessions.length;
+    }
+    if (sessionColsCount === 0) sessionColsCount = 1;
+    
+    const totalCols = 2 + sessionColsCount + 1; // No, Nama/NIP, ...sessions..., KET
+    
+    // Logo
+    const cardSettingsList = await db.select().from(cardSettings).limit(1);
+    const cardSetting = cardSettingsList[0] || {} as any;
+    
+    if (cardSetting.schoolLogoUrl) {
+      try {
+        const logoPath = path.join(process.cwd(), 'uploads', path.basename(cardSetting.schoolLogoUrl));
+        if (require('fs').existsSync(logoPath)) {
+          const ext = path.extname(logoPath).substring(1);
+          const logoId = workbook.addImage({
+            filename: logoPath,
+            extension: ext as any,
+          });
+          sheet.addImage(logoId, 'A1:B3');
+        }
+      } catch (e) {
+        console.error('Error adding logo to excel:', e);
+      }
+    }
+
+    // Headers
+    sheet.mergeCells(1, 3, 1, totalCols);
+    sheet.getCell(1, 3).value = 'DAFTAR HADIR PENGAWAS';
+    sheet.getCell(1, 3).font = { bold: true, size: 14 };
+    sheet.getCell(1, 3).alignment = { horizontal: 'center' };
+    
+    sheet.mergeCells(2, 3, 2, totalCols);
+    sheet.getCell(2, 3).value = namaUjian;
+    sheet.getCell(2, 3).font = { bold: true, size: 12 };
+    sheet.getCell(2, 3).alignment = { horizontal: 'center' };
+    
+    sheet.mergeCells(3, 3, 3, totalCols);
+    sheet.getCell(3, 3).value = `TAHUN AJARAN ${tahunAjaran}`;
+    sheet.getCell(3, 3).font = { bold: true, size: 12 };
+    sheet.getCell(3, 3).alignment = { horizontal: 'center' };
+
+    sheet.addRow([]); // Spacer row 4
+    
+    // Table Header Structure
+    sheet.mergeCells(5, 1, 7, 1);
+    sheet.getCell(5, 1).value = 'NO';
+    
+    sheet.mergeCells(5, 2, 7, 2);
+    sheet.getCell(5, 2).value = 'NAMA/NIP';
+    
+    sheet.mergeCells(5, totalCols, 7, totalCols);
+    sheet.getCell(5, totalCols).value = 'KET.';
+    
+    if (sessionColsCount > 1) {
+       sheet.mergeCells(5, 3, 5, 2 + sessionColsCount);
+    }
+    sheet.getCell(5, 3).value = 'TANDA TANGAN KEHADIRAN SESUAI HARI DAN JAM MENGAWAS';
+    
+    let currentCol = 3;
+    const dateNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    for (const d of sortedDateObj) {
+       const ts = new Date(d.date);
+       const dayName = dateNames[ts.getDay()];
+       const displayDate = `${dayName}, ${ts.toLocaleDateString('id-ID')}`;
+       
+       if (d.sessions.length > 1) {
+          sheet.mergeCells(6, currentCol, 6, currentCol + d.sessions.length - 1);
+       }
+       sheet.getCell(6, currentCol).value = displayDate;
+       
+       for (let i = 0; i < d.sessions.length; i++) {
+          const romanSesi = ['I', 'II', 'III', 'IV', 'V', 'VI'][i] || (i+1).toString();
+          sheet.getCell(7, currentCol + i).value = romanSesi;
+       }
+       currentCol += d.sessions.length;
+    }
+    
+    // Default styling for table header
+    for (let r = 5; r <= 7; r++) {
+       for (let c = 1; c <= totalCols; c++) {
+          const cell = sheet.getCell(r, c);
+          cell.font = { bold: true, size: 9 };
+          cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+          cell.border = thinBorder;
+       }
+       sheet.getRow(r).height = 20;
+    }
+    
+    // Data Rows
+    let startDataRow = 8;
+    // If no employees, at least render 5 empty rows
+    const loopData = employeesData.length > 0 ? employeesData : Array.from({length: 5}).map(() => ({}));
+    
+    loopData.forEach((emp: any, index: number) => {
+       const rIdx = startDataRow + index;
+       const row = sheet.getRow(rIdx);
+       
+       // NO
+       const cellNo = sheet.getCell(rIdx, 1);
+       cellNo.value = index + 1;
+       cellNo.alignment = { horizontal: 'center', vertical: 'middle' };
+       cellNo.border = thinBorder;
+       
+       // NAMA / NIP
+       const cellName = sheet.getCell(rIdx, 2);
+       const nameVal = emp.name || '';
+       let nipVal = emp.nip ? `NIP. ${emp.nip}` : (emp.name ? 'NIP. -' : '');
+       if (nameVal && nipVal) {
+          cellName.value = `${nameVal}\n${nipVal}`;
+       } else {
+          cellName.value = '';
+       }
+       cellName.alignment = { wrapText: true, vertical: 'middle', horizontal: 'left' };
+       cellName.border = thinBorder;
+       
+       // TTD and KET
+       for(let c = 3; c <= totalCols; c++) {
+          const cttd = sheet.getCell(rIdx, c);
+          cttd.border = thinBorder;
+       }
+       
+       row.height = 35;
+    });
+    
+    // Widths
+    sheet.getColumn(1).width = 5; // NO
+    sheet.getColumn(2).width = 30; // NAMA/NIP
+    for (let c = 3; c < totalCols; c++) {
+       sheet.getColumn(c).width = 12; 
+    }
+    sheet.getColumn(totalCols).width = 8; // KET
+    
+    // Signature block
+    const cetakWaktu = config.cetakWaktu || {};
+    const distribTtd = cetakWaktu.beritaAcara || {}; // usually uses beritaAcara format
+    const ttdRow = startDataRow + loopData.length + 2;
+    const ttdColStart = Math.max(3, totalCols - 3);
+    
+    sheet.mergeCells(ttdRow, ttdColStart, ttdRow, totalCols);
+    sheet.getCell(ttdRow, ttdColStart).value = `${distribTtd.tempatTanggal || 'Mataram, ......................'}`;
+    sheet.getCell(ttdRow, ttdColStart).alignment = { horizontal: 'center' };
+    
+    sheet.mergeCells(ttdRow + 1, ttdColStart, ttdRow + 1, totalCols);
+    sheet.getCell(ttdRow + 1, ttdColStart).value = distribTtd.jabatan || 'Panitia';
+    sheet.getCell(ttdRow + 1, ttdColStart).alignment = { horizontal: 'center' };
+    
+    sheet.mergeCells(ttdRow + 5, ttdColStart, ttdRow + 5, totalCols);
+    sheet.getCell(ttdRow + 5, ttdColStart).value = distribTtd.nama || '(...........................)';
+    sheet.getCell(ttdRow + 5, ttdColStart).font = { bold: true };
+    sheet.getCell(ttdRow + 5, ttdColStart).alignment = { horizontal: 'center' };
+    
+    sheet.mergeCells(ttdRow + 6, ttdColStart, ttdRow + 6, totalCols);
+    sheet.getCell(ttdRow + 6, ttdColStart).value = distribTtd.nip ? `NIP. ${distribTtd.nip}` : '';
+    sheet.getCell(ttdRow + 6, ttdColStart).alignment = { horizontal: 'center' };
+
+    return await workbook.xlsx.writeBuffer();
+  }
+
 }
 

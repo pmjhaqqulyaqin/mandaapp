@@ -281,10 +281,26 @@ export class ExamController {
 
   static async exportDaftarHadir(req: Request, res: Response) {
     try {
+      const type = req.query.type as string;
       const ruangId = req.query.ruangId as string | undefined;
-      const buffer = await ExamService.exportDaftarHadirExcel(req.params.ujianId, ruangId);
+
+      let buffer: any;
+      let filename = 'Daftar_Hadir.xlsx';
+
+      if (type === 'pengawas') {
+        buffer = await ExamService.exportDaftarHadirPengawasExcel(req.params.ujianId);
+        filename = 'Daftar_Hadir_Pengawas.xlsx';
+      } else if (type === 'panitia') {
+        // Placeholder for panitia
+        buffer = await ExamService.exportDaftarHadirExcel(req.params.ujianId, ruangId); 
+        filename = 'Daftar_Hadir_Panitia.xlsx';
+      } else {
+        buffer = await ExamService.exportDaftarHadirExcel(req.params.ujianId, ruangId);
+        filename = 'Daftar_Hadir_Peserta.xlsx';
+      }
+
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename="Daftar_Hadir.xlsx"');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.send(buffer);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
