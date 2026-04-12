@@ -145,7 +145,7 @@ export const PrintPaktaIntegritas = () => {
         </div>
 
         {people.map((person, idx) => (
-          <div key={idx} className={\`page-container leading-relaxed text-justify \${idx < people.length - 1 ? 'page-break mb-10 print:mb-0' : ''}\`}>
+          <div key={idx} className={`page-container leading-relaxed text-justify ${idx < people.length - 1 ? 'page-break mb-10 print:mb-0' : ''}`}>
              
              {/* HEADER */}
              <div className="text-center font-bold text-[12pt] mb-12">
