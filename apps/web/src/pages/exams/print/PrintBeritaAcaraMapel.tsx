@@ -225,34 +225,35 @@ export const PrintBeritaAcaraMapel = () => {
              Tahun {thnStr ? <span className="italic mr-1 ml-1">{thnWordsStr}</span> : <span className="border-b border-dotted border-black min-w-[150px] inline-block text-center mr-1 ml-1">&nbsp;</span>} telah diselenggarakan {namaUjian} Tahun Ajaran {tahunAjaran},
           </p>
           
-          <div className="mt-2 text-left leading-[1.8]">
-            <span className="inline-block w-[120px]">Mata Pelajaran</span>
+          <div className="mt-2 text-justify leading-[1.8]">
+            <span className="inline-block w-[120px] text-left">Mata Pelajaran</span>
             <span className="mr-1">:</span>
-            <span className={mapelStr ? 'italic uppercase font-semibold mr-4' : 'inline-block min-w-[150px] border-b border-dotted border-black mr-4'}>
+            <span className={mapelStr ? 'italic uppercase font-semibold mr-3' : 'inline-block min-w-[150px] border-b border-dotted border-black mr-3'}>
               {mapelStr || <span className="text-transparent">.</span>}
             </span>
             
-            <span className="mr-1">Kelas</span>
-            <span className="mr-1">:</span>
-            <span className={kelasStr ? 'italic mr-4' : 'inline-block min-w-[40px] border-b border-dotted border-black mr-4'}>
-              {kelasStr || <span className="text-transparent">.</span>}
+            <span className="whitespace-nowrap mr-3">
+              <span className="mr-1">Kelas</span><span className="mr-1">:</span>
+              <span className={kelasStr ? 'italic' : 'inline-block min-w-[40px] border-b border-dotted border-black'}>
+                {kelasStr || <span className="text-transparent">.</span>}
+              </span>
             </span>
 
-            <span className="mr-1">Ruang</span>
-            <span className="mr-1">:</span>
-            <span className={ruangStr ? 'italic mr-4' : 'inline-block min-w-[40px] border-b border-dotted border-black mr-4'}>
-              {ruangStr || <span className="text-transparent">.</span>}
+            <span className="whitespace-nowrap mr-3">
+              <span className="mr-1">Ruang</span><span className="mr-1">:</span>
+              <span className={ruangStr ? 'italic' : 'inline-block min-w-[40px] border-b border-dotted border-black'}>
+                {ruangStr || <span className="text-transparent">.</span>}
+              </span>
             </span>
 
+            <span>dari Pukul</span><span className="mx-1">:</span>
             <span className="whitespace-nowrap">
-              <span className="mr-1">dari Pukul</span>
-              <span className="mr-1">:</span>
-              <span className={mulaiStr ? 'italic' : 'border-b border-dotted border-black inline-block min-w-[50px] text-center'}>
+              <span className={mulaiStr ? 'italic' : 'inline-block min-w-[50px] border-b border-dotted border-black text-center'}>
                 {mulaiStr || <span className="text-transparent">.</span>}
               </span>
               <span className="ml-1">Wita</span>
               <span className="mx-1.5">s/d</span> 
-              <span className={selesaiStr ? 'italic' : 'border-b border-dotted border-black inline-block min-w-[50px] text-center'}>
+              <span className={selesaiStr ? 'italic' : 'inline-block min-w-[50px] border-b border-dotted border-black text-center'}>
                 {selesaiStr || <span className="text-transparent">.</span>}
               </span>
               <span className="ml-1">Wita.</span>
