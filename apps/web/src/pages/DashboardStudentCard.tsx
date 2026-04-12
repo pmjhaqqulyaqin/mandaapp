@@ -61,6 +61,7 @@ export const DashboardStudentCard = () => {
     termsText: cardSettings.termsText || defaultCardSettings.termsText,
     headmasterSignatureUrl: cardSettings.headmasterSignatureUrl || '',
     kemenagLogoUrl: cardSettings.kemenagLogoUrl || '',
+    schoolLogoUrl: cardSettings.schoolLogoUrl || '',
     schoolStampUrl: cardSettings.schoolStampUrl || '',
   });
 
@@ -74,6 +75,7 @@ export const DashboardStudentCard = () => {
         termsText: cardSettingsQuery.data.termsText || defaultCardSettings.termsText,
         headmasterSignatureUrl: cardSettingsQuery.data.headmasterSignatureUrl || '',
         kemenagLogoUrl: cardSettingsQuery.data.kemenagLogoUrl || '',
+        schoolLogoUrl: cardSettingsQuery.data.schoolLogoUrl || '',
         schoolStampUrl: cardSettingsQuery.data.schoolStampUrl || '',
       });
       setSelectedTemplate(cardSettingsQuery.data.selectedTemplate || defaultCardSettings.selectedTemplate);
@@ -400,7 +402,7 @@ export const DashboardStudentCard = () => {
     
     try {
       const finalSettings = { ...editingSettings };
-      const keysToUpload = ['headmasterSignatureUrl', 'kemenagLogoUrl', 'schoolStampUrl'] as const;
+      const keysToUpload = ['headmasterSignatureUrl', 'kemenagLogoUrl', 'schoolLogoUrl', 'schoolStampUrl'] as const;
       
       for (const key of keysToUpload) {
         if (finalSettings[key] && finalSettings[key].startsWith('data:image')) {
@@ -730,6 +732,15 @@ export const DashboardStudentCard = () => {
                             <PhotoUploader
                               currentPhotoUrl={getFullUrl(editingSettings.kemenagLogoUrl) || ''}
                               onPhotoChange={(url) => setEditingSettings({...editingSettings, kemenagLogoUrl: url})}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-text-secondary mb-3">Logo Madrasah (Kanan)</label>
+                          <div className="w-full max-w-[200px]">
+                            <PhotoUploader
+                              currentPhotoUrl={getFullUrl(editingSettings.schoolLogoUrl) || ''}
+                              onPhotoChange={(url) => setEditingSettings({...editingSettings, schoolLogoUrl: url})}
                             />
                           </div>
                         </div>

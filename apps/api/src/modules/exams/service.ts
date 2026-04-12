@@ -3,7 +3,7 @@ import {
   ujian, panitiaUjian, jadwalUjian, ruangUjian,
   penugasanPengawas, distribusiPeserta, employees,
   studentProfiles, classes, majors, schoolEvents,
-  cardSettings
+  cardSettings, siteSettings
 } from '../../db/schema';
 import { eq, desc, asc, and, inArray, gte, lte, or } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -1759,19 +1759,31 @@ export class ExamService {
     };
 
     try {
+      // Fetch global settings for fallback
+      const siteSettingsList = await db.select().from(siteSettings);
+      const globalLogoUrl = siteSettingsList.find(s => s.key === 'logo_url')?.value;
+
       // Logo Kiri (Kemenag)
       const logoKiri = await resolveImageBuffer(cardSetting.kemenagLogoUrl);
       if (logoKiri) {
         const logoId = workbook.addImage({ buffer: logoKiri.buf as any, extension: logoKiri.ext as any });
-        sheet.addImage(logoId, 'A1:A4');
+        // Use tl and extents to maintain aspect ratio (anti-gepeng)
+        sheet.addImage(logoId, {
+          tl: { col: 0.1, row: 0.1 },
+          extents: { width: 65, height: 65 }
+        } as any);
       }
       
-      // Logo Kanan (Madrasah)
-      const logoKanan = await resolveImageBuffer(cardSetting.schoolLogoUrl);
+      // Logo Kanan (Madrasah) - Fallback to global logo if schoolLogoUrl is missing
+      const logoKananUrl = cardSetting.schoolLogoUrl || globalLogoUrl;
+      const logoKanan = await resolveImageBuffer(logoKananUrl);
       if (logoKanan) {
         const logoId = workbook.addImage({ buffer: logoKanan.buf as any, extension: logoKanan.ext as any });
-        const colLetter = getColLetter(totalCols);
-        sheet.addImage(logoId, `${colLetter}1:${colLetter}4`);
+        // Place on the rightmost column (totalCols - 1 because 0-indexed)
+        sheet.addImage(logoId, {
+          tl: { col: totalCols - 0.9, row: 0.1 },
+          extents: { width: 65, height: 65 }
+        } as any);
       }
     } catch (e) {
       console.error('[LOGO] Error adding logo to excel:', e);
@@ -2038,16 +2050,26 @@ export class ExamService {
     };
 
     try {
+      // Fetch global settings for fallback
+      const siteSettingsList = await db.select().from(siteSettings);
+      const globalLogoUrl = siteSettingsList.find(s => s.key === 'logo_url')?.value;
+
       const logoKiri = await resolveImageBuffer(cardSetting.kemenagLogoUrl);
       if (logoKiri) {
         const logoId = workbook.addImage({ buffer: logoKiri.buf as any, extension: logoKiri.ext as any });
-        sheet.addImage(logoId, 'A1:A4');
+        sheet.addImage(logoId, {
+          tl: { col: 0.1, row: 0.1 },
+          extents: { width: 65, height: 65 }
+        } as any);
       }
-      const logoKanan = await resolveImageBuffer(cardSetting.schoolLogoUrl);
+      const logoKananUrl = cardSetting.schoolLogoUrl || globalLogoUrl;
+      const logoKanan = await resolveImageBuffer(logoKananUrl);
       if (logoKanan) {
         const logoId = workbook.addImage({ buffer: logoKanan.buf as any, extension: logoKanan.ext as any });
-        const colLetter = getColLetter(totalCols);
-        sheet.addImage(logoId, `${colLetter}1:${colLetter}4`);
+        sheet.addImage(logoId, {
+          tl: { col: totalCols - 0.9, row: 0.1 },
+          extents: { width: 65, height: 65 }
+        } as any);
       }
     } catch (e) {}
 
