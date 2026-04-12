@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
-import { Download, Users, UserCheck, ClipboardList, Search } from 'lucide-react';
+import { Download, Users, UserCheck, ClipboardList, Search, Printer } from 'lucide-react';
 
 interface Props {
   ujianId: string;
@@ -110,6 +110,30 @@ export const DaftarHadirTab = ({ ujianId, ujian }: Props) => {
               <p className="text-[11px] opacity-80">{doc.desc}</p>
 
               <div className="flex flex-wrap items-center gap-2 pt-1">
+                {doc.key === 'dh-peserta' && (
+                  <select
+                    value={selectedRoomId}
+                    onChange={e => setSelectedRoomId(e.target.value)}
+                    className="h-7 cursor-pointer text-[10px] font-semibold rounded-lg bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary focus:ring-1 focus:ring-indigo-500 outline-none"
+                  >
+                    <option value="ALL">Semua Ruang</option>
+                    {rooms.map((r: any) => (
+                      <option key={r.id} value={r.id}>{r.namaRuang}</option>
+                    ))}
+                  </select>
+                )}
+                {doc.key === 'dh-peserta' && (
+                  <button
+                    className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-semibold bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
+                    onClick={() => {
+                      let url = `/dashboard/print-daftar-hadir/${ujianId}`;
+                      if (selectedRoomId !== 'ALL') url += `?ruangId=${selectedRoomId}`;
+                      window.open(url, '_blank');
+                    }}
+                  >
+                    <Printer size={12} /> Cetak PDF
+                  </button>
+                )}
                 <button
                   className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-semibold bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
                   onClick={() => handleExport(doc.key)}

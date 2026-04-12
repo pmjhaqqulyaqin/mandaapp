@@ -35,6 +35,7 @@ import { PrintKartuPeserta } from './pages/exams/print/PrintKartuPeserta';
 import { PrintIdCardPegawai } from './pages/exams/print/PrintIdCardPegawai';
 import { PrintBeritaAcaraMapel } from './pages/exams/print/PrintBeritaAcaraMapel';
 import { PrintPaktaIntegritas } from './pages/exams/print/PrintPaktaIntegritas';
+import { PrintDaftarHadirPeserta } from './pages/exams/print/PrintDaftarHadirPeserta';
 import { FloatingActionButton, ScrollToTopButton } from '@mandaapp/ui';
 import { Toaster } from 'sonner';
 
@@ -86,6 +87,11 @@ function App() {
         <Route path="/dashboard/print-pakta/:ujianId" element={
           <ProtectedRoute>
             <PrintPaktaIntegritas />
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard/print-daftar-hadir/:ujianId" element={
+          <ProtectedRoute>
+            <PrintDaftarHadirPeserta />
           </ProtectedRoute>
         } />
         
