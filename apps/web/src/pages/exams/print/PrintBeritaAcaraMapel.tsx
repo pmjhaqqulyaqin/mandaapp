@@ -134,10 +134,12 @@ export const PrintBeritaAcaraMapel = () => {
     
     let hariStr = '';
     let tglStr = '';
+    let tglWordsStr = '';
     let blnStr = '';
     let thnStr = '';
     let thnWordsStr = '';
     let mapelStr = '';
+    let kelasStr = '';
     let ruangStr = '';
     let mulaiStr = '';
     let selesaiStr = '';
@@ -146,10 +148,12 @@ export const PrintBeritaAcaraMapel = () => {
       const d = new Date(jadwal.tanggal);
       hariStr = HARI[d.getDay()];
       tglStr = d.getDate().toString();
+      tglWordsStr = numberToWords(d.getDate());
       blnStr = BULAN[d.getMonth()];
       thnStr = d.getFullYear().toString();
       thnWordsStr = numberToWords(d.getFullYear());
       mapelStr = jadwal.mataPelajaran || mapelStr;
+      kelasStr = jadwal.kelas || kelasStr;
       mulaiStr = jadwal.waktuMulai || mulaiStr;
       selesaiStr = jadwal.waktuSelesai || selesaiStr;
     }
@@ -164,82 +168,93 @@ export const PrintBeritaAcaraMapel = () => {
         style={{ fontFamily: '"Times New Roman", Times, serif' }}
       >
         {/* HEADER KOP SURAT */}
-        <div className="flex items-center justify-between border-b-[3px] border-black pb-3 mb-6 relative px-2">
-          <div className="absolute left-0 right-0 bottom-[-5px] h-[1px] bg-black"></div>
+        <div className="flex items-center justify-between border-b-[3px] border-black pb-1 mb-6 relative px-2">
+          <div className="absolute left-0 right-0 bottom-[-4px] h-[1px] bg-black"></div>
 
-          <div className="w-24 h-24 flex-shrink-0 flex items-center justify-center">
-             {logoKiri ? <img src={logoKiri} className="max-w-full max-h-full object-contain" /> : <div className="w-24 border border-white" />}
+          <div className="w-20 h-20 flex-shrink-0 flex items-center justify-center">
+             {logoKiri ? <img src={logoKiri} className="max-w-full max-h-full object-contain" /> : <div className="w-20 border border-white" />}
           </div>
           
-          <div className="flex-1 text-center flex flex-col justify-center px-4 space-y-1">
-            <h1 className="font-bold text-[16px] leading-tight m-0 uppercase tracking-wide">{kementerian}</h1>
-            <h2 className="font-bold text-[16px] leading-tight m-0 uppercase tracking-wide">PANITIA {namaUjian} TAHUN AJARAN {tahunAjaran}</h2>
-            <h3 className="font-bold text-[16px] leading-tight m-0 uppercase tracking-wider">{instansi}</h3>
-            <p className="text-[14px] leading-tight m-0 mb-1">{alamat}</p>
+          <div className="flex-1 text-center flex flex-col justify-center px-4 leading-none">
+            <div className="font-bold text-[14px] uppercase tracking-wide leading-tight">{kementerian}</div>
+            <div className="font-bold text-[14px] uppercase tracking-wide leading-tight mt-0.5">PANITIA {namaUjian} TAHUN AJARAN {tahunAjaran}</div>
+            <div className="font-bold text-[16px] uppercase tracking-wide leading-tight mt-0.5">{instansi}</div>
+            <div className="text-[12px] leading-tight mt-1">{alamat}</div>
           </div>
 
-          <div className="w-24 h-24 flex-shrink-0 flex items-center justify-center">
-             {logoKanan ? <img src={logoKanan} className="max-w-full max-h-full object-contain" /> : <div className="w-24 border border-white" />}
+          <div className="w-20 h-20 flex-shrink-0 flex items-center justify-center">
+             {logoKanan ? <img src={logoKanan} className="max-w-full max-h-full object-contain" /> : <div className="w-20 border border-white" />}
           </div>
         </div>
 
         {/* TITLE */}
-        <h3 className="text-center font-bold text-2xl tracking-widest mt-8 mb-8">BERITA ACARA</h3>
+        <h3 className="text-center font-bold text-xl tracking-widest mt-8 mb-6 decoration-black decoration-2">BERITA ACARA</h3>
 
         {/* PARAGRAF 1 */}
-        <div className="mb-4">
-          <p className="mb-2" style={{ textIndent: '30px' }}>
+        <div className="mb-4 leading-[1.8]">
+          <p className="mb-3" style={{ textIndent: '30px' }}>
              Pada Hari ini {hariStr ? <span className="italic mr-1 ml-1">{hariStr}</span> : <span className="border-b border-dotted border-black min-w-[70px] inline-block text-center mr-1 ml-1">&nbsp;</span>}
-             Tanggal {tglStr ? <span className="italic mr-1 ml-1">{tglStr}</span> : <span className="border-b border-dotted border-black min-w-[30px] inline-block text-center mr-1 ml-1">&nbsp;</span>}
+             Tanggal {tglStr ? <span className="italic mr-1 ml-1">{tglWordsStr}</span> : <span className="border-b border-dotted border-black min-w-[30px] inline-block text-center mr-1 ml-1">&nbsp;</span>}
              Bulan {blnStr ? <span className="italic mr-1 ml-1">{blnStr}</span> : <span className="border-b border-dotted border-black min-w-[90px] inline-block text-center mr-1 ml-1">&nbsp;</span>}
              Tahun {thnStr ? <span className="italic mr-1 ml-1">{thnWordsStr}</span> : <span className="border-b border-dotted border-black min-w-[150px] inline-block text-center mr-1 ml-1">&nbsp;</span>} telah diselenggarakan {namaUjian} Tahun Ajaran {tahunAjaran},
           </p>
           
-          <table className="w-full text-[15px] mt-2 border-separate" style={{ borderSpacing: '0 4px' }}>
+          <table className="w-full text-[15px] border-collapse mt-2">
             <tbody>
-              <tr>
-                <td className="w-[120px]">Mata Pelajaran</td>
-                <td className="w-[10px] text-center">:</td>
-                <td className={mapelStr ? 'italic uppercase pl-2' : 'border-b border-dotted border-black pl-2'} colSpan={5}>
+              <tr className="align-bottom">
+                <td className="w-[120px] pb-1">Mata Pelajaran</td>
+                <td className="w-[10px] text-center pb-1">:</td>
+                <td className={mapelStr ? 'italic uppercase pl-2 font-semibold pb-1' : 'border-b border-dotted border-black pl-2 pb-1'} colSpan={9}>
                   {mapelStr || <span className="text-transparent">.</span>}
                 </td>
               </tr>
-              <tr>
-                <td>Kelas Ruang</td>
-                <td className="text-center">:</td>
-                <td className={ruangStr ? 'italic text-center w-[150px]' : 'border-b border-dotted border-black w-[150px]'}>
+              <tr className="align-bottom h-8">
+                <td className="pb-1">Kelas</td>
+                <td className="text-center pb-1">:</td>
+                <td className={kelasStr ? 'italic text-center w-[120px] pb-1' : 'border-b border-dotted border-black w-[120px] pb-1'}>
+                  {kelasStr || <span className="text-transparent">.</span>}
+                </td>
+                <td className="px-2 w-auto whitespace-nowrap pb-1">Ruang</td>
+                <td className="text-center pb-1">:</td>
+                <td className={ruangStr ? 'italic text-center w-[80px] pb-1' : 'border-b border-dotted border-black w-[80px] pb-1'}>
                   {ruangStr || <span className="text-transparent">.</span>}
                 </td>
-                <td className="px-2 w-auto whitespace-nowrap">dari Pukul</td>
-                <td className="w-[10px] text-center">:</td>
-                <td className={mulaiStr ? 'italic text-center px-2 whitespace-nowrap' : 'border-b border-dotted border-black px-2'}>
-                  {mulaiStr || <span className="inline-block w-16"></span>} {mulaiStr ? 'Wita' : 'Wita'} 
+                <td className="px-2 w-auto whitespace-nowrap pb-1">dari Pukul</td>
+                <td className="w-[10px] text-center pb-1">:</td>
+                <td className="pb-1">
+                  <span className={mulaiStr ? 'italic text-center px-1' : 'border-b border-dotted border-black px-1 inline-block min-w-[60px]'}>
+                    {mulaiStr || <span className="text-transparent">.</span>}
+                  </span>
+                  <span className="ml-1">Wita</span>
                   <span className="not-italic inline-block mx-2">s/d</span> 
-                  <span className={selesaiStr ? 'italic' : ''}>{selesaiStr || <span className="inline-block w-16"></span>}</span> {selesaiStr ? 'Wita.' : 'Wita.'}
+                  <span className={selesaiStr ? 'italic text-center px-1' : 'border-b border-dotted border-black px-1 inline-block min-w-[60px]'}>
+                    {selesaiStr || <span className="text-transparent">.</span>}
+                  </span>
+                  <span className="ml-1">Wita.</span>
                 </td>
               </tr>
             </tbody>
           </table>
           
-          <table className="w-full text-[15px] mt-2 border-separate" style={{ borderSpacing: '0 4px' }}>
+          <table className="w-full text-[15px] mt-3 border-collapse">
             <tbody>
-              <tr>
-                <td className="w-[120px]">Jumlah Peserta</td>
-                <td className="w-[10px] text-center">:</td>
-                <td className="w-[80px] border-b border-dotted border-black"></td>
-                <td className="pl-2">Orang</td>
+              <tr className="h-7 align-bottom">
+                <td className="w-[120px] pb-1">Jumlah Peserta</td>
+                <td className="w-[10px] text-center pb-1">:</td>
+                <td className="w-[80px] border-b border-dotted border-black pb-1"></td>
+                <td className="pl-2 pb-1">Orang</td>
               </tr>
-              <tr>
-                <td>Yang Hadir</td>
-                <td className="text-center">:</td>
-                <td className="border-b border-dotted border-black"></td>
-                <td className="pl-2">Orang,</td>
+              <tr className="h-7 align-bottom">
+                <td className="pb-1">Yang Hadir</td>
+                <td className="text-center pb-1">:</td>
+                <td className="border-b border-dotted border-black pb-1"></td>
+                <td className="pl-2 pb-1">Orang,</td>
               </tr>
-              <tr>
-                <td>Yang Tidak Hadir</td>
-                <td className="text-center">:</td>
-                <td className="border-b border-dotted border-black"></td>
-                <td className="pl-2">Orang,</td>
+              <tr className="h-7 align-bottom">
+                <td className="pb-1">Yang Tidak Hadir</td>
+                <td className="text-center pb-1">:</td>
+                <td className="border-b border-dotted border-black pb-1"></td>
+                <td className="pl-2 pb-1">Orang,</td>
               </tr>
             </tbody>
           </table>
