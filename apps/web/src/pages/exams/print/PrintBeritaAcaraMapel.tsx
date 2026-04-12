@@ -202,20 +202,20 @@ export const PrintBeritaAcaraMapel = () => {
         <div className="flex items-center justify-between border-b-[3px] border-black pb-1 mb-4 relative px-2">
           <div className="absolute left-0 right-0 bottom-[-4px] h-[1px] bg-black"></div>
 
-          <div className="w-20 h-20 flex-shrink-0 flex items-center justify-center">
-             {logoKiri ? <img src={logoKiri} className="max-w-full max-h-full object-contain" /> : <div className="w-20 border border-white" />}
+          <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center">
+             {logoKiri ? <img src={logoKiri} className="max-w-full max-h-full object-contain" /> : <div className="w-16 border border-white" />}
           </div>
           
-          <div className="flex-1 text-center flex flex-col justify-center px-4 leading-none">
-            <div className="font-bold text-[14px] uppercase tracking-wide leading-tight">{kementerian}</div>
-            <div className="font-bold text-[14px] uppercase tracking-wide leading-tight mt-0.5">PANITIA {namaUjian}</div>
-            <div className="font-bold text-[14px] uppercase tracking-wide leading-tight">TAHUN AJARAN {tahunAjaran}</div>
-            <div className="font-bold text-[16px] uppercase tracking-wide leading-tight mt-0.5">{instansi}</div>
-            <div className="text-[12px] leading-tight mt-1">{alamat}</div>
+          <div className="flex-1 text-center flex flex-col justify-center px-3" style={{ lineHeight: '1.15' }}>
+            <div className="font-bold text-[13px] uppercase tracking-wide">{kementerian}</div>
+            <div className="font-bold text-[13px] uppercase tracking-wide">PANITIA {namaUjian}</div>
+            <div className="font-bold text-[13px] uppercase tracking-wide">TAHUN AJARAN {tahunAjaran}</div>
+            <div className="font-bold text-[15px] uppercase tracking-wide">{instansi}</div>
+            <div className="text-[11px] mt-0.5">{alamat}</div>
           </div>
 
-          <div className="w-20 h-20 flex-shrink-0 flex items-center justify-center">
-             {logoKanan ? <img src={logoKanan} className="max-w-full max-h-full object-contain" /> : <div className="w-20 border border-white" />}
+          <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center">
+             {logoKanan ? <img src={logoKanan} className="max-w-full max-h-full object-contain" /> : <div className="w-16 border border-white" />}
           </div>
         </div>
 
@@ -295,10 +295,10 @@ export const PrintBeritaAcaraMapel = () => {
         <table className="w-full border-collapse border border-black mb-4 text-center text-[14px] mx-auto">
           <thead>
             <tr>
-              <th className="border border-black p-3 font-bold w-[20%]">NOMOR PESERTA</th>
-              <th className="border border-black p-3 font-bold w-[40%]">NAMA SISWA</th>
-              <th className="border border-black p-3 font-bold w-[15%]">KELAS</th>
-              <th className="border border-black p-3 font-bold w-[25%]">KETERANGAN</th>
+              <th className="border border-black px-2 py-1.5 font-bold w-[20%]">NOMOR PESERTA</th>
+              <th className="border border-black px-2 py-1.5 font-bold w-[40%]">NAMA SISWA</th>
+              <th className="border border-black px-2 py-1.5 font-bold w-[15%]">KELAS</th>
+              <th className="border border-black px-2 py-1.5 font-bold w-[25%]">KETERANGAN</th>
             </tr>
           </thead>
           <tbody>
@@ -321,7 +321,6 @@ export const PrintBeritaAcaraMapel = () => {
         {/* CATATAN */}
         <p className="font-bold italic mt-3">Catatan:</p>
         <div className="space-y-5 mt-1">
-            <div className="w-full border-b border-dotted border-black"></div>
             <div className="w-full border-b border-dotted border-black"></div>
             <div className="w-full border-b border-dotted border-black"></div>
             <div className="w-full border-b border-dotted border-black"></div>
