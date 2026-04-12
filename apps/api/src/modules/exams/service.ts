@@ -1669,54 +1669,99 @@ export class ExamService {
     const cardSettingsList = await db.select().from(cardSettings).limit(1);
     const cardSetting = cardSettingsList[0] || {} as any;
     
-    if (cardSetting.schoolLogoUrl) {
-      try {
-        const logoPath = path.join(process.cwd(), 'uploads', path.basename(cardSetting.schoolLogoUrl));
-        if (require('fs').existsSync(logoPath)) {
-          const ext = path.extname(logoPath).substring(1);
-          const logoId = workbook.addImage({
-            filename: logoPath,
-            extension: ext as any,
-          });
-          sheet.addImage(logoId, 'A1:B3');
-        }
-      } catch (e) {
-        console.error('Error adding logo to excel:', e);
-      }
+    // Header KOP Text
+    const configKop = config.kop || {};
+    
+    sheet.mergeCells(1, 1, 1, totalCols);
+    sheet.getCell(1, 1).value = configKop.kementerian || 'KEMENTERIAN AGAMA REPUBLIK INDONESIA';
+    sheet.getCell(1, 1).font = { bold: true, size: 12 };
+    sheet.getCell(1, 1).alignment = { horizontal: 'center' };
+    
+    sheet.mergeCells(2, 1, 2, totalCols);
+    sheet.getCell(2, 1).value = configKop.instansi || 'MADRASAH ALIYAH';
+    sheet.getCell(2, 1).font = { bold: true, size: 14 };
+    sheet.getCell(2, 1).alignment = { horizontal: 'center' };
+    
+    sheet.mergeCells(3, 1, 3, totalCols);
+    sheet.getCell(3, 1).value = `${configKop.panitia || 'PANITIA'} ${namaUjian} TAHUN AJARAN ${tahunAjaran}`;
+    sheet.getCell(3, 1).font = { bold: true, size: 11 };
+    sheet.getCell(3, 1).alignment = { horizontal: 'center' };
+
+    sheet.mergeCells(4, 1, 4, totalCols);
+    sheet.getCell(4, 1).value = configKop.alamat || 'Alamat';
+    sheet.getCell(4, 1).font = { size: 10 };
+    sheet.getCell(4, 1).alignment = { horizontal: 'center' };
+    
+    for (let c = 1; c <= totalCols; c++) {
+       const cell = sheet.getCell(4, c);
+       cell.border = { bottom: { style: 'double' } };
     }
 
-    // Headers
-    sheet.mergeCells(1, 3, 1, totalCols);
-    sheet.getCell(1, 3).value = 'DAFTAR HADIR PENGAWAS';
-    sheet.getCell(1, 3).font = { bold: true, size: 14 };
-    sheet.getCell(1, 3).alignment = { horizontal: 'center' };
-    
-    sheet.mergeCells(2, 3, 2, totalCols);
-    sheet.getCell(2, 3).value = namaUjian;
-    sheet.getCell(2, 3).font = { bold: true, size: 12 };
-    sheet.getCell(2, 3).alignment = { horizontal: 'center' };
-    
-    sheet.mergeCells(3, 3, 3, totalCols);
-    sheet.getCell(3, 3).value = `TAHUN AJARAN ${tahunAjaran}`;
-    sheet.getCell(3, 3).font = { bold: true, size: 12 };
-    sheet.getCell(3, 3).alignment = { horizontal: 'center' };
+    const getColLetter = (colIndex: number) => {
+      let letter = '';
+      while (colIndex > 0) {
+        let mod = (colIndex - 1) % 26;
+        letter = String.fromCharCode(65 + mod) + letter;
+        colIndex = Math.floor((colIndex - mod) / 26);
+      }
+      return letter;
+    };
 
-    sheet.addRow([]); // Spacer row 4
+    try {
+      if (cardSetting.kemenagLogoUrl) { // Kiri
+        const logoKiriPath = path.join(process.cwd(), 'uploads', path.basename(cardSetting.kemenagLogoUrl));
+        if (require('fs').existsSync(logoKiriPath)) {
+          const ext = path.extname(logoKiriPath).substring(1);
+          const logoId = workbook.addImage({ filename: logoKiriPath, extension: ext as any });
+          sheet.addImage(logoId, 'A1:B4');
+        }
+      }
+      if (cardSetting.schoolLogoUrl) { // Kanan
+        const logoKananPath = path.join(process.cwd(), 'uploads', path.basename(cardSetting.schoolLogoUrl));
+        if (require('fs').existsSync(logoKananPath)) {
+          const ext = path.extname(logoKananPath).substring(1);
+          const logoId = workbook.addImage({ filename: logoKananPath, extension: ext as any });
+          sheet.addImage(logoId, `${getColLetter(Math.max(1, totalCols - 1))}1:${getColLetter(totalCols)}4`);
+        }
+      }
+    } catch (e) {
+      console.error('Error adding logo to excel:', e);
+    }
+
+    sheet.addRow([]); // Spacer row 5
+
+    // Title DAFTAR HADIR PENGAWAS
+    sheet.mergeCells(6, 1, 6, totalCols);
+    sheet.getCell(6, 1).value = 'DAFTAR HADIR PENGAWAS';
+    sheet.getCell(6, 1).font = { bold: true, size: 14 };
+    sheet.getCell(6, 1).alignment = { horizontal: 'center' };
+    
+    sheet.mergeCells(7, 1, 7, totalCols);
+    sheet.getCell(7, 1).value = namaUjian;
+    sheet.getCell(7, 1).font = { bold: true, size: 12 };
+    sheet.getCell(7, 1).alignment = { horizontal: 'center' };
+    
+    sheet.mergeCells(8, 1, 8, totalCols);
+    sheet.getCell(8, 1).value = `TAHUN AJARAN ${tahunAjaran}`;
+    sheet.getCell(8, 1).font = { bold: true, size: 12 };
+    sheet.getCell(8, 1).alignment = { horizontal: 'center' };
+
+    sheet.addRow([]); // Spacer row 9
     
     // Table Header Structure
-    sheet.mergeCells(5, 1, 7, 1);
-    sheet.getCell(5, 1).value = 'NO';
+    sheet.mergeCells(10, 1, 12, 1);
+    sheet.getCell(10, 1).value = 'NO';
     
-    sheet.mergeCells(5, 2, 7, 2);
-    sheet.getCell(5, 2).value = 'NAMA/NIP';
+    sheet.mergeCells(10, 2, 12, 2);
+    sheet.getCell(10, 2).value = 'NAMA/NIP';
     
-    sheet.mergeCells(5, totalCols, 7, totalCols);
-    sheet.getCell(5, totalCols).value = 'KET.';
+    sheet.mergeCells(10, totalCols, 12, totalCols);
+    sheet.getCell(10, totalCols).value = 'KET.';
     
     if (sessionColsCount > 1) {
-       sheet.mergeCells(5, 3, 5, 2 + sessionColsCount);
+       sheet.mergeCells(10, 3, 10, 2 + sessionColsCount);
     }
-    sheet.getCell(5, 3).value = 'TANDA TANGAN KEHADIRAN SESUAI HARI DAN JAM MENGAWAS';
+    sheet.getCell(10, 3).value = 'TANDA TANGAN KEHADIRAN SESUAI HARI DAN JAM MENGAWAS';
     
     let currentCol = 3;
     const dateNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -1726,19 +1771,19 @@ export class ExamService {
        const displayDate = `${dayName}, ${ts.toLocaleDateString('id-ID')}`;
        
        if (d.sessions.length > 1) {
-          sheet.mergeCells(6, currentCol, 6, currentCol + d.sessions.length - 1);
+          sheet.mergeCells(11, currentCol, 11, currentCol + d.sessions.length - 1);
        }
-       sheet.getCell(6, currentCol).value = displayDate;
+       sheet.getCell(11, currentCol).value = displayDate;
        
        for (let i = 0; i < d.sessions.length; i++) {
           const romanSesi = ['I', 'II', 'III', 'IV', 'V', 'VI'][i] || (i+1).toString();
-          sheet.getCell(7, currentCol + i).value = romanSesi;
+          sheet.getCell(12, currentCol + i).value = romanSesi;
        }
        currentCol += d.sessions.length;
     }
     
     // Default styling for table header
-    for (let r = 5; r <= 7; r++) {
+    for (let r = 10; r <= 12; r++) {
        for (let c = 1; c <= totalCols; c++) {
           const cell = sheet.getCell(r, c);
           cell.font = { bold: true, size: 9 };
@@ -1749,7 +1794,7 @@ export class ExamService {
     }
     
     // Data Rows
-    let startDataRow = 8;
+    let startDataRow = 13;
     // If no employees, at least render 5 empty rows
     const loopData = employeesData.length > 0 ? employeesData : Array.from({length: 5}).map(() => ({}));
     
