@@ -23,7 +23,14 @@ export const DaftarHadirTab = ({ ujianId, ujian }: Props) => {
         apiClient(`/exams/${ujianId}/distribusi`).catch(() => []),
       ]).then(([r, d]) => {
         setRooms(r);
-        setDistribusi(Array.isArray(d) ? d : []);
+        let distData = Array.isArray(d) ? d : [];
+        const counts: Record<string, number> = {};
+        distData = distData.map((x: any) => {
+           const rId = x.ruangId || 'unknown';
+           counts[rId] = (counts[rId] || 0) + 1;
+           return { ...x, urutRuang: counts[rId] };
+        });
+        setDistribusi(distData);
       }).finally(() => setLoading(false));
     }
   }, [ujianId]);
@@ -188,21 +195,38 @@ export const DaftarHadirTab = ({ ujianId, ujian }: Props) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-[#1a1a1a]">
-              {filtered.slice(0, 100).map((item: any, i: number) => (
-                <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-[#0a0a0a] transition-colors">
-                  <td className="px-3 py-2 text-gray-400">{i + 1}</td>
-                  <td className="px-3 py-2 font-mono text-indigo-600 font-semibold">{item.nomorMeja || '-'}</td>
-                  <td className="px-3 py-2 font-mono text-gray-500">{item.siswa?.nis || '-'}</td>
-                  <td className="px-3 py-2 font-mono text-gray-500">{item.siswa?.nisn || '-'}</td>
-                  <td className="px-3 py-2 font-semibold text-text-primary dark:text-text-darkPrimary">{item.siswa?.fullName || '-'}</td>
-                  <td className="px-3 py-2 text-gray-500">{item.siswa?.fullClassName || item.siswa?.className || '-'}</td>
-                  <td className="px-3 py-2">
-                    <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 text-[10px] font-bold">
-                      {item.ruang?.namaRuang || '-'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {filtered.slice(0, 100).map((item: any, i: number) => {
+                const siswa = item.siswa || {};
+                const lastYearStr = (ujian?.tahunAjaran || '').length >= 2 ? (ujian?.tahunAjaran || '').slice(-2) : '00';
+                const semesterLower = (ujian?.semester || '').toLowerCase();
+                const semCode = semesterLower.includes('ganjil') ? '01' : semesterLower.includes('genap') ? '02' : '00';
+                const kelasStr2 = (siswa.fullClassName || siswa.className || '').toUpperCase();
+                let gradeCode = '00';
+                if (kelasStr2.includes('XII') || kelasStr2.includes('12')) gradeCode = '12';
+                else if (kelasStr2.includes('XI') || kelasStr2.includes('11')) gradeCode = '11';
+                else if (kelasStr2.includes('X') || kelasStr2.includes('10')) gradeCode = '10';
+                const ruangMatch = (item.ruang?.namaRuang || '').match(/\d+/);
+                const ruangNumber = ruangMatch ? parseInt(ruangMatch[0], 10) : 0;
+                const ruangCode = ruangNumber.toString().padStart(2, '0');
+                const urutCode = (item.urutRuang || i + 1).toString().padStart(3, '0');
+                const nomorPeserta = `${lastYearStr}-${semCode}-${gradeCode}-${ruangCode}-${urutCode}`;
+
+                return (
+                  <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-[#0a0a0a] transition-colors">
+                    <td className="px-3 py-2 text-gray-400">{i + 1}</td>
+                    <td className="px-3 py-2 font-mono text-indigo-600 font-semibold">{nomorPeserta}</td>
+                    <td className="px-3 py-2 font-mono text-gray-500">{item.siswa?.nis || '-'}</td>
+                    <td className="px-3 py-2 font-mono text-gray-500">{item.siswa?.nisn || '-'}</td>
+                    <td className="px-3 py-2 font-semibold text-text-primary dark:text-text-darkPrimary">{item.siswa?.fullName || '-'}</td>
+                    <td className="px-3 py-2 text-gray-500">{item.siswa?.fullClassName || item.siswa?.className || '-'}</td>
+                    <td className="px-3 py-2">
+                      <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 text-[10px] font-bold">
+                        {item.ruang?.namaRuang || '-'}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-3 py-8 text-center text-gray-400 italic">
