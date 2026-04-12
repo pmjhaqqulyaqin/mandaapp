@@ -112,26 +112,144 @@ export const PrintBeritaAcaraMapel = () => {
     fetchData();
   }, [ujianId]);
 
-  const query = new URLSearchParams(window.location.search);
-  const isWordExport = query.get('export') === 'word';
+  // === WORD EXPORT HELPER ===
+  const generateWordHtml = () => {
+    const pages = data.map((item) => {
+      const { jadwal, ruang, pengawas1, pengawas2, assignedKelasStr } = item;
+      let hariStr = '', tglWordsStr = '', blnStr = '', thnWordsStr = '';
+      let mapelStr = '', kelasStr = '', ruangStr = '', mulaiStr = '', selesaiStr = '';
+
+      if (jadwal?.tanggal) {
+        const d = new Date(jadwal.tanggal);
+        hariStr = HARI[d.getDay()];
+        tglWordsStr = numberToWords(d.getDate());
+        blnStr = BULAN[d.getMonth()];
+        thnWordsStr = numberToWords(d.getFullYear());
+        mapelStr = jadwal.mataPelajaran || '';
+        kelasStr = (assignedKelasStr || jadwal.kelas || '');
+        mulaiStr = jadwal.waktuMulai || '';
+        selesaiStr = jadwal.waktuSelesai || '';
+      }
+      if (ruang?.namaRuang) ruangStr = ruang.namaRuang;
+
+      const p1Name = pengawas1?.name || '';
+      const p1Nip = pengawas1?.nip || '';
+      const p2Name = pengawas2?.name || '';
+      const p2Nip = pengawas2?.nip || '';
+
+      const kop = ujian.pengaturan?.kop || {};
+      const kem = kop.kementerian || 'KEMENTERIAN AGAMA REPUBLIK INDONESIA';
+      const inst = kop.instansi || 'MADRASAH ALIYAH NEGERI 2 LOMBOK TIMUR';
+      const almt = kop.alamat || 'Jl. Beririjarak Kec. Wanasaba Kab. Lombok Timur NTB';
+      const nUjian = (ujian.namaUjian || ujian.jenisUjian || '').toUpperCase();
+      const tAjaran = ujian.tahunAjaran || '';
+
+      const emptyRows = [0,1,2,3].map(() => `
+        <tr><td style="border:1px solid black;height:22px;">&nbsp;</td><td style="border:1px solid black;">&nbsp;</td><td style="border:1px solid black;">&nbsp;</td><td style="border:1px solid black;">&nbsp;</td></tr>
+      `).join('');
+
+      const catatanLines = [0,1,2,3].map(() => `<p style="border-bottom:1px dotted black;margin:10px 0;">&nbsp;</p>`).join('');
+
+      return `
+        <div style="page-break-after:always;font-family:'Times New Roman',serif;font-size:12pt;max-width:700px;margin:0 auto;">
+          <!-- KOP -->
+          <table style="width:100%;border-bottom:3px solid black;margin-bottom:10px;">
+            <tr>
+              <td style="width:100%;text-align:center;line-height:1.2;">
+                <p style="margin:0;font-weight:bold;font-size:11pt;text-transform:uppercase;">${kem}</p>
+                <p style="margin:0;font-weight:bold;font-size:11pt;text-transform:uppercase;">PANITIA ${nUjian}</p>
+                <p style="margin:0;font-weight:bold;font-size:11pt;text-transform:uppercase;">TAHUN AJARAN ${tAjaran}</p>
+                <p style="margin:2px 0 0 0;font-weight:bold;font-size:13pt;text-transform:uppercase;">${inst}</p>
+                <p style="margin:2px 0 0 0;font-size:9pt;">${almt}</p>
+              </td>
+            </tr>
+          </table>
+
+          <!-- JUDUL -->
+          <p style="text-align:center;font-weight:bold;font-size:16pt;letter-spacing:3px;margin:15px 0;">BERITA ACARA</p>
+
+          <!-- PARAGRAF 1 -->
+          <p style="text-indent:30px;text-align:justify;line-height:1.8;">
+            Pada Hari ini <i>${hariStr}</i> Tanggal <i>${tglWordsStr}</i> Bulan <i>${blnStr}</i> Tahun <i>${thnWordsStr}</i> telah diselenggarakan ${nUjian} Tahun Ajaran ${tAjaran},
+          </p>
+
+          <p style="line-height:1.8;margin-top:5px;">
+            Mata Pelajaran &nbsp;: <i><b>${mapelStr}</b></i> &nbsp;&nbsp;
+            Kelas : <i>${kelasStr}</i> &nbsp;&nbsp;
+            Ruang : <i>${ruangStr}</i> &nbsp;&nbsp;
+            dari Pukul : <i>${mulaiStr}</i> Wita s/d <i>${selesaiStr}</i> Wita.
+          </p>
+
+          <table style="margin-top:5px;line-height:1.6;">
+            <tr><td style="width:120px;">Jumlah Peserta</td><td style="width:10px;">:</td><td style="width:80px;border-bottom:1px dotted black;">&nbsp;</td><td style="padding-left:5px;">Orang</td></tr>
+            <tr><td>Yang Hadir</td><td>:</td><td style="border-bottom:1px dotted black;">&nbsp;</td><td style="padding-left:5px;">Orang,</td></tr>
+            <tr><td>Yang Tidak Hadir</td><td>:</td><td style="border-bottom:1px dotted black;">&nbsp;</td><td style="padding-left:5px;">Orang,</td></tr>
+          </table>
+
+          <!-- TABEL -->
+          <p style="font-weight:bold;font-style:italic;margin:12px 0 5px 0;">Data Siswa Yang Berhalangan Hadir</p>  
+          <table style="width:100%;border-collapse:collapse;text-align:center;font-size:11pt;">
+            <tr>
+              <th style="border:1px solid black;padding:5px;width:20%;font-weight:bold;">NOMOR PESERTA</th>
+              <th style="border:1px solid black;padding:5px;width:40%;font-weight:bold;">NAMA SISWA</th>
+              <th style="border:1px solid black;padding:5px;width:15%;font-weight:bold;">KELAS</th>
+              <th style="border:1px solid black;padding:5px;width:25%;font-weight:bold;">KETERANGAN</th>
+            </tr>
+            ${emptyRows}
+          </table>
+
+          <!-- PARAGRAF 2 -->
+          <p style="text-align:justify;line-height:1.8;margin:10px 0;">
+            Setelah dibuka sampul Soal ${nUjian} dengan disaksikan oleh para peserta, berisikan Naskah Soal Sebanyak ............... Eksemplar, Lembar Jawaban ............... Eksemplar, Berita Acara sebanyak ............... Eksemplar, dan Daftar Hadir sebanyak ............... Eksemplar.
+          </p>
+
+          <!-- CATATAN -->
+          <p style="font-weight:bold;font-style:italic;margin:10px 0 0 0;">Catatan:</p>
+          ${catatanLines}
+
+          <p style="margin:10px 0;">Demikian berita acara ini dibuat dengan sesungguhnya.</p>
+
+          <!-- TANDA TANGAN -->
+          <table style="width:100%;margin-top:10px;">
+            <tr>
+              <td style="width:40%;text-align:center;">Pengawas I</td>
+              <td style="width:20%;text-align:center;">Yang membuat berita acara</td>
+              <td style="width:40%;text-align:center;">Pengawas II</td>
+            </tr>
+            <tr style="height:60px;"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+            <tr>
+              <td style="text-align:center;font-weight:bold;text-transform:uppercase;">${p1Name}${p1Name ? `<br/><span style="font-weight:normal;font-size:10pt;">NIP. ${p1Nip}</span>` : ''}</td>
+              <td>&nbsp;</td>
+              <td style="text-align:center;font-weight:bold;text-transform:uppercase;">${p2Name}${p2Name ? `<br/><span style="font-weight:normal;font-size:10pt;">NIP. ${p2Nip}</span>` : ''}</td>
+            </tr>
+          </table>
+        </div>
+      `;
+    });
+    return pages.join('');
+  };
 
   useEffect(() => {
     if (!loading && ujian && data.length > 0) {
       setTimeout(() => {
          if (isWordExport) {
-            const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Berita Acara</title></head><body>";
-            const footer = "</body></html>";
-            const printArea = document.getElementById("print-area");
-            if (printArea) {
-              const html = printArea.innerHTML;
-              const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(header + html + footer);
-              const fileDownload = document.createElement("a");
-              document.body.appendChild(fileDownload);
-              fileDownload.href = source;
-              fileDownload.download = 'Berita_Acara_Mapel.doc';
-              fileDownload.click();
-              document.body.removeChild(fileDownload);
-            }
+            const wordContent = generateWordHtml();
+            const fullHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+              <head><meta charset='utf-8'><title>Berita Acara</title>
+              <style>
+                @page { size: A4 portrait; margin: 15mm; }
+                body { font-family: 'Times New Roman', serif; font-size: 12pt; }
+              </style>
+              </head><body>${wordContent}</body></html>`;
+            const blob = new Blob(['\ufeff', fullHtml], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Berita_Acara_Mapel.doc';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
          } else {
             window.print();
          }
