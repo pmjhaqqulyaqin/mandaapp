@@ -11,6 +11,7 @@ interface Props {
 
 export const KartuIdTab = ({ ujianId, ujian }: Props) => {
   const [showSettings, setShowSettings] = useState<'id-pegawai' | null>(null);
+  const [activePreview, setActivePreview] = useState<string>('kartu-peserta');
   const [saving, setSaving] = useState(false);
 
   const [formConfig, setFormConfig] = useState({
@@ -113,12 +114,20 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
         {docTypes.map(doc => {
           const Icon = doc.icon;
           return (
-            <div key={doc.key} className={`rounded-xl border p-4 space-y-3 ${colorMap[doc.color]}`}>
-              <div className="flex items-center gap-2">
+            <div 
+              key={doc.key} 
+              onClick={() => setActivePreview(doc.key)}
+              className={`rounded-xl border p-4 space-y-3 cursor-pointer transition-all ${
+                activePreview === doc.key 
+                  ? `${colorMap[doc.color]} ring-2 ring-${doc.color}-500 shadow-sm` 
+                  : 'bg-white dark:bg-[#111] border-gray-200 dark:border-[#333] hover:border-gray-300 dark:hover:border-[#444]'
+              }`}
+            >
+              <div className={`flex items-center gap-2 ${activePreview === doc.key ? `text-${doc.color}-700 dark:text-${doc.color}-400` : 'text-gray-700 dark:text-gray-300'}`}>
                 <Icon size={20} />
                 <h4 className="text-sm font-semibold">{doc.label}</h4>
               </div>
-              <p className="text-[11px] opacity-80">{doc.desc}</p>
+              <p className="text-[11px] opacity-80 text-gray-500">{doc.desc}</p>
               
               <div className="flex flex-wrap items-center gap-2 pt-1">
                 {doc.key === 'kartu-peserta' && (
@@ -135,12 +144,12 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
                 )}
                 
                 <button className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-semibold bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
-                  onClick={() => handleCetak(doc.key)}>
+                  onClick={(e) => { e.stopPropagation(); handleCetak(doc.key); }}>
                   <Printer size={12} /> Cetak PDF
                 </button>
                 {doc.key === 'id-panitia' && (
                   <button className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-medium bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
-                    onClick={() => setShowSettings(showSettings === 'id-pegawai' ? null : 'id-pegawai')}>
+                    onClick={(e) => { e.stopPropagation(); setShowSettings(showSettings === 'id-pegawai' ? null : 'id-pegawai'); }}>
                     <Settings size={12} /> Pengaturan ID Card
                   </button>
                 )}
@@ -217,6 +226,36 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
           </div>
         </div>
       )}
+
+      {/* Preview Section via Iframe */}
+      <div className="mt-6 flex flex-col space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="w-1 h-4 bg-indigo-500 rounded-full" />
+          <h3 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary">
+            Preview {docTypes.find(d => d.key === activePreview)?.label}
+          </h3>
+        </div>
+        <div className="w-full h-[600px] border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden bg-gray-50 dark:bg-[#0a0a0a]">
+          {activePreview === 'kartu-peserta' && (
+            <iframe 
+              src={`/dashboard/print-kartu-peserta/${ujianId}${selectedRoomId !== 'ALL' ? `?ruangId=${selectedRoomId}` : ''}`}
+              className="w-full h-full"
+            />
+          )}
+          {activePreview === 'id-panitia' && (
+            <iframe 
+              src={`/dashboard/print-id-pegawai/${ujianId}?type=panitia`}
+              className="w-full h-full"
+            />
+          )}
+          {activePreview === 'id-pengawas' && (
+            <iframe 
+              src={`/dashboard/print-id-pegawai/${ujianId}?type=pengawas`}
+              className="w-full h-full"
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 };
