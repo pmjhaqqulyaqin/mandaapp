@@ -1328,7 +1328,7 @@ export class ExamService {
     const hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
     const workbook = new ExcelJS.Workbook();
-    const totalCols = 4; // No, No. Peserta Ujian, Nama Peserta, Tanda Tangan Peserta
+    const totalCols = 5; // No, No. Peserta Ujian, Nama Peserta, Tanda Tangan Peserta (2 columns)
 
     const thinBorder: any = {
       top: { style: 'thin' }, left: { style: 'thin' },
@@ -1338,8 +1338,9 @@ export class ExamService {
     // Generate one sheet per jadwal × ruang combination
     for (const jad of jadwalList) {
       for (const rng of ruangList) {
-        const studentsInRoom = distribusi.filter((d: any) => d.ruangId === rng.id);
-        if (studentsInRoom.length === 0) continue;
+        const studentsInRoomTemp = distribusi.filter((d: any) => d.ruangId === rng.id);
+        if (studentsInRoomTemp.length === 0) continue;
+        const studentsInRoom = studentsInRoomTemp.map((d: any, idx: number) => ({ ...d, urutRuang: idx + 1 }));
 
         // Get pengawas for this jadwal+ruang
         const tugas = pengawasData.filter((p: any) => p.jadwalId === jad.id && p.ruangId === rng.id);
@@ -1409,26 +1410,40 @@ export class ExamService {
 
         // ===== TABLE HEADER (row 8) =====
         const headerRow = 8;
-        const headers = ['No', 'No. Peserta Ujian', 'Nama Peserta', 'Tanda Tangan Peserta'];
-        headers.forEach((h, idx) => {
-          const cell = sheet.getCell(headerRow, idx + 1);
-          cell.value = h;
+        sheet.getCell(headerRow, 1).value = 'No';
+        sheet.getCell(headerRow, 2).value = 'No. Peserta Ujian';
+        sheet.getCell(headerRow, 3).value = 'Nama Peserta';
+        sheet.mergeCells(headerRow, 4, headerRow, 5);
+        sheet.getCell(headerRow, 4).value = 'Tanda Tangan Peserta';
+
+        for (let c = 1; c <= 5; c++) {
+          const cell = sheet.getCell(headerRow, c);
           cell.font = { bold: true, size: 10 };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
           cell.border = thinBorder;
-        });
+        }
         sheet.getRow(headerRow).height = 22;
 
         // ===== DATA ROWS =====
-        // The TTD column uses alternating pattern:
-        // Row 1: left side shows "1."
-        // Row 2: right side shows "2"
-        // Row 3: left side shows "3."
-        // etc. (odd numbers left-aligned with dot, even numbers right-aligned)
         studentsInRoom.forEach((row: any, i: number) => {
           const dataRow = headerRow + 1 + i;
           const siswa = row.siswa || {};
           const nomor = i + 1;
+
+          // Generate nomor peserta kustom
+          const lastYearStr = tahunAjaran.length >= 2 ? tahunAjaran.slice(-2) : '00';
+          const semesterLower = (ujianData.semester || '').toLowerCase();
+          const semCode = semesterLower.includes('ganjil') ? '01' : semesterLower.includes('genap') ? '02' : '00';
+          const kelasStr2 = (siswa.fullClassName || siswa.className || '').toUpperCase();
+          let gradeCode = '00';
+          if (kelasStr2.includes('XII') || kelasStr2.includes('12')) gradeCode = '12';
+          else if (kelasStr2.includes('XI') || kelasStr2.includes('11')) gradeCode = '11';
+          else if (kelasStr2.includes('X') || kelasStr2.includes('10')) gradeCode = '10';
+          const ruangMatch = (rng.namaRuang || '').match(/\d+/);
+          const ruangNumber = ruangMatch ? parseInt(ruangMatch[0], 10) : 0;
+          const ruangCode = ruangNumber.toString().padStart(2, '0');
+          const urutCode = (row.urutRuang || nomor).toString().padStart(3, '0');
+          const nomorPeserta = `${lastYearStr}-${semCode}-${gradeCode}-${ruangCode}-${urutCode}`;
 
           // No
           const cellNo = sheet.getCell(dataRow, 1);
@@ -1439,31 +1454,35 @@ export class ExamService {
 
           // No. Peserta Ujian
           const cellNoPeserta = sheet.getCell(dataRow, 2);
-          cellNoPeserta.value = siswa.nis || siswa.nisn || '';
+          cellNoPeserta.value = nomorPeserta;
           cellNoPeserta.font = { size: 10 };
           cellNoPeserta.border = thinBorder;
-          cellNoPeserta.alignment = { vertical: 'middle' };
+          cellNoPeserta.alignment = { vertical: 'middle', horizontal: 'left' };
 
           // Nama Peserta
           const cellNama = sheet.getCell(dataRow, 3);
           cellNama.value = siswa.fullName || '';
           cellNama.font = { size: 10 };
           cellNama.border = thinBorder;
-          cellNama.alignment = { vertical: 'middle' };
+          cellNama.alignment = { vertical: 'middle', horizontal: 'left' };
 
-          // Tanda Tangan Peserta (odd=left aligned "N.", even=right aligned "N")
-          const cellTtd = sheet.getCell(dataRow, 4);
+          // Tanda Tangan Peserta
+          const cellTtd1 = sheet.getCell(dataRow, 4);
+          const cellTtd2 = sheet.getCell(dataRow, 5);
+          cellTtd1.border = thinBorder;
+          cellTtd2.border = thinBorder;
+          cellTtd1.font = { size: 10 };
+          cellTtd2.font = { size: 10 };
+          
           if (nomor % 2 === 1) {
-            // Odd numbers: show number left-aligned with dot
-            cellTtd.value = `${nomor}.`;
-            cellTtd.alignment = { horizontal: 'left', vertical: 'bottom' };
+            cellTtd1.value = `${nomor}.`;
+            cellTtd1.alignment = { horizontal: 'left', vertical: 'top' };
+            cellTtd2.value = '';
           } else {
-            // Even numbers: show number right-aligned
-            cellTtd.value = `${nomor}`;
-            cellTtd.alignment = { horizontal: 'right', vertical: 'top' };
+            cellTtd2.value = `${nomor}.`;
+            cellTtd2.alignment = { horizontal: 'left', vertical: 'top' };
+            cellTtd1.value = '';
           }
-          cellTtd.font = { size: 10 };
-          cellTtd.border = thinBorder;
         });
 
         // ===== Add empty rows if less than 12 to fill page =====
@@ -1484,16 +1503,22 @@ export class ExamService {
               cell.border = thinBorder;
             }
 
-            const cellTtd = sheet.getCell(dataRow, 4);
+            const cellTtd1 = sheet.getCell(dataRow, 4);
+            const cellTtd2 = sheet.getCell(dataRow, 5);
+            cellTtd1.border = thinBorder;
+            cellTtd2.border = thinBorder;
+            cellTtd1.font = { size: 10 };
+            cellTtd2.font = { size: 10 };
+            
             if (nomor % 2 === 1) {
-              cellTtd.value = `${nomor}.`;
-              cellTtd.alignment = { horizontal: 'left', vertical: 'bottom' };
+              cellTtd1.value = `${nomor}.`;
+              cellTtd1.alignment = { horizontal: 'left', vertical: 'top' };
+              cellTtd2.value = '';
             } else {
-              cellTtd.value = `${nomor}`;
-              cellTtd.alignment = { horizontal: 'right', vertical: 'top' };
+              cellTtd2.value = `${nomor}.`;
+              cellTtd2.alignment = { horizontal: 'left', vertical: 'top' };
+              cellTtd1.value = '';
             }
-            cellTtd.font = { size: 10 };
-            cellTtd.border = thinBorder;
           }
         }
 
@@ -1513,11 +1538,11 @@ export class ExamService {
         sheet.getCell(ttdStartRow, 1).font = { bold: true, size: 10 };
         sheet.getCell(ttdStartRow, 1).alignment = { horizontal: 'center' };
 
-        // Pengawas II label (col 3-4)
-        sheet.mergeCells(ttdStartRow, 3, ttdStartRow, 4);
-        sheet.getCell(ttdStartRow, 3).value = 'Pengawas II';
-        sheet.getCell(ttdStartRow, 3).font = { bold: true, size: 10 };
-        sheet.getCell(ttdStartRow, 3).alignment = { horizontal: 'center' };
+        // Pengawas II label (col 4-5)
+        sheet.mergeCells(ttdStartRow, 4, ttdStartRow, 5);
+        sheet.getCell(ttdStartRow, 4).value = 'Pengawas II';
+        sheet.getCell(ttdStartRow, 4).font = { bold: true, size: 10 };
+        sheet.getCell(ttdStartRow, 4).alignment = { horizontal: 'center' };
 
         // Space for signatures (3 empty rows)
         const signRow = ttdStartRow + 4;
@@ -1535,22 +1560,23 @@ export class ExamService {
         sheet.getCell(signRow + 1, 1).alignment = { horizontal: 'center' };
 
         // Pengawas II name
-        sheet.mergeCells(signRow, 3, signRow, 4);
-        sheet.getCell(signRow, 3).value = pengawas2 ? `( ${pengawas2.name} )` : '(                                 )';
-        sheet.getCell(signRow, 3).font = { size: 10 };
-        sheet.getCell(signRow, 3).alignment = { horizontal: 'center' };
+        sheet.mergeCells(signRow, 4, signRow, 5);
+        sheet.getCell(signRow, 4).value = pengawas2 ? `( ${pengawas2.name} )` : '(                                 )';
+        sheet.getCell(signRow, 4).font = { size: 10 };
+        sheet.getCell(signRow, 4).alignment = { horizontal: 'center' };
 
         // Pengawas II NIP
-        sheet.mergeCells(signRow + 1, 3, signRow + 1, 4);
-        sheet.getCell(signRow + 1, 3).value = pengawas2?.nip ? `NIP. ${pengawas2.nip}` : 'NIP.';
-        sheet.getCell(signRow + 1, 3).font = { size: 9 };
-        sheet.getCell(signRow + 1, 3).alignment = { horizontal: 'center' };
+        sheet.mergeCells(signRow + 1, 4, signRow + 1, 5);
+        sheet.getCell(signRow + 1, 4).value = pengawas2?.nip ? `NIP. ${pengawas2.nip}` : 'NIP.';
+        sheet.getCell(signRow + 1, 4).font = { size: 9 };
+        sheet.getCell(signRow + 1, 4).alignment = { horizontal: 'center' };
 
         // ===== Column widths =====
         sheet.getColumn(1).width = 5;    // No
         sheet.getColumn(2).width = 22;   // No. Peserta Ujian
-        sheet.getColumn(3).width = 35;   // Nama Peserta
-        sheet.getColumn(4).width = 25;   // Tanda Tangan Peserta
+        sheet.getColumn(3).width = 25;   // Nama Peserta
+        sheet.getColumn(4).width = 15;   // Tanda Tangan Peserta 1
+        sheet.getColumn(5).width = 15;   // Tanda Tangan Peserta 2
 
         // ===== Print setup A4 =====
         sheet.pageSetup = {

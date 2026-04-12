@@ -235,11 +235,11 @@ export const PrintDaftarHadirPeserta = () => {
                   <td className={`border border-black px-1 ${rowPy} text-left`}>{nomorPeserta}</td>
                   <td className={`border border-black px-1 ${rowPy} text-left`}>{siswa.fullName || ''}</td>
                   {/* TTD kolom ganjil */}
-                  <td className={`border border-black px-1 ${rowPy}`}>
+                  <td className={`border border-black px-1 ${rowPy} text-left`}>
                     {nomor % 2 === 1 ? `${nomor}.` : ''}
                   </td>
                   {/* TTD kolom genap */}
-                  <td className={`border border-black px-1 ${rowPy}`}>
+                  <td className={`border border-black px-1 ${rowPy} text-left`}>
                     {nomor % 2 === 0 ? `${nomor}.` : ''}
                   </td>
                 </tr>

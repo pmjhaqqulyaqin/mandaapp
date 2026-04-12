@@ -155,32 +155,7 @@ export const DaftarHadirTab = ({ ujianId, ujian }: Props) => {
           </h3>
         </div>
 
-        {/* Room filter cards */}
-        {roomStats.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-            <div
-              className={`relative bg-white dark:bg-[#0a0a0a] border rounded-lg p-3 cursor-pointer transition-all hover:border-indigo-400 ${selectedRoomId === 'ALL' ? 'border-indigo-500 ring-1 ring-indigo-500/30' : 'border-gray-200 dark:border-[#222]'}`}
-              onClick={() => setSelectedRoomId('ALL')}
-            >
-              <p className="text-sm font-bold text-text-primary dark:text-text-darkPrimary">Semua</p>
-              <p className="text-[10px] text-gray-500">{distribusi.length} peserta</p>
-            </div>
-            {roomStats.map(r => (
-              <div
-                key={r.id}
-                className={`relative bg-white dark:bg-[#0a0a0a] border rounded-lg p-3 cursor-pointer transition-all hover:border-indigo-400 ${selectedRoomId === r.id ? 'border-indigo-500 ring-1 ring-indigo-500/30' : 'border-gray-200 dark:border-[#222]'}`}
-                onClick={() => setSelectedRoomId(selectedRoomId === r.id ? 'ALL' : r.id)}
-              >
-                <p className="text-sm font-bold text-text-primary dark:text-text-darkPrimary">{r.namaRuang}</p>
-                <p className="text-[10px] text-gray-500">{r.pesertaCount}/{r.kapasitas} peserta</p>
-                <div className="w-full bg-gray-100 dark:bg-[#222] rounded-full h-1.5 mt-1.5">
-                  <div className="bg-indigo-500 h-full rounded-full transition-all"
-                    style={{ width: `${Math.min(100, (r.pesertaCount / r.kapasitas) * 100)}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Room filter cards removed as requested, using only the dropdown near Cetak PDF */}
 
         {/* Search */}
         <div className="flex items-center gap-2">
