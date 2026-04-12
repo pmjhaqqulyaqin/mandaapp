@@ -112,8 +112,22 @@ export const PrintBeritaAcaraMapel = () => {
     fetchData();
   }, [ujianId]);
 
+  // Helper: convert image URL to base64 data URI
+  const toBase64 = async (url: string): Promise<string> => {
+    try {
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(blob);
+      });
+    } catch { return ''; }
+  };
+
   // === WORD EXPORT HELPER ===
-  const generateWordHtml = () => {
+  const generateWordHtml = async () => {
     const kop_ = ujian.pengaturan?.kop || {};
     const kartuS_ = ujian.pengaturan?.kartuPeserta || {};
     const baseUrl = window.location.origin;
@@ -121,6 +135,10 @@ export const PrintBeritaAcaraMapel = () => {
     const lKanan = kartuS_.logoKanan || '';
     const logoKiriUrl = lKiri ? (lKiri.startsWith('http') ? lKiri : baseUrl + lKiri) : '';
     const logoKananUrl = lKanan ? (lKanan.startsWith('http') ? lKanan : baseUrl + lKanan) : '';
+
+    // Convert logos to base64 so Word can embed them
+    const logoKiriB64 = logoKiriUrl ? await toBase64(logoKiriUrl) : '';
+    const logoKananB64 = logoKananUrl ? await toBase64(logoKananUrl) : '';
 
     const pages = data.map((item) => {
       const { jadwal, ruang, pengawas1, pengawas2, assignedKelasStr } = item;
@@ -158,8 +176,8 @@ export const PrintBeritaAcaraMapel = () => {
 
       const catatanLines = [0,1,2,3].map(() => `<p style="border-bottom:1px dotted black;margin:8px 0;">&nbsp;</p>`).join('');
 
-      const logoKiriImg = logoKiriUrl ? `<img src="${logoKiriUrl}" style="width:50px;height:50px;" />` : '';
-      const logoKananImg = logoKananUrl ? `<img src="${logoKananUrl}" style="width:50px;height:50px;" />` : '';
+      const logoKiriImg = logoKiriB64 ? `<img src="${logoKiriB64}" style="width:50px;height:50px;" />` : '';
+      const logoKananImg = logoKananB64 ? `<img src="${logoKananB64}" style="width:50px;height:50px;" />` : '';
 
       return `
         <div style="page-break-after:always;font-family:'Times New Roman',serif;font-size:11pt;">
@@ -247,14 +265,14 @@ export const PrintBeritaAcaraMapel = () => {
 
   useEffect(() => {
     if (!loading && ujian && data.length > 0) {
-      setTimeout(() => {
+      setTimeout(async () => {
          if (isWordExport) {
-            const wordContent = generateWordHtml();
+            const wordContent = await generateWordHtml();
             const fullHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
               <head><meta charset='utf-8'><title>Berita Acara</title>
               <style>
                 @page { size: A4 portrait; margin: 15mm; }
-                body { font-family: 'Times New Roman', serif; font-size: 12pt; }
+                body { font-family: 'Times New Roman', serif; font-size: 11pt; }
               </style>
               </head><body>${wordContent}</body></html>`;
             const blob = new Blob(['\ufeff', fullHtml], { type: 'application/msword' });
