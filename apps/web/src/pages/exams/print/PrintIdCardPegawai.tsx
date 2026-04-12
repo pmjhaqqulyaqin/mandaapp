@@ -32,12 +32,35 @@ export const PrintIdCardPegawai = () => {
       try {
         const [uRes, dataRes, settingsRes] = await Promise.all([
           apiClient(`/exams/${ujianId}`),
-          apiClient(`/exams/${ujianId}/${type}`),
+          type === 'panitia' ? apiClient(`/exams/${ujianId}/panitia`) : apiClient('/employees'),
           apiClient('/settings')
         ]);
         
         setUjian(uRes);
-        setPegawaiList(dataRes.data || dataRes);
+        
+        if (type === 'panitia') {
+          setPegawaiList(dataRes.data || dataRes);
+        } else {
+          const allEmp = dataRes.data || dataRes;
+          const g1 = uRes.pengaturan?.pengawasGroups?.group1 || [];
+          const g2 = uRes.pengaturan?.pengawasGroups?.group2 || [];
+          
+          const pengawasPegawai: any[] = [];
+          
+          g1.forEach((id: string, i: number) => {
+            const emp = allEmp.find((e: any) => e.id === id);
+            if (emp) pengawasPegawai.push({ pegawai: emp, kodeLabel: i + 1 });
+          });
+          
+          g2.forEach((id: string, i: number) => {
+            const alpha = String.fromCharCode(65 + (i % 26)) + (i >= 26 ? Math.floor(i/26) : '');
+            const emp = allEmp.find((e: any) => e.id === id);
+            if (emp) pengawasPegawai.push({ pegawai: emp, kodeLabel: alpha });
+          });
+          
+          setPegawaiList(pengawasPegawai);
+        }
+        
         const sn = (settingsRes.data || settingsRes).find((s: any) => s.key === 'school_name')?.value;
         if (sn) setSchoolName(sn);
       } catch (error) {
@@ -112,11 +135,11 @@ export const PrintIdCardPegawai = () => {
           {/* Jabatan/Role Bottom Bar */}
           {templateUrl ? (
             <div className="w-[85%] mx-auto py-1.5 mt-1 rounded-full bg-[#0d47a1] text-white font-black text-[12px] shadow-sm tracking-widest text-[#FFF]">
-               {roleTitle}
+               {roleTitle} {item.kodeLabel ? `(${item.kodeLabel})` : ''}
             </div>
           ) : (
             <div className="w-full py-1.5 mt-auto bg-gray-800 text-white font-black text-[11px] tracking-widest">
-               {roleTitle}
+               {roleTitle} {item.kodeLabel ? `(${item.kodeLabel})` : ''}
             </div>
           )}
         </div>
