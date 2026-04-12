@@ -247,7 +247,7 @@ export const PrintBeritaAcaraMapel = () => {
                 </td>
                 <td className="px-2 w-auto whitespace-nowrap pb-1">dari Pukul</td>
                 <td className="w-[10px] text-center pb-1">:</td>
-                <td className="pb-1">
+                <td className="pb-1 whitespace-nowrap">
                   <span className={mulaiStr ? 'italic text-center px-1' : 'border-b border-dotted border-black px-1 inline-block min-w-[60px]'}>
                     {mulaiStr || <span className="text-transparent">.</span>}
                   </span>
@@ -287,8 +287,8 @@ export const PrintBeritaAcaraMapel = () => {
         </div>
 
         {/* TABEL */}
-        <p className="font-bold italic mt-8 mb-2">Data Siswa Yang Berhalangan Hadir</p>
-        <table className="w-full border-collapse border border-black mb-6 text-center text-[14px] mx-auto">
+        <p className="font-bold italic mt-4 mb-2">Data Siswa Yang Berhalangan Hadir</p>
+        <table className="w-full border-collapse border border-black mb-4 text-center text-[14px] mx-auto">
           <thead>
             <tr>
               <th className="border border-black p-3 font-bold w-[20%]">NOMOR PESERTA</th>
@@ -310,13 +310,13 @@ export const PrintBeritaAcaraMapel = () => {
         </table>
 
         {/* PARAGRAF 2 */}
-        <p className="mb-4">
+        <p className="mb-3 leading-[1.8]">
            Setelah dibuka sampul Soal {namaUjian} dengan disaksikan oleh para peserta, berisikan Naskah Soal Sebanyak <span className="inline-block w-24 border-b border-dotted border-black"></span> Eksemplar, Lembar Jawaban <span className="inline-block w-24 border-b border-dotted border-black"></span> Eksemplar, Berita Acara sebanyak <span className="inline-block w-24 border-b border-dotted border-black"></span> Eksemplar, dan Daftar Hadir sebanyak <span className="inline-block w-24 border-b border-dotted border-black"></span> Eksemplar.
         </p>
 
         {/* CATATAN */}
-        <p className="font-bold italic mt-8">Catatan:</p>
-        <div className="space-y-6 mt-2">
+        <p className="font-bold italic mt-4">Catatan:</p>
+        <div className="space-y-6 mt-1">
             <div className="w-full border-b border-dotted border-black"></div>
             <div className="w-full border-b border-dotted border-black"></div>
             <div className="w-full border-b border-dotted border-black"></div>
@@ -324,14 +324,14 @@ export const PrintBeritaAcaraMapel = () => {
             <div className="w-full border-b border-dotted border-black"></div>
         </div>
 
-        <p className="mt-8 mb-16">
+        <p className="mt-4 mb-6">
           Demikian berita acara ini dibuat dengan sesungguhnya.
         </p>
 
         {/* TANDA TANGAN SECTION */}
-        <div className="flex justify-between mt-4">
+        <div className="flex justify-between mt-2">
            {/* Kiri (Pengawas I) */}
-           <div className="w-[280px] flex flex-col pt-8">
+           <div className="w-[280px] flex flex-col pt-4">
              <div className="mb-[80px] ml-4 text-center">Pengawas I</div>
              <div className="text-center font-bold">
                  {pengawas1?.name ? (
@@ -350,11 +350,11 @@ export const PrintBeritaAcaraMapel = () => {
 
            {/* Center Text (Yang membuat) */}
            <div className="absolute left-1/2 -translate-x-1/2 text-center w-[250px]">
-             <div className="pb-8">Yang membuat berita acara</div>
+             <div className="pb-4">Yang membuat berita acara</div>
            </div>
 
            {/* Kanan (Pengawas II) */}
-           <div className="w-[280px] flex flex-col pt-8">
+           <div className="w-[280px] flex flex-col pt-4">
              <div className="mb-[80px] ml-4 text-center">Pengawas II</div>
              <div className="text-center font-bold">
                  {pengawas2?.name ? (
