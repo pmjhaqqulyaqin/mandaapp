@@ -1709,27 +1709,51 @@ export class ExamService {
     };
 
     try {
+      console.log('[LOGO DEBUG] cwd:', process.cwd());
+      console.log('[LOGO DEBUG] kemenagLogoUrl from DB:', cardSetting.kemenagLogoUrl);
+      console.log('[LOGO DEBUG] schoolLogoUrl from DB:', cardSetting.schoolLogoUrl);
+      
+      // List files in uploads dir for debugging
+      const uploadsDir = path.join(process.cwd(), 'uploads');
+      if (fs.existsSync(uploadsDir)) {
+        const files = fs.readdirSync(uploadsDir);
+        console.log('[LOGO DEBUG] uploads dir files count:', files.length);
+        console.log('[LOGO DEBUG] uploads dir sample files:', files.slice(0, 10));
+      } else {
+        console.log('[LOGO DEBUG] uploads dir does NOT exist at:', uploadsDir);
+      }
+      
       if (cardSetting.kemenagLogoUrl) { // Kiri
-        const logoKiriPath = path.join(process.cwd(), 'uploads', path.basename(cardSetting.kemenagLogoUrl));
+        const basename = path.basename(cardSetting.kemenagLogoUrl);
+        const logoKiriPath = path.join(process.cwd(), 'uploads', basename);
+        console.log('[LOGO DEBUG] Kiri basename:', basename, '| full path:', logoKiriPath, '| exists:', fs.existsSync(logoKiriPath));
         if (fs.existsSync(logoKiriPath)) {
           let ext = path.extname(logoKiriPath).substring(1).toLowerCase();
           if (ext === 'jpg') ext = 'jpeg';
-          const logoId = workbook.addImage({ buffer: fs.readFileSync(logoKiriPath) as any, extension: ext as any });
+          const buf = fs.readFileSync(logoKiriPath);
+          console.log('[LOGO DEBUG] Kiri file read OK, size:', buf.length, 'bytes, ext:', ext);
+          const logoId = workbook.addImage({ buffer: buf as any, extension: ext as any });
           sheet.addImage(logoId, 'A1:A4');
+          console.log('[LOGO DEBUG] Kiri image added to sheet OK');
         }
       }
       if (cardSetting.schoolLogoUrl) { // Kanan
-        const logoKananPath = path.join(process.cwd(), 'uploads', path.basename(cardSetting.schoolLogoUrl));
+        const basename = path.basename(cardSetting.schoolLogoUrl);
+        const logoKananPath = path.join(process.cwd(), 'uploads', basename);
+        console.log('[LOGO DEBUG] Kanan basename:', basename, '| full path:', logoKananPath, '| exists:', fs.existsSync(logoKananPath));
         if (fs.existsSync(logoKananPath)) {
           let ext = path.extname(logoKananPath).substring(1).toLowerCase();
           if (ext === 'jpg') ext = 'jpeg';
-          const logoId = workbook.addImage({ buffer: fs.readFileSync(logoKananPath) as any, extension: ext as any });
+          const buf = fs.readFileSync(logoKananPath);
+          console.log('[LOGO DEBUG] Kanan file read OK, size:', buf.length, 'bytes, ext:', ext);
+          const logoId = workbook.addImage({ buffer: buf as any, extension: ext as any });
           const colLetter = getColLetter(totalCols);
           sheet.addImage(logoId, `${colLetter}1:${colLetter}4`);
+          console.log('[LOGO DEBUG] Kanan image added to sheet OK');
         }
       }
     } catch (e) {
-      console.error('Error adding logo to excel:', e);
+      console.error('[LOGO DEBUG] Error adding logo to excel:', e);
     }
 
     sheet.addRow([]); // Spacer row 5
