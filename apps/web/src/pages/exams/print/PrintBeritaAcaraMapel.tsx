@@ -112,18 +112,33 @@ export const PrintBeritaAcaraMapel = () => {
     fetchData();
   }, [ujianId]);
 
-  // Helper: convert image URL to base64 data URI
-  const toBase64 = async (url: string): Promise<string> => {
-    try {
-      const resp = await fetch(url);
-      const blob = await resp.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = () => resolve('');
-        reader.readAsDataURL(blob);
-      });
-    } catch { return ''; }
+  // Helper: convert image URL to base64 data URI using canvas
+  const toBase64 = (url: string): Promise<string> => {
+    if (!url) return Promise.resolve('');
+    // Already a data URI
+    if (url.startsWith('data:')) return Promise.resolve(url);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        } catch (e) {
+          console.warn('Canvas toDataURL failed:', e);
+          resolve('');
+        }
+      };
+      img.onerror = () => {
+        console.warn('Image load failed for:', url);
+        resolve('');
+      };
+      img.src = url;
+    });
   };
 
   // === WORD EXPORT HELPER ===
