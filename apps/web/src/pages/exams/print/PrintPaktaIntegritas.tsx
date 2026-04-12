@@ -156,7 +156,7 @@ export const PrintPaktaIntegritas = () => {
 
              {/* CONTENT */}
              <div className="mb-6">
-                Dalam rangka pelaksanaan {namaUjian} Tahun Ajaran {tahunUjian}, saya {person.tugas === 'Panitia Ujian' ? 'Panitia' : 'Pengawas'}:
+                Dalam rangka pelaksanaan {namaUjian} Tahun Ajaran {tahunAjaran}, saya {person.tugas === 'Panitia Ujian' ? 'Panitia' : 'Pengawas'}:
              </div>
 
              <table className="mb-6 ml-0">
@@ -188,7 +188,7 @@ export const PrintPaktaIntegritas = () => {
                  Sanggup meningkatkan kualitas, kredibilitas, dan akuntabilitas pelaksanaan {namaUjian} untuk peningkatan mutu pendidikan;
                </li>
                <li className="pl-2">
-                 Sanggup melaksanakan tugas sesuai Prosedur Operasi Standar penyelenggaraan {namaUjian} Tahun {tahunUjian};
+                 Sanggup melaksanakan tugas sesuai Prosedur Operasi Standar penyelenggaraan {namaUjian} Tahun Ajaran {tahunAjaran};
                </li>
                <li className="pl-2">
                  Sanggup menjaga keamanan dan kerahasiaan bahan {namaUjian}; dan
