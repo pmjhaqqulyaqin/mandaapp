@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { FileText, Download, Printer } from 'lucide-react';
+import { apiClient } from '../../../lib/api';
 
 interface Props {
   ujianId: string;
@@ -6,6 +8,14 @@ interface Props {
 }
 
 export const BeritaAcaraTab = ({ ujianId, ujian }: Props) => {
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [selectedRoomId, setSelectedRoomId] = useState<string>('ALL');
+
+  useEffect(() => {
+    if (ujianId) {
+      apiClient(`/exams/${ujianId}/ruang`).then(res => setRooms(res.data || res)).catch(console.error);
+    }
+  }, [ujianId]);
   const docTypes = [
     { key: 'ba-sekolah', label: 'Berita Acara Pelaksanaan (Tingkat Sekolah)', desc: 'Berita acara keseluruhan pelaksanaan ujian di tingkat satuan pendidikan', color: 'from-indigo-500 to-violet-500' },
     { key: 'ba-mapel', label: 'Berita Acara per Mata Pelajaran', desc: 'Berita acara otomatis per mata pelajaran sesuai jadwal ujian yang sudah dibuat', color: 'from-violet-500 to-purple-500' },
@@ -31,27 +41,45 @@ export const BeritaAcaraTab = ({ ujianId, ujian }: Props) => {
                   <p className="text-[10px] text-gray-500 mt-0.5">{doc.desc}</p>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-all active:scale-95"
-                  onClick={() => {
-                    if (doc.key === 'ba-mapel') {
-                      window.open(`/dashboard/print-ba-mapel/${ujianId}`, '_blank');
-                    } else {
-                      alert('Fitur ini akan dikerjakan pada tahap selanjutnya. Silakan coba Berita Acara per Mata Pelajaran.');
-                    }
-                  }}>
-                  <Printer size={12} /> Cetak PDF
-                </button>
-                <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium border border-gray-200 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
-                  onClick={() => {
-                    if (doc.key === 'ba-mapel') {
-                      window.open(`/dashboard/print-ba-mapel/${ujianId}?export=word`, '_blank');
-                    } else {
-                      alert('Fitur ini akan dikerjakan pada tahap selanjutnya. Silakan coba Berita Acara per Mata Pelajaran.');
-                    }
-                  }}>
-                  <FileText size={12} /> Export Word
-                </button>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                {doc.key === 'ba-mapel' && (
+                  <select 
+                    value={selectedRoomId}
+                    onChange={e => setSelectedRoomId(e.target.value)}
+                    className="h-7 px-2 cursor-pointer text-[10px] font-semibold rounded-lg bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary focus:ring-1 focus:ring-violet-500 outline-none transition-colors hover:border-gray-300"
+                  >
+                    <option value="ALL">Semua Ruang</option>
+                    {rooms.map((r: any) => (
+                      <option key={r.id} value={r.id}>{r.namaRuang}</option>
+                    ))}
+                  </select>
+                )}
+                <div className="flex gap-2">
+                  <button className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-all active:scale-95"
+                    onClick={() => {
+                      if (doc.key === 'ba-mapel') {
+                        let url = `/dashboard/print-ba-mapel/${ujianId}`;
+                        if (selectedRoomId !== 'ALL') url += `?ruangId=${selectedRoomId}`;
+                        window.open(url, '_blank');
+                      } else {
+                        alert('Fitur ini akan dikerjakan pada tahap selanjutnya. Silakan coba Berita Acara per Mata Pelajaran.');
+                      }
+                    }}>
+                    <Printer size={12} /> Cetak PDF
+                  </button>
+                  <button className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-medium border border-gray-200 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
+                    onClick={() => {
+                      if (doc.key === 'ba-mapel') {
+                        let url = `/dashboard/print-ba-mapel/${ujianId}?export=word`;
+                        if (selectedRoomId !== 'ALL') url += `&ruangId=${selectedRoomId}`;
+                        window.open(url, '_blank');
+                      } else {
+                        alert('Fitur ini akan dikerjakan pada tahap selanjutnya. Silakan coba Berita Acara per Mata Pelajaran.');
+                      }
+                    }}>
+                    <FileText size={12} /> Export Word
+                  </button>
+                </div>
               </div>
             </div>
           </div>

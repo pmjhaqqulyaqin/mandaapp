@@ -73,8 +73,14 @@ export const PrintBeritaAcaraMapel = () => {
           pages.push({ jadwal: null, ruang: null, pengawas1: null, pengawas2: null, assignedKelasStr: '' });
         } else {
           // Generate combination of Jadwal x Ruang
+          const queryParams = new URLSearchParams(window.location.search);
+          const filterRuangId = queryParams.get('ruangId');
+
           for (const jad of jadwalData) {
             for (const rng of ruangData) {
+              if (filterRuangId && rng.id !== filterRuangId) {
+                continue;
+              }
               const tugas = pengawasData.filter((p: any) => p.jadwalId === jad.id && p.ruangId === rng.id);
               let p1 = null;
               let p2 = null;
