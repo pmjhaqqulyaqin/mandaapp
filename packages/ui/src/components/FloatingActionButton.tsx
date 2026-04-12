@@ -176,7 +176,7 @@ export function FloatingActionButton({ developerUrl = '#' }: FloatingActionButto
     <>
       {/* Dim Overlay */}
       <div
-        className="fixed inset-0 z-[9998] transition-opacity duration-300 pointer-events-none"
+        className="fixed inset-0 z-[9998] transition-opacity duration-300 pointer-events-none print:hidden"
         style={{
           backgroundColor: 'rgba(0, 0, 0, 0.4)',
           opacity: isOpen ? 1 : 0,
@@ -186,7 +186,7 @@ export function FloatingActionButton({ developerUrl = '#' }: FloatingActionButto
       />
 
       <div
-        className="fab-container fixed left-5 top-1/2 z-[9999]"
+        className="fab-container fixed left-5 top-1/2 z-[9999] print:hidden"
         style={{
           transform: isVisible
             ? 'translateY(-50%) translateX(0)'

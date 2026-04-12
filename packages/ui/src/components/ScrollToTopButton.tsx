@@ -25,6 +25,7 @@ export function ScrollToTopButton() {
 
   return (
     <button
+      className="print:hidden"
       onClick={scrollToTop}
       aria-label="Kembali ke atas"
       style={{
