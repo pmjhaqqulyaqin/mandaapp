@@ -3,7 +3,7 @@ import { Button } from '@mandaapp/ui/src/components/Button';
 import { Input } from '@mandaapp/ui/src/components/Input';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Upload, Download, Edit2, Trash2, FileSpreadsheet, Image } from 'lucide-react';
+import { UserPlus, Upload, Download, Edit2, Trash2, FileSpreadsheet, Image, Eye } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { apiClient, API_BASE_URL } from '../lib/api';
 
@@ -304,10 +304,18 @@ export const DashboardEmployees = () => {
                           <button onClick={() => openEditModal(emp)} className="text-blue-500 hover:text-blue-700" title="Edit Pegawai"><Edit2 size={16} /></button>
                           <button 
                             onClick={() => { setUploadTargetId(emp.id); photoInputRef.current?.click(); }} 
-                            className={`${emp.photoUrl ? 'text-emerald-500' : 'text-gray-400'} hover:text-emerald-600 transition-colors`}
+                            className="text-gray-400 hover:text-gray-600 transition-colors"
                             title="Upload Foto Profil"
                           >
                             <Image size={16} />
+                          </button>
+                          <button 
+                            onClick={() => { if (emp.photoUrl) window.open(emp.photoUrl, '_blank') }} 
+                            className={`${emp.photoUrl ? 'text-emerald-500 hover:text-emerald-700 cursor-pointer' : 'text-gray-300 cursor-not-allowed'} transition-colors`}
+                            title={emp.photoUrl ? "Lihat Foto" : "Foto Belum Ada"}
+                            disabled={!emp.photoUrl}
+                          >
+                            <Eye size={16} />
                           </button>
                           <button onClick={() => handleDelete(emp.id, emp.name)} className="text-red-500 hover:text-red-700" title="Hapus Pegawai"><Trash2 size={16} /></button>
                         </div>
