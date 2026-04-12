@@ -43,8 +43,14 @@ export const BeritaAcaraTab = ({ ujianId, ujian }: Props) => {
                   <Printer size={12} /> Cetak PDF
                 </button>
                 <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium border border-gray-200 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
-                  onClick={() => alert('Export Word akan dikonfigurasikan bersama template')}>
-                  <Download size={12} /> Export Word
+                  onClick={() => {
+                    if (doc.key === 'ba-mapel') {
+                      window.open(`/dashboard/print-ba-mapel/${ujianId}?export=word`, '_blank');
+                    } else {
+                      alert('Fitur ini akan dikerjakan pada tahap selanjutnya. Silakan coba Berita Acara per Mata Pelajaran.');
+                    }
+                  }}>
+                  <FileText size={12} /> Export Word
                 </button>
               </div>
             </div>

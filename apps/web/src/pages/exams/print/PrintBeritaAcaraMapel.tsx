@@ -29,13 +29,14 @@ export const PrintBeritaAcaraMapel = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [uRes, sRes, jadwalRes, ruangRes, pengawasRes, empRes] = await Promise.all([
+        const [uRes, sRes, jadwalRes, ruangRes, pengawasRes, empRes, distRes] = await Promise.all([
           apiClient(`/exams/${ujianId}`),
           apiClient('/settings').catch(() => null),
           apiClient(`/exams/${ujianId}/jadwal`).catch(() => []),
           apiClient(`/exams/${ujianId}/ruang`).catch(() => []),
           apiClient(`/exams/${ujianId}/pengawas`).catch(() => []),
-          apiClient('/employees').catch(() => [])
+          apiClient('/employees').catch(() => []),
+          apiClient(`/exams/${ujianId}/distribusi`).catch(() => [])
         ]);
 
         setUjian(uRes);
@@ -45,6 +46,7 @@ export const PrintBeritaAcaraMapel = () => {
         const ruangData = Array.isArray(ruangRes) ? ruangRes : [];
         const pengawasData = Array.isArray(pengawasRes) ? pengawasRes : [];
         const employees = Array.isArray(empRes) ? empRes : [];
+        const distData = Array.isArray(distRes) ? distRes : [];
 
         // Helper to resolve employee from kodeLabel
         const getEmpDataByKodeLabel = (kodeLabel: string) => {
@@ -68,7 +70,7 @@ export const PrintBeritaAcaraMapel = () => {
 
         if (jadwalData.length === 0 || ruangData.length === 0) {
           // If no jadwal/ruang, add one blank template
-          pages.push({ jadwal: null, ruang: null, pengawas1: null, pengawas2: null });
+          pages.push({ jadwal: null, ruang: null, pengawas1: null, pengawas2: null, assignedKelasStr: '' });
         } else {
           // Generate combination of Jadwal x Ruang
           for (const jad of jadwalData) {
@@ -85,8 +87,12 @@ export const PrintBeritaAcaraMapel = () => {
                   p2 = getEmpDataByKodeLabel(t.kodeLabel);
                 }
               }
+
+              const studentsInRoom = distData.filter((d: any) => d.ruangId === rng.id);
+              const classesInRoom = Array.from(new Set(studentsInRoom.map((d: any) => d.siswa?.fullClassName || d.siswa?.className).filter(Boolean)));
+              const assignedKelasStr = classesInRoom.join(', ');
               
-              pages.push({ jadwal: jad, ruang: rng, pengawas1: p1, pengawas2: p2 });
+              pages.push({ jadwal: jad, ruang: rng, pengawas1: p1, pengawas2: p2, assignedKelasStr });
             }
           }
         }
@@ -100,13 +106,32 @@ export const PrintBeritaAcaraMapel = () => {
     fetchData();
   }, [ujianId]);
 
+  const query = new URLSearchParams(window.location.search);
+  const isWordExport = query.get('export') === 'word';
+
   useEffect(() => {
-    if (!loading && ujian) {
+    if (!loading && ujian && data.length > 0) {
       setTimeout(() => {
-         window.print();
+         if (isWordExport) {
+            const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Berita Acara</title></head><body>";
+            const footer = "</body></html>";
+            const printArea = document.getElementById("print-area");
+            if (printArea) {
+              const html = printArea.innerHTML;
+              const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(header + html + footer);
+              const fileDownload = document.createElement("a");
+              document.body.appendChild(fileDownload);
+              fileDownload.href = source;
+              fileDownload.download = 'Berita_Acara_Mapel.doc';
+              fileDownload.click();
+              document.body.removeChild(fileDownload);
+            }
+         } else {
+            window.print();
+         }
       }, 1500);
     }
-  }, [loading, ujian]);
+  }, [loading, ujian, data, isWordExport]);
 
   if (loading) {
     return <div className="flex h-screen items-center justify-center bg-gray-100"><Loader2 className="animate-spin text-violet-500" size={32} /></div>;
@@ -130,7 +155,7 @@ export const PrintBeritaAcaraMapel = () => {
   const tahunAjaran = ujian.tahunAjaran || new Date().getFullYear().toString();
 
   const BeritaAcaraPage = ({ item }: { item: any }) => {
-    const { jadwal, ruang, pengawas1, pengawas2 } = item;
+    const { jadwal, ruang, pengawas1, pengawas2, assignedKelasStr } = item;
     
     let hariStr = '';
     let tglStr = '';
@@ -153,7 +178,7 @@ export const PrintBeritaAcaraMapel = () => {
       thnStr = d.getFullYear().toString();
       thnWordsStr = numberToWords(d.getFullYear());
       mapelStr = jadwal.mataPelajaran || mapelStr;
-      kelasStr = jadwal.kelas || kelasStr;
+      kelasStr = assignedKelasStr || jadwal.kelas || kelasStr;
       mulaiStr = jadwal.waktuMulai || mulaiStr;
       selesaiStr = jadwal.waktuSelesai || selesaiStr;
     }
@@ -177,7 +202,8 @@ export const PrintBeritaAcaraMapel = () => {
           
           <div className="flex-1 text-center flex flex-col justify-center px-4 leading-none">
             <div className="font-bold text-[14px] uppercase tracking-wide leading-tight">{kementerian}</div>
-            <div className="font-bold text-[14px] uppercase tracking-wide leading-tight mt-0.5">PANITIA {namaUjian} TAHUN AJARAN {tahunAjaran}</div>
+            <div className="font-bold text-[14px] uppercase tracking-wide leading-tight mt-0.5">PANITIA {namaUjian}</div>
+            <div className="font-bold text-[14px] uppercase tracking-wide leading-tight">TAHUN AJARAN {tahunAjaran}</div>
             <div className="font-bold text-[16px] uppercase tracking-wide leading-tight mt-0.5">{instansi}</div>
             <div className="text-[12px] leading-tight mt-1">{alamat}</div>
           </div>
@@ -390,7 +416,7 @@ export const PrintBeritaAcaraMapel = () => {
         }
       `}} />
 
-      <div className="min-h-screen bg-gray-300 py-10 print:py-0 print:bg-white print:min-h-0">
+      <div id="print-area" className="min-h-screen bg-gray-300 py-10 print:py-0 print:bg-white print:min-h-0">
         {data.map((item, pageIdx) => (
           <div key={pageIdx} className={`page-container ${pageIdx < data.length - 1 ? 'page-break mb-10 print:mb-0' : ''}`}>
              <BeritaAcaraPage item={item} />
