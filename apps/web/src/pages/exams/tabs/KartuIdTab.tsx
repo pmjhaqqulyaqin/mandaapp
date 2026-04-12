@@ -10,7 +10,7 @@ interface Props {
 }
 
 export const KartuIdTab = ({ ujianId, ujian }: Props) => {
-  const [showSettings, setShowSettings] = useState<'kartu-peserta' | 'id-pegawai' | null>(null);
+  const [showSettings, setShowSettings] = useState<'id-pegawai' | null>(null);
   const [saving, setSaving] = useState(false);
 
   const [formConfig, setFormConfig] = useState({
@@ -138,12 +138,6 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
                   onClick={() => handleCetak(doc.key)}>
                   <Printer size={12} /> Cetak PDF
                 </button>
-                {doc.key === 'kartu-peserta' && (
-                  <button className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-medium bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
-                    onClick={() => setShowSettings(showSettings === doc.key ? null : doc.key as any)}>
-                    <Settings size={12} /> Pengaturan
-                  </button>
-                )}
                 {doc.key === 'id-panitia' && (
                   <button className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-medium bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
                     onClick={() => setShowSettings(showSettings === 'id-pegawai' ? null : 'id-pegawai')}>
@@ -161,76 +155,10 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-[#222] pb-3">
             <h4 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
               <Settings size={16} className="text-violet-500" /> 
-              {showSettings === 'kartu-peserta' ? 'Pengaturan Kartu Peserta' : 'Pengaturan ID Card Panitia & Pengawas'}
+              Pengaturan ID Card Panitia & Pengawas
             </h4>
           </div>
 
-          {showSettings === 'kartu-peserta' ? (
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            <div className="lg:col-span-3 space-y-4">
-              <h5 className="text-xs font-semibold text-gray-500 flex items-center gap-1.5">
-                <Users size={12} /> Data Tanda Tangan
-              </h5>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Tempat</label>
-                  <input className={inputClass} placeholder="Contoh: Lombok Timur" value={formConfig.tempat} onChange={e => setFormConfig({...formConfig, tempat: e.target.value})} />
-                </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Tanggal</label>
-                  <input type="date" className={inputClass} value={formConfig.tanggal} onChange={e => setFormConfig({...formConfig, tanggal: e.target.value})} />
-                </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Jabatan</label>
-                  <input className={inputClass} placeholder="Contoh: Kepala Madrasah" value={formConfig.jabatan} onChange={e => setFormConfig({...formConfig, jabatan: e.target.value})} />
-                </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Nama Penanda Tangan</label>
-                  <input className={inputClass} placeholder="Nama Lengkap" value={formConfig.nama} onChange={e => setFormConfig({...formConfig, nama: e.target.value})} />
-                </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">NIP (Opsional)</label>
-                  <input className={inputClass} placeholder="Contoh: 198001012000011001" value={formConfig.nip} onChange={e => setFormConfig({...formConfig, nip: e.target.value})} />
-                </div>
-              </div>
-            </div>
-
-            <div className="lg:col-span-2 space-y-4">
-               <h5 className="text-xs font-semibold text-gray-500 flex items-center gap-1.5">
-                <ImageIcon size={12} /> Gambar & Logo
-              </h5>
-              <div className="flex flex-wrap gap-4">
-                <div className="flex-1 min-w-[100px]">
-                  <label className="text-[10px] font-semibold text-gray-500 mb-1.5 block text-center">Logo Kiri</label>
-                  <div className="flex justify-center">
-                    <div className="scale-75 origin-top">
-                      <PhotoUploader currentPhotoUrl={formConfig.logoKiri} onPhotoChange={url => setFormConfig({...formConfig, logoKiri: url})} />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex-1 min-w-[100px]">
-                  <label className="text-[10px] font-semibold text-gray-500 mb-1.5 block text-center">Logo Kanan</label>
-                  <div className="flex justify-center">
-                    <div className="scale-75 origin-top">
-                      <PhotoUploader currentPhotoUrl={formConfig.logoKanan} onPhotoChange={url => setFormConfig({...formConfig, logoKanan: url})} />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex-1 min-w-[100px]">
-                  <label className="text-[10px] font-semibold text-gray-500 mb-1.5 block text-center">Tanda Tangan</label>
-                  <div className="flex justify-center">
-                    <div className="scale-75 origin-top">
-                      <PhotoUploader currentPhotoUrl={formConfig.signatureUrl} onPhotoChange={url => setFormConfig({...formConfig, signatureUrl: url})} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <p className="text-[10px] text-gray-400 leading-relaxed mt-2 text-center mt-3">
-                Upload logo kiri (mis. Logo Kemenag) dan logo kanan (mis. Logo Sekolah).
-              </p>
-            </div>
-          </div>
-          ) : (
           <div className="space-y-6">
             <div className="flex flex-wrap gap-10 justify-start items-start">
               
@@ -278,7 +206,6 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
               * Pastikan template ID berformat rasio portrait (.PNG/JPG). Jika dikosongkan, desain otomatis menggunakan tata letak bawaan.
             </p>
           </div>
-          )}
 
           <div className="flex justify-end pt-2 border-t border-gray-200 dark:border-[#222]">
             <button

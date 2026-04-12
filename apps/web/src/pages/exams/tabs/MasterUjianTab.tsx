@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
 import { CreateUjianModal } from '../components/CreateUjianModal';
-import { Edit2, Trash2, Plus, UserPlus, Users, Settings } from 'lucide-react';
+import { Edit2, Trash2, Plus, UserPlus, Users, Settings, Save, Image as ImageIcon, CreditCard } from 'lucide-react';
 import { PengaturanUjianModal } from '../components/PengaturanUjianModal';
+import { PhotoUploader } from '@mandaapp/ui';
 
 interface Props {
   ujian: any;
@@ -13,10 +14,23 @@ interface Props {
 export const MasterUjianTab = ({ ujian, onRefresh }: Props) => {
   const [editOpen, setEditOpen] = useState(false);
   const [pengaturanOpen, setPengaturanOpen] = useState(false);
+  const [kartuPesertaOpen, setKartuPesertaOpen] = useState(false);
+  const [savingKartu, setSavingKartu] = useState(false);
   const [panitia, setPanitia] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [addPanitiaOpen, setAddPanitiaOpen] = useState(false);
   const [panitiaForm, setPanitiaForm] = useState({ pegawaiId: '', jabatan: '', urutan: 0 });
+
+  const [kartuConfig, setKartuConfig] = useState({
+    logoKiri: '',
+    logoKanan: '',
+    tempat: '',
+    tanggal: '',
+    jabatan: 'Ketua Panitia',
+    nama: '',
+    nip: '',
+    signatureUrl: '',
+  });
 
   const fetchPanitia = async () => {
     try {
@@ -31,6 +45,41 @@ export const MasterUjianTab = ({ ujian, onRefresh }: Props) => {
       apiClient<any[]>('/employees').then(setEmployees).catch(() => {});
     }
   }, [ujian?.id]);
+
+  useEffect(() => {
+    if (ujian?.pengaturan) {
+      const ttdMaster = ujian.pengaturan.ttd || {};
+      const ttdDist = ujian.pengaturan.distribusiTtd || {};
+      const config = ujian.pengaturan.kartuPeserta || {};
+      setKartuConfig({
+        logoKiri: config.logoKiri || '',
+        logoKanan: config.logoKanan || '',
+        tempat: config.tempat || ttdDist.tempat || ttdMaster.tempat || '',
+        tanggal: config.tanggal || ttdDist.tanggal || ttdMaster.tanggal || '',
+        jabatan: config.jabatan || ttdDist.jabatan || ttdMaster.jabatan || 'Ketua Panitia',
+        nama: config.nama || ttdDist.nama || ttdMaster.nama || '',
+        nip: config.nip || ttdDist.nip || ttdMaster.nip || '',
+        signatureUrl: config.signatureUrl || '',
+      });
+    }
+  }, [ujian]);
+
+  const handleSaveKartuPeserta = async () => {
+    setSavingKartu(true);
+    try {
+      await apiClient(`/exams/${ujian.id}`, {
+        method: 'PUT',
+        data: { pengaturan: { kartuPeserta: kartuConfig } }
+      });
+      toast.success('Pengaturan kartu peserta berhasil disimpan');
+      setKartuPesertaOpen(false);
+      onRefresh();
+    } catch (err: any) {
+      toast.error('Gagal menyimpan: ' + err.message);
+    } finally {
+      setSavingKartu(false);
+    }
+  };
 
   const handleDeleteUjian = async () => {
     if (!confirm('Yakin hapus ujian ini beserta seluruh datanya (jadwal, ruang, distribusi, dll)?')) return;
@@ -102,6 +151,14 @@ export const MasterUjianTab = ({ ujian, onRefresh }: Props) => {
             <button onClick={() => setPengaturanOpen(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 hover:bg-cyan-100 transition-colors">
               <Settings size={12} /> Pengaturan Cetak & Waktu
+            </button>
+            <button onClick={() => setKartuPesertaOpen(!kartuPesertaOpen)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                kartuPesertaOpen
+                  ? 'bg-violet-600 text-white hover:bg-violet-700'
+                  : 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 hover:bg-violet-100'
+              }`}>
+              <CreditCard size={12} /> Pengaturan Kartu Peserta
             </button>
             <button onClick={handleDeleteUjian}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 hover:bg-red-100 transition-colors">
@@ -178,6 +235,92 @@ export const MasterUjianTab = ({ ujian, onRefresh }: Props) => {
           )}
         </div>
       </div>
+
+      {/* Pengaturan Kartu Peserta - Collapsible */}
+      {kartuPesertaOpen && (
+        <div className="bg-gray-50/80 dark:bg-[#0a0a0a] border border-violet-200 dark:border-violet-800/30 rounded-xl p-4 space-y-5 animate-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center justify-between border-b border-gray-200 dark:border-[#222] pb-3">
+            <h4 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
+              <CreditCard size={16} className="text-violet-500" />
+              Pengaturan Kartu Peserta
+            </h4>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <div className="lg:col-span-3 space-y-4">
+              <h5 className="text-xs font-semibold text-gray-500 flex items-center gap-1.5">
+                <Users size={12} /> Data Tanda Tangan
+              </h5>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Tempat</label>
+                  <input className={inputClass} placeholder="Contoh: Lombok Timur" value={kartuConfig.tempat} onChange={e => setKartuConfig({...kartuConfig, tempat: e.target.value})} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Tanggal</label>
+                  <input type="date" className={inputClass} value={kartuConfig.tanggal} onChange={e => setKartuConfig({...kartuConfig, tanggal: e.target.value})} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Jabatan</label>
+                  <input className={inputClass} placeholder="Contoh: Kepala Madrasah" value={kartuConfig.jabatan} onChange={e => setKartuConfig({...kartuConfig, jabatan: e.target.value})} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Nama Penanda Tangan</label>
+                  <input className={inputClass} placeholder="Nama Lengkap" value={kartuConfig.nama} onChange={e => setKartuConfig({...kartuConfig, nama: e.target.value})} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">NIP (Opsional)</label>
+                  <input className={inputClass} placeholder="Contoh: 198001012000011001" value={kartuConfig.nip} onChange={e => setKartuConfig({...kartuConfig, nip: e.target.value})} />
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-2 space-y-4">
+              <h5 className="text-xs font-semibold text-gray-500 flex items-center gap-1.5">
+                <ImageIcon size={12} /> Gambar & Logo
+              </h5>
+              <div className="flex flex-wrap gap-4">
+                <div className="flex-1 min-w-[100px]">
+                  <label className="text-[10px] font-semibold text-gray-500 mb-1.5 block text-center">Logo Kiri</label>
+                  <div className="flex justify-center">
+                    <div className="scale-75 origin-top">
+                      <PhotoUploader currentPhotoUrl={kartuConfig.logoKiri} onPhotoChange={url => setKartuConfig({...kartuConfig, logoKiri: url})} />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-[100px]">
+                  <label className="text-[10px] font-semibold text-gray-500 mb-1.5 block text-center">Logo Kanan</label>
+                  <div className="flex justify-center">
+                    <div className="scale-75 origin-top">
+                      <PhotoUploader currentPhotoUrl={kartuConfig.logoKanan} onPhotoChange={url => setKartuConfig({...kartuConfig, logoKanan: url})} />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-[100px]">
+                  <label className="text-[10px] font-semibold text-gray-500 mb-1.5 block text-center">Tanda Tangan</label>
+                  <div className="flex justify-center">
+                    <div className="scale-75 origin-top">
+                      <PhotoUploader currentPhotoUrl={kartuConfig.signatureUrl} onPhotoChange={url => setKartuConfig({...kartuConfig, signatureUrl: url})} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="text-[10px] text-gray-400 leading-relaxed text-center mt-3">
+                Upload logo kiri (mis. Logo Kemenag) dan logo kanan (mis. Logo Sekolah).
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2 border-t border-gray-200 dark:border-[#222]">
+            <button
+              onClick={handleSaveKartuPeserta}
+              disabled={savingKartu}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 transition-all">
+              <Save size={14} /> {savingKartu ? 'Menyimpan...' : 'Simpan Pengaturan'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <CreateUjianModal
         isOpen={editOpen}
