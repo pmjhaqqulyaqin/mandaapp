@@ -49,7 +49,7 @@ export const PrintBeritaAcaraMapel = () => {
         // Helper to resolve employee from kodeLabel
         const getEmpDataByKodeLabel = (kodeLabel: string) => {
           if (!kodeLabel || !uRes?.pengaturan?.pengawasGroups) return null;
-          const isNum = /^\\d+$/.test(kodeLabel);
+          const isNum = /^\d+$/.test(kodeLabel);
           const groups = uRes.pengaturan.pengawasGroups;
           let empId = null;
           
@@ -76,8 +76,15 @@ export const PrintBeritaAcaraMapel = () => {
               const tugas = pengawasData.filter((p: any) => p.jadwalId === jad.id && p.ruangId === rng.id);
               let p1 = null;
               let p2 = null;
-              if (tugas.length > 0) p1 = getEmpDataByKodeLabel(tugas[0].kodeLabel);
-              if (tugas.length > 1) p2 = getEmpDataByKodeLabel(tugas[1].kodeLabel);
+              
+              // Pengawas 1 represents Numbers, Pengawas 2 represents Letters
+              for (const t of tugas) {
+                if (/^\d+$/.test(t.kodeLabel)) {
+                  p1 = getEmpDataByKodeLabel(t.kodeLabel);
+                } else {
+                  p2 = getEmpDataByKodeLabel(t.kodeLabel);
+                }
+              }
               
               pages.push({ jadwal: jad, ruang: rng, pengawas1: p1, pengawas2: p2 });
             }
@@ -114,7 +121,6 @@ export const PrintBeritaAcaraMapel = () => {
 
   const kementerian = kop.kementerian || 'KEMENTERIAN AGAMA REPUBLIK INDONESIA';
   const instansi = kop.instansi || 'MADRASAH ALIYAH NEGERI 2 LOMBOK TIMUR';
-  const panitiaStr = kop.panitia; // optional second line
   const alamat = kop.alamat || 'Jl. Beririjarak Kec. Wanasaba Kab. Lombok Timur NTB';
 
   const logoKiri = kartuSettings.logoKiri || globalSettings?.kemenagLogoUrl || globalSettings?.schoolLogoUrl || '';
@@ -126,21 +132,23 @@ export const PrintBeritaAcaraMapel = () => {
   const BeritaAcaraPage = ({ item }: { item: any }) => {
     const { jadwal, ruang, pengawas1, pengawas2 } = item;
     
-    let hariStr = '........................';
-    let tglStr = '.................';
-    let blnStr = '..........................';
-    let thnStr = '...................................';
-    let mapelStr = '...................................................';
-    let ruangStr = '...................';
-    let mulaiStr = '...............';
-    let selesaiStr = '...............';
+    let hariStr = '';
+    let tglStr = '';
+    let blnStr = '';
+    let thnStr = '';
+    let thnWordsStr = '';
+    let mapelStr = '';
+    let ruangStr = '';
+    let mulaiStr = '';
+    let selesaiStr = '';
 
     if (jadwal?.tanggal) {
       const d = new Date(jadwal.tanggal);
       hariStr = HARI[d.getDay()];
       tglStr = d.getDate().toString();
       blnStr = BULAN[d.getMonth()];
-      thnStr = numberToWords(d.getFullYear());
+      thnStr = d.getFullYear().toString();
+      thnWordsStr = numberToWords(d.getFullYear());
       mapelStr = jadwal.mataPelajaran || mapelStr;
       mulaiStr = jadwal.waktuMulai || mulaiStr;
       selesaiStr = jadwal.waktuSelesai || selesaiStr;
@@ -151,21 +159,23 @@ export const PrintBeritaAcaraMapel = () => {
     }
 
     return (
-      <div className="relative font-serif box-border bg-white text-[15px] leading-relaxed mx-10 text-justify">
+      <div 
+        className="relative box-border bg-white text-[15px] leading-relaxed px-5 text-justify"
+        style={{ fontFamily: '"Times New Roman", Times, serif' }}
+      >
         {/* HEADER KOP SURAT */}
         <div className="flex items-center justify-between border-b-[3px] border-black pb-3 mb-6 relative px-2">
-          {/* Internal bottom border for double line effect */}
           <div className="absolute left-0 right-0 bottom-[-5px] h-[1px] bg-black"></div>
 
           <div className="w-24 h-24 flex-shrink-0 flex items-center justify-center">
              {logoKiri ? <img src={logoKiri} className="max-w-full max-h-full object-contain" /> : <div className="w-24 border border-white" />}
           </div>
           
-          <div className="flex-1 text-center flex flex-col justify-center px-4">
-            <h1 className="font-bold text-[17px] tracking-wide leading-snug">{kementerian}</h1>
-            {panitiaStr && <h2 className="font-bold text-[17px] tracking-wide leading-snug">{panitiaStr}</h2>}
-            <h2 className="font-bold text-[19px] tracking-wider leading-snug">{instansi}</h2>
-            <p className="text-[13px] leading-tight mt-1">{alamat}</p>
+          <div className="flex-1 text-center flex flex-col justify-center px-4 space-y-1">
+            <h1 className="font-bold text-[16px] leading-tight m-0 uppercase tracking-wide">{kementerian}</h1>
+            <h2 className="font-bold text-[16px] leading-tight m-0 uppercase tracking-wide">PANITIA {namaUjian} TAHUN AJARAN {tahunAjaran}</h2>
+            <h3 className="font-bold text-[16px] leading-tight m-0 uppercase tracking-wider">{instansi}</h3>
+            <p className="text-[14px] leading-tight m-0 mb-1">{alamat}</p>
           </div>
 
           <div className="w-24 h-24 flex-shrink-0 flex items-center justify-center">
@@ -179,58 +189,71 @@ export const PrintBeritaAcaraMapel = () => {
         {/* PARAGRAF 1 */}
         <div className="mb-4">
           <p className="mb-2" style={{ textIndent: '30px' }}>
-             Pada Hari ini <span className="font-bold border-b border-dotted border-black min-w-[100px] inline-block text-center mr-1 ml-1">{hariStr}</span>
-             Tanggal <span className="font-bold border-b border-dotted border-black min-w-[40px] inline-block text-center mr-1 ml-1">{tglStr}</span>
-             Bulan <span className="font-bold border-b border-dotted border-black min-w-[120px] inline-block text-center mr-1 ml-1">{blnStr}</span>
-             Tahun <span className="font-bold border-b border-dotted border-black min-w-[200px] inline-block text-center mr-1 ml-1">{thnStr}</span> telah diselenggarakan {namaUjian} Tahun Pelajaran {tahunAjaran},
+             Pada Hari ini {hariStr ? <span className="italic mr-1 ml-1">{hariStr}</span> : <span className="border-b border-dotted border-black min-w-[70px] inline-block text-center mr-1 ml-1">&nbsp;</span>}
+             Tanggal {tglStr ? <span className="italic mr-1 ml-1">{tglStr}</span> : <span className="border-b border-dotted border-black min-w-[30px] inline-block text-center mr-1 ml-1">&nbsp;</span>}
+             Bulan {blnStr ? <span className="italic mr-1 ml-1">{blnStr}</span> : <span className="border-b border-dotted border-black min-w-[90px] inline-block text-center mr-1 ml-1">&nbsp;</span>}
+             Tahun {thnStr ? <span className="italic mr-1 ml-1">{thnWordsStr}</span> : <span className="border-b border-dotted border-black min-w-[150px] inline-block text-center mr-1 ml-1">&nbsp;</span>} telah diselenggarakan {namaUjian} Tahun Ajaran {tahunAjaran},
           </p>
           
-          <div className="flex">
-             <div className="w-[120px]">Mata Pelajaran</div>
-             <div className="mx-2">:</div>
-             <div className="flex-1 border-b border-dotted border-black font-bold uppercase">{mapelStr !== '...................................................' ? mapelStr : ''}</div>
-          </div>
-          <div className="flex mt-1">
-             <div className="w-[120px] flex justify-between"><span>Kelas</span> <span>Ruang</span></div>
-             <div className="mx-2">:</div>
-             <div className="flex-none w-[150px] border-b border-dotted border-black font-bold text-center">{ruangStr !== '...................' ? ruangStr : ''}</div>
-             <div className="mx-3">dari Pukul</div>
-             <div className="mx-2">:</div>
-             <div className="w-[80px] border-b border-dotted border-black font-bold text-center">{mulaiStr !== '...............' ? mulaiStr : ''}</div>
-             <div className="mx-2">Wita s/d</div>
-             <div className="w-[80px] border-b border-dotted border-black font-bold text-center">{selesaiStr !== '...............' ? selesaiStr : ''}</div>
-             <div className="ml-2">Wita.</div>
-          </div>
+          <table className="w-full text-[15px] mt-2 border-separate" style={{ borderSpacing: '0 4px' }}>
+            <tbody>
+              <tr>
+                <td className="w-[120px]">Mata Pelajaran</td>
+                <td className="w-[10px] text-center">:</td>
+                <td className={mapelStr ? 'italic uppercase pl-2' : 'border-b border-dotted border-black pl-2'} colSpan={5}>
+                  {mapelStr || <span className="text-transparent">.</span>}
+                </td>
+              </tr>
+              <tr>
+                <td>Kelas Ruang</td>
+                <td className="text-center">:</td>
+                <td className={ruangStr ? 'italic text-center w-[150px]' : 'border-b border-dotted border-black w-[150px]'}>
+                  {ruangStr || <span className="text-transparent">.</span>}
+                </td>
+                <td className="px-2 w-auto whitespace-nowrap">dari Pukul</td>
+                <td className="w-[10px] text-center">:</td>
+                <td className={mulaiStr ? 'italic text-center px-2 whitespace-nowrap' : 'border-b border-dotted border-black px-2'}>
+                  {mulaiStr || <span className="inline-block w-16"></span>} {mulaiStr ? 'Wita' : 'Wita'} 
+                  <span className="not-italic inline-block mx-2">s/d</span> 
+                  <span className={selesaiStr ? 'italic' : ''}>{selesaiStr || <span className="inline-block w-16"></span>}</span> {selesaiStr ? 'Wita.' : 'Wita.'}
+                </td>
+              </tr>
+            </tbody>
+          </table>
           
-          <div className="flex mt-2">
-             <div className="w-[130px]">Jumlah Peserta</div>
-             <div className="mx-2">:</div>
-             <div className="w-[60px] border-b border-dotted border-black"></div>
-             <div className="ml-2">Orang</div>
-          </div>
-          <div className="flex mt-1">
-             <div className="w-[130px]">Yang Hadir</div>
-             <div className="mx-2">:</div>
-             <div className="w-[60px] border-b border-dotted border-black"></div>
-             <div className="ml-2">Orang,</div>
-          </div>
-          <div className="flex mt-1">
-             <div className="w-[130px]">Yang Tidak Hadir</div>
-             <div className="mx-2">:</div>
-             <div className="w-[60px] border-b border-dotted border-black"></div>
-             <div className="ml-2">Orang,</div>
-          </div>
+          <table className="w-full text-[15px] mt-2 border-separate" style={{ borderSpacing: '0 4px' }}>
+            <tbody>
+              <tr>
+                <td className="w-[120px]">Jumlah Peserta</td>
+                <td className="w-[10px] text-center">:</td>
+                <td className="w-[80px] border-b border-dotted border-black"></td>
+                <td className="pl-2">Orang</td>
+              </tr>
+              <tr>
+                <td>Yang Hadir</td>
+                <td className="text-center">:</td>
+                <td className="border-b border-dotted border-black"></td>
+                <td className="pl-2">Orang,</td>
+              </tr>
+              <tr>
+                <td>Yang Tidak Hadir</td>
+                <td className="text-center">:</td>
+                <td className="border-b border-dotted border-black"></td>
+                <td className="pl-2">Orang,</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         {/* TABEL */}
         <p className="font-bold italic mt-8 mb-2">Data Siswa Yang Berhalangan Hadir</p>
-        <table className="w-full border-collapse border border-black mb-6 text-center text-sm font-sans mx-auto">
+        <table className="w-full border-collapse border border-black mb-6 text-center text-[14px] mx-auto">
           <thead>
             <tr>
-              <th className="border border-black p-3 uppercase w-[20%]">Nomor Peserta</th>
-              <th className="border border-black p-3 uppercase w-[40%]">Nama Siswa</th>
-              <th className="border border-black p-3 uppercase w-[15%]">Kelas</th>
-              <th className="border border-black p-3 uppercase w-[25%]">Keterangan</th>
+              <th className="border border-black p-3 font-bold w-[20%]">NOMOR PESERTA</th>
+              <th className="border border-black p-3 font-bold w-[40%]">NAMA SISWA</th>
+              <th className="border border-black p-3 font-bold w-[15%]">KELAS</th>
+              <th className="border border-black p-3 font-bold w-[25%]">KETERANGAN</th>
             </tr>
           </thead>
           <tbody>
@@ -258,39 +281,52 @@ export const PrintBeritaAcaraMapel = () => {
             <div className="w-full border-b border-dotted border-black"></div>
             <div className="w-full border-b border-dotted border-black"></div>
             <div className="w-full border-b border-dotted border-black"></div>
-            <div className="w-full border-b border-dotted border-black"></div>
         </div>
 
-        <p className="mt-6 mb-16">
+        <p className="mt-8 mb-16">
           Demikian berita acara ini dibuat dengan sesungguhnya.
         </p>
 
         {/* TANDA TANGAN SECTION */}
         <div className="flex justify-between mt-4">
            {/* Kiri (Pengawas I) */}
-           <div className="text-center w-[250px] flex flex-col pt-8">
-             <div className="mb-[100px]">Pengawas I</div>
-             <div className="font-bold uppercase border-b border-black">
-                {pengawas1?.name ? pengawas1.name : '\u00A0'}
-             </div>
-             <div className="text-left font-bold mt-1">
-                NIP. <span className="font-normal">{pengawas1?.nip || '..............................................'}</span>
+           <div className="w-[280px] flex flex-col pt-8">
+             <div className="mb-[80px] ml-4 text-center">Pengawas I</div>
+             <div className="text-center font-bold">
+                 {pengawas1?.name ? (
+                    <>
+                       <div className="uppercase pb-1 leading-snug">{pengawas1.name}</div>
+                       <div className="font-normal text-sm">NIP. {pengawas1.nip || '-'}</div>
+                    </>
+                 ) : (
+                    <>
+                       <div className="border-b border-black w-[200px] mx-auto">&nbsp;</div>
+                       <div className="text-left font-bold mt-1 text-sm ml-6">NIP. <span className="font-normal">......................................</span></div>
+                    </>
+                 )}
              </div>
            </div>
 
-           {/* Kanan / Center (Yang membuat) */}
-           <div className="text-center w-[250px] absolute left-1/2 -translate-x-1/2">
+           {/* Center Text (Yang membuat) */}
+           <div className="absolute left-1/2 -translate-x-1/2 text-center w-[250px]">
              <div className="pb-8">Yang membuat berita acara</div>
            </div>
 
            {/* Kanan (Pengawas II) */}
-           <div className="text-center w-[250px] flex flex-col pt-8">
-             <div className="mb-[100px]">Pengawas II</div>
-             <div className="font-bold uppercase border-b border-black">
-               {pengawas2?.name ? pengawas2.name : '\u00A0'}
-             </div>
-             <div className="text-left font-bold mt-1">
-                NIP. <span className="font-normal">{pengawas2?.nip || '..............................................'}</span>
+           <div className="w-[280px] flex flex-col pt-8">
+             <div className="mb-[80px] ml-4 text-center">Pengawas II</div>
+             <div className="text-center font-bold">
+                 {pengawas2?.name ? (
+                    <>
+                       <div className="uppercase pb-1 leading-snug">{pengawas2.name}</div>
+                       <div className="font-normal text-sm">NIP. {pengawas2.nip || '-'}</div>
+                    </>
+                 ) : (
+                    <>
+                       <div className="border-b border-black w-[200px] mx-auto">&nbsp;</div>
+                       <div className="text-left font-bold mt-1 text-sm ml-6">NIP. <span className="font-normal">......................................</span></div>
+                    </>
+                 )}
              </div>
            </div>
         </div>
@@ -323,7 +359,7 @@ export const PrintBeritaAcaraMapel = () => {
           background-color: white;
           width: 210mm;
           min-height: 297mm;
-          padding: 15mm;
+          padding: 10mm;
           margin: 0 auto;
           box-shadow: 0 0 10px rgba(0,0,0,0.1);
           box-sizing: border-box;
