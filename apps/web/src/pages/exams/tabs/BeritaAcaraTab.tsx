@@ -33,7 +33,13 @@ export const BeritaAcaraTab = ({ ujianId, ujian }: Props) => {
               </div>
               <div className="flex gap-2">
                 <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-all active:scale-95"
-                  onClick={() => alert('Template cetak akan dikonfigurasikan bersama pengaturan kop ujian')}>
+                  onClick={() => {
+                    if (doc.key === 'ba-mapel') {
+                      window.open(`/dashboard/print-ba-mapel/${ujianId}`, '_blank');
+                    } else {
+                      alert('Fitur ini akan dikerjakan pada tahap selanjutnya. Silakan coba Berita Acara per Mata Pelajaran.');
+                    }
+                  }}>
                   <Printer size={12} /> Cetak PDF
                 </button>
                 <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium border border-gray-200 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
