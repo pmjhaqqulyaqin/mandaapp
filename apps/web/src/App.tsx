@@ -32,6 +32,7 @@ import { SystemUpdateCenter } from './pages/dashboard/SystemUpdateCenter';
 import { BatchPrintPage } from './pages/BatchPrintPage';
 import { PrintAcademicCalendar } from './pages/PrintAcademicCalendar';
 import { PrintKartuPeserta } from './pages/exams/print/PrintKartuPeserta';
+import { PrintIdCardPegawai } from './pages/exams/print/PrintIdCardPegawai';
 import { FloatingActionButton, ScrollToTopButton } from '@mandaapp/ui';
 import { Toaster } from 'sonner';
 
@@ -68,6 +69,11 @@ function App() {
         <Route path="/dashboard/print-kartu-peserta/:ujianId" element={
           <ProtectedRoute>
             <PrintKartuPeserta />
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard/print-id-pegawai/:ujianId" element={
+          <ProtectedRoute>
+            <PrintIdCardPegawai />
           </ProtectedRoute>
         } />
         

@@ -10,7 +10,7 @@ interface Props {
 }
 
 export const KartuIdTab = ({ ujianId, ujian }: Props) => {
-  const [showSettings, setShowSettings] = useState<'kartu-peserta' | null>(null);
+  const [showSettings, setShowSettings] = useState<'kartu-peserta' | 'id-panitia' | 'id-pengawas' | null>(null);
   const [saving, setSaving] = useState(false);
 
   const [formConfig, setFormConfig] = useState({
@@ -21,7 +21,9 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
     jabatan: 'Ketua Panitia',
     nama: '',
     nip: '',
-    signatureUrl: ''
+    signatureUrl: '',
+    templatePanitiaUrl: '',
+    templatePengawasUrl: ''
   });
 
   useEffect(() => {
@@ -39,7 +41,9 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
         jabatan: config.jabatan || ttdDist.jabatan || ttdMaster.jabatan || 'Ketua Panitia',
         nama: config.nama || ttdDist.nama || ttdMaster.nama || '',
         nip: config.nip || ttdDist.nip || ttdMaster.nip || '',
-        signatureUrl: config.signatureUrl || ''
+        signatureUrl: config.signatureUrl || '',
+        templatePanitiaUrl: config.templatePanitiaUrl || '',
+        templatePengawasUrl: config.templatePengawasUrl || ''
       });
     }
   }, [ujian]);
@@ -128,23 +132,22 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
                   onClick={() => handleCetak(doc.key)}>
                   <Printer size={12} /> Cetak PDF
                 </button>
-                {doc.key === 'kartu-peserta' && (
-                  <button className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-medium bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
-                    onClick={() => setShowSettings(showSettings === doc.key ? null : doc.key as any)}>
-                    <Settings size={12} /> Pengaturan
-                  </button>
-                )}
+                <button className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-medium bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
+                  onClick={() => setShowSettings(showSettings === doc.key ? null : doc.key as any)}>
+                  <Settings size={12} /> Pengaturan
+                </button>
               </div>
             </div>
           );
         })}
       </div>
 
-      {showSettings === 'kartu-peserta' && (
+      {showSettings && (
         <div className="bg-gray-50/80 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#222] rounded-xl p-4 mt-2 space-y-5 animate-in slide-in-from-top-2 duration-300">
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-[#222] pb-3">
             <h4 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
-              <Settings size={16} className="text-violet-500" /> Pengaturan Kartu Peserta
+              <Settings size={16} className="text-violet-500" /> 
+              {showSettings === 'kartu-peserta' ? 'Pengaturan Kartu Peserta' : showSettings === 'id-panitia' ? 'Pengaturan ID Card Panitia' : 'Pengaturan ID Card Pengawas'}
             </h4>
           </div>
 
@@ -207,9 +210,31 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
                   </div>
                 </div>
               </div>
-              <p className="text-[10px] text-gray-400 leading-relaxed">
-                Upload logo kiri (mis. Logo Kemenag) dan logo kanan (mis. Logo Sekolah). Biarkan kosong jika tidak diperlukan.
-              </p>
+              
+              {showSettings === 'kartu-peserta' && (
+                <p className="text-[10px] text-gray-400 leading-relaxed mt-2 text-center mt-3">
+                  Upload logo kiri (mis. Logo Kemenag) dan logo kanan (mis. Logo Sekolah).
+                </p>
+              )}
+
+              {(showSettings === 'id-panitia' || showSettings === 'id-pengawas') && (
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-[#222]">
+                  <label className="text-[10px] font-bold text-gray-500 mb-1.5 block text-center uppercase tracking-wide">
+                    Template Background {showSettings === 'id-panitia' ? 'Panitia' : 'Pengawas'}
+                  </label>
+                  <div className="flex justify-center flex-col items-center gap-2">
+                    <div className="origin-top w-24 h-36">
+                      <PhotoUploader 
+                        currentPhotoUrl={showSettings === 'id-panitia' ? formConfig.templatePanitiaUrl : formConfig.templatePengawasUrl} 
+                        onPhotoChange={url => setFormConfig({...formConfig, [showSettings === 'id-panitia' ? 'templatePanitiaUrl' : 'templatePengawasUrl']: url})} 
+                      />
+                    </div>
+                    <p className="text-[9px] text-gray-400 max-w-[200px] text-center">
+                      Upload desain template format portrait (.PNG/JPG). Jika dikosongkan, akan otomatis menggunakan desain fallback elegan bawaan sistem.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
