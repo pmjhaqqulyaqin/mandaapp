@@ -1323,7 +1323,7 @@ export class ExamService {
       return empId ? employeeMap.get(empId) || null : null;
     };
 
-    const namaUjian = (ujianData.namaUjian || ujianData.jenisUjian || 'UJIAN').toUpperCase();
+    const namaUjian = (ujianData.namaUjian || (ujianData as any).jenisUjian || 'UJIAN').toUpperCase();
     const tahunAjaran = ujianData.tahunAjaran || '';
     const hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
@@ -1346,10 +1346,11 @@ export class ExamService {
         let pengawas1: any = null;
         let pengawas2: any = null;
         for (const t of tugas) {
-          if (/^\d+$/.test(t.kodeLabel)) {
-            pengawas1 = getEmpByKodeLabel(t.kodeLabel);
+          const kl = (t.kodeLabel || '') as string;
+          if (/^\d+$/.test(kl)) {
+            pengawas1 = getEmpByKodeLabel(kl);
           } else {
-            pengawas2 = getEmpByKodeLabel(t.kodeLabel);
+            pengawas2 = getEmpByKodeLabel(kl);
           }
         }
 
@@ -1392,7 +1393,7 @@ export class ExamService {
 
         // Row 6: Hari / Tanggal : _____ Jam ke/Waktu: _____ / _____
         sheet.mergeCells(6, 1, 6, totalCols);
-        sheet.getCell(6, 1).value = `Hari / Tanggal    :  ${hariStr ? hariStr + ', ' + tglStr : '___________________'}                    Jam ke/Waktu:  ${jad.sesi || '_'} / ${jad.waktuMulai || '____'} - ${jad.waktuSelesai || '____'}`;
+        sheet.getCell(6, 1).value = `Hari / Tanggal    :  ${hariStr ? hariStr + ', ' + tglStr : '___________________'}                    Jam ke/Waktu:  ${(jad as any).sesi || '_'} / ${jad.waktuMulai || '____'} - ${jad.waktuSelesai || '____'}`;
         sheet.getCell(6, 1).font = { size: 10 };
 
         sheet.addRow([]); // row 7 spacer
