@@ -73,6 +73,7 @@ export const employees = pgTable("employees", {
   gender: varchar("gender", { length: 20 }), // Laki-laki, Perempuan
   birthPlace: varchar("birth_place", { length: 100 }),
   birthDate: date("birth_date"),
+  photoUrl: varchar("photo_url", { length: 255 }), // Ditambahkan untuk menyimpan URL foto
   task: varchar("task", { length: 100 }), // Tugas / Guru Mapel apa
   status: varchar("status", { length: 20 }).default("active"),
   createdAt: timestamp("created_at").defaultNow(),

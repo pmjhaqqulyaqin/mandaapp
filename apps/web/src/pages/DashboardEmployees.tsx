@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { Input } from '@mandaapp/ui/src/components/Input';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Upload, Download, Edit2, Trash2, FileSpreadsheet } from 'lucide-react';
+import { UserPlus, Upload, Download, Edit2, Trash2, FileSpreadsheet, Image } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { apiClient, API_BASE_URL } from '../lib/api';
 
@@ -89,6 +89,43 @@ export const DashboardEmployees = () => {
       alert('Gagal import: ' + (error.response?.data?.error || error.message));
     } finally {
       setLoading(false);
+      e.target.value = '';
+    }
+  };
+
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [uploadTargetId, setUploadTargetId] = useState<string | null>(null);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadTargetId) return;
+
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await apiClient<any>('/system/upload/image', {
+        method: 'POST',
+        data: formData
+      });
+      
+      const photoUrl = res?.data?.url || res?.url;
+      if (!photoUrl) throw new Error('Gagal mendapatkan URL foto');
+
+      await apiClient(`/employees/${uploadTargetId}`, { 
+        method: 'PUT', 
+        data: { photoUrl } 
+      });
+
+      alert('Foto profil pegawai berhasil diunggah!');
+      fetchEmployees();
+    } catch (error: any) {
+      console.error('Photo upload error:', error);
+      alert('Gagal mengunggah foto: ' + error.message);
+    } finally {
+      setLoading(false);
+      setUploadTargetId(null);
       e.target.value = '';
     }
   };
@@ -219,6 +256,13 @@ export const DashboardEmployees = () => {
           <Button className="flex items-center gap-2" onClick={openAddModal}>
             <UserPlus size={18} /> Tambah Pegawai
           </Button>
+          <input 
+            type="file" 
+            accept="image/*" 
+            ref={photoInputRef} 
+            style={{ display: 'none' }} 
+            onChange={handlePhotoUpload} 
+          />
         </div>
       </div>
 
@@ -257,8 +301,15 @@ export const DashboardEmployees = () => {
                       <td className="py-3 px-4">{emp.task || '-'}</td>
                       <td className="py-3 px-4 text-center">
                         <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => openEditModal(emp)} className="text-blue-500 hover:text-blue-700"><Edit2 size={16} /></button>
-                          <button onClick={() => handleDelete(emp.id, emp.name)} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+                          <button onClick={() => openEditModal(emp)} className="text-blue-500 hover:text-blue-700" title="Edit Pegawai"><Edit2 size={16} /></button>
+                          <button 
+                            onClick={() => { setUploadTargetId(emp.id); photoInputRef.current?.click(); }} 
+                            className={`${emp.photoUrl ? 'text-emerald-500' : 'text-gray-400'} hover:text-emerald-600 transition-colors`}
+                            title="Upload Foto Profil"
+                          >
+                            <Image size={16} />
+                          </button>
+                          <button onClick={() => handleDelete(emp.id, emp.name)} className="text-red-500 hover:text-red-700" title="Hapus Pegawai"><Trash2 size={16} /></button>
                         </div>
                       </td>
                     </tr>

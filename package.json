@@ -11,7 +11,8 @@
     "lint": "npm run lint --workspaces"
   },
   "dependencies": {
-    "drizzle-orm": "0.41.0"
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
