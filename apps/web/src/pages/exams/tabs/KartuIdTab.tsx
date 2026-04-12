@@ -238,7 +238,7 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
         <div className="w-full h-[600px] border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden bg-gray-50 dark:bg-[#0a0a0a]">
           {activePreview === 'kartu-peserta' && (
             <iframe 
-              src={`/dashboard/print-kartu-peserta/${ujianId}${selectedRoomId !== 'ALL' ? `?ruangId=${selectedRoomId}` : ''}`}
+              src={`/dashboard/print-kartu-peserta/${ujianId}?preview=true${selectedRoomId !== 'ALL' ? `&ruangId=${selectedRoomId}` : ''}`}
               className="w-full h-full"
             />
           )}

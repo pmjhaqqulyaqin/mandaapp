@@ -81,12 +81,12 @@ export const PrintKartuPeserta = () => {
   }, [ujianId, ruangId]);
 
   useEffect(() => {
-    if (!loading && ujian) {
+    if (!loading && ujian && searchParams.get('preview') !== 'true') {
       setTimeout(() => {
          window.print();
       }, 1500);
     }
-  }, [loading, ujian]);
+  }, [loading, ujian, searchParams]);
 
   if (loading) {
     return <div className="flex h-screen items-center justify-center bg-gray-100"><Loader2 className="animate-spin text-violet-500" size={32} /></div>;
