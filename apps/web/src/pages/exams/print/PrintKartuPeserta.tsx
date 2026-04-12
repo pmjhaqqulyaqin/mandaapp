@@ -60,6 +60,15 @@ export const PrintKartuPeserta = () => {
         if (ruangId && ruangId !== 'ALL') {
           dist = dist.filter((x: any) => x.ruangId === ruangId);
         }
+        
+        // assign urutan per ruang
+        const counts: Record<string, number> = {};
+        dist = dist.map((x: any) => {
+           const rId = x.ruangId || 'unknown';
+           counts[rId] = (counts[rId] || 0) + 1;
+           return { ...x, urutRuang: counts[rId] };
+        });
+        
         setDistribusi(dist);
         setGlobalSettings(sRes?.data || sRes || {});
       } catch (err) {
@@ -117,8 +126,26 @@ export const PrintKartuPeserta = () => {
     const s = item.siswa || {};
     const ruang = item.ruang?.namaRuang || item.ruangId || '-';
     
+    // PEMBUATAN NOMOR PESERTA KUSTOM
+    const lastYearStr = tahunAjaran.length >= 2 ? tahunAjaran.slice(-2) : '00';
+    const semesterLower = (ujian?.semester || '').toLowerCase();
+    const semCode = semesterLower.includes('ganjil') ? '01' : semesterLower.includes('genap') ? '02' : '00';
+    
+    const kelasStr = (s.fullClassName || s.className || '').toUpperCase();
+    let gradeCode = '00';
+    if (kelasStr.includes('XII') || kelasStr.includes('12')) gradeCode = '12';
+    else if (kelasStr.includes('XI') || kelasStr.includes('11')) gradeCode = '11';
+    else if (kelasStr.includes('X') || kelasStr.includes('10')) gradeCode = '10';
+    
+    const ruangMatch = ruang.match(/\d+/);
+    const ruangNumber = ruangMatch ? parseInt(ruangMatch[0], 10) : 0;
+    const ruangCode = ruangNumber.toString().padStart(2, '0');
+    
+    const urutCode = (item.urutRuang || 1).toString().padStart(3, '0');
+    const nomorPesertaKustom = `${lastYearStr}-${semCode}-${gradeCode}-${ruangCode}-${urutCode}`;
+
     // QR Code data
-    const qrData = `Nama: ${s.fullName}\nNIS: ${s.nis}\nNISN: ${s.nisn}\nKelas: ${s.fullClassName || s.className}\nRuang: ${ruang}`;
+    const qrData = `Nama: ${s.fullName}\nNo. Peserta: ${nomorPesertaKustom}\nNIS: ${s.nis}\nNISN: ${s.nisn}\nKelas: ${s.fullClassName || s.className}\nRuang: ${ruang}`;
 
     // Penentuan foto avatar
     let photoSrc = s.photoUrl;
@@ -158,7 +185,7 @@ export const PrintKartuPeserta = () => {
               <tr>
                 <td className="w-28 py-[1px] align-top">Nomor Peserta</td>
                 <td className="w-3 py-[1px] align-top">:</td>
-                <td className="py-[1px] font-bold uppercase">{s.nis || s.nisn || '-'}</td>
+                <td className="py-[1px] font-bold uppercase">{nomorPesertaKustom}</td>
               </tr>
               <tr>
                 <td className="py-[1px] align-top">Nama Peserta</td>
