@@ -9,6 +9,7 @@ import { eq, desc, asc, and, inArray, gte, lte, or } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import ExcelJS from 'exceljs';
 import * as path from 'path';
+import * as fs from 'fs';
 
 export class ExamService {
 
@@ -1710,21 +1711,21 @@ export class ExamService {
     try {
       if (cardSetting.kemenagLogoUrl) { // Kiri
         const logoKiriPath = path.join(process.cwd(), 'uploads', path.basename(cardSetting.kemenagLogoUrl));
-        if (require('fs').existsSync(logoKiriPath)) {
+        if (fs.existsSync(logoKiriPath)) {
           let ext = path.extname(logoKiriPath).substring(1).toLowerCase();
           if (ext === 'jpg') ext = 'jpeg';
-          const logoId = workbook.addImage({ filename: logoKiriPath, extension: ext as any });
-          sheet.addImage(logoId, 'A1:A4'); // using A1:A4
+          const logoId = workbook.addImage({ buffer: fs.readFileSync(logoKiriPath) as any, extension: ext as any });
+          sheet.addImage(logoId, 'A1:A4');
         }
       }
       if (cardSetting.schoolLogoUrl) { // Kanan
         const logoKananPath = path.join(process.cwd(), 'uploads', path.basename(cardSetting.schoolLogoUrl));
-        if (require('fs').existsSync(logoKananPath)) {
+        if (fs.existsSync(logoKananPath)) {
           let ext = path.extname(logoKananPath).substring(1).toLowerCase();
           if (ext === 'jpg') ext = 'jpeg';
-          const logoId = workbook.addImage({ filename: logoKananPath, extension: ext as any });
+          const logoId = workbook.addImage({ buffer: fs.readFileSync(logoKananPath) as any, extension: ext as any });
           const colLetter = getColLetter(totalCols);
-          sheet.addImage(logoId, `${colLetter}1:${colLetter}4`); // Rightmost column
+          sheet.addImage(logoId, `${colLetter}1:${colLetter}4`);
         }
       }
     } catch (e) {
@@ -1965,19 +1966,19 @@ export class ExamService {
     try {
       if (cardSetting.kemenagLogoUrl) { 
         const logoKiriPath = path.join(process.cwd(), 'uploads', path.basename(cardSetting.kemenagLogoUrl));
-        if (require('fs').existsSync(logoKiriPath)) {
+        if (fs.existsSync(logoKiriPath)) {
           let ext = path.extname(logoKiriPath).substring(1).toLowerCase();
           if (ext === 'jpg') ext = 'jpeg';
-          const logoId = workbook.addImage({ filename: logoKiriPath, extension: ext as any });
+          const logoId = workbook.addImage({ buffer: fs.readFileSync(logoKiriPath) as any, extension: ext as any });
           sheet.addImage(logoId, 'A1:A4');
         }
       }
       if (cardSetting.schoolLogoUrl) { 
         const logoKananPath = path.join(process.cwd(), 'uploads', path.basename(cardSetting.schoolLogoUrl));
-        if (require('fs').existsSync(logoKananPath)) {
+        if (fs.existsSync(logoKananPath)) {
           let ext = path.extname(logoKananPath).substring(1).toLowerCase();
           if (ext === 'jpg') ext = 'jpeg';
-          const logoId = workbook.addImage({ filename: logoKananPath, extension: ext as any });
+          const logoId = workbook.addImage({ buffer: fs.readFileSync(logoKananPath) as any, extension: ext as any });
           const colLetter = getColLetter(totalCols);
           sheet.addImage(logoId, `${colLetter}1:${colLetter}4`);
         }
