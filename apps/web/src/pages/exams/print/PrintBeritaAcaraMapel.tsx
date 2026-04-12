@@ -114,6 +114,14 @@ export const PrintBeritaAcaraMapel = () => {
 
   // === WORD EXPORT HELPER ===
   const generateWordHtml = () => {
+    const kop_ = ujian.pengaturan?.kop || {};
+    const kartuS_ = ujian.pengaturan?.kartuPeserta || {};
+    const baseUrl = window.location.origin;
+    const lKiri = kartuS_.logoKiri || globalSettings?.kemenagLogoUrl || globalSettings?.schoolLogoUrl || '';
+    const lKanan = kartuS_.logoKanan || '';
+    const logoKiriUrl = lKiri ? (lKiri.startsWith('http') ? lKiri : baseUrl + lKiri) : '';
+    const logoKananUrl = lKanan ? (lKanan.startsWith('http') ? lKanan : baseUrl + lKanan) : '';
+
     const pages = data.map((item) => {
       const { jadwal, ruang, pengawas1, pengawas2, assignedKelasStr } = item;
       let hariStr = '', tglWordsStr = '', blnStr = '', thnWordsStr = '';
@@ -145,82 +153,87 @@ export const PrintBeritaAcaraMapel = () => {
       const tAjaran = ujian.tahunAjaran || '';
 
       const emptyRows = [0,1,2,3].map(() => `
-        <tr><td style="border:1px solid black;height:22px;">&nbsp;</td><td style="border:1px solid black;">&nbsp;</td><td style="border:1px solid black;">&nbsp;</td><td style="border:1px solid black;">&nbsp;</td></tr>
+        <tr><td style="border:1px solid black;height:20px;">&nbsp;</td><td style="border:1px solid black;">&nbsp;</td><td style="border:1px solid black;">&nbsp;</td><td style="border:1px solid black;">&nbsp;</td></tr>
       `).join('');
 
-      const catatanLines = [0,1,2,3].map(() => `<p style="border-bottom:1px dotted black;margin:10px 0;">&nbsp;</p>`).join('');
+      const catatanLines = [0,1,2,3].map(() => `<p style="border-bottom:1px dotted black;margin:8px 0;">&nbsp;</p>`).join('');
+
+      const logoKiriImg = logoKiriUrl ? `<img src="${logoKiriUrl}" style="width:50px;height:50px;" />` : '';
+      const logoKananImg = logoKananUrl ? `<img src="${logoKananUrl}" style="width:50px;height:50px;" />` : '';
 
       return `
-        <div style="page-break-after:always;font-family:'Times New Roman',serif;font-size:12pt;max-width:700px;margin:0 auto;">
+        <div style="page-break-after:always;font-family:'Times New Roman',serif;font-size:11pt;">
           <!-- KOP -->
-          <table style="width:100%;border-bottom:3px solid black;margin-bottom:10px;">
+          <table style="width:100%;border-bottom:3px solid black;margin-bottom:8px;border-collapse:collapse;">
             <tr>
-              <td style="width:100%;text-align:center;line-height:1.2;">
-                <p style="margin:0;font-weight:bold;font-size:11pt;text-transform:uppercase;">${kem}</p>
-                <p style="margin:0;font-weight:bold;font-size:11pt;text-transform:uppercase;">PANITIA ${nUjian}</p>
-                <p style="margin:0;font-weight:bold;font-size:11pt;text-transform:uppercase;">TAHUN AJARAN ${tAjaran}</p>
-                <p style="margin:2px 0 0 0;font-weight:bold;font-size:13pt;text-transform:uppercase;">${inst}</p>
-                <p style="margin:2px 0 0 0;font-size:9pt;">${almt}</p>
+              <td style="width:60px;text-align:center;vertical-align:middle;">${logoKiriImg}</td>
+              <td style="text-align:center;line-height:1.15;vertical-align:middle;">
+                <p style="margin:0;font-weight:bold;font-size:10pt;text-transform:uppercase;">${kem}</p>
+                <p style="margin:0;font-weight:bold;font-size:10pt;text-transform:uppercase;">PANITIA ${nUjian}</p>
+                <p style="margin:0;font-weight:bold;font-size:10pt;text-transform:uppercase;">TAHUN AJARAN ${tAjaran}</p>
+                <p style="margin:1px 0 0 0;font-weight:bold;font-size:12pt;text-transform:uppercase;">${inst}</p>
+                <p style="margin:1px 0 0 0;font-size:8pt;">${almt}</p>
               </td>
+              <td style="width:60px;text-align:center;vertical-align:middle;">${logoKananImg}</td>
             </tr>
           </table>
 
           <!-- JUDUL -->
-          <p style="text-align:center;font-weight:bold;font-size:16pt;letter-spacing:3px;margin:15px 0;">BERITA ACARA</p>
+          <p style="text-align:center;font-weight:bold;font-size:14pt;letter-spacing:3px;margin:10px 0;">BERITA ACARA</p>
 
           <!-- PARAGRAF 1 -->
-          <p style="text-indent:30px;text-align:justify;line-height:1.8;">
+          <p style="text-indent:30px;text-align:justify;line-height:1.6;font-size:11pt;">
             Pada Hari ini <i>${hariStr}</i> Tanggal <i>${tglWordsStr}</i> Bulan <i>${blnStr}</i> Tahun <i>${thnWordsStr}</i> telah diselenggarakan ${nUjian} Tahun Ajaran ${tAjaran},
           </p>
 
-          <p style="line-height:1.8;margin-top:5px;">
+          <p style="line-height:1.6;margin-top:3px;font-size:11pt;">
             Mata Pelajaran &nbsp;: <i><b>${mapelStr}</b></i> &nbsp;&nbsp;
             Kelas : <i>${kelasStr}</i> &nbsp;&nbsp;
             Ruang : <i>${ruangStr}</i> &nbsp;&nbsp;
             dari Pukul : <i>${mulaiStr}</i> Wita s/d <i>${selesaiStr}</i> Wita.
           </p>
 
-          <table style="margin-top:5px;line-height:1.6;">
+          <table style="margin-top:3px;line-height:1.4;font-size:11pt;">
             <tr><td style="width:120px;">Jumlah Peserta</td><td style="width:10px;">:</td><td style="width:80px;border-bottom:1px dotted black;">&nbsp;</td><td style="padding-left:5px;">Orang</td></tr>
             <tr><td>Yang Hadir</td><td>:</td><td style="border-bottom:1px dotted black;">&nbsp;</td><td style="padding-left:5px;">Orang,</td></tr>
             <tr><td>Yang Tidak Hadir</td><td>:</td><td style="border-bottom:1px dotted black;">&nbsp;</td><td style="padding-left:5px;">Orang,</td></tr>
           </table>
 
           <!-- TABEL -->
-          <p style="font-weight:bold;font-style:italic;margin:12px 0 5px 0;">Data Siswa Yang Berhalangan Hadir</p>  
+          <p style="font-weight:bold;font-style:italic;margin:8px 0 3px 0;font-size:11pt;">Data Siswa Yang Berhalangan Hadir</p>  
           <table style="width:100%;border-collapse:collapse;text-align:center;font-size:11pt;">
             <tr>
-              <th style="border:1px solid black;padding:5px;width:20%;font-weight:bold;">NOMOR PESERTA</th>
-              <th style="border:1px solid black;padding:5px;width:40%;font-weight:bold;">NAMA SISWA</th>
-              <th style="border:1px solid black;padding:5px;width:15%;font-weight:bold;">KELAS</th>
-              <th style="border:1px solid black;padding:5px;width:25%;font-weight:bold;">KETERANGAN</th>
+              <th style="border:1px solid black;padding:4px;width:20%;font-weight:bold;">NOMOR PESERTA</th>
+              <th style="border:1px solid black;padding:4px;width:40%;font-weight:bold;">NAMA SISWA</th>
+              <th style="border:1px solid black;padding:4px;width:15%;font-weight:bold;">KELAS</th>
+              <th style="border:1px solid black;padding:4px;width:25%;font-weight:bold;">KETERANGAN</th>
             </tr>
             ${emptyRows}
           </table>
 
           <!-- PARAGRAF 2 -->
-          <p style="text-align:justify;line-height:1.8;margin:10px 0;">
+          <p style="text-align:justify;line-height:1.6;margin:8px 0;font-size:11pt;">
             Setelah dibuka sampul Soal ${nUjian} dengan disaksikan oleh para peserta, berisikan Naskah Soal Sebanyak ............... Eksemplar, Lembar Jawaban ............... Eksemplar, Berita Acara sebanyak ............... Eksemplar, dan Daftar Hadir sebanyak ............... Eksemplar.
           </p>
 
           <!-- CATATAN -->
-          <p style="font-weight:bold;font-style:italic;margin:10px 0 0 0;">Catatan:</p>
+          <p style="font-weight:bold;font-style:italic;margin:6px 0 0 0;font-size:11pt;">Catatan:</p>
           ${catatanLines}
 
-          <p style="margin:10px 0;">Demikian berita acara ini dibuat dengan sesungguhnya.</p>
+          <p style="margin:6px 0;font-size:11pt;">Demikian berita acara ini dibuat dengan sesungguhnya.</p>
 
           <!-- TANDA TANGAN -->
-          <table style="width:100%;margin-top:10px;">
+          <table style="width:100%;margin-top:5px;font-size:11pt;">
             <tr>
-              <td style="width:40%;text-align:center;">Pengawas I</td>
-              <td style="width:20%;text-align:center;">Yang membuat berita acara</td>
-              <td style="width:40%;text-align:center;">Pengawas II</td>
+              <td style="width:40%;text-align:center;vertical-align:top;">Pengawas I</td>
+              <td style="width:20%;text-align:center;vertical-align:top;">Yang membuat berita acara</td>
+              <td style="width:40%;text-align:center;vertical-align:top;">Pengawas II</td>
             </tr>
-            <tr style="height:60px;"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+            <tr style="height:45px;"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
             <tr>
-              <td style="text-align:center;font-weight:bold;text-transform:uppercase;">${p1Name}${p1Name ? `<br/><span style="font-weight:normal;font-size:10pt;">NIP. ${p1Nip}</span>` : ''}</td>
+              <td style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:11pt;">${p1Name}${p1Name ? `<br/><span style="font-weight:normal;font-size:9pt;">NIP. ${p1Nip}</span>` : ''}</td>
               <td>&nbsp;</td>
-              <td style="text-align:center;font-weight:bold;text-transform:uppercase;">${p2Name}${p2Name ? `<br/><span style="font-weight:normal;font-size:10pt;">NIP. ${p2Nip}</span>` : ''}</td>
+              <td style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:11pt;">${p2Name}${p2Name ? `<br/><span style="font-weight:normal;font-size:9pt;">NIP. ${p2Nip}</span>` : ''}</td>
             </tr>
           </table>
         </div>
