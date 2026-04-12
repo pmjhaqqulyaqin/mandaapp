@@ -184,14 +184,14 @@ export const PrintKartuPeserta = () => {
           </table>
 
           {/* BOTTOM SECTION: PHOTO & TTD & QR */}
-          <div className="mt-auto flex items-start justify-between pt-1">
+          <div className="mt-auto flex justify-between pt-1 h-[105px]">
             {/* PHOTO */}
-            <div className="w-20 h-[105px] border-2 border-black flex items-center justify-center bg-gray-100 flex-shrink-0 overflow-hidden">
+            <div className="w-20 h-full border-2 border-black flex items-center justify-center bg-gray-100 flex-shrink-0 overflow-hidden">
                <img src={photoSrc} alt="Foto Peserta" className="w-full h-full object-cover" />
             </div>
 
             {/* TTD BLOCK */}
-            <div className="flex-1 flex flex-col justify-end pl-3 pr-2 h-[105px]">
+            <div className="flex-1 flex flex-col justify-end pl-3 pr-2 h-full">
               <div className="flex flex-col text-[10px] ml-4">
                 <span>{tempat}, {formatDate(tanggal)}</span>
                 <span>{jabatan},</span>
@@ -207,9 +207,11 @@ export const PrintKartuPeserta = () => {
               </div>
             </div>
               
-            {/* QR CODE - sejajar dengan foto */}
-            <div className="w-[60px] h-[60px] flex-shrink-0 mr-1">
-               <QrCodeImage data={qrData} size={60} />
+            {/* QR CODE - sejajar dengan foto di atas */}
+            <div className="flex flex-col justify-start items-end w-[60px] h-full flex-shrink-0 mr-1">
+               <div className="border border-gray-200 overflow-hidden" style={{ width: 60, height: 60 }}>
+                  <QrCodeImage data={qrData} size={60} />
+               </div>
             </div>
           </div>
         </div>
