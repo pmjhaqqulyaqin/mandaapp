@@ -225,42 +225,36 @@ export const PrintBeritaAcaraMapel = () => {
              Tahun {thnStr ? <span className="italic mr-1 ml-1">{thnWordsStr}</span> : <span className="border-b border-dotted border-black min-w-[150px] inline-block text-center mr-1 ml-1">&nbsp;</span>} telah diselenggarakan {namaUjian} Tahun Ajaran {tahunAjaran},
           </p>
           
-          <table className="w-full text-[15px] border-collapse mt-2">
-            <tbody>
-              <tr className="align-bottom">
-                <td className="w-[120px] pb-1">Mata Pelajaran</td>
-                <td className="w-[10px] text-center pb-1">:</td>
-                <td className={mapelStr ? 'italic uppercase pl-2 font-semibold pb-1' : 'border-b border-dotted border-black pl-2 pb-1'} colSpan={9}>
-                  {mapelStr || <span className="text-transparent">.</span>}
-                </td>
-              </tr>
-              <tr className="align-bottom h-8">
-                <td className="pb-1">Kelas</td>
-                <td className="text-center pb-1">:</td>
-                <td className={kelasStr ? 'italic text-center w-[120px] pb-1' : 'border-b border-dotted border-black w-[120px] pb-1'}>
-                  {kelasStr || <span className="text-transparent">.</span>}
-                </td>
-                <td className="px-2 w-auto whitespace-nowrap pb-1">Ruang</td>
-                <td className="text-center pb-1">:</td>
-                <td className={ruangStr ? 'italic text-center w-[80px] pb-1' : 'border-b border-dotted border-black w-[80px] pb-1'}>
-                  {ruangStr || <span className="text-transparent">.</span>}
-                </td>
-                <td className="px-2 w-auto whitespace-nowrap pb-1">dari Pukul</td>
-                <td className="w-[10px] text-center pb-1">:</td>
-                <td className="pb-1 whitespace-nowrap">
-                  <span className={mulaiStr ? 'italic text-center px-1' : 'border-b border-dotted border-black px-1 inline-block min-w-[60px]'}>
-                    {mulaiStr || <span className="text-transparent">.</span>}
-                  </span>
-                  <span className="ml-1">Wita</span>
-                  <span className="not-italic inline-block mx-2">s/d</span> 
-                  <span className={selesaiStr ? 'italic text-center px-1' : 'border-b border-dotted border-black px-1 inline-block min-w-[60px]'}>
-                    {selesaiStr || <span className="text-transparent">.</span>}
-                  </span>
-                  <span className="ml-1">Wita.</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div className="mt-2 text-justify">
+            <span className="inline-block w-[120px]">Mata Pelajaran</span>
+            <span>: </span>
+            <span className={mapelStr ? 'italic uppercase font-semibold' : 'inline-block min-w-[150px] border-b border-dotted border-black'}>
+              {mapelStr || <span className="text-transparent">.</span>}
+            </span>
+            
+            <span className="ml-3">Kelas : </span>
+            <span className={kelasStr ? 'italic' : 'inline-block min-w-[40px] border-b border-dotted border-black'}>
+              {kelasStr || <span className="text-transparent">.</span>}
+            </span>
+
+            <span className="ml-3">Ruang : </span>
+            <span className={ruangStr ? 'italic' : 'inline-block min-w-[40px] border-b border-dotted border-black'}>
+              {ruangStr || <span className="text-transparent">.</span>}
+            </span>
+
+            <span className="ml-3 whitespace-nowrap">
+              <span>dari Pukul : </span>
+              <span className={mulaiStr ? 'italic' : 'border-b border-dotted border-black inline-block min-w-[60px]'}>
+                {mulaiStr || <span className="text-transparent">.</span>}
+              </span>
+              <span className="ml-1">Wita</span>
+              <span className="mx-1.5">s/d</span> 
+              <span className={selesaiStr ? 'italic' : 'border-b border-dotted border-black inline-block min-w-[60px]'}>
+                {selesaiStr || <span className="text-transparent">.</span>}
+              </span>
+              <span className="ml-1">Wita.</span>
+            </span>
+          </div>
           
           <table className="w-full text-[15px] mt-3 border-collapse">
             <tbody>
