@@ -1683,7 +1683,7 @@ export class ExamService {
     sheet.getCell(2, 1).alignment = { horizontal: 'center' };
     
     sheet.mergeCells(3, 1, 3, totalCols);
-    sheet.getCell(3, 1).value = `${configKop.panitia || 'PANITIA'} ${namaUjian} TAHUN AJARAN ${tahunAjaran}`;
+    sheet.getCell(3, 1).value = configKop.panitia || `PANITIA ${namaUjian} TAHUN AJARAN ${tahunAjaran}`;
     sheet.getCell(3, 1).font = { bold: true, size: 11 };
     sheet.getCell(3, 1).alignment = { horizontal: 'center' };
 
@@ -1711,17 +1711,20 @@ export class ExamService {
       if (cardSetting.kemenagLogoUrl) { // Kiri
         const logoKiriPath = path.join(process.cwd(), 'uploads', path.basename(cardSetting.kemenagLogoUrl));
         if (require('fs').existsSync(logoKiriPath)) {
-          const ext = path.extname(logoKiriPath).substring(1);
+          let ext = path.extname(logoKiriPath).substring(1).toLowerCase();
+          if (ext === 'jpg') ext = 'jpeg';
           const logoId = workbook.addImage({ filename: logoKiriPath, extension: ext as any });
-          sheet.addImage(logoId, 'A1:B4');
+          sheet.addImage(logoId, 'A1:A4'); // using A1:A4
         }
       }
       if (cardSetting.schoolLogoUrl) { // Kanan
         const logoKananPath = path.join(process.cwd(), 'uploads', path.basename(cardSetting.schoolLogoUrl));
         if (require('fs').existsSync(logoKananPath)) {
-          const ext = path.extname(logoKananPath).substring(1);
+          let ext = path.extname(logoKananPath).substring(1).toLowerCase();
+          if (ext === 'jpg') ext = 'jpeg';
           const logoId = workbook.addImage({ filename: logoKananPath, extension: ext as any });
-          sheet.addImage(logoId, `${getColLetter(Math.max(1, totalCols - 1))}1:${getColLetter(totalCols)}4`);
+          const colLetter = getColLetter(totalCols);
+          sheet.addImage(logoId, `${colLetter}1:${colLetter}4`); // Rightmost column
         }
       }
     } catch (e) {
