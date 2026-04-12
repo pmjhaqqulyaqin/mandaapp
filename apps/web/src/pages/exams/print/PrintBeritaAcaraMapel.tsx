@@ -229,6 +229,9 @@ export const PrintBeritaAcaraMapel = () => {
     return pages.join('');
   };
 
+  const query = new URLSearchParams(window.location.search);
+  const isWordExport = query.get('export') === 'word';
+
   useEffect(() => {
     if (!loading && ujian && data.length > 0) {
       setTimeout(() => {
