@@ -1793,17 +1793,25 @@ export class ExamService {
     sheet.getColumn(totalCols).width = 8; // KET
     
     // Signature block
-    const cetakWaktu = config.cetakWaktu || {};
-    const distribTtd = cetakWaktu.beritaAcara || {}; // usually uses beritaAcara format
+    const distribTtd = config.ttd || {}; 
     const ttdRow = startDataRow + loopData.length + 2;
     const ttdColStart = Math.max(3, totalCols - 3);
     
+    let tglStr = distribTtd.tanggal;
+    try {
+      if (tglStr) {
+         const tDate = new Date(tglStr);
+         const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+         tglStr = `${tDate.getDate()} ${months[tDate.getMonth()]} ${tDate.getFullYear()}`;
+      }
+    } catch(e) {}
+    
     sheet.mergeCells(ttdRow, ttdColStart, ttdRow, totalCols);
-    sheet.getCell(ttdRow, ttdColStart).value = `${distribTtd.tempatTanggal || 'Mataram, ......................'}`;
+    sheet.getCell(ttdRow, ttdColStart).value = `${distribTtd.tempat || '..............'}, ${tglStr || '......................'}`;
     sheet.getCell(ttdRow, ttdColStart).alignment = { horizontal: 'center' };
     
     sheet.mergeCells(ttdRow + 1, ttdColStart, ttdRow + 1, totalCols);
-    sheet.getCell(ttdRow + 1, ttdColStart).value = distribTtd.jabatan || 'Panitia';
+    sheet.getCell(ttdRow + 1, ttdColStart).value = distribTtd.jabatan || 'Kepala Madrasah';
     sheet.getCell(ttdRow + 1, ttdColStart).alignment = { horizontal: 'center' };
     
     sheet.mergeCells(ttdRow + 5, ttdColStart, ttdRow + 5, totalCols);
