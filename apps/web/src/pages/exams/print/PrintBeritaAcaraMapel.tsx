@@ -225,8 +225,8 @@ export const PrintBeritaAcaraMapel = () => {
              Tahun {thnStr ? <span className="italic mr-1 ml-1">{thnWordsStr}</span> : <span className="border-b border-dotted border-black min-w-[150px] inline-block text-center mr-1 ml-1">&nbsp;</span>} telah diselenggarakan {namaUjian} Tahun Ajaran {tahunAjaran},
           </p>
           
-          <div className="mt-2 text-justify leading-[1.8]">
-            <span className="inline-block w-[120px] text-left">Mata Pelajaran</span>
+          <div className="mt-2 text-left leading-[1.8]">
+            <span className="inline-block w-[120px]">Mata Pelajaran</span>
             <span className="mr-1">:</span>
             <span className={mapelStr ? 'italic uppercase font-semibold mr-3' : 'inline-block min-w-[150px] border-b border-dotted border-black mr-3'}>
               {mapelStr || <span className="text-transparent">.</span>}
