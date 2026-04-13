@@ -223,8 +223,21 @@ export class PPDBService {
     const dataDiri = await db.select().from(ppdbDataDiri).where(eq(ppdbDataDiri.pendaftarId, pendaftar.id));
     const jalurData = await db.select().from(ppdbJalur).where(eq(ppdbJalur.id, pendaftar.jalurId));
 
+    const config = await db.select().from(ppdbConfig).limit(1);
+    const pengumuman = config[0]?.tanggalPengumuman ? new Date(config[0].tanggalPengumuman) : null;
+    let finalStatus = pendaftar.status;
+
+    // Mask status if not yet announcement time AND the status is final (diterima/ditolak/cadangan)
+    if (pengumuman && new Date() < pengumuman) {
+      if (pendaftar.status && ['diterima', 'ditolak', 'cadangan'].includes(pendaftar.status)) {
+        finalStatus = 'menunggu_pengumuman';
+      }
+    }
+
     return {
       ...pendaftar,
+      status: finalStatus,
+      realStatus: pendaftar.status, // Internal use
       dataDiri: dataDiri[0] || null,
       jalur: jalurData[0] || null,
     };
@@ -407,6 +420,117 @@ export class PPDBService {
       .where(eq(ppdbJalur.id, id))
       .returning();
     return updated;
+  }
+
+  // ============ ADMIN: Config & Selection (Batch 2) ============
+
+  /** Update PPDB System Configuration (Tanggal Pengumuman, etc) */
+  static async updateConfig(id: string, data: { tahunAjaran?: string; isActive?: boolean; tanggalPengumuman?: string | null }) {
+    const [updated] = await db.update(ppdbConfig)
+      .set({
+        tahunAjaran: data.tahunAjaran,
+        isActive: data.isActive,
+        tanggalPengumuman: data.tanggalPengumuman ? new Date(data.tanggalPengumuman) : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(ppdbConfig.id, id))
+      .returning();
+    return updated;
+  }
+
+  /** Calculate and Generate Ranking for all verified Pendaftar in a Jalur */
+  static async generateRanking(jalurId: string) {
+    const jalurData = await db.select().from(ppdbJalur).where(eq(ppdbJalur.id, jalurId));
+    if (jalurData.length === 0) throw new Error('Jalur tidak ditemukan');
+    const jalur = jalurData[0];
+
+    // Get all verified/accepted candidates
+    const candidates = await db.select().from(ppdbPendaftar)
+      .where(and(
+        eq(ppdbPendaftar.jalurId, jalurId),
+        or(eq(ppdbPendaftar.status, 'terverifikasi'), eq(ppdbPendaftar.status, 'diterima'), eq(ppdbPendaftar.status, 'cadangan'))
+      ));
+
+    // Calculate final true score based on bobot
+    const scoredCandidates = await Promise.all(candidates.map(async (c) => {
+      // Base score is nilaiAkhir
+      const baseScore = parseFloat(c.nilaiAkhir || '0');
+      
+      // Calculate prestasi score loosely (count certificates or level)
+      // Just a simple approximation since real ranking is complex. Let's say Internasional = +100, Nasional=+80, Provinsi=+60, Kabupaten=+40
+      const prestasiList = await db.select().from(ppdbPrestasi).where(eq(ppdbPrestasi.pendaftarId, c.id));
+      let prestasiScore = 0;
+      for (const p of prestasiList) {
+        if (p.tingkat?.toLowerCase() === 'internasional') prestasiScore += 100;
+        else if (p.tingkat?.toLowerCase() === 'nasional') prestasiScore += 80;
+        else if (p.tingkat?.toLowerCase() === 'provinsi') prestasiScore += 60;
+        else if (p.tingkat?.toLowerCase() === 'kabupaten') prestasiScore += 40;
+        else prestasiScore += 20; // Default
+      }
+      // Cap prestasiScore to 100
+      prestasiScore = Math.min(prestasiScore, 100);
+
+      const bobotNilai = jalur.bobotNilai || 100;
+      const bobotPrestasi = jalur.bobotPrestasi || 0;
+
+      const finalScore = ((baseScore * bobotNilai) + (prestasiScore * bobotPrestasi)) / (bobotNilai + bobotPrestasi);
+
+      return {
+        id: c.id,
+        rawScore: baseScore,
+        prestasiScore,
+        finalScore,
+      };
+    }));
+
+    // Sort descending by finalScore
+    scoredCandidates.sort((a, b) => b.finalScore - a.finalScore);
+
+    // Update Rankings
+    for (let i = 0; i < scoredCandidates.length; i++) {
+      await db.update(ppdbPendaftar)
+        .set({ ranking: i + 1 })
+        .where(eq(ppdbPendaftar.id, scoredCandidates[i].id));
+    }
+
+    return { totalRanked: scoredCandidates.length };
+  }
+
+  /** Bulk update acceptance based on ranking and quota */
+  static async tetapkanKelulusan(jalurId: string) {
+    const jalurData = await db.select().from(ppdbJalur).where(eq(ppdbJalur.id, jalurId));
+    if (jalurData.length === 0) throw new Error('Jalur tidak ditemukan');
+    const jalur = jalurData[0];
+    const quota = jalur.kuota || 0;
+
+    // Get all ranked candidates
+    const ranked = await db.select().from(ppdbPendaftar)
+      .where(and(
+        eq(ppdbPendaftar.jalurId, jalurId),
+        sql`${ppdbPendaftar.ranking} IS NOT NULL`
+      ))
+      .orderBy(asc(ppdbPendaftar.ranking));
+
+    let acceptedCount = 0;
+    
+    // Process acceptance
+    for (const p of ranked) {
+      if (p.status === 'ditolak') continue; // Skip already rejected explicitly
+      
+      let newStatus = 'cadangan';
+      if (acceptedCount < quota) {
+        newStatus = 'diterima';
+        acceptedCount++;
+      } else {
+        newStatus = 'cadangan';
+      }
+
+      await db.update(ppdbPendaftar)
+        .set({ status: newStatus, updatedAt: new Date() })
+        .where(eq(ppdbPendaftar.id, p.id));
+    }
+
+    return { updated: ranked.length, accepted: acceptedCount };
   }
 
   // ============ ADMIN: Export ============

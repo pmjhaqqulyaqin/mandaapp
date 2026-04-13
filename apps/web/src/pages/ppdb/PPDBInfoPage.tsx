@@ -543,9 +543,10 @@ export const PPDBInfoPage = () => {
                   trackResult.status === 'terverifikasi' ? 'bg-blue-100 text-blue-700' :
                   trackResult.status === 'ditolak' ? 'bg-red-100 text-red-700' :
                   trackResult.status === 'cadangan' ? 'bg-amber-100 text-amber-700' :
+                  trackResult.status === 'menunggu_pengumuman' ? 'bg-purple-100 text-purple-700' :
                   'bg-yellow-100 text-yellow-700'
                 }`}>
-                  {trackResult.status}
+                  {trackResult.status.replace('_', ' ')}
                 </span>
               </div>
 
@@ -556,11 +557,18 @@ export const PPDBInfoPage = () => {
                   <div className="font-semibold text-gray-800 text-sm">Formulir Terkirim</div>
                   <div className="text-xs text-gray-400 mt-0.5">{new Date(trackResult.tglDaftar).toLocaleString('id-ID')}</div>
                 </div>
-                {(trackResult.status === 'terverifikasi' || trackResult.status === 'diterima') && (
+                {(trackResult.status === 'terverifikasi' || trackResult.status === 'diterima' || trackResult.status === 'menunggu_pengumuman') && (
                   <div className="relative pl-6">
                     <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-blue-500 shadow-[0_0_0_4px_white]" />
                     <div className="font-semibold text-gray-800 text-sm">Data Terverifikasi</div>
                     <div className="text-xs text-gray-500 mt-0.5">Data Anda telah diverifikasi oleh admin.</div>
+                  </div>
+                )}
+                {trackResult.status === 'menunggu_pengumuman' && (
+                  <div className="relative pl-6">
+                    <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-purple-500 shadow-[0_0_0_4px_white]" />
+                    <div className="font-semibold text-purple-700 text-sm">Menunggu Pengumuman</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Status kelulusan sedang diproses. Silakan kembali pada tanggal pengumuman.</div>
                   </div>
                 )}
                 {trackResult.status === 'diterima' && (

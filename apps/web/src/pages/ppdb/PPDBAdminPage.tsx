@@ -8,12 +8,13 @@ import {
   CheckCircle, Clock, XCircle, AlertCircle
 } from 'lucide-react';
 
-type TabKey = 'overview' | 'pendaftar' | 'konfigurasi';
+type TabKey = 'overview' | 'pendaftar' | 'seleksi' | 'konfigurasi';
 
 const TABS: { key: TabKey; label: string; icon: any }[] = [
   { key: 'overview', label: 'Overview', icon: BarChart3 },
   { key: 'pendaftar', label: 'Data Pendaftar', icon: Users },
-  { key: 'konfigurasi', label: 'Konfigurasi Jalur', icon: Settings },
+  { key: 'seleksi', label: 'Seleksi & Pengumuman', icon: Trophy },
+  { key: 'konfigurasi', label: 'Konfigurasi', icon: Settings },
 ];
 
 const STATUS_MAP: Record<string, { label: string; color: string; icon: any }> = {
@@ -77,7 +78,8 @@ export const PPDBAdminPage = () => {
         <div className="p-4 md:p-5">
           {activeTab === 'overview' && <OverviewTab stats={stats} loading={loadingStats} />}
           {activeTab === 'pendaftar' && <PendaftarTab stats={stats} />}
-          {activeTab === 'konfigurasi' && <KonfigurasiTab onSaved={fetchStats} />}
+          {activeTab === 'seleksi' && <SeleksiTab stats={stats} />}
+          {activeTab === 'konfigurasi' && <KonfigurasiTab config={stats?.config} onSaved={fetchStats} />}
         </div>
       </div>
     </div>
@@ -406,11 +408,161 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
   );
 };
 
+// ============ SELEKSI & PENGUMUMAN TAB ============
+const SeleksiTab = ({ stats }: { stats: any }) => {
+  const [selectedJalur, setSelectedJalur] = useState<string>('');
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [processing, setProcessing] = useState(false);
+
+  useEffect(() => {
+    if (stats?.jalurStats?.length > 0 && !selectedJalur) {
+      setSelectedJalur(stats.jalurStats[0].id);
+    }
+  }, [stats, selectedJalur]);
+
+  const fetchRankedData = async () => {
+    if (!selectedJalur) return;
+    setLoading(true);
+    try {
+      // Just fetch pendaftar and sort by ranking in frontend, or backend returns sorted
+      const result = await apiClient<any>(`/ppdb/admin/export?jalurId=${selectedJalur}`);
+      // Sort by ranking, null last
+      const sorted = result.sort((a: any, b: any) => {
+        if (!a.pendaftar.ranking) return 1;
+        if (!b.pendaftar.ranking) return -1;
+        return a.pendaftar.ranking - b.pendaftar.ranking;
+      });
+      setData(sorted);
+    } catch (err) { toast.error('Gagal mengambil data ranking'); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchRankedData(); }, [selectedJalur]);
+
+  const handleGenerateRanking = async () => {
+    if (!selectedJalur || !window.confirm('Yakin ingin generate ulang peringkat untuk jalur ini?')) return;
+    setProcessing(true);
+    try {
+      await apiClient(`/ppdb/admin/jalur/${selectedJalur}/ranking`, { method: 'POST' });
+      toast.success('Peringkat berhasil di-generate!');
+      fetchRankedData();
+    } catch (err: any) { toast.error(err.message); }
+    finally { setProcessing(false); }
+  };
+
+  const handleTetapkanKelulusan = async () => {
+    if (!selectedJalur || !window.confirm('Yakin ingin menetapkan status Kelulusan (Diterima/Cadangan) berdasarkan Kuota?')) return;
+    setProcessing(true);
+    try {
+      await apiClient(`/ppdb/admin/jalur/${selectedJalur}/kelulusan`, { method: 'POST' });
+      toast.success('Kelulusan berhasil ditetapkan!');
+      fetchRankedData();
+    } catch (err: any) { toast.error(err.message); }
+    finally { setProcessing(false); }
+  };
+
+  const exportExcel = () => {
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + "Ranking,No Pendaftaran,NISN,Nama,Sekolah Asal,Nilai Akhir,Status\n"
+      + data.map(row => {
+          return `${row.pendaftar.ranking || '-'},${row.pendaftar.noPendaftaran},${row.pendaftar.nisn},"${row.dataDiri?.namaLengkap || ''}","${row.dataSekolah?.namaSekolah || ''}",${row.pendaftar.nilaiAkhir || 0},${row.pendaftar.status}`;
+        }).join("\n");
+        
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `SIMPMB_Export_Jalur_${selectedJalur}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Find info about current selected jalur
+  const currentJalurInfo = stats?.jalurStats?.find((j: any) => j.id === selectedJalur);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row items-center gap-3 bg-gray-50 dark:bg-[#0a0a0a] p-4 rounded-xl border border-gray-100 dark:border-[#222]">
+        <select
+          value={selectedJalur}
+          onChange={e => setSelectedJalur(e.target.value)}
+          className="px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#333] text-sm outline-none bg-white font-bold text-gray-700 min-w-[200px]"
+        >
+          {stats?.jalurStats?.map((j: any) => (
+            <option key={j.id} value={j.id}>{j.namaJalur} (Kuota: {j.kuota})</option>
+          ))}
+        </select>
+        <div className="flex-1" />
+        <button onClick={exportExcel} disabled={data.length === 0} className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-50 flex items-center gap-1.5 disabled:opacity-50">
+          <ClipboardList size={14} /> Export CSV
+        </button>
+        <button onClick={handleGenerateRanking} disabled={processing || !selectedJalur} className="px-4 py-2 bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-blue-600 disabled:opacity-50">
+          <RefreshCw size={14} className={processing ? 'animate-spin' : ''} /> 1. Generate Peringkat
+        </button>
+        <button onClick={handleTetapkanKelulusan} disabled={processing || !selectedJalur} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-700 disabled:opacity-50">
+          <Check size={14} /> 2. Tetapkan Diterima
+        </button>
+      </div>
+
+      <div className="overflow-x-auto border border-gray-100 dark:border-[#222] rounded-xl">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-gray-50 dark:bg-[#0a0a0a]">
+              <th className="px-3 py-2.5 text-center font-semibold text-gray-600 border-b w-16">Rank</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-gray-600 border-b">NISN</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-gray-600 border-b">Nama Siswa</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-gray-600 border-b">Asal Sekolah</th>
+              <th className="px-3 py-2.5 text-center font-semibold text-gray-600 border-b">Nilai Akhir</th>
+              <th className="px-3 py-2.5 text-center font-semibold text-gray-600 border-b">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
+            {loading ? (
+              <tr><td colSpan={6} className="py-12 text-center"><Loader2 className="animate-spin mx-auto text-emerald-500" size={20} /></td></tr>
+            ) : data.length === 0 ? (
+              <tr><td colSpan={6} className="py-12 text-center text-gray-400">Belum ada data pendaftar</td></tr>
+            ) : data.map((row: any) => {
+              const p = row.pendaftar;
+              const statusMeta = STATUS_MAP[p.status] || STATUS_MAP.menunggu;
+              return (
+                <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-[#0a0a0a]">
+                  <td className="px-3 py-2 text-center font-black text-gray-400">{p.ranking || '-'}</td>
+                  <td className="px-3 py-2 font-mono text-gray-600">{p.nisn}</td>
+                  <td className="px-3 py-2 font-bold text-gray-800 dark:text-white">{row.dataDiri?.namaLengkap}</td>
+                  <td className="px-3 py-2 text-gray-600">{row.dataSekolah?.namaSekolah}</td>
+                  <td className="px-3 py-2 text-center font-bold text-emerald-600">{p.nilaiAkhir || '-'}</td>
+                  <td className="px-3 py-2 text-center">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${statusMeta.color}`}>
+                      {statusMeta.label}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
 // ============ KONFIGURASI TAB ============
-const KonfigurasiTab = ({ onSaved }: { onSaved: () => void }) => {
+const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void }) => {
   const [jalurList, setJalurList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+
+  // Local config state for tanggalPengumuman
+  const [sysConfig, setSysConfig] = useState<any>({ tanggalPengumuman: '' });
+
+  useEffect(() => {
+    if (config) {
+      setSysConfig({ 
+        tanggalPengumuman: config.tanggalPengumuman ? new Date(config.tanggalPengumuman).toISOString().slice(0, 16) : '' 
+      });
+    }
+  }, [config]);
 
   useEffect(() => {
     const fetch = async () => {
@@ -450,6 +602,19 @@ const KonfigurasiTab = ({ onSaved }: { onSaved: () => void }) => {
     finally { setSaving(null); }
   };
 
+  const saveConfig = async () => {
+    setSaving('config');
+    try {
+      await apiClient(`/ppdb/admin/config/${config.id}`, {
+        method: 'PUT',
+        data: { tanggalPengumuman: sysConfig.tanggalPengumuman || null },
+      });
+      toast.success('Jadwal Pengumuman berhasil disimpan');
+      onSaved();
+    } catch (err: any) { toast.error(err.message); }
+    finally { setSaving(null); }
+  };
+
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-emerald-500" size={24} /></div>;
 
   const inputClass = "w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-[#333] text-sm outline-none focus:border-emerald-400";
@@ -457,6 +622,37 @@ const KonfigurasiTab = ({ onSaved }: { onSaved: () => void }) => {
 
   return (
     <div className="space-y-6">
+      {/* Pengumuman Header Settings */}
+      <div className="p-5 rounded-xl border border-gray-200 bg-white">
+        <div className="flex items-center gap-2 mb-4">
+          <ClipboardList size={18} className="text-emerald-600" />
+          <h3 className="font-bold text-gray-800">Pengaturan Publikasi & Pengumuman</h3>
+        </div>
+        <div className="max-w-sm">
+          <label className={labelClass}>Waktu Pengumuman Kelulusan</label>
+          <div className="flex items-center gap-3">
+            <input 
+              type="datetime-local" 
+              value={sysConfig.tanggalPengumuman} 
+              onChange={e => setSysConfig({...sysConfig, tanggalPengumuman: e.target.value})} 
+              className={inputClass} 
+            />
+            <button
+              onClick={saveConfig}
+              disabled={saving === 'config'}
+              className="px-4 py-2 bg-gray-800 text-white rounded-lg text-xs font-bold hover:bg-gray-900 disabled:opacity-50 whitespace-nowrap"
+            >
+              {saving === 'config' ? 'Menyimpan...' : 'Simpan Jadwal'}
+            </button>
+          </div>
+          <p className="text-[10px] text-gray-500 mt-2">
+            Status Kelulusan tidak akan dapat dilihat oleh publik sebelum melewati batas waktu ini. (Status akan menjadi "Menunggu Pengumuman").
+          </p>
+        </div>
+      </div>
+
+      <div className="w-full h-px bg-gray-100 my-8" />
+
       {jalurList.map((jalur) => {
         const isPrestasi = jalur.namaJalur === 'PRESTASI';
         return (

@@ -20,5 +20,8 @@ router.put('/admin/pendaftar/:id/status', PPDBController.updatePendaftarStatus);
 router.get('/admin/jalur', PPDBController.getAllJalurAdmin);
 router.put('/admin/jalur/:id', PPDBController.updateJalur);
 router.get('/admin/export', PPDBController.exportPendaftar);
+router.put('/admin/config/:id', PPDBController.updateConfig);
+router.post('/admin/jalur/:jalurId/ranking', PPDBController.generateRanking);
+router.post('/admin/jalur/:jalurId/kelulusan', PPDBController.tetapkanKelulusan);
 
 export const ppdbRoutes = router;

@@ -126,4 +126,31 @@ export class PPDBController {
       res.status(500).json({ error: error.message });
     }
   }
+
+  static async updateConfig(req: Request, res: Response) {
+    try {
+      const result = await PPDBService.updateConfig(req.params.id, req.body);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  static async generateRanking(req: Request, res: Response) {
+    try {
+      const result = await PPDBService.generateRanking(req.params.jalurId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  static async tetapkanKelulusan(req: Request, res: Response) {
+    try {
+      const result = await PPDBService.tetapkanKelulusan(req.params.jalurId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
 }
