@@ -96,42 +96,55 @@ export const PrintBeritaAcaraSekolah = () => {
   }, [ujianId]);
 
   // Helper: convert image URL to base64 data URI
-  const toBase64 = (url: string): Promise<string> => {
-    if (!url) return Promise.resolve('');
-    if (url.startsWith('data:')) return Promise.resolve(url);
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0);
-          resolve(canvas.toDataURL('image/png'));
-        } catch (e) {
-          resolve('');
-        }
-      };
-      img.onerror = () => resolve('');
-      img.src = url;
-    });
+  const toBase64 = async (url: string): Promise<string> => {
+    if (!url) return '';
+    if (url.startsWith('data:')) return url;
+    
+    try {
+      const isRelative = url.startsWith('/');
+      const fullUrl = isRelative ? `${import.meta.env.VITE_API_URL}${url}` : url;
+      
+      const response = await fetch(fullUrl, { mode: 'cors' });
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (err) {
+      console.warn('Fallback to canvas for base64:', err);
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+          } catch (e) {
+            resolve('');
+          }
+        };
+        img.onerror = () => resolve('');
+        img.src = url;
+      });
+    }
   };
 
   // === BUILD WORD HTML ===
   const generateWordHtml = async () => {
     const kop = ujian.pengaturan?.kop || {};
     const kartuS = ujian.pengaturan?.kartuPeserta || {};
-    const baseUrl = window.location.origin;
 
     const lKiri = kartuS.logoKiri || globalSettings?.kemenagLogoUrl || globalSettings?.schoolLogoUrl || '';
     const lKanan = kartuS.logoKanan || '';
-    const logoKiriUrl = lKiri ? (lKiri.startsWith('http') ? lKiri : baseUrl + lKiri) : '';
-    const logoKananUrl = lKanan ? (lKanan.startsWith('http') ? lKanan : baseUrl + lKanan) : '';
 
-    const logoKiriB64 = logoKiriUrl ? await toBase64(logoKiriUrl) : '';
-    const logoKananB64 = logoKananUrl ? await toBase64(logoKananUrl) : '';
+    const logoKiriB64 = lKiri ? await toBase64(lKiri) : '';
+    const logoKananB64 = lKanan ? await toBase64(lKanan) : '';
 
     const kem = kop.kementerian || 'KEMENTERIAN AGAMA REPUBLIK INDONESIA';
     const inst = kop.instansi || 'MADRASAH ALIYAH NEGERI';

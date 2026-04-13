@@ -112,48 +112,60 @@ export const PrintBeritaAcaraMapel = () => {
     fetchData();
   }, [ujianId]);
 
-  // Helper: convert image URL to base64 data URI using canvas
-  const toBase64 = (url: string): Promise<string> => {
-    if (!url) return Promise.resolve('');
-    // Already a data URI
-    if (url.startsWith('data:')) return Promise.resolve(url);
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0);
-          resolve(canvas.toDataURL('image/png'));
-        } catch (e) {
-          console.warn('Canvas toDataURL failed:', e);
+  // Helper: convert image URL to base64 data URI using fetch blob
+  const toBase64 = async (url: string): Promise<string> => {
+    if (!url) return '';
+    if (url.startsWith('data:')) return url;
+    
+    try {
+      const isRelative = url.startsWith('/');
+      const fullUrl = isRelative ? `${import.meta.env.VITE_API_URL}${url}` : url;
+      
+      const response = await fetch(fullUrl, { mode: 'cors' });
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (err) {
+      console.warn('Fallback to canvas for base64:', err);
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+          } catch (e) {
+            console.warn('Canvas toDataURL failed:', e);
+            resolve('');
+          }
+        };
+        img.onerror = () => {
+          console.warn('Image load failed for:', url);
           resolve('');
-        }
-      };
-      img.onerror = () => {
-        console.warn('Image load failed for:', url);
-        resolve('');
-      };
-      img.src = url;
-    });
+        };
+        img.src = url;
+      });
+    }
   };
 
   // === WORD EXPORT HELPER ===
   const generateWordHtml = async () => {
     const kop_ = ujian.pengaturan?.kop || {};
     const kartuS_ = ujian.pengaturan?.kartuPeserta || {};
-    const baseUrl = window.location.origin;
     const lKiri = kartuS_.logoKiri || globalSettings?.kemenagLogoUrl || globalSettings?.schoolLogoUrl || '';
     const lKanan = kartuS_.logoKanan || '';
-    const logoKiriUrl = lKiri ? (lKiri.startsWith('http') ? lKiri : baseUrl + lKiri) : '';
-    const logoKananUrl = lKanan ? (lKanan.startsWith('http') ? lKanan : baseUrl + lKanan) : '';
 
     // Convert logos to base64 so Word can embed them
-    const logoKiriB64 = logoKiriUrl ? await toBase64(logoKiriUrl) : '';
-    const logoKananB64 = logoKananUrl ? await toBase64(logoKananUrl) : '';
+    const logoKiriB64 = lKiri ? await toBase64(lKiri) : '';
+    const logoKananB64 = lKanan ? await toBase64(lKanan) : '';
 
     const pages = data.map((item) => {
       const { jadwal, ruang, pengawas1, pengawas2, assignedKelasStr } = item;
