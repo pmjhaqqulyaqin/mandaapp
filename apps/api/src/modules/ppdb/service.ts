@@ -420,8 +420,8 @@ export class PPDBService {
       .set({
         kuota: data.kuota !== undefined ? data.kuota : undefined,
         nilaiMinimum: data.nilaiMinimum !== undefined ? data.nilaiMinimum : undefined,
-        jadwalBuka: data.jadwalBuka || undefined,
-        jadwalTutup: data.jadwalTutup || undefined,
+        jadwalBuka: data.jadwalBuka ? new Date(data.jadwalBuka) : null,
+        jadwalTutup: data.jadwalTutup ? new Date(data.jadwalTutup) : null,
         persyaratan: data.persyaratan || undefined,
         deskripsi: data.deskripsi || undefined,
         bobotNilai: data.bobotNilai !== undefined ? data.bobotNilai : undefined,
