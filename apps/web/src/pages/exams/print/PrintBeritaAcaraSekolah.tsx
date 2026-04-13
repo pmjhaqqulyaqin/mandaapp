@@ -203,8 +203,8 @@ export const PrintBeritaAcaraSekolah = () => {
     const ketuaName = ketua?.pegawai?.name || ketua?.name || '';
     const ketuaNip = ketua?.pegawai?.nip || ketua?.nip || '';
 
-    // Kepala Madrasah from kop settings
-    const ttdKepsek = kop.ttd || {};
+    // Kepala Madrasah from pengaturan cetak
+    const ttdKepsek = ujian.pengaturan?.ttd || {};
     const kepsekName = ttdKepsek.nama || '';
     const kepsekNip = ttdKepsek.nip || '';
     const kepsekJabatan = ttdKepsek.jabatan || 'Kepala Madrasah';
@@ -359,7 +359,7 @@ export const PrintBeritaAcaraSekolah = () => {
   const ketuaNip = ketua?.pegawai?.nip || ketua?.nip || '';
 
   // Kepala Madrasah
-  const ttdKepsek = kop.ttd || {};
+  const ttdKepsek = ujian.pengaturan?.ttd || {};
   const kepsekName = ttdKepsek.nama || '';
   const kepsekNip = ttdKepsek.nip || '';
   const kepsekJabatan = ttdKepsek.jabatan || 'Kepala Madrasah';
