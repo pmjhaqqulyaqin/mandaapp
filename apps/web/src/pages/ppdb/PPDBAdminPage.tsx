@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../../lib/api';
 import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
+import { MetricCard } from '@mandaapp/ui/src/components/MetricCard';
 import { toast } from 'sonner';
 import {
   GraduationCap, Users, Trophy, ClipboardList, Settings, BarChart3,
@@ -52,8 +53,8 @@ export const PPDBAdminPage = () => {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] overflow-hidden">
-        <div className="border-b border-gray-100 dark:border-[#222] overflow-x-auto">
+      <div className="bg-white dark:bg-background-dark rounded-xl border border-border-light dark:border-border-dark overflow-hidden">
+        <div className="border-b border-border-light dark:border-border-dark overflow-x-auto">
           <div className="flex min-w-max">
             {TABS.map(tab => {
               const Icon = tab.icon;
@@ -62,8 +63,8 @@ export const PPDBAdminPage = () => {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`relative flex items-center gap-1.5 px-5 py-3 text-xs font-medium whitespace-nowrap transition-colors ${
-                    isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                  className={`relative flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition-colors ${
+                    isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-secondary hover:text-text-primary'
                   }`}
                 >
                   <Icon size={14} />
@@ -92,53 +93,49 @@ const OverviewTab = ({ stats, loading }: { stats: any; loading: boolean }) => {
   if (!stats) return <p className="text-sm text-gray-400 text-center py-12">Belum ada konfigurasi PMB aktif.</p>;
 
   const metricCards = [
-    { label: 'Total Pendaftar', value: stats.totalPendaftar, icon: Users, color: 'from-emerald-500 to-emerald-600' },
+    { label: 'Total Pendaftar', value: stats.totalPendaftar, icon: <Users size={16} /> },
     ...(stats.jalurStats || []).map((j: any) => ({
       label: `Jalur ${j.namaJalur}`,
       value: `${j.totalPendaftar} / ${j.kuota}`,
-      icon: j.namaJalur === 'PRESTASI' ? Trophy : ClipboardList,
-      color: j.namaJalur === 'PRESTASI' ? 'from-amber-500 to-orange-500' : 'from-blue-500 to-indigo-500',
-      sub: j.isActive ? '🟢 Aktif' : '⏸️ Nonaktif',
+      icon: j.namaJalur === 'PRESTASI' ? <Trophy size={16} /> : <ClipboardList size={16} />,
+      trend: { value: j.isActive ? 'Aktif' : 'Nonaktif', isPositive: j.isActive }
     })),
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {metricCards.map((card: any, i: number) => {
-          const Icon = card.icon;
-          return (
-            <div key={i} className="bg-white dark:bg-[#0a0a0a] border border-gray-100 dark:border-[#222] rounded-xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center`}>
-                  <Icon size={18} className="text-white" />
-                </div>
-                {card.sub && <span className="text-[10px] font-bold text-gray-500">{card.sub}</span>}
-              </div>
-              <p className="text-2xl font-bold text-gray-800 dark:text-white">{card.value}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{card.label}</p>
-            </div>
-          );
-        })}
+        {metricCards.map((card: any, i: number) => (
+          <MetricCard
+            key={i}
+            title={card.label}
+            value={card.value}
+            icon={card.icon}
+            trend={card.trend}
+          />
+        ))}
       </div>
 
       {/* Status per jalur */}
-      {stats.jalurStats?.map((j: any) => (
-        <div key={j.id} className="bg-gray-50 dark:bg-[#0a0a0a] rounded-xl p-4 border border-gray-100 dark:border-[#222]">
-          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">
-            {j.namaJalur === 'PRESTASI' ? '🏆' : '📋'} Jalur {j.namaJalur} — Detail Status
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {Object.entries(STATUS_MAP).map(([key, meta]) => (
-              <div key={key} className="text-center">
-                <p className="text-lg font-bold text-gray-800 dark:text-white">{(j as any)[key] || 0}</p>
-                <p className={`text-[10px] font-semibold px-2 py-0.5 rounded-full inline-block ${meta.color}`}>{meta.label}</p>
-              </div>
-            ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {stats.jalurStats?.map((j: any) => (
+          <div key={j.id} className="bg-white dark:bg-background-dark rounded-xl p-4 border border-border-light dark:border-border-dark flex flex-col justify-between">
+            <h3 className="text-xs font-bold text-text-primary dark:text-text-darkPrimary mb-3 flex items-center gap-2">
+              {j.namaJalur === 'PRESTASI' ? <Trophy size={14} className="text-orange-500" /> : <ClipboardList size={14} className="text-blue-500" />}
+              Status Jalur {j.namaJalur}
+            </h3>
+            <div className="flex bg-gray-50 dark:bg-background-dark rounded-lg divide-x divide-gray-200 dark:divide-[#222] border border-border-light dark:border-border-dark">
+              {Object.entries(STATUS_MAP).map(([key, meta]) => (
+                <div key={key} className="flex-1 text-center py-2 px-1">
+                  <p className="text-lg font-bold text-gray-800 dark:text-white">{(j as any)[key] || 0}</p>
+                  <p className={`text-[9px] font-semibold tracking-tight uppercase truncate px-1 mt-0.5 ${(meta as any).color.replace('bg-', 'text-').replace('-100', '-600').split(' ')[1]}`}>{meta.label}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 };
@@ -208,13 +205,13 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
             placeholder="Cari NISN, Nama, atau No. Pendaftaran..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-[#333] text-sm outline-none focus:border-emerald-400"
+            className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-border-light dark:border-[#333] text-sm outline-none focus:border-emerald-400"
           />
         </div>
         <select
           value={filterJalur}
           onChange={e => { setFilterJalur(e.target.value); setPage(1); }}
-          className="px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#333] text-sm outline-none"
+          className="px-3 py-2.5 rounded-lg border border-border-light dark:border-[#333] text-sm outline-none"
         >
           <option value="">Semua Jalur</option>
           {jalurList.map((j: any) => (
@@ -224,7 +221,7 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
         <select
           value={filterStatus}
           onChange={e => { setFilterStatus(e.target.value); setPage(1); }}
-          className="px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#333] text-sm outline-none"
+          className="px-3 py-2.5 rounded-lg border border-border-light dark:border-[#333] text-sm outline-none"
         >
           <option value="">Semua Status</option>
           {Object.entries(STATUS_MAP).map(([key, meta]) => (
@@ -237,7 +234,7 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="bg-gray-50 dark:bg-[#0a0a0a]">
+            <tr className="bg-gray-50 dark:bg-background-dark">
               <th className="px-3 py-2.5 text-left font-semibold text-gray-600">No</th>
               <th className="px-3 py-2.5 text-left font-semibold text-gray-600">NISN</th>
               <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Nama</th>
@@ -295,7 +292,7 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
       {/* Detail Modal */}
       {selectedId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedId(null)}>
-          <div className="bg-white dark:bg-[#111] rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-background-dark rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             {loadingDetail ? (
               <div className="flex justify-center py-16"><Loader2 className="animate-spin text-emerald-500" size={24} /></div>
             ) : detail ? (
@@ -311,7 +308,7 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
                 </div>
 
                 {/* Status & Actions */}
-                <div className="flex flex-wrap items-center gap-2 mb-5 p-3 bg-gray-50 dark:bg-[#0a0a0a] rounded-xl">
+                <div className="flex flex-wrap items-center gap-2 mb-5 p-3 bg-gray-50 dark:bg-background-dark rounded-xl">
                   <span className={`px-3 py-1 rounded-full text-xs font-bold ${STATUS_MAP[detail.status]?.color || ''}`}>
                     {STATUS_MAP[detail.status]?.label || detail.status}
                   </span>
@@ -322,7 +319,7 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
 
                 {/* Data Sections */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div className="p-4 border border-gray-100 dark:border-[#222] rounded-xl">
+                  <div className="p-4 border border-border-light dark:border-border-dark rounded-xl">
                     <h3 className="text-xs font-bold text-gray-600 mb-2">📋 Data Diri</h3>
                     <div className="space-y-1 text-xs text-gray-600">
                       <p>NIK: {detail.dataDiri?.nik}</p>
@@ -334,7 +331,7 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
                       <p>HP: {detail.dataDiri?.noHpOrtu}</p>
                     </div>
                   </div>
-                  <div className="p-4 border border-gray-100 dark:border-[#222] rounded-xl">
+                  <div className="p-4 border border-border-light dark:border-border-dark rounded-xl">
                     <h3 className="text-xs font-bold text-gray-600 mb-2">🏫 Data Sekolah</h3>
                     <div className="space-y-1 text-xs text-gray-600">
                       <p>Sekolah: {detail.dataSekolah?.namaSekolah}</p>
@@ -347,7 +344,7 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
 
                 {/* Nilai */}
                 {detail.nilaiRaport?.length > 0 && (
-                  <div className="p-4 border border-gray-100 dark:border-[#222] rounded-xl mb-4">
+                  <div className="p-4 border border-border-light dark:border-border-dark rounded-xl mb-4">
                     <h3 className="text-xs font-bold text-gray-600 mb-2">📊 Nilai Raport (Rata-rata: {detail.nilaiAkhir})</h3>
                     <div className="overflow-x-auto">
                       <table className="w-full text-[10px]">
@@ -375,7 +372,7 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
 
                 {/* Prestasi */}
                 {detail.prestasi?.length > 0 && (
-                  <div className="p-4 border border-gray-100 dark:border-[#222] rounded-xl mb-4">
+                  <div className="p-4 border border-border-light dark:border-border-dark rounded-xl mb-4">
                     <h3 className="text-xs font-bold text-gray-600 mb-2">🏆 Prestasi</h3>
                     {detail.prestasi.map((p: any, i: number) => (
                       <div key={i} className="text-xs text-gray-600 mb-1">
@@ -388,7 +385,7 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
 
                 {/* Dokumen */}
                 {detail.dokumen?.length > 0 && (
-                  <div className="p-4 border border-gray-100 dark:border-[#222] rounded-xl">
+                  <div className="p-4 border border-border-light dark:border-border-dark rounded-xl">
                     <h3 className="text-xs font-bold text-gray-600 mb-2">📎 Dokumen</h3>
                     <div className="flex flex-wrap gap-2">
                       {detail.dokumen.map((d: any) => (
@@ -483,18 +480,18 @@ const SeleksiTab = ({ stats }: { stats: any }) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-center gap-3 bg-gray-50 dark:bg-[#0a0a0a] p-4 rounded-xl border border-gray-100 dark:border-[#222]">
+      <div className="flex flex-col sm:flex-row items-center gap-3 bg-white dark:bg-background-dark p-3 rounded-xl border border-border-light dark:border-border-dark">
         <select
           value={selectedJalur}
           onChange={e => setSelectedJalur(e.target.value)}
-          className="px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#333] text-sm outline-none bg-white font-bold text-gray-700 min-w-[200px]"
+          className="px-3 py-2.5 rounded-lg border border-border-light dark:border-[#333] text-sm outline-none bg-white font-bold text-gray-700 min-w-[200px]"
         >
           {stats?.jalurStats?.map((j: any) => (
             <option key={j.id} value={j.id}>{j.namaJalur} (Kuota: {j.kuota})</option>
           ))}
         </select>
         <div className="flex-1" />
-        <button onClick={exportExcel} disabled={data.length === 0} className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-50 flex items-center gap-1.5 disabled:opacity-50">
+        <button onClick={exportExcel} disabled={data.length === 0} className="px-4 py-2 bg-white border border-border-light text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-50 flex items-center gap-1.5 disabled:opacity-50">
           <ClipboardList size={14} /> Export CSV
         </button>
         <button onClick={handleGenerateRanking} disabled={processing || !selectedJalur} className="px-4 py-2 bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-blue-600 disabled:opacity-50">
@@ -505,10 +502,10 @@ const SeleksiTab = ({ stats }: { stats: any }) => {
         </button>
       </div>
 
-      <div className="overflow-x-auto border border-gray-100 dark:border-[#222] rounded-xl">
+      <div className="overflow-x-auto border border-border-light dark:border-border-dark rounded-xl">
         <table className="w-full text-xs">
           <thead>
-            <tr className="bg-gray-50 dark:bg-[#0a0a0a]">
+            <tr className="bg-gray-50 dark:bg-background-dark">
               <th className="px-3 py-2.5 text-center font-semibold text-gray-600 border-b w-16">Rank</th>
               <th className="px-3 py-2.5 text-left font-semibold text-gray-600 border-b">NISN</th>
               <th className="px-3 py-2.5 text-left font-semibold text-gray-600 border-b">Nama Siswa</th>
@@ -617,13 +614,13 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-emerald-500" size={24} /></div>;
 
-  const inputClass = "w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-[#333] text-sm outline-none focus:border-emerald-400";
+  const inputClass = "w-full px-3 py-2 rounded-lg border border-border-light dark:border-[#333] text-sm outline-none focus:border-emerald-400";
   const labelClass = "block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Pengumuman Header Settings */}
-      <div className="p-5 rounded-xl border border-gray-200 bg-white">
+      <div className="p-4 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark">
         <div className="flex items-center gap-2 mb-4">
           <ClipboardList size={18} className="text-emerald-600" />
           <h3 className="font-bold text-gray-800">Pengaturan Publikasi & Pengumuman</h3>
@@ -651,12 +648,12 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
         </div>
       </div>
 
-      <div className="w-full h-px bg-gray-100 my-8" />
+      <div className="w-full h-px bg-border-light dark:bg-border-dark my-4" />
 
       {jalurList.map((jalur) => {
         const isPrestasi = jalur.namaJalur === 'PRESTASI';
         return (
-          <div key={jalur.id} className={`p-5 rounded-xl border-2 transition-colors ${jalur.isActive ? (isPrestasi ? 'border-amber-300 bg-amber-50/30' : 'border-blue-300 bg-blue-50/30') : 'border-gray-200 bg-gray-50'}`}>
+          <div key={jalur.id} className={`p-4 xl:p-5 rounded-xl border transition-colors ${jalur.isActive ? (isPrestasi ? 'border-amber-300 bg-amber-50/20 dark:bg-amber-900/10' : 'border-blue-300 bg-blue-50/20 dark:bg-blue-900/10') : 'border-border-light dark:border-border-dark bg-gray-50 dark:bg-background-dark'}`}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <span className="text-lg">{isPrestasi ? '🏆' : '📋'}</span>
