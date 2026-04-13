@@ -115,20 +115,31 @@ CREATE TABLE IF NOT EXISTS ppdb_dokumen (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Clean up duplicates if any were accidentally inserted in previous migrations (Keep oldest)
-DELETE FROM ppdb_jalur
-WHERE id NOT IN (
-    SELECT MIN(id)
-    FROM ppdb_jalur
-    GROUP BY config_id, nama_jalur
+-- Clean up duplicates gracefully to keep the latest added entries
+WITH RankedConfig AS (
+    SELECT id, ROW_NUMBER() OVER(PARTITION BY tahun_ajaran ORDER BY created_at DESC) as rn
+    FROM ppdb_config
+)
+DELETE FROM ppdb_config
+WHERE id IN (
+    SELECT id FROM RankedConfig WHERE rn > 1
 );
 
-DELETE FROM ppdb_config
-WHERE id NOT IN (
-    SELECT MIN(id)
-    FROM ppdb_config
-    GROUP BY tahun_ajaran
+WITH RankedJalur AS (
+    SELECT id, ROW_NUMBER() OVER(PARTITION BY config_id, UPPER(nama_jalur) ORDER BY created_at DESC) as rn
+    FROM ppdb_jalur
+)
+DELETE FROM ppdb_jalur
+WHERE id IN (
+    SELECT id FROM RankedJalur WHERE rn > 1
 );
+
+-- Add Unique Constraints to prevent future dupes
+ALTER TABLE ppdb_config DROP CONSTRAINT IF EXISTS unique_tahun_ajaran;
+ALTER TABLE ppdb_config ADD CONSTRAINT unique_tahun_ajaran UNIQUE(tahun_ajaran);
+
+ALTER TABLE ppdb_jalur DROP CONSTRAINT IF EXISTS unique_config_jalur;
+ALTER TABLE ppdb_jalur ADD CONSTRAINT unique_config_jalur UNIQUE(config_id, nama_jalur);
 
 -- Seed default config and jalur
 INSERT INTO ppdb_config (tahun_ajaran, nama_sistem, is_active)

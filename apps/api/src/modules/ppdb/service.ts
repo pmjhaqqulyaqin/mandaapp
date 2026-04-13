@@ -18,9 +18,12 @@ export class PPDBService {
     const config = configs[0];
 
     // Only return jalur that admin has activated
-    const jalurList = await db.select().from(ppdbJalur)
+    const rawJalurList = await db.select().from(ppdbJalur)
       .where(and(eq(ppdbJalur.configId, config.id), eq(ppdbJalur.isActive, true)))
       .orderBy(asc(ppdbJalur.namaJalur));
+
+    // Deduplicate by name gracefully
+    const jalurList = Array.from(new Map(rawJalurList.map(j => [j.namaJalur.toLowerCase(), j])).values());
 
     // Count pendaftar per jalur
     const jalurWithCounts = await Promise.all(jalurList.map(async (j) => {
@@ -35,9 +38,14 @@ export class PPDBService {
   static async getActiveJalur() {
     const configs = await db.select().from(ppdbConfig).where(eq(ppdbConfig.isActive, true)).limit(1);
     if (configs.length === 0) return [];
-    return db.select().from(ppdbJalur)
+    
+    // Only return active jalur directly linked
+    const jalurList = await db.select().from(ppdbJalur)
       .where(and(eq(ppdbJalur.configId, configs[0].id), eq(ppdbJalur.isActive, true)))
       .orderBy(asc(ppdbJalur.namaJalur));
+
+    // Deduplicate by name gracefully (in case DB hasn't been cleaned up yet)
+    return Array.from(new Map(jalurList.map(j => [j.namaJalur.toLowerCase(), j])).values());
   }
 
   // ============ PUBLIC: Pendaftaran ============
@@ -251,7 +259,8 @@ export class PPDBService {
     if (configs.length === 0) return { totalPendaftar: 0, jalurStats: [], statusStats: {} };
     const config = configs[0];
 
-    const allJalur = await db.select().from(ppdbJalur).where(eq(ppdbJalur.configId, config.id));
+    const rawAllJalur = await db.select().from(ppdbJalur).where(eq(ppdbJalur.configId, config.id));
+    const allJalur = Array.from(new Map(rawAllJalur.map(j => [j.namaJalur.toLowerCase(), j])).values());
 
     const jalurStats = await Promise.all(allJalur.map(async (j) => {
       const totalResult = await db.select({ count: count() }).from(ppdbPendaftar).where(eq(ppdbPendaftar.jalurId, j.id));
@@ -397,9 +406,12 @@ export class PPDBService {
   static async getAllJalurAdmin() {
     const configs = await db.select().from(ppdbConfig).where(eq(ppdbConfig.isActive, true)).limit(1);
     if (configs.length === 0) return [];
-    return db.select().from(ppdbJalur)
+    
+    const rawJalur = await db.select().from(ppdbJalur)
       .where(eq(ppdbJalur.configId, configs[0].id))
       .orderBy(asc(ppdbJalur.namaJalur));
+      
+    return Array.from(new Map(rawJalur.map(j => [j.namaJalur.toLowerCase(), j])).values());
   }
 
   /** Update jalur configuration */
