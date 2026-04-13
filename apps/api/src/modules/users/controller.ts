@@ -9,20 +9,20 @@ import { SettingsService } from "../settings/service";
 // All available menu keys
 const ALL_MENU_KEYS = [
   "overview", "news", "calendar", "student-card", "students", "classes", "employees", "nis",
-  "gallery", "contacts", "pages", "menus", "settings", "users", "updates", "e-office", "ptsp", "exams"
+  "gallery", "contacts", "pages", "menus", "settings", "users", "updates", "e-office", "ptsp", "exams", "ppdb"
 ];
 
 const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
   admin: ALL_MENU_KEYS,
-  kepala_madrasah: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams"],
-  wakil_kepala: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams"],
+  kepala_madrasah: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb"],
+  wakil_kepala: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb"],
   kepala_unit: ["overview", "news", "calendar", "student-card", "gallery", "contacts", "exams"],
   wali_kelas: ["overview", "news", "calendar", "student-card", "students", "gallery"],
   pembina_ekstra: ["overview", "news", "calendar", "student-card", "gallery"],
   guru: ["overview", "news", "calendar", "student-card", "exams"],
   student: ["overview", "calendar", "student-card"],
-  kepala_tu: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams"],
-  pegawai_tu: ["overview", "news", "calendar", "student-card", "students", "employees", "e-office"],
+  kepala_tu: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb"],
+  pegawai_tu: ["overview", "news", "calendar", "student-card", "students", "employees", "e-office", "ppdb"],
 };
 
 export async function getAuditLogsHandler(req: Request, res: Response) {

@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, GraduationCap, ArrowRight, Info } from 'lucide-react';
 
-const POPUP_KEY = 'simpmb_popup_dismissed';
-const COOLDOWN_HOURS = 24;
+import { apiClient } from '../../../lib/api';
 
 interface PPDBPopupModalProps {
   onClose?: () => void;
@@ -15,27 +14,27 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check cooldown
-    const dismissed = localStorage.getItem(POPUP_KEY);
-    if (dismissed) {
-      const dismissedTime = parseInt(dismissed, 10);
-      if (Date.now() - dismissedTime < COOLDOWN_HOURS * 60 * 60 * 1000) {
-        return; // Still in cooldown
+    const checkConfig = async () => {
+      try {
+        const config = await apiClient<any>('/ppdb/config');
+        if (config && config.isActive) {
+          // Show after a brief delay for page load
+          setTimeout(() => {
+            setIsVisible(true);
+            setTimeout(() => setIsAnimating(true), 50);
+          }, 800);
+        }
+      } catch (err) {
+        console.error('Failed to load PPDB config for popup:', err);
       }
-    }
-    // Show after a brief delay for page load
-    const timer = setTimeout(() => {
-      setIsVisible(true);
-      setTimeout(() => setIsAnimating(true), 50);
-    }, 800);
-    return () => clearTimeout(timer);
+    };
+    checkConfig();
   }, []);
 
   const handleDismiss = () => {
     setIsAnimating(false);
     setTimeout(() => {
       setIsVisible(false);
-      localStorage.setItem(POPUP_KEY, Date.now().toString());
       onClose?.();
     }, 300);
   };
