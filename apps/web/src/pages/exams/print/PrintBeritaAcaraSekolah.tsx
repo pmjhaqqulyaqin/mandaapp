@@ -54,6 +54,20 @@ export const PrintBeritaAcaraSekolah = () => {
         const ruangData = Array.isArray(ruangRes) ? (ruangRes as any).data || ruangRes : [];
         const distData = Array.isArray(distRes) ? distRes : [];
         const panitiaData = Array.isArray(panitiaRes) ? panitiaRes : [];
+        
+        // Sort panitia based on strict order
+        const JABATAN_ORDER: Record<string, number> = {
+          'ketua': 1,
+          'wakil ketua': 2,
+          'sekretaris': 3,
+          'bendahara': 4,
+          'anggota': 5
+        };
+        panitiaData.sort((a, b) => {
+          const wA = JABATAN_ORDER[(a.jabatan || '').toLowerCase()] || 99;
+          const wB = JABATAN_ORDER[(b.jabatan || '').toLowerCase()] || 99;
+          return wA - wB;
+        });
 
         setJadwal(jadwalData);
         setRooms(ruangData);
