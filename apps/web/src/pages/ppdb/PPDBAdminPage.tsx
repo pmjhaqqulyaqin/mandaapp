@@ -692,11 +692,21 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className={labelClass}>Jadwal Buka</label>
-                <input type="datetime-local" value={jalur.jadwalBuka ? new Date(jalur.jadwalBuka).toISOString().slice(0, 16) : ''} onChange={e => updateJalur(jalur.id, 'jadwalBuka', e.target.value)} className={inputClass} />
+                <input 
+                  type="datetime-local" 
+                  value={jalur.jadwalBuka ? (jalur.jadwalBuka.includes('T') && jalur.jadwalBuka.length === 16 ? jalur.jadwalBuka : new Date(new Date(jalur.jadwalBuka).getTime() - new Date(jalur.jadwalBuka).getTimezoneOffset() * 60000).toISOString().slice(0, 16)) : ''} 
+                  onChange={e => updateJalur(jalur.id, 'jadwalBuka', e.target.value)} 
+                  className={inputClass} 
+                />
               </div>
               <div>
                 <label className={labelClass}>Jadwal Tutup</label>
-                <input type="datetime-local" value={jalur.jadwalTutup ? new Date(jalur.jadwalTutup).toISOString().slice(0, 16) : ''} onChange={e => updateJalur(jalur.id, 'jadwalTutup', e.target.value)} className={inputClass} />
+                <input 
+                  type="datetime-local" 
+                  value={jalur.jadwalTutup ? (jalur.jadwalTutup.includes('T') && jalur.jadwalTutup.length === 16 ? jalur.jadwalTutup : new Date(new Date(jalur.jadwalTutup).getTime() - new Date(jalur.jadwalTutup).getTimezoneOffset() * 60000).toISOString().slice(0, 16)) : ''} 
+                  onChange={e => updateJalur(jalur.id, 'jadwalTutup', e.target.value)} 
+                  className={inputClass} 
+                />
               </div>
             </div>
 

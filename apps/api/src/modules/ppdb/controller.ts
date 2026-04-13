@@ -8,6 +8,9 @@ export class PPDBController {
   static async getConfig(req: Request, res: Response) {
     try {
       const config = await PPDBService.getPublicConfig();
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.json(config || { active: false, message: 'Belum ada konfigurasi PMB aktif' });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
