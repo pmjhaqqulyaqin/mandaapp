@@ -152,8 +152,8 @@ export const PrintBeritaAcaraSekolah = () => {
     const nUjian = (ujian.namaUjian || '').toUpperCase();
     const tAjaran = ujian.tahunAjaran || '';
 
-    const logoKiriImg = logoKiriB64 ? `<img src="${logoKiriB64}" style="width:50px;height:50px;" />` : '';
-    const logoKananImg = logoKananB64 ? `<img src="${logoKananB64}" style="width:50px;height:50px;" />` : '';
+    const logoKiriImg = logoKiriB64 ? `<img src="${logoKiriB64}" width="70" height="70" />` : '';
+    const logoKananImg = logoKananB64 ? `<img src="${logoKananB64}" width="70" height="70" />` : '';
 
     // Date info
     const tglMulai = ujian.tanggalMulai ? new Date(ujian.tanggalMulai) : null;

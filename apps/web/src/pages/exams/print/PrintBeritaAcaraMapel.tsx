@@ -203,8 +203,8 @@ export const PrintBeritaAcaraMapel = () => {
 
       const catatanLines = [0,1,2,3].map(() => `<p style="border-bottom:1px dotted black;margin:8px 0;">&nbsp;</p>`).join('');
 
-      const logoKiriImg = logoKiriB64 ? `<img src="${logoKiriB64}" style="width:50px;height:50px;" />` : '';
-      const logoKananImg = logoKananB64 ? `<img src="${logoKananB64}" style="width:50px;height:50px;" />` : '';
+      const logoKiriImg = logoKiriB64 ? `<img src="${logoKiriB64}" width="70" height="70" />` : '';
+      const logoKananImg = logoKananB64 ? `<img src="${logoKananB64}" width="70" height="70" />` : '';
 
       return `
         <div style="page-break-after:always;font-family:'Times New Roman',serif;font-size:11pt;">
