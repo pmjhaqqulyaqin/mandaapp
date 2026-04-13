@@ -151,6 +151,9 @@ export const FormatNilaiTab = ({ ujianId, ujian }: Props) => {
     const params: string[] = [];
     if (mapel) params.push(`mapel=${encodeURIComponent(mapel)}`);
     if (selectedRoomId !== 'ALL') params.push(`ruangId=${selectedRoomId}`);
+    // Pass current format tipe so print page uses correct format even if unsaved
+    const fmt = mapel ? getFormatForMapel(mapel) : globalFormat;
+    params.push(`tipe=${fmt.tipe}`);
     if (params.length > 0) url += '?' + params.join('&');
     window.open(url, '_blank');
   };

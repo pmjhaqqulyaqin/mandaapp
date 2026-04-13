@@ -48,14 +48,24 @@ export const PrintFormatNilai = () => {
         const queryParams = new URLSearchParams(window.location.search);
         const filterMapel = queryParams.get('mapel');
         const filterRuangId = queryParams.get('ruangId');
+        // Accept format override from query params (for unsaved configs)
+        const qTipe = queryParams.get('tipe') as FormatConfig['tipe'] | null;
 
-        // Get format config
+        // Get format config from saved pengaturan
         const pengaturan = (uRes as any)?.pengaturan || {};
         const formatNilai = pengaturan.formatNilai || {};
-        const defaultFmt: FormatConfig = { ...DEFAULT_FORMAT, ...formatNilai.default };
+        const savedDefault: FormatConfig = { ...DEFAULT_FORMAT, ...formatNilai.default };
         const perMapelFmt: Record<string, FormatConfig> = formatNilai.perMapel || {};
 
-        const getFormat = (mapel: string): FormatConfig => perMapelFmt[mapel] || defaultFmt;
+        const getFormat = (mapel: string): FormatConfig => {
+          // Priority: per-mapel saved > query param override > saved default > DEFAULT
+          const base = perMapelFmt[mapel] || savedDefault;
+          // If tipe is passed via query param, override the tipe
+          if (qTipe && ['pilihan_ganda', 'esai', 'campuran'].includes(qTipe)) {
+            return { ...base, tipe: qTipe };
+          }
+          return base;
+        };
 
         // Get unique mapels
         let mapelList = Array.from(new Set(jadwalData.map(j => j.mataPelajaran).filter(Boolean)));
@@ -174,126 +184,176 @@ export const PrintFormatNilai = () => {
       tglStr = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
     }
 
-    // Determine columns
+    // Determine columns based on tipe
     const showPG = fmt.tipe === 'pilihan_ganda' || fmt.tipe === 'campuran';
     const showEsai = fmt.tipe === 'esai' || fmt.tipe === 'campuran';
 
+    // Dynamic sizing to fit 1 page portrait (like PrintDaftarHadirPeserta)
+    const count = students.length;
+    let fontSize = '9pt';
+    let rowPy = 'py-[3px]';
+    let kopSize = 'text-[11px]';
+    let kopInstSize = 'text-[13px]';
+    let titleSize = 'text-base';
+    let infoSize = 'text-[11px]';
+    let ttdMb = 'mb-[40px]';
+    let ttdMt = 'mt-4';
+    let logoSize = 'w-12 h-12';
+    let kopMb = 'mb-2';
+    let titleMb = 'mb-1';
+    let infoMb = 'mb-2';
+    let statsMb = 'mb-2';
+
+    if (count <= 15) {
+      fontSize = '11pt';
+      rowPy = 'py-[4px]';
+      ttdMb = 'mb-[55px]';
+      ttdMt = 'mt-6';
+    } else if (count <= 25) {
+      fontSize = '10pt';
+      rowPy = 'py-[3px]';
+      ttdMb = 'mb-[45px]';
+      ttdMt = 'mt-4';
+    } else if (count <= 35) {
+      fontSize = '9pt';
+      rowPy = 'py-[2px]';
+      kopSize = 'text-[10px]';
+      kopInstSize = 'text-[12px]';
+      titleSize = 'text-sm';
+      infoSize = 'text-[10px]';
+      ttdMb = 'mb-[35px]';
+      ttdMt = 'mt-3';
+      logoSize = 'w-10 h-10';
+      kopMb = 'mb-1';
+      titleMb = 'mb-1';
+      infoMb = 'mb-1';
+      statsMb = 'mb-1';
+    } else {
+      fontSize = '8pt';
+      rowPy = 'py-[1.5px]';
+      kopSize = 'text-[9px]';
+      kopInstSize = 'text-[11px]';
+      titleSize = 'text-xs';
+      infoSize = 'text-[9px]';
+      ttdMb = 'mb-[25px]';
+      ttdMt = 'mt-2';
+      logoSize = 'w-9 h-9';
+      kopMb = 'mb-1';
+      titleMb = 'mb-0.5';
+      infoMb = 'mb-1';
+      statsMb = 'mb-1';
+    }
+
     return (
       <div
-        className="relative box-border bg-white text-[13px] leading-relaxed px-6 py-4"
-        style={{ fontFamily: '"Times New Roman", Times, serif' }}
+        className="relative box-border bg-white text-black px-3"
+        style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize }}
       >
         {/* KOP SURAT */}
-        <div className="flex items-center justify-between border-b-[3px] border-black pb-1 mb-3 relative px-2">
+        <div className={`flex items-center justify-between border-b-[3px] border-black pb-1 ${kopMb} relative px-1`}>
           <div className="absolute left-0 right-0 bottom-[-4px] h-[1px] bg-black" />
 
-          <div className="w-14 h-14 flex-shrink-0 flex items-center justify-center">
-            {logoKiri ? <img src={logoKiri} className="max-w-full max-h-full object-contain" /> : <div className="w-14" />}
+          <div className={`${logoSize} flex-shrink-0 flex items-center justify-center`}>
+            {logoKiri ? <img src={logoKiri} className="max-w-full max-h-full object-contain" /> : <div className={logoSize} />}
           </div>
 
-          <div className="flex-1 text-center flex flex-col justify-center px-3" style={{ lineHeight: '1.15' }}>
-            <div className="font-bold text-[11px] uppercase tracking-wide">{kementerian}</div>
-            <div className="font-bold text-[11px] uppercase tracking-wide">PANITIA {namaUjian}</div>
-            <div className="font-bold text-[11px] uppercase tracking-wide">TAHUN AJARAN {tahunAjaran}</div>
-            <div className="font-bold text-[13px] uppercase tracking-wide">{instansi}</div>
-            <div className="text-[9px] mt-0.5">{alamat}</div>
+          <div className="flex-1 text-center flex flex-col justify-center px-2" style={{ lineHeight: '1.15' }}>
+            <div className={`font-bold ${kopSize} uppercase tracking-wide`}>{kementerian}</div>
+            <div className={`font-bold ${kopSize} uppercase tracking-wide`}>PANITIA {namaUjian}</div>
+            <div className={`font-bold ${kopSize} uppercase tracking-wide`}>TAHUN AJARAN {tahunAjaran}</div>
+            <div className={`font-bold ${kopInstSize} uppercase tracking-wide`}>{instansi}</div>
+            <div className="text-[8px] mt-0.5">{alamat}</div>
           </div>
 
-          <div className="w-14 h-14 flex-shrink-0 flex items-center justify-center">
-            {logoKanan ? <img src={logoKanan} className="max-w-full max-h-full object-contain" /> : <div className="w-14" />}
+          <div className={`${logoSize} flex-shrink-0 flex items-center justify-center`}>
+            {logoKanan ? <img src={logoKanan} className="max-w-full max-h-full object-contain" /> : <div className={logoSize} />}
           </div>
         </div>
 
         {/* TITLE */}
-        <h3 className="text-center font-bold text-lg tracking-widest mt-2 mb-2">DAFTAR NILAI</h3>
+        <div className={`text-center font-bold ${titleSize} tracking-widest ${titleMb}`}>DAFTAR NILAI</div>
 
         {/* INFO BAR */}
-        <div className="grid grid-cols-2 gap-x-8 gap-y-0.5 mb-3 text-[12px]">
-          <div className="flex">
-            <span className="w-[110px] font-semibold">Mata Pelajaran</span>
-            <span className="mr-1">:</span>
-            <span className="font-bold uppercase">{mapel}</span>
+        <div className={`${infoMb} ${infoSize}`}>
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1">
+              <span>Mata Pelajaran</span>
+              <span className="mx-1">:</span>
+              <span className="font-bold uppercase">{mapel}</span>
+            </div>
+            <div>
+              <span>Ruang</span>
+              <span className="mx-1">:</span>
+              <span className="font-semibold">{room?.namaRuang || '-'}</span>
+            </div>
           </div>
-          <div className="flex">
-            <span className="w-[110px] font-semibold">Ruang</span>
-            <span className="mr-1">:</span>
-            <span>{room?.namaRuang || '-'}</span>
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1">
+              <span>Hari / Tanggal</span>
+              <span className="mx-1">:</span>
+              <span className="font-semibold">{hariStr ? `${hariStr}, ${tglStr}` : '-'}</span>
+            </div>
+            <div>
+              <span>Waktu</span>
+              <span className="mx-1">:</span>
+              <span className="font-semibold">{jadwal ? `${jadwal.waktuMulai} – ${jadwal.waktuSelesai} WITA` : '-'}</span>
+            </div>
           </div>
-          <div className="flex">
-            <span className="w-[110px] font-semibold">Hari / Tanggal</span>
-            <span className="mr-1">:</span>
-            <span>{hariStr ? `${hariStr}, ${tglStr}` : '-'}</span>
-          </div>
-          <div className="flex">
-            <span className="w-[110px] font-semibold">Waktu</span>
-            <span className="mr-1">:</span>
-            <span>{jadwal ? `${jadwal.waktuMulai} – ${jadwal.waktuSelesai} WITA` : '-'}</span>
-          </div>
-          <div className="flex">
-            <span className="w-[110px] font-semibold">Kelas</span>
-            <span className="mr-1">:</span>
-            <span>{kelas || '-'}</span>
-          </div>
-          <div className="flex">
-            <span className="w-[110px] font-semibold">Format</span>
-            <span className="mr-1">:</span>
-            <span>
-              {fmt.tipe === 'pilihan_ganda' ? 'Pilihan Ganda' :
-               fmt.tipe === 'esai' ? 'Esai' :
-               `Campuran (PG ${fmt.bobotPG}% + Esai ${fmt.bobotEsai}%)`}
-            </span>
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1">
+              <span>Kelas</span>
+              <span className="mx-1">:</span>
+              <span className="font-semibold">{kelas || '-'}</span>
+            </div>
+            <div>
+              <span>Format</span>
+              <span className="mx-1">:</span>
+              <span className="font-semibold">
+                {fmt.tipe === 'pilihan_ganda' ? 'Pilihan Ganda' :
+                 fmt.tipe === 'esai' ? 'Esai' :
+                 `Campuran (PG ${fmt.bobotPG}% + Esai ${fmt.bobotEsai}%)`}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* TABLE */}
-        <table className="w-full border-collapse border border-black text-[11px] mb-4">
+        <table className="w-full border-collapse border border-black text-center" style={{ fontSize }}>
           <thead>
-            <tr className="bg-gray-100">
-              <th className="border border-black px-1.5 py-1.5 font-bold w-[30px] text-center">No</th>
-              <th className="border border-black px-1.5 py-1.5 font-bold w-[130px] text-center">No. Peserta</th>
-              <th className="border border-black px-1.5 py-1.5 font-bold text-left" style={{ minWidth: '180px' }}>Nama Peserta</th>
+            <tr>
+              <th className="border border-black px-1 py-1 font-bold w-[30px]">No</th>
+              <th className="border border-black px-1 py-1 font-bold w-[22%]">No. Peserta</th>
+              <th className="border border-black px-1 py-1 font-bold text-left">Nama Peserta</th>
               {showPG && (
-                <th className="border border-black px-1.5 py-1.5 font-bold w-[60px] text-center">PG</th>
+                <th className="border border-black px-1 py-1 font-bold w-[10%]">PG</th>
               )}
               {showEsai && (
-                <th className="border border-black px-1.5 py-1.5 font-bold w-[60px] text-center">Esai</th>
+                <th className="border border-black px-1 py-1 font-bold w-[10%]">Esai</th>
               )}
-              <th className="border border-black px-1.5 py-1.5 font-bold w-[70px] text-center">Nilai Akhir</th>
+              <th className="border border-black px-1 py-1 font-bold w-[12%]">Nilai Akhir</th>
               {fmt.kolomRemedial && (
-                <th className="border border-black px-1.5 py-1.5 font-bold w-[60px] text-center">Remedial</th>
+                <th className="border border-black px-1 py-1 font-bold w-[10%]">Remedial</th>
               )}
             </tr>
           </thead>
           <tbody>
             {students.map((s: any, idx: number) => (
               <tr key={s.id || idx}>
-                <td className="border border-black px-1.5 py-1 text-center">{idx + 1}</td>
-                <td className="border border-black px-1.5 py-1 text-center font-mono text-[10px]">{s.nomorPeserta}</td>
-                <td className="border border-black px-1.5 py-1">{s.siswa?.fullName || '-'}</td>
-                {showPG && <td className="border border-black px-1.5 py-1 text-center">&nbsp;</td>}
-                {showEsai && <td className="border border-black px-1.5 py-1 text-center">&nbsp;</td>}
-                <td className="border border-black px-1.5 py-1 text-center">&nbsp;</td>
-                {fmt.kolomRemedial && <td className="border border-black px-1.5 py-1 text-center">&nbsp;</td>}
-              </tr>
-            ))}
-            {/* Add empty rows if less than 15 */}
-            {students.length < 15 && Array.from({ length: 15 - students.length }).map((_, i) => (
-              <tr key={`empty-${i}`}>
-                <td className="border border-black px-1.5 py-1 text-center text-gray-300">{students.length + i + 1}</td>
-                <td className="border border-black px-1.5 py-1">&nbsp;</td>
-                <td className="border border-black px-1.5 py-1">&nbsp;</td>
-                {showPG && <td className="border border-black px-1.5 py-1">&nbsp;</td>}
-                {showEsai && <td className="border border-black px-1.5 py-1">&nbsp;</td>}
-                <td className="border border-black px-1.5 py-1">&nbsp;</td>
-                {fmt.kolomRemedial && <td className="border border-black px-1.5 py-1">&nbsp;</td>}
+                <td className={`border border-black px-1 ${rowPy}`}>{idx + 1}</td>
+                <td className={`border border-black px-1 ${rowPy} text-left`} style={{ fontFamily: 'monospace', fontSize: count > 30 ? '7pt' : '8pt' }}>{s.nomorPeserta}</td>
+                <td className={`border border-black px-1 ${rowPy} text-left`}>{s.siswa?.fullName || '-'}</td>
+                {showPG && <td className={`border border-black px-1 ${rowPy}`}>&nbsp;</td>}
+                {showEsai && <td className={`border border-black px-1 ${rowPy}`}>&nbsp;</td>}
+                <td className={`border border-black px-1 ${rowPy}`}>&nbsp;</td>
+                {fmt.kolomRemedial && <td className={`border border-black px-1 ${rowPy}`}>&nbsp;</td>}
               </tr>
             ))}
           </tbody>
         </table>
 
         {/* STATS */}
-        <div className="text-[11px] mb-4">
-          <div className="flex gap-6">
+        <div className={`${statsMb} ${infoSize} mt-1`}>
+          <div className="flex gap-4">
             <span>Jumlah Peserta: <b>{students.length}</b> Orang</span>
             {showPG && <span>Jumlah Soal PG: <b>{fmt.jumlahPG}</b></span>}
             {showEsai && <span>Jumlah Soal Esai: <b>{fmt.jumlahEsai}</b></span>}
@@ -301,12 +361,12 @@ export const PrintFormatNilai = () => {
         </div>
 
         {/* TTD - Guru Mata Pelajaran */}
-        <div className="flex justify-end mt-6">
-          <div className="w-[280px] text-center text-[12px]">
+        <div className={`flex justify-end ${ttdMt}`}>
+          <div className="w-[250px] text-center" style={{ fontSize }}>
             <div className="mb-1">Guru Mata Pelajaran</div>
-            <div className="mb-[55px]">&nbsp;</div>
-            <div className="border-b border-black w-[200px] mx-auto">&nbsp;</div>
-            <div className="mt-1 text-[10px]">NIP. ........................................</div>
+            <div className={ttdMb}>&nbsp;</div>
+            <div className="border-b border-black w-[180px] mx-auto">&nbsp;</div>
+            <div className="mt-0.5" style={{ fontSize: '8pt' }}>NIP. ........................................</div>
           </div>
         </div>
       </div>
@@ -317,8 +377,8 @@ export const PrintFormatNilai = () => {
     <>
       <style dangerouslySetInnerHTML={{__html: `
         @page {
-          size: A4 landscape;
-          margin: 8mm;
+          size: A4 portrait;
+          margin: 10mm;
         }
         @media print {
           html, body {
@@ -339,9 +399,9 @@ export const PrintFormatNilai = () => {
         }
         .page-container {
           background-color: white;
-          width: 297mm;
-          min-height: 210mm;
-          padding: 8mm;
+          width: 210mm;
+          min-height: 297mm;
+          padding: 10mm;
           margin: 0 auto;
           box-shadow: 0 0 10px rgba(0,0,0,0.1);
           box-sizing: border-box;
