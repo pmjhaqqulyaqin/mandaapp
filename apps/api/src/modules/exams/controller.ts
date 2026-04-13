@@ -305,4 +305,17 @@ export class ExamController {
       res.status(500).json({ error: error.message });
     }
   }
+
+  static async exportFormatNilai(req: Request, res: Response) {
+    try {
+      const mapel = req.query.mapel as string | undefined;
+      const ruangId = req.query.ruangId as string | undefined;
+      const buffer = await ExamService.exportFormatNilaiExcel(req.params.ujianId, mapel, ruangId);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="Format_Nilai.xlsx"');
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
 }

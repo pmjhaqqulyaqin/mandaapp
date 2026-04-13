@@ -2194,4 +2194,307 @@ export class ExamService {
     return await workbook.xlsx.writeBuffer();
   }
 
+  // ============ FORMAT NILAI (DAFTAR NILAI) ============
+
+  static async exportFormatNilaiExcel(ujianId: string, filterMapel?: string, filterRuangId?: string) {
+    const ujianData = await this.getUjianById(ujianId);
+    if (!ujianData) throw new Error('Ujian tidak ditemukan');
+
+    const config = (ujianData.pengaturan as any) || {};
+    const formatNilai = config.formatNilai || {};
+    const defaultFmt = {
+      tipe: 'campuran',
+      jumlahPG: 40,
+      jumlahEsai: 5,
+      bobotPG: 60,
+      bobotEsai: 40,
+      kolomRemedial: false,
+      ...formatNilai.default,
+    };
+    const perMapelFmt: Record<string, any> = formatNilai.perMapel || {};
+
+    const getFormat = (mapel: string) => perMapelFmt[mapel] || defaultFmt;
+
+    const jadwalList = await this.getJadwal(ujianId);
+    const ruangList = await this.getRuang(ujianId);
+    const distribusiAll = await this.getDistribusi(ujianId);
+
+    if (jadwalList.length === 0) throw new Error('Belum ada jadwal ujian');
+    if (ruangList.length === 0) throw new Error('Belum ada ruang ujian');
+
+    // Build unique mapel list
+    let mapelList = Array.from(new Set(jadwalList.map((j: any) => j.mataPelajaran).filter(Boolean)));
+    if (filterMapel) {
+      mapelList = mapelList.filter(m => m === filterMapel);
+    }
+    if (mapelList.length === 0) throw new Error('Tidak ada mata pelajaran yang cocok');
+
+    // Filter rooms
+    let roomsToProcess = ruangList;
+    if (filterRuangId) {
+      roomsToProcess = ruangList.filter((r: any) => r.id === filterRuangId);
+    }
+
+    const kop = config.kop || {};
+    const namaUjian = (ujianData.namaUjian || 'UJIAN').toUpperCase();
+    const tahunAjaran = ujianData.tahunAjaran || '';
+    const hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+    const workbook = new ExcelJS.Workbook();
+
+    const thinBorder: any = {
+      top: { style: 'thin' }, left: { style: 'thin' },
+      bottom: { style: 'thin' }, right: { style: 'thin' },
+    };
+
+    for (const mapel of mapelList) {
+      const fmt = getFormat(mapel);
+      const jadwalForMapel = jadwalList.filter((j: any) => j.mataPelajaran === mapel);
+      const jadwalInfo = jadwalForMapel[0] as any;
+
+      const showPG = fmt.tipe === 'pilihan_ganda' || fmt.tipe === 'campuran';
+      const showEsai = fmt.tipe === 'esai' || fmt.tipe === 'campuran';
+
+      for (const room of roomsToProcess) {
+        const studentsInRoom = (distribusiAll as any[])
+          .filter((d: any) => d.ruangId === room.id)
+          .sort((a: any, b: any) => (a.siswa?.fullName || '').localeCompare(b.siswa?.fullName || ''));
+
+        if (studentsInRoom.length === 0) continue;
+
+        // Sheet name (truncated to 31 chars for Excel)
+        const sheetName = `${mapel} - ${room.namaRuang}`.substring(0, 31);
+        const sheet = workbook.addWorksheet(sheetName, {
+          pageSetup: {
+            paperSize: 9, // A4
+            orientation: 'landscape',
+            fitToPage: true,
+            fitToWidth: 1,
+            fitToHeight: 0,
+            margins: { left: 0.5, right: 0.5, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 },
+          },
+        });
+
+        // Determine columns
+        let totalCols = 3; // No, No.Peserta, Nama
+        if (showPG) totalCols++;
+        if (showEsai) totalCols++;
+        totalCols++; // Nilai Akhir
+        if (fmt.kolomRemedial) totalCols++;
+
+        // === KOP SURAT ===
+        sheet.mergeCells(1, 1, 1, totalCols);
+        sheet.getCell(1, 1).value = kop.kementerian || 'KEMENTERIAN AGAMA REPUBLIK INDONESIA';
+        sheet.getCell(1, 1).font = { bold: true, size: 12 };
+        sheet.getCell(1, 1).alignment = { horizontal: 'center' };
+
+        sheet.mergeCells(2, 1, 2, totalCols);
+        sheet.getCell(2, 1).value = kop.instansi || 'MADRASAH ALIYAH NEGERI';
+        sheet.getCell(2, 1).font = { bold: true, size: 14 };
+        sheet.getCell(2, 1).alignment = { horizontal: 'center' };
+
+        sheet.mergeCells(3, 1, 3, totalCols);
+        sheet.getCell(3, 1).value = `PANITIA ${namaUjian} TAHUN AJARAN ${tahunAjaran}`;
+        sheet.getCell(3, 1).font = { bold: true, size: 11 };
+        sheet.getCell(3, 1).alignment = { horizontal: 'center' };
+
+        sheet.mergeCells(4, 1, 4, totalCols);
+        sheet.getCell(4, 1).value = kop.alamat || 'Alamat Sekolah';
+        sheet.getCell(4, 1).font = { size: 9 };
+        sheet.getCell(4, 1).alignment = { horizontal: 'center' };
+
+        // Double border
+        for (let c = 1; c <= totalCols; c++) {
+          sheet.getCell(4, c).border = { bottom: { style: 'double' } } as any;
+        }
+
+        // Logos
+        await this.addLogosToSheet(workbook, sheet, totalCols);
+
+        // === TITLE ===
+        sheet.addRow([]); // row 5
+        sheet.mergeCells(6, 1, 6, totalCols);
+        sheet.getCell(6, 1).value = 'DAFTAR NILAI';
+        sheet.getCell(6, 1).font = { bold: true, size: 14 };
+        sheet.getCell(6, 1).alignment = { horizontal: 'center' };
+
+        // Row heights for kop
+        for (let r = 1; r <= 4; r++) sheet.getRow(r).height = 18;
+
+        // === INFO ===
+        let hariStr = '', tglStr = '';
+        if (jadwalInfo?.tanggal) {
+          const d = new Date(jadwalInfo.tanggal);
+          hariStr = hariNames[d.getDay()];
+          tglStr = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+        }
+
+        // Kelas from students
+        const kelasFromStudents = Array.from(new Set(
+          studentsInRoom.map((d: any) => d.siswa?.fullClassName || d.siswa?.className).filter(Boolean)
+        )).join(', ');
+
+        const infoStart = 8;
+        const midCol = Math.ceil(totalCols / 2) + 1;
+
+        sheet.getCell(infoStart, 1).value = 'Mata Pelajaran';
+        sheet.getCell(infoStart, 2).value = `: ${mapel.toUpperCase()}`;
+        sheet.getCell(infoStart, 2).font = { bold: true };
+        sheet.getCell(infoStart, midCol).value = `Ruang: ${room.namaRuang}`;
+
+        sheet.getCell(infoStart + 1, 1).value = 'Hari / Tanggal';
+        sheet.getCell(infoStart + 1, 2).value = `: ${hariStr ? `${hariStr}, ${tglStr}` : '-'}`;
+        sheet.getCell(infoStart + 1, midCol).value = `Waktu: ${jadwalInfo?.waktuMulai || ''} – ${jadwalInfo?.waktuSelesai || ''} WITA`;
+
+        sheet.getCell(infoStart + 2, 1).value = 'Kelas';
+        sheet.getCell(infoStart + 2, 2).value = `: ${kelasFromStudents || jadwalInfo?.kelas || '-'}`;
+        const formatLabel = fmt.tipe === 'pilihan_ganda' ? 'Pilihan Ganda' :
+          fmt.tipe === 'esai' ? 'Esai' : `Campuran (PG ${fmt.bobotPG}% + Esai ${fmt.bobotEsai}%)`;
+        sheet.getCell(infoStart + 2, midCol).value = `Format: ${formatLabel}`;
+
+        for (let r = infoStart; r <= infoStart + 2; r++) {
+          sheet.getRow(r).font = { size: 10 };
+        }
+
+        // === TABLE HEADER ===
+        const headerRow = infoStart + 4;
+        const headers: string[] = ['No', 'No. Peserta', 'Nama Peserta'];
+        if (showPG) headers.push('PG');
+        if (showEsai) headers.push('Esai');
+        headers.push('Nilai Akhir');
+        if (fmt.kolomRemedial) headers.push('Remedial');
+
+        headers.forEach((h, idx) => {
+          const cell = sheet.getCell(headerRow, idx + 1);
+          cell.value = h;
+          cell.font = { bold: true, size: 10 };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          cell.border = thinBorder;
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8E8E8' } };
+        });
+        sheet.getRow(headerRow).height = 22;
+
+        // === DATA ROWS ===
+        let counter = 0;
+        for (const student of studentsInRoom) {
+          counter++;
+          const dataRow = headerRow + counter;
+          const siswa = student.siswa || {};
+
+          // Generate nomor peserta
+          const lastYearStr = (ujianData.tahunAjaran || '').length >= 2 ? (ujianData.tahunAjaran || '').slice(-2) : '00';
+          const semesterLower = (ujianData.semester || '').toLowerCase();
+          const semCode = semesterLower.includes('ganjil') ? '01' : semesterLower.includes('genap') ? '02' : '00';
+          const kelasStr2 = (siswa.fullClassName || siswa.className || '').toUpperCase();
+          let gradeCode = '00';
+          if (kelasStr2.includes('XII') || kelasStr2.includes('12')) gradeCode = '12';
+          else if (kelasStr2.includes('XI') || kelasStr2.includes('11')) gradeCode = '11';
+          else if (kelasStr2.includes('X') || kelasStr2.includes('10')) gradeCode = '10';
+          const ruangMatch = (room.namaRuang || '').match(/\d+/);
+          const ruangNumber = ruangMatch ? parseInt(ruangMatch[0], 10) : 0;
+          const ruangCode = ruangNumber.toString().padStart(2, '0');
+          const urutCode = counter.toString().padStart(3, '0');
+          const nomorPeserta = `${lastYearStr}-${semCode}-${gradeCode}-${ruangCode}-${urutCode}`;
+
+          const rowData: (string | number)[] = [counter, nomorPeserta, siswa.fullName || '-'];
+          if (showPG) rowData.push('');
+          if (showEsai) rowData.push('');
+          rowData.push(''); // Nilai Akhir
+          if (fmt.kolomRemedial) rowData.push('');
+
+          rowData.forEach((val, idx) => {
+            const cell = sheet.getCell(dataRow, idx + 1);
+            cell.value = val as any;
+            cell.border = thinBorder;
+            cell.font = { size: 10 };
+            if (idx === 0) {
+              cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            } else if (idx === 1) {
+              cell.alignment = { horizontal: 'center', vertical: 'middle' };
+              cell.font = { size: 9, name: 'Courier New' };
+            } else if (idx >= 3) {
+              cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            } else {
+              cell.alignment = { vertical: 'middle' };
+            }
+          });
+          sheet.getRow(dataRow).height = 20;
+        }
+
+        // Add empty rows if less than 15
+        const minRows = 15;
+        if (counter < minRows) {
+          for (let i = counter + 1; i <= minRows; i++) {
+            const dataRow = headerRow + i;
+            let colIdx = 0;
+            [i.toString(), '', ''].concat(
+              showPG ? [''] : [],
+              showEsai ? [''] : [],
+              [''],
+              fmt.kolomRemedial ? [''] : []
+            ).forEach((val, idx) => {
+              const cell = sheet.getCell(dataRow, idx + 1);
+              cell.value = idx === 0 ? i : '';
+              cell.border = thinBorder;
+              cell.font = { size: 10 };
+              cell.alignment = idx === 0 ? { horizontal: 'center' } : {};
+            });
+          }
+        }
+
+        const actualRows = Math.max(counter, minRows);
+
+        // === STATS ===
+        const statsRow = headerRow + actualRows + 2;
+        sheet.getCell(statsRow, 1).value = `Jumlah Peserta: ${counter} Orang`;
+        sheet.getCell(statsRow, 1).font = { size: 10 };
+        if (showPG) {
+          sheet.getCell(statsRow, 3).value = `Jumlah Soal PG: ${fmt.jumlahPG}`;
+          sheet.getCell(statsRow, 3).font = { size: 10 };
+        }
+        if (showEsai) {
+          const esaiCol = showPG ? 4 : 3;
+          sheet.getCell(statsRow, esaiCol).value = `Jumlah Soal Esai: ${fmt.jumlahEsai}`;
+          sheet.getCell(statsRow, esaiCol).font = { size: 10 };
+        }
+
+        // === TTD: Guru Mata Pelajaran ===
+        const ttdRow = statsRow + 2;
+        const ttdCol = totalCols - 1;
+
+        sheet.mergeCells(ttdRow, ttdCol, ttdRow, totalCols);
+        sheet.getCell(ttdRow, ttdCol).value = 'Guru Mata Pelajaran';
+        sheet.getCell(ttdRow, ttdCol).font = { size: 10 };
+        sheet.getCell(ttdRow, ttdCol).alignment = { horizontal: 'center' };
+
+        // Space for signature
+        sheet.mergeCells(ttdRow + 4, ttdCol, ttdRow + 4, totalCols);
+        sheet.getCell(ttdRow + 4, ttdCol).value = '(                                      )';
+        sheet.getCell(ttdRow + 4, ttdCol).font = { size: 10 };
+        sheet.getCell(ttdRow + 4, ttdCol).alignment = { horizontal: 'center' };
+
+        sheet.mergeCells(ttdRow + 5, ttdCol, ttdRow + 5, totalCols);
+        sheet.getCell(ttdRow + 5, ttdCol).value = 'NIP. ........................................';
+        sheet.getCell(ttdRow + 5, ttdCol).font = { size: 9 };
+        sheet.getCell(ttdRow + 5, ttdCol).alignment = { horizontal: 'center' };
+
+        // === Column widths ===
+        sheet.getColumn(1).width = 5;   // No
+        sheet.getColumn(2).width = 22;  // No. Peserta
+        sheet.getColumn(3).width = 30;  // Nama
+        let colOffset = 4;
+        if (showPG) { sheet.getColumn(colOffset).width = 10; colOffset++; }
+        if (showEsai) { sheet.getColumn(colOffset).width = 10; colOffset++; }
+        sheet.getColumn(colOffset).width = 14; colOffset++; // Nilai Akhir
+        if (fmt.kolomRemedial) { sheet.getColumn(colOffset).width = 12; }
+      }
+    }
+
+    if (workbook.worksheets.length === 0) {
+      throw new Error('Tidak ada data untuk di-export. Pastikan jadwal, ruang, dan distribusi peserta sudah dikonfigurasi.');
+    }
+
+    return await workbook.xlsx.writeBuffer();
+  }
+
 }

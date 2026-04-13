@@ -45,5 +45,6 @@ router.post('/:ujianId/distribusi/generate', ExamController.generateDistribusi);
 router.delete('/:ujianId/distribusi', ExamController.clearDistribusi);
 router.get('/:ujianId/distribusi/export', ExamController.exportDistribusi);
 router.get('/:ujianId/daftar-hadir/export', ExamController.exportDaftarHadir);
+router.get('/:ujianId/format-nilai/export', ExamController.exportFormatNilai);
 
 export const examRoutes = router;
