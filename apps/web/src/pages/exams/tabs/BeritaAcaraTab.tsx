@@ -57,7 +57,9 @@ export const BeritaAcaraTab = ({ ujianId, ujian }: Props) => {
                 <div className="flex gap-2">
                   <button className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-all active:scale-95"
                     onClick={() => {
-                      if (doc.key === 'ba-mapel') {
+                      if (doc.key === 'ba-sekolah') {
+                        window.open(`/dashboard/print-ba-sekolah/${ujianId}`, '_blank');
+                      } else if (doc.key === 'ba-mapel') {
                         let url = `/dashboard/print-ba-mapel/${ujianId}`;
                         if (selectedRoomId !== 'ALL') url += `?ruangId=${selectedRoomId}`;
                         window.open(url, '_blank');
@@ -73,12 +75,14 @@ export const BeritaAcaraTab = ({ ujianId, ujian }: Props) => {
                   </button>
                   <button className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-medium border border-gray-200 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
                     onClick={() => {
-                      if (doc.key === 'ba-mapel') {
+                      if (doc.key === 'ba-sekolah') {
+                        window.open(`/dashboard/print-ba-sekolah/${ujianId}?export=word`, '_blank');
+                      } else if (doc.key === 'ba-mapel') {
                         let url = `/dashboard/print-ba-mapel/${ujianId}?export=word`;
                         if (selectedRoomId !== 'ALL') url += `&ruangId=${selectedRoomId}`;
                         window.open(url, '_blank');
                       } else {
-                        alert('Fitur export Word hanya tersedia untuk Berita Acara per Mata Pelajaran saat ini. Silakan gunakan Cetak PDF untuk Pakta Integritas.');
+                        alert('Fitur export Word hanya tersedia untuk Berita Acara Sekolah dan Berita Acara per Mata Pelajaran saat ini.');
                       }
                     }}>
                     <FileText size={12} /> Export Word

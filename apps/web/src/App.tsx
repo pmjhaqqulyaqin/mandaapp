@@ -34,6 +34,7 @@ import { PrintAcademicCalendar } from './pages/PrintAcademicCalendar';
 import { PrintKartuPeserta } from './pages/exams/print/PrintKartuPeserta';
 import { PrintIdCardPegawai } from './pages/exams/print/PrintIdCardPegawai';
 import { PrintBeritaAcaraMapel } from './pages/exams/print/PrintBeritaAcaraMapel';
+import { PrintBeritaAcaraSekolah } from './pages/exams/print/PrintBeritaAcaraSekolah';
 import { PrintPaktaIntegritas } from './pages/exams/print/PrintPaktaIntegritas';
 import { PrintDaftarHadirPeserta } from './pages/exams/print/PrintDaftarHadirPeserta';
 import { PrintFormatNilai } from './pages/exams/print/PrintFormatNilai';
@@ -83,6 +84,11 @@ function App() {
         <Route path="/dashboard/print-ba-mapel/:ujianId" element={
           <ProtectedRoute>
             <PrintBeritaAcaraMapel />
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard/print-ba-sekolah/:ujianId" element={
+          <ProtectedRoute>
+            <PrintBeritaAcaraSekolah />
           </ProtectedRoute>
         } />
         <Route path="/dashboard/print-pakta/:ujianId" element={
