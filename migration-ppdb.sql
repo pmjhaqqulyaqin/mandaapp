@@ -115,26 +115,53 @@ CREATE TABLE IF NOT EXISTS ppdb_dokumen (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+-- Clean up duplicates if any were accidentally inserted in previous migrations (Keep oldest)
+DELETE FROM ppdb_jalur
+WHERE id NOT IN (
+    SELECT MIN(id)
+    FROM ppdb_jalur
+    GROUP BY config_id, nama_jalur
+);
+
+DELETE FROM ppdb_config
+WHERE id NOT IN (
+    SELECT MIN(id)
+    FROM ppdb_config
+    GROUP BY tahun_ajaran
+);
+
 -- Seed default config and jalur
 INSERT INTO ppdb_config (tahun_ajaran, nama_sistem, is_active)
-VALUES ('2026/2027', 'SIMPMB 2026', true)
-ON CONFLICT DO NOTHING;
+SELECT '2026/2027', 'SIMPMB 2026', true
+WHERE NOT EXISTS (
+  SELECT 1 FROM ppdb_config WHERE tahun_ajaran = '2026/2027'
+);
 
 -- Seed 2 jalur for the first config
 DO $$
 DECLARE
   config_uuid UUID;
 BEGIN
+  -- Get the config ID
   SELECT id INTO config_uuid FROM ppdb_config WHERE tahun_ajaran = '2026/2027' LIMIT 1;
+  
   IF config_uuid IS NOT NULL THEN
+    -- Insert PRESTASI if not exists
     INSERT INTO ppdb_jalur (config_id, nama_jalur, kuota, nilai_minimum, requires_prestasi, bobot_nilai, bobot_prestasi, is_active, persyaratan, deskripsi)
-    VALUES
-      (config_uuid, 'PRESTASI', 30, 80, true, 70, 30, false,
-       'Nilai rata-rata raport ≥ 80;Sertifikat prestasi minimal tingkat Kabupaten;Lulus SMP/MTs',
-       'Jalur khusus bagi calon siswa berprestasi di bidang akademik maupun non-akademik.'),
-      (config_uuid, 'REGULER', 145, 70, false, 100, 0, false,
-       'Nilai rata-rata raport ≥ 70;Berdomisili dalam zonasi sekolah;Lulus SMP/MTs',
-       'Jalur umum bagi seluruh calon siswa yang memenuhi persyaratan dasar.')
-    ON CONFLICT DO NOTHING;
+    SELECT config_uuid, 'PRESTASI', 30, 80, true, 70, 30, false,
+           'Nilai rata-rata raport ≥ 80;Sertifikat prestasi minimal tingkat Kabupaten;Lulus SMP/MTs',
+           'Jalur khusus bagi calon siswa berprestasi di bidang akademik maupun non-akademik.'
+    WHERE NOT EXISTS (
+      SELECT 1 FROM ppdb_jalur WHERE config_id = config_uuid AND nama_jalur = 'PRESTASI'
+    );
+
+    -- Insert REGULER if not exists
+    INSERT INTO ppdb_jalur (config_id, nama_jalur, kuota, nilai_minimum, requires_prestasi, bobot_nilai, bobot_prestasi, is_active, persyaratan, deskripsi)
+    SELECT config_uuid, 'REGULER', 145, 70, false, 100, 0, false,
+           'Nilai rata-rata raport ≥ 70;Berdomisili dalam zonasi sekolah;Lulus SMP/MTs',
+           'Jalur umum bagi seluruh calon siswa yang memenuhi persyaratan dasar.'
+    WHERE NOT EXISTS (
+      SELECT 1 FROM ppdb_jalur WHERE config_id = config_uuid AND nama_jalur = 'REGULER'
+    );
   END IF;
 END $$;
