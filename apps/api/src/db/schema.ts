@@ -408,3 +408,110 @@ export const distribusiPeserta = pgTable("distribusi_peserta", {
   nomorMeja: integer("nomor_meja"),
   createdAt: timestamp("created_at").defaultNow()
 });
+
+// PMB / SIMPMB (Penerimaan Murid Baru)
+export const ppdbConfig = pgTable("ppdb_config", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tahunAjaran: varchar("tahun_ajaran", { length: 20 }).notNull(), // "2026/2027"
+  namaSistem: varchar("nama_sistem", { length: 100 }).default("SIMPMB 2026"),
+  isActive: boolean("is_active").default(true),
+  tanggalPengumuman: timestamp("tanggal_pengumuman"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const ppdbJalur = pgTable("ppdb_jalur", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  configId: uuid("config_id").references(() => ppdbConfig.id, { onDelete: "cascade" }).notNull(),
+  namaJalur: varchar("nama_jalur", { length: 50 }).notNull(), // "PRESTASI" | "REGULER"
+  kuota: integer("kuota").notNull().default(0),
+  nilaiMinimum: integer("nilai_minimum").notNull().default(70),
+  requiresPrestasi: boolean("requires_prestasi").default(false),
+  jadwalBuka: timestamp("jadwal_buka"),
+  jadwalTutup: timestamp("jadwal_tutup"),
+  persyaratan: text("persyaratan"), // JSON string or plain text
+  deskripsi: text("deskripsi"),
+  bobotNilai: integer("bobot_nilai").default(100), // percentage
+  bobotPrestasi: integer("bobot_prestasi").default(0), // percentage
+  isActive: boolean("is_active").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const ppdbPendaftar = pgTable("ppdb_pendaftar", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  jalurId: uuid("jalur_id").references(() => ppdbJalur.id).notNull(),
+  noPendaftaran: varchar("no_pendaftaran", { length: 50 }).unique().notNull(), // PPDB2026/00001
+  nisn: varchar("nisn", { length: 20 }).notNull(),
+  email: varchar("email", { length: 255 }),
+  status: varchar("status", { length: 30 }).default("menunggu"), // menunggu, terverifikasi, diterima, ditolak, cadangan
+  catatanAdmin: text("catatan_admin"),
+  nilaiAkhir: varchar("nilai_akhir", { length: 10 }), // calculated final score
+  ranking: integer("ranking"),
+  tglDaftar: timestamp("tgl_daftar").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const ppdbDataDiri = pgTable("ppdb_data_diri", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  pendaftarId: uuid("pendaftar_id").references(() => ppdbPendaftar.id, { onDelete: "cascade" }).notNull(),
+  nik: varchar("nik", { length: 20 }).notNull(),
+  namaLengkap: varchar("nama_lengkap", { length: 255 }).notNull(),
+  tempatLahir: varchar("tempat_lahir", { length: 100 }).notNull(),
+  tanggalLahir: date("tanggal_lahir").notNull(),
+  jenisKelamin: varchar("jenis_kelamin", { length: 20 }).notNull(), // Laki-laki, Perempuan
+  alamat: text("alamat").notNull(),
+  namaAyah: varchar("nama_ayah", { length: 255 }),
+  pekerjaanAyah: varchar("pekerjaan_ayah", { length: 100 }),
+  namaIbu: varchar("nama_ibu", { length: 255 }),
+  pekerjaanIbu: varchar("pekerjaan_ibu", { length: 100 }),
+  noHpOrtu: varchar("no_hp_ortu", { length: 20 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const ppdbDataSekolah = pgTable("ppdb_data_sekolah", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  pendaftarId: uuid("pendaftar_id").references(() => ppdbPendaftar.id, { onDelete: "cascade" }).notNull(),
+  npsn: varchar("npsn", { length: 20 }),
+  namaSekolah: varchar("nama_sekolah", { length: 255 }).notNull(),
+  statusSekolah: varchar("status_sekolah", { length: 20 }).notNull(), // Negeri, Swasta
+  alamatSekolah: text("alamat_sekolah"),
+  tahunLulus: integer("tahun_lulus").notNull(),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const ppdbNilaiRaport = pgTable("ppdb_nilai_raport", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  pendaftarId: uuid("pendaftar_id").references(() => ppdbPendaftar.id, { onDelete: "cascade" }).notNull(),
+  semester: integer("semester").notNull(), // 1-5
+  bIndonesia: varchar("b_indonesia", { length: 5 }),
+  bInggris: varchar("b_inggris", { length: 5 }),
+  matematika: varchar("matematika", { length: 5 }),
+  ipa: varchar("ipa", { length: 5 }),
+  ips: varchar("ips", { length: 5 }),
+  rataRata: varchar("rata_rata", { length: 10 }),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const ppdbPrestasi = pgTable("ppdb_prestasi", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  pendaftarId: uuid("pendaftar_id").references(() => ppdbPendaftar.id, { onDelete: "cascade" }).notNull(),
+  jenis: varchar("jenis", { length: 50 }).notNull(), // Akademik, Non-Akademik
+  tingkat: varchar("tingkat", { length: 50 }).notNull(), // Kabupaten, Provinsi, Nasional
+  namaKegiatan: varchar("nama_kegiatan", { length: 255 }).notNull(),
+  peringkat: varchar("peringkat", { length: 50 }), // Juara 1, 2, 3, Harapan
+  tahun: integer("tahun"),
+  fileSertifikat: varchar("file_sertifikat", { length: 500 }),
+  bobotNilai: varchar("bobot_nilai", { length: 10 }), // calculated
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const ppdbDokumen = pgTable("ppdb_dokumen", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  pendaftarId: uuid("pendaftar_id").references(() => ppdbPendaftar.id, { onDelete: "cascade" }).notNull(),
+  jenisDokumen: varchar("jenis_dokumen", { length: 50 }).notNull(), // SKL, KK, AKTA, FOTO
+  filePath: varchar("file_path", { length: 500 }).notNull(),
+  isVerified: boolean("is_verified").default(false),
+  createdAt: timestamp("created_at").defaultNow()
+});

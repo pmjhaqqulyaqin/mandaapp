@@ -9,6 +9,7 @@ import { FooterWithSettings } from '../components/FooterWithSettings';
 import { HeaderWithSettings } from '../components/HeaderWithSettings';
 import { API_BASE_URL } from '../lib/api';
 import { SEO } from '../components/SEO';
+import { PPDBPopupModal } from './ppdb/components/PPDBPopupModal';
 
 const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
 
@@ -82,6 +83,7 @@ export const LandingPage = () => {
       <SEO />
       <HeaderWithSettings />
       <main className="flex-1">
+        <PPDBPopupModal />
         <HeroSection 
           logoUrl={resolvedLogo} 
           schoolName={get('school_name') || 'MAN 2 LOMBOK TIMUR'} 

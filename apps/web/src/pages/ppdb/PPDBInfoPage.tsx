@@ -1,0 +1,601 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  GraduationCap, Trophy, ClipboardList, ChevronDown,
+  ArrowRight, Users, Calendar, Target, CheckCircle, Clock, Search,
+} from 'lucide-react';
+import { HeaderWithSettings } from '../../components/HeaderWithSettings';
+import { FooterWithSettings } from '../../components/FooterWithSettings';
+import { SEO } from '../../components/SEO';
+import { apiClient, API_BASE_URL } from '../../lib/api';
+import { toast } from 'sonner';
+
+// ============================================================
+// Intersection Observer Hook (same as LayananPage)
+// ============================================================
+const useInView = (options?: IntersectionObserverInit) => {
+  const [isInView, setIsInView] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      setIsInView(true);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsInView(true);
+        observer.unobserve(el);
+      }
+    }, { threshold: 0.01, rootMargin: '100px', ...options });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return { ref, isInView };
+};
+
+// ============================================================
+// FAQ Data
+// ============================================================
+const FAQ_ITEMS = [
+  { q: 'Kapan pendaftaran dibuka?', a: 'Jadwal pendaftaran disesuaikan oleh panitia PMB. Silakan cek halaman ini secara berkala atau hubungi Tata Usaha MAN 2 Lombok Timur.' },
+  { q: 'Apa perbedaan jalur Prestasi dan Reguler?', a: 'Jalur Prestasi mensyaratkan sertifikat prestasi minimal tingkat kabupaten dan nilai rata-rata ≥ 80. Jalur Reguler mensyaratkan nilai rata-rata ≥ 70 dan berdomisili dalam zonasi sekolah.' },
+  { q: 'Dokumen apa saja yang perlu disiapkan?', a: 'SKL/Ijazah, Kartu Keluarga, Akta Kelahiran, Pas Foto 3x4, dan Sertifikat Prestasi (untuk jalur Prestasi).' },
+  { q: 'Bagaimana cara mengecek status pendaftaran?', a: 'Masukkan NISN dan Nomor Pendaftaran pada bagian "Cek Status" di halaman ini.' },
+  { q: 'Apakah bisa mendaftar lebih dari satu jalur?', a: 'Tidak. Setiap calon siswa hanya bisa mendaftar pada satu jalur pendaftaran.' },
+  { q: 'Bagaimana jika data yang diisi salah?', a: 'Hubungi panitia PMB melalui kontak yang tersedia untuk melakukan koreksi data.' },
+];
+
+// ============================================================
+// Jalur Card Component with 3D Tilt
+// ============================================================
+const JalurCard = ({
+  jalur,
+  index,
+  isVisible,
+}: {
+  jalur: any;
+  index: number;
+  isVisible: boolean;
+}) => {
+  const navigate = useNavigate();
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+
+  const isPrestasi = jalur.namaJalur === 'PRESTASI';
+  const Icon = isPrestasi ? Trophy : ClipboardList;
+  const color = isPrestasi ? {
+    gradient: 'from-amber-500 to-orange-600',
+    bg: 'bg-amber-50',
+    text: 'text-amber-600',
+    shadow: 'rgba(245,158,11,0.3)',
+    border: 'border-amber-200',
+  } : {
+    gradient: 'from-blue-500 to-indigo-600',
+    bg: 'bg-blue-50',
+    text: 'text-blue-600',
+    shadow: 'rgba(59,130,246,0.3)',
+    border: 'border-blue-200',
+  };
+
+  // Check if jalur is currently open
+  const now = new Date();
+  const isOpen = (!jalur.jadwalBuka || now >= new Date(jalur.jadwalBuka)) &&
+                 (!jalur.jadwalTutup || now <= new Date(jalur.jadwalTutup));
+  const isUpcoming = jalur.jadwalBuka && now < new Date(jalur.jadwalBuka);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const x = ((e.clientY - centerY) / (rect.height / 2)) * -8;
+    const y = ((e.clientX - centerX) / (rect.width / 2)) * 8;
+    setTilt({ x, y });
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setTilt({ x: 0, y: 0 });
+    setIsHovered(false);
+  }, []);
+
+  const persyaratanList = jalur.persyaratan ? jalur.persyaratan.split(';').filter(Boolean) : [];
+
+  return (
+    <div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={handleMouseLeave}
+      className="group relative"
+      style={{
+        perspective: '800px',
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'translateY(0)' : 'translateY(40px)',
+        transition: `opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1) ${index * 0.15}s, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1) ${index * 0.15}s`,
+      }}
+    >
+      <div
+        className="relative bg-white rounded-2xl border border-gray-100 p-7 md:p-8 overflow-hidden transition-shadow duration-500"
+        style={{
+          transform: isHovered
+            ? `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale(1.02)`
+            : 'rotateX(0) rotateY(0) scale(1)',
+          transition: 'transform 0.25s ease-out, box-shadow 0.4s ease',
+          boxShadow: isHovered
+            ? `0 25px 60px -12px rgba(0,0,0,0.15), 0 0 40px -8px ${color.shadow}`
+            : '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)',
+          transformStyle: 'preserve-3d',
+        }}
+      >
+        {/* Shimmer sweep */}
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+          style={{
+            background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.5) 45%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,0.5) 55%, transparent 60%)',
+            backgroundSize: '200% 100%',
+            animation: isHovered ? 'shimmerSweep 1.5s ease-in-out' : 'none',
+          }}
+        />
+
+        {/* Icon */}
+        <div
+          className={`w-16 h-16 rounded-xl ${color.bg} flex items-center justify-center mb-5 transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1`}
+          style={{
+            boxShadow: isHovered ? `0 8px 25px -5px ${color.shadow}` : 'none',
+            transition: 'box-shadow 0.4s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          }}
+        >
+          <Icon className={`w-8 h-8 ${color.text}`} strokeWidth={1.8} />
+        </div>
+
+        {/* Status badge */}
+        <div className="flex items-center gap-2 mb-3">
+          <h3 className="font-bold text-gray-800 text-xl">{isPrestasi ? '🏆 Prestasi' : '📋 Reguler'}</h3>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+            isOpen ? 'bg-emerald-100 text-emerald-700' : isUpcoming ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'
+          }`}>
+            {isOpen ? '🟢 Dibuka' : isUpcoming ? '🟡 Segera' : '⏸️ Tutup'}
+          </span>
+        </div>
+
+        {/* Description */}
+        <p className="text-sm text-gray-500 leading-relaxed mb-4">{jalur.deskripsi}</p>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="flex items-center gap-2 text-xs text-gray-600">
+            <Users size={14} className={color.text} />
+            <span>Kuota: <strong>{jalur.kuota} Siswa</strong></span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-600">
+            <Target size={14} className={color.text} />
+            <span>Min. Nilai: <strong>{jalur.nilaiMinimum}</strong></span>
+          </div>
+        </div>
+
+        {/* Jadwal */}
+        {(jalur.jadwalBuka || jalur.jadwalTutup) && (
+          <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
+            <Calendar size={14} className={color.text} />
+            <span>
+              {jalur.jadwalBuka ? new Date(jalur.jadwalBuka).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '~'}
+              {' — '}
+              {jalur.jadwalTutup ? new Date(jalur.jadwalTutup).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '~'}
+            </span>
+          </div>
+        )}
+
+        {/* Persyaratan */}
+        {persyaratanList.length > 0 && (
+          <div className="mb-5">
+            <p className="text-xs font-semibold text-gray-700 mb-2">Persyaratan:</p>
+            <ul className="space-y-1">
+              {persyaratanList.map((p: string, i: number) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-gray-500">
+                  <CheckCircle size={12} className={`${color.text} mt-0.5 shrink-0`} />
+                  <span>{p.trim()}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* CTA */}
+        <button
+          onClick={() => navigate(`/ppdb/daftar/${jalur.id}`)}
+          disabled={!isOpen}
+          className={`w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all duration-300 active:scale-95 ${
+            isOpen
+              ? `bg-gradient-to-r ${color.gradient} text-white shadow-md hover:shadow-lg hover:-translate-y-0.5`
+              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+          }`}
+        >
+          {isOpen ? (
+            <>
+              Daftar Sekarang
+              <ArrowRight size={16} />
+            </>
+          ) : isUpcoming ? (
+            <>
+              <Clock size={16} />
+              Segera Dibuka
+            </>
+          ) : (
+            'Pendaftaran Ditutup'
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// FAQ Item Component
+// ============================================================
+const FAQItem = ({ item }: { item: typeof FAQ_ITEMS[0] }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="border-b border-gray-100 last:border-b-0">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between py-5 px-1 text-left group hover:bg-gray-50/50 transition-colors rounded-lg"
+      >
+        <span className="text-sm md:text-base font-medium text-gray-700 group-hover:text-gray-900 transition-colors pr-4">
+          {item.q}
+        </span>
+        <ChevronDown
+          className={`w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+      <div
+        className="overflow-hidden transition-all duration-400 ease-in-out"
+        style={{ maxHeight: isOpen ? '200px' : '0px', opacity: isOpen ? 1 : 0 }}
+      >
+        <p className="px-1 pb-5 text-sm text-gray-500 leading-relaxed">{item.a}</p>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// Main PPDBInfoPage Component
+// ============================================================
+export const PPDBInfoPage = () => {
+  const navigate = useNavigate();
+  const heroSection = useInView();
+  const jalurSection = useInView();
+  const faqSection = useInView();
+
+  const [config, setConfig] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [trackNisn, setTrackNisn] = useState('');
+  const [trackNoPendaftaran, setTrackNoPendaftaran] = useState('');
+  const [trackResult, setTrackResult] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const data = await apiClient<any>('/ppdb/config');
+        setConfig(data);
+      } catch (err) {
+        console.error('Failed to load PPDB config:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchConfig();
+  }, []);
+
+  const handleTrackSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!trackNisn.trim() || !trackNoPendaftaran.trim()) return;
+    try {
+      const data = await apiClient<any>(`/ppdb/status/${trackNisn.trim()}/${trackNoPendaftaran.trim()}`);
+      setTrackResult(data);
+      toast.success('Data pendaftaran ditemukan');
+    } catch (err: any) {
+      toast.error(err.message || 'Data tidak ditemukan');
+      setTrackResult(null);
+    }
+  };
+
+  const scrollTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const jalurList = config?.jalur || [];
+
+  return (
+    <div className="min-h-screen bg-white">
+      <SEO />
+      <HeaderWithSettings />
+
+      {/* ====== HERO SECTION ====== */}
+      <section
+        ref={heroSection.ref}
+        className="relative overflow-hidden min-h-[55vh] md:min-h-[65vh] flex items-center justify-start"
+      >
+        {/* Gradient Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#d1fae5] via-[#dbeafe] to-[#e0e7ff]" />
+
+        {/* Geometric pattern overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23059669' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        />
+
+        {/* Floating glass shapes */}
+        <div className="absolute top-10 right-10 w-72 h-72 bg-emerald-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+        <div className="absolute bottom-10 left-10 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute top-1/2 right-1/4 w-48 h-48 bg-sky-300/10 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '7s' }} />
+
+        {/* Glass panel decorations */}
+        <div className="absolute top-0 right-0 w-1/2 h-full opacity-20 pointer-events-none hidden lg:block">
+          <div className="absolute top-[10%] right-[5%] w-64 h-80 border border-white/40 rounded-3xl rotate-12 backdrop-blur-sm bg-white/5" />
+          <div className="absolute top-[20%] right-[15%] w-48 h-64 border border-white/30 rounded-2xl -rotate-6 backdrop-blur-sm bg-white/5" />
+          <div className="absolute bottom-[15%] right-[10%] w-40 h-52 border border-white/20 rounded-xl rotate-3 backdrop-blur-sm bg-white/5" />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-8 py-16 md:py-24">
+          <div
+            className="max-w-2xl"
+            style={{
+              opacity: heroSection.isInView ? 1 : 0,
+              transform: heroSection.isInView ? 'translateY(0)' : 'translateY(30px)',
+              transition: 'opacity 0.8s ease, transform 0.8s ease',
+            }}
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/60 backdrop-blur-sm rounded-full border border-white/40 mb-4">
+              <GraduationCap size={14} className="text-emerald-600" />
+              <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">SIMPMB 2026</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 leading-tight tracking-tight">
+              Penerimaan{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-600">
+                Murid Baru
+              </span>
+            </h1>
+            <p className="mt-3 text-sm sm:text-base md:text-lg text-gray-600 font-medium">
+              Madrasah Aliyah Negeri 2 Lombok Timur — Tahun Ajaran {config?.tahunAjaran || '2026/2027'}
+            </p>
+
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => scrollTo('jalur-section')}
+                className="px-7 py-3 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white font-bold rounded-lg shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-sm uppercase tracking-wider"
+              >
+                Lihat Jalur Pendaftaran
+              </button>
+              <button
+                onClick={() => scrollTo('tracking-section')}
+                className="px-7 py-3 bg-white/80 backdrop-blur-sm hover:bg-white text-gray-800 font-bold rounded-lg border border-gray-200 hover:border-emerald-300 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-sm uppercase tracking-wider"
+              >
+                Cek Status Pendaftaran
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom wave separator */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
+            <path
+              d="M0 32L48 37.3C96 43 192 53 288 53.3C384 53 480 43 576 42.7C672 43 768 53 864 58.7C960 64 1056 64 1152 58.7C1248 53 1344 43 1392 37.3L1440 32V80H1392C1344 80 1248 80 1152 80C1056 80 960 80 864 80C768 80 672 80 576 80C480 80 384 80 288 80C192 80 96 80 48 80H0V32Z"
+              fill="white"
+            />
+          </svg>
+        </div>
+      </section>
+
+      {/* ====== JALUR CARDS SECTION ====== */}
+      <section id="jalur-section" ref={jalurSection.ref} className="py-16 md:py-24 bg-white">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
+          {/* Section Header */}
+          <div className="text-center mb-12 md:mb-16">
+            <span
+              className="inline-block px-4 py-1.5 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full uppercase tracking-widest mb-4"
+              style={{
+                opacity: jalurSection.isInView ? 1 : 0,
+                transform: jalurSection.isInView ? 'translateY(0)' : 'translateY(20px)',
+                transition: 'opacity 0.5s ease, transform 0.5s ease',
+              }}
+            >
+              Jalur Pendaftaran
+            </span>
+            <h2
+              className="text-2xl md:text-4xl font-black text-gray-900 tracking-tight"
+              style={{
+                opacity: jalurSection.isInView ? 1 : 0,
+                transform: jalurSection.isInView ? 'translateY(0)' : 'translateY(20px)',
+                transition: 'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s',
+              }}
+            >
+              Pilih <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-600">Jalur</span> Pendaftaran Anda
+            </h2>
+            <p
+              className="mt-4 text-gray-500 text-sm md:text-base max-w-2xl mx-auto leading-relaxed"
+              style={{
+                opacity: jalurSection.isInView ? 1 : 0,
+                transform: jalurSection.isInView ? 'translateY(0)' : 'translateY(20px)',
+                transition: 'opacity 0.6s ease 0.2s, transform 0.6s ease 0.2s',
+              }}
+            >
+              Silakan pilih jalur yang sesuai dengan prestasi dan kualifikasi Anda
+            </p>
+          </div>
+
+          {/* Jalur Cards */}
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : jalurList.length > 0 ? (
+            <div className={`grid gap-6 md:gap-8 ${jalurList.length === 1 ? 'max-w-md mx-auto' : 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto'}`}>
+              {jalurList.map((jalur: any, index: number) => (
+                <JalurCard key={jalur.id} jalur={jalur} index={index} isVisible={jalurSection.isInView} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-100 flex items-center justify-center">
+                <GraduationCap size={32} className="text-gray-300" />
+              </div>
+              <p className="text-gray-400 text-sm">Belum ada jalur pendaftaran yang dibuka saat ini.</p>
+              <p className="text-gray-400 text-xs mt-1">Silakan cek kembali nanti atau hubungi panitia PMB.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ====== FAQ SECTION ====== */}
+      <section id="faq-section" ref={faqSection.ref} className="py-16 md:py-24 bg-[#F8FBF8]">
+        <div className="max-w-3xl mx-auto px-4 md:px-8">
+          <div className="text-center mb-10">
+            <span
+              className="inline-block px-4 py-1.5 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full uppercase tracking-widest mb-4"
+              style={{
+                opacity: faqSection.isInView ? 1 : 0,
+                transform: faqSection.isInView ? 'translateY(0)' : 'translateY(20px)',
+                transition: 'opacity 0.5s ease, transform 0.5s ease',
+              }}
+            >
+              F.A.Q
+            </span>
+            <h2
+              className="text-2xl md:text-4xl font-black text-gray-900 tracking-tight"
+              style={{
+                opacity: faqSection.isInView ? 1 : 0,
+                transform: faqSection.isInView ? 'translateY(0)' : 'translateY(20px)',
+                transition: 'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s',
+              }}
+            >
+              Pertanyaan yang Sering{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-600">
+                Ditanyakan
+              </span>
+            </h2>
+          </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y-0 px-5 md:px-8">
+            {FAQ_ITEMS.map((item, index) => (
+              <FAQItem key={index} item={item} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ====== TRACKING SECTION ====== */}
+      <section id="tracking-section" className="py-16 md:py-20 bg-gradient-to-b from-[#ecfdf5] to-[#F8FBF8]">
+        <div className="max-w-xl mx-auto px-4 text-center">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">Cek Status Pendaftaran</h2>
+          <p className="text-gray-500 text-xs mb-6 leading-relaxed max-w-lg mx-auto">
+            Cek status pendaftaran Anda dengan memasukkan NISN dan Nomor Pendaftaran.
+            <br />
+            <span className="italic text-xs">
+              Nomor Pendaftaran didapatkan setelah berhasil mendaftar.
+            </span>
+          </p>
+
+          <form onSubmit={handleTrackSubmit} className="space-y-3 max-w-md mx-auto">
+            <input
+              required
+              type="text"
+              placeholder="NISN (contoh: 0098765432)"
+              value={trackNisn}
+              onChange={(e) => setTrackNisn(e.target.value)}
+              className="w-full px-5 py-3.5 rounded-lg border border-gray-200 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 text-sm transition-all bg-white"
+            />
+            <input
+              required
+              type="text"
+              placeholder="Nomor Pendaftaran (contoh: PMB2026/00001)"
+              value={trackNoPendaftaran}
+              onChange={(e) => setTrackNoPendaftaran(e.target.value)}
+              className="w-full px-5 py-3.5 rounded-lg border border-gray-200 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 text-sm transition-all bg-white"
+            />
+            <button
+              type="submit"
+              className="w-full px-7 py-3.5 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white font-bold rounded-lg shadow-lg shadow-emerald-500/20 transition-all active:scale-95 text-sm"
+            >
+              <Search size={16} className="inline mr-2" />
+              Cek Status
+            </button>
+          </form>
+
+          {/* Result */}
+          {trackResult && (
+            <div className="mt-8 bg-white p-6 rounded-2xl shadow-xl text-left border border-gray-100">
+              <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
+                <div>
+                  <h3 className="font-bold text-gray-800">{trackResult.dataDiri?.namaLengkap || trackResult.nisn}</h3>
+                  <p className="text-xs text-gray-500">No: {trackResult.noPendaftaran} • Jalur: {trackResult.jalur?.namaJalur}</p>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold capitalize ${
+                  trackResult.status === 'diterima' ? 'bg-emerald-100 text-emerald-700' :
+                  trackResult.status === 'terverifikasi' ? 'bg-blue-100 text-blue-700' :
+                  trackResult.status === 'ditolak' ? 'bg-red-100 text-red-700' :
+                  trackResult.status === 'cadangan' ? 'bg-amber-100 text-amber-700' :
+                  'bg-yellow-100 text-yellow-700'
+                }`}>
+                  {trackResult.status}
+                </span>
+              </div>
+
+              {/* Status Timeline */}
+              <div className="relative border-l-2 border-gray-100 ml-3 space-y-6">
+                <div className="relative pl-6">
+                  <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-emerald-500 shadow-[0_0_0_4px_white]" />
+                  <div className="font-semibold text-gray-800 text-sm">Formulir Terkirim</div>
+                  <div className="text-xs text-gray-400 mt-0.5">{new Date(trackResult.tglDaftar).toLocaleString('id-ID')}</div>
+                </div>
+                {(trackResult.status === 'terverifikasi' || trackResult.status === 'diterima') && (
+                  <div className="relative pl-6">
+                    <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-blue-500 shadow-[0_0_0_4px_white]" />
+                    <div className="font-semibold text-gray-800 text-sm">Data Terverifikasi</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Data Anda telah diverifikasi oleh admin.</div>
+                  </div>
+                )}
+                {trackResult.status === 'diterima' && (
+                  <div className="relative pl-6">
+                    <div className="absolute -left-[11px] top-1 w-5 h-5 rounded-full bg-emerald-500 shadow-[0_0_0_4px_white] flex items-center justify-center">
+                      <CheckCircle className="w-3 h-3 text-white" />
+                    </div>
+                    <div className="font-semibold text-emerald-700 text-sm">🎉 Selamat! Anda Diterima</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Silakan lakukan registrasi ulang sesuai jadwal.</div>
+                  </div>
+                )}
+                {trackResult.status === 'ditolak' && (
+                  <div className="relative pl-6">
+                    <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-red-500 shadow-[0_0_0_4px_white]" />
+                    <div className="font-semibold text-gray-800 text-sm">Tidak Lolos Seleksi</div>
+                    {trackResult.catatanAdmin && (
+                      <div className="mt-2 p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-700">{trackResult.catatanAdmin}</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <FooterWithSettings />
+
+      {/* Shimmer animation */}
+      <style>{`
+        @keyframes shimmerSweep {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
+    </div>
+  );
+};

@@ -28,6 +28,9 @@ import { useFavicon } from './hooks/useFavicon';
 import { ServicePageRoute } from './pages/layanan/ServicePageRoute';
 import { EOfficePage } from './pages/eoffice/EOfficePage';
 import { ExamManagementPage } from './pages/exams/ExamManagementPage';
+import { PPDBInfoPage } from './pages/ppdb/PPDBInfoPage';
+import { PPDBFormPage } from './pages/ppdb/PPDBFormPage';
+import { PPDBAdminPage } from './pages/ppdb/PPDBAdminPage';
 import { SystemUpdateCenter } from './pages/dashboard/SystemUpdateCenter';
 import { BatchPrintPage } from './pages/BatchPrintPage';
 import { PrintAcademicCalendar } from './pages/PrintAcademicCalendar';
@@ -54,6 +57,9 @@ function App() {
         <Route path="/gallery" element={<MaintenanceGuard><GalleryPage /></MaintenanceGuard>} />
         <Route path="/page/:slug" element={<MaintenanceGuard><DynamicPage /></MaintenanceGuard>} />
         <Route path="/services/:slug" element={<MaintenanceGuard><ServicePageRoute /></MaintenanceGuard>} />
+        {/* Public PPDB/PMB routes */}
+        <Route path="/ppdb" element={<MaintenanceGuard><PPDBInfoPage /></MaintenanceGuard>} />
+        <Route path="/ppdb/daftar/:jalurId" element={<MaintenanceGuard><PPDBFormPage /></MaintenanceGuard>} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/select-role" element={
           <ProtectedRoute>
@@ -129,6 +135,7 @@ function App() {
           <Route path="exams" element={<ExamManagementPage />} />
           <Route path="updates" element={<SystemUpdateCenter />} />
           <Route path="services" element={<DashboardServices />} />
+          <Route path="ppdb" element={<PPDBAdminPage />} />
         </Route>
       </Routes>
       <FloatingActionButton />

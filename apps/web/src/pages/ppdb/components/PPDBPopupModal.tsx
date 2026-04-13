@@ -1,0 +1,154 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { X, GraduationCap, ArrowRight, Info } from 'lucide-react';
+
+const POPUP_KEY = 'simpmb_popup_dismissed';
+const COOLDOWN_HOURS = 24;
+
+interface PPDBPopupModalProps {
+  onClose?: () => void;
+}
+
+export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check cooldown
+    const dismissed = localStorage.getItem(POPUP_KEY);
+    if (dismissed) {
+      const dismissedTime = parseInt(dismissed, 10);
+      if (Date.now() - dismissedTime < COOLDOWN_HOURS * 60 * 60 * 1000) {
+        return; // Still in cooldown
+      }
+    }
+    // Show after a brief delay for page load
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+      setTimeout(() => setIsAnimating(true), 50);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleDismiss = () => {
+    setIsAnimating(false);
+    setTimeout(() => {
+      setIsVisible(false);
+      localStorage.setItem(POPUP_KEY, Date.now().toString());
+      onClose?.();
+    }, 300);
+  };
+
+  const handleAction = (action: 'daftar' | 'info') => {
+    handleDismiss();
+    setTimeout(() => {
+      if (action === 'daftar') {
+        navigate('/ppdb');
+      } else {
+        navigate('/ppdb');
+      }
+    }, 350);
+  };
+
+  if (!isVisible) return null;
+
+  return (
+    <div
+      className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 transition-all duration-300 ${
+        isAnimating ? 'opacity-100' : 'opacity-0'
+      }`}
+      onClick={handleDismiss}
+    >
+      {/* Backdrop with blur */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+
+      {/* Modal Card */}
+      <div
+        className={`relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden transition-all duration-500 ${
+          isAnimating ? 'scale-100 translate-y-0' : 'scale-90 translate-y-8'
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Top gradient bar */}
+        <div className="h-2 bg-gradient-to-r from-emerald-500 via-blue-500 to-indigo-600" />
+
+        {/* Close button */}
+        <button
+          onClick={handleDismiss}
+          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-all z-10"
+        >
+          <X size={16} />
+        </button>
+
+        {/* Content */}
+        <div className="px-8 pt-8 pb-6 text-center">
+          {/* Icon */}
+          <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <GraduationCap className="w-10 h-10 text-white" strokeWidth={1.5} />
+          </div>
+
+          {/* Title */}
+          <p className="text-xs font-bold text-emerald-600 uppercase tracking-[0.2em] mb-2">
+            Penerimaan Murid Baru
+          </p>
+          <h2 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight tracking-tight">
+            SIMPMB{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-blue-600">
+              2026
+            </span>
+          </h2>
+
+          {/* Divider */}
+          <div className="w-16 h-0.5 bg-gradient-to-r from-emerald-400 to-blue-500 mx-auto my-4 rounded-full" />
+
+          {/* Subtitle */}
+          <p className="text-sm font-semibold text-gray-700 mb-1">
+            Madrasah Aliyah Negeri 2 Lombok Timur
+          </p>
+          <p className="text-xs text-gray-500 leading-relaxed max-w-sm mx-auto mb-6">
+            Laman untuk memfasilitasi sistem penerimaan murid baru secara daring
+          </p>
+
+          {/* Badges */}
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 text-xs font-bold rounded-full border border-amber-200">
+              🏆 Jalur Prestasi
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-bold rounded-full border border-blue-200">
+              📋 Jalur Reguler
+            </span>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={() => handleAction('daftar')}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3 bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-sm"
+            >
+              🚀 Mulai Pendaftaran
+              <ArrowRight size={16} />
+            </button>
+            <button
+              onClick={() => handleAction('info')}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3 bg-white hover:bg-gray-50 text-gray-700 font-bold rounded-xl border border-gray-200 hover:border-blue-300 shadow-sm transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-sm"
+            >
+              <Info size={16} />
+              Info Lengkap
+            </button>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-8 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-center">
+          <button
+            onClick={handleDismiss}
+            className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

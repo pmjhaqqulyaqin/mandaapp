@@ -21,6 +21,7 @@ import {
   User as UserIcon,
   LogOut,
   ClipboardCheck,
+  GraduationCap,
 } from 'lucide-react';
 import { ProfileModal } from '../components/modals/ProfileModal';
 
@@ -98,6 +99,13 @@ const ALL_MENU_ITEMS = [
     group: 'main',
   },
   {
+    key: 'ppdb',
+    label: 'PMB / SIMPMB',
+    href: '/dashboard/ppdb',
+    icon: <GraduationCap size={16} />,
+    group: 'main',
+  },
+  {
     key: 'ptsp',
     label: 'Pusat Layanan',
     href: '/dashboard/services',
@@ -169,6 +177,7 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'nis': 'nis',
   'employees': 'employees',
   'exams': 'exams',
+  'ppdb': 'ppdb',
 };
 
 const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
