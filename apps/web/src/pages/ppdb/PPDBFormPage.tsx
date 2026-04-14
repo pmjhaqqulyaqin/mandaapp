@@ -438,7 +438,7 @@ export const PPDBFormPage = () => {
                                   min="0" max="100"
                                   value={formData.nilaiRaport[si][MAPEL_KEYS[mi]]}
                                   onChange={e => updateNilai(si, MAPEL_KEYS[mi], e.target.value)}
-                                  className="w-full px-2 py-1.5 text-center text-sm rounded-md border border-gray-300 shadow-inner outline-none focus:ring-2 focus:ring-emerald-400 bg-white text-gray-900 font-black dark:bg-[#222] dark:border-[#444] dark:text-white"
+                                  className="w-full px-2 py-1.5 text-center text-sm rounded border-0 outline-none focus:ring-2 focus:ring-emerald-100 bg-transparent text-gray-900 font-bold"
                                   placeholder="-"
                                 />
                             </td>
