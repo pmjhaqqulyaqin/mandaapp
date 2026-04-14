@@ -394,13 +394,14 @@ export class PPDBService {
     if (pendaftarList.length === 0) return null;
     const pendaftar = pendaftarList[0];
 
-    const [dataDiri, dataSekolah, nilaiRaport, prestasi, dokumen, jalur] = await Promise.all([
+    const [dataDiri, dataSekolah, nilaiRaport, prestasi, dokumen, jalur, daftarUlang] = await Promise.all([
       db.select().from(ppdbDataDiri).where(eq(ppdbDataDiri.pendaftarId, id)),
       db.select().from(ppdbDataSekolah).where(eq(ppdbDataSekolah.pendaftarId, id)),
       db.select().from(ppdbNilaiRaport).where(eq(ppdbNilaiRaport.pendaftarId, id)).orderBy(asc(ppdbNilaiRaport.semester)),
       db.select().from(ppdbPrestasi).where(eq(ppdbPrestasi.pendaftarId, id)),
       db.select().from(ppdbDokumen).where(eq(ppdbDokumen.pendaftarId, id)),
       db.select().from(ppdbJalur).where(eq(ppdbJalur.id, pendaftar.jalurId)),
+      db.select().from(ppdbDaftarUlang).where(eq(ppdbDaftarUlang.pendaftarId, id)),
     ]);
 
     return {
@@ -411,6 +412,7 @@ export class PPDBService {
       prestasi,
       dokumen,
       jalur: jalur[0] || null,
+      daftarUlang: daftarUlang[0] || null,
     };
   }
 
@@ -595,6 +597,61 @@ export class PPDBService {
     .orderBy(asc(ppdbPendaftar.noPendaftaran));
 
     return whereClause ? (query as any).where(whereClause) : query;
+  }
+
+  static async listDaftarUlangAdmin(params: { search?: string, page?: number, limit?: number }) {
+    const { search, page = 1, limit = 20 } = params;
+    const offset = (page - 1) * limit;
+
+    const conditions: any[] = [];
+    
+    let query = db.select({
+      pendaftar: ppdbPendaftar,
+      dataDiri: ppdbDataDiri,
+      dataSekolah: ppdbDataSekolah,
+      daftarUlang: ppdbDaftarUlang,
+    })
+    .from(ppdbDaftarUlang)
+    .innerJoin(ppdbPendaftar, eq(ppdbPendaftar.id, ppdbDaftarUlang.pendaftarId))
+    .leftJoin(ppdbDataDiri, eq(ppdbDataDiri.pendaftarId, ppdbPendaftar.id))
+    .leftJoin(ppdbDataSekolah, eq(ppdbDataSekolah.pendaftarId, ppdbPendaftar.id));
+
+    if (search) {
+      conditions.push(
+        or(
+          ilike(ppdbDataDiri.namaLengkap, `%${search}%`),
+          ilike(ppdbPendaftar.nisn, `%${search}%`),
+          ilike(ppdbPendaftar.noPendaftaran, `%${search}%`)
+        )
+      );
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const data = await (whereClause 
+      ? (query as any).where(whereClause).orderBy(desc(ppdbDaftarUlang.updatedAt)).limit(limit).offset(offset)
+      : (query as any).orderBy(desc(ppdbDaftarUlang.updatedAt)).limit(limit).offset(offset)
+    );
+
+    let countQuery = db.select({ count: count() }).from(ppdbDaftarUlang)
+      .innerJoin(ppdbPendaftar, eq(ppdbPendaftar.id, ppdbDaftarUlang.pendaftarId))
+      .leftJoin(ppdbDataDiri, eq(ppdbDataDiri.pendaftarId, ppdbPendaftar.id));
+    
+    const totalResult = whereClause 
+      ? await (countQuery as any).where(whereClause)
+      : await countQuery;
+
+    return {
+      data: data.map((row: any) => ({
+        ...row.pendaftar,
+        nama: row.dataDiri?.namaLengkap || '-',
+        daftarUlangStatus: row.daftarUlang?.status || '-',
+      })),
+      total: totalResult[0]?.count || 0,
+      page,
+      limit,
+      totalPages: Math.ceil((totalResult[0]?.count || 0) / limit),
+    };
   }
 
   // ============ PUBLIC: Daftar Ulang ============

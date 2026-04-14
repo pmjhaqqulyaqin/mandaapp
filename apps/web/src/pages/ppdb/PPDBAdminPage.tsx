@@ -9,11 +9,12 @@ import {
   CheckCircle, Clock, XCircle, AlertCircle
 } from 'lucide-react';
 
-type TabKey = 'overview' | 'pendaftar' | 'seleksi' | 'konfigurasi';
+type TabKey = 'overview' | 'pendaftar' | 'daftar_ulang' | 'seleksi' | 'konfigurasi';
 
 const TABS: { key: TabKey; label: string; icon: any }[] = [
   { key: 'overview', label: 'Overview', icon: BarChart3 },
   { key: 'pendaftar', label: 'Data Pendaftar', icon: Users },
+  { key: 'daftar_ulang', label: 'Daftar Ulang', icon: ClipboardList },
   { key: 'seleksi', label: 'Seleksi & Pengumuman', icon: Trophy },
   { key: 'konfigurasi', label: 'Konfigurasi', icon: Settings },
 ];
@@ -79,6 +80,7 @@ export const PPDBAdminPage = () => {
         <div className="p-4 md:p-5">
           {activeTab === 'overview' && <OverviewTab stats={stats} loading={loadingStats} />}
           {activeTab === 'pendaftar' && <PendaftarTab stats={stats} />}
+          {activeTab === 'daftar_ulang' && <DaftarUlangTab />}
           {activeTab === 'seleksi' && <SeleksiTab stats={stats} />}
           {activeTab === 'konfigurasi' && <KonfigurasiTab config={stats?.config} onSaved={fetchStats} />}
         </div>
@@ -387,8 +389,8 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
 
                 {/* Dokumen */}
                 {detail.dokumen?.length > 0 && (
-                  <div className="p-4 border border-border-light dark:border-border-dark rounded-xl">
-                    <h3 className="text-xs font-bold text-gray-600 mb-2">📎 Dokumen</h3>
+                  <div className="p-4 border border-border-light dark:border-border-dark rounded-xl mb-4">
+                    <h3 className="text-xs font-bold text-gray-600 mb-2">📎 Dokumen Registrasi</h3>
                     <div className="flex flex-wrap gap-2">
                       {detail.dokumen.map((d: any) => (
                         <a 
@@ -403,6 +405,46 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
                           {d.isVerified ? '☑️' : '☐'} {d.jenisDokumen}
                         </a>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Data Daftar Ulang */}
+                {detail.daftarUlang && (
+                  <div className="p-4 border-2 border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl">
+                    <h3 className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-3 flex items-center gap-2">
+                      <ClipboardList size={14} /> Data Daftar Ulang
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] ${detail.daftarUlang.status === 'sudah_validasi' ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                        {detail.daftarUlang.status.replace('_', ' ').toUpperCase()}
+                      </span>
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+                      <div className="space-y-1 text-xs text-gray-600">
+                        <p className="font-semibold text-gray-700">Dimensi Seragam:</p>
+                        <p>Ukuran Baju: <b>{detail.daftarUlang.ukuranBaju || '-'}</b></p>
+                        <p>Ukuran Celana/Rok: <b>{detail.daftarUlang.ukuranCelana || '-'}</b></p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: 'Bukti Pembayaran', url: detail.daftarUlang.buktiPembayaranUrl },
+                        { label: 'Ijazah/SKL', url: detail.daftarUlang.ijazahUrl },
+                        { label: 'Kartu Keluarga', url: detail.daftarUlang.kkUrl },
+                        { label: 'KIP/KKS', url: detail.daftarUlang.kipUrl },
+                        { label: 'Pas Foto', url: detail.daftarUlang.photoUrl },
+                      ].map((doc, idx) => doc.url ? (
+                        <a 
+                          key={idx} 
+                          href={`${API_BASE_URL.replace('/api', '')}${doc.url}`} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold bg-white dark:bg-[#222] text-gray-700 dark:text-gray-300 border border-border-light shadow-sm hover:border-emerald-300 hover:text-emerald-600 transition-all"
+                        >
+                          <Eye size={12} /> {doc.label}
+                        </a>
+                      ) : null)}
                     </div>
                   </div>
                 )}
@@ -758,6 +800,230 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
           </div>
         );
       })}
+    </div>
+  );
+};
+
+// ============ DAFTAR ULANG TAB ============
+const DaftarUlangTab = () => {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<any>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      params.set('page', String(page));
+      params.set('limit', '15');
+      const result = await apiClient<any>(`/ppdb/admin/daftar-ulang?${params}`);
+      setData(result.data || []);
+      setTotal(result.total || 0);
+      setTotalPages(result.totalPages || 1);
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  }, [search, page]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const openDetail = async (id: string) => {
+    setSelectedId(id);
+    setLoadingDetail(true);
+    try {
+      const d = await apiClient<any>(`/ppdb/admin/pendaftar/${id}`);
+      setDetail(d);
+    } catch (err) { toast.error('Gagal memuat detail'); }
+    finally { setLoadingDetail(false); }
+  };
+
+  const updateStatus = async (id: string, status: string) => {
+    try {
+      await apiClient(`/ppdb/admin/pendaftar/${id}/status`, { data: { status }, method: 'PUT' });
+      toast.success(`Status diubah ke: ${status}`);
+      fetchData();
+      if (selectedId === id) openDetail(id);
+    } catch (err: any) { toast.error(err.message); }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Filters */}
+      <div className="flex gap-3">
+        <div className="relative flex-1">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Cari NISN, Nama, atau No. Pendaftaran..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-border-light dark:border-[#333] text-sm outline-none focus:border-emerald-400"
+          />
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto border border-border-light dark:border-border-dark rounded-xl h-[400px]">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-gray-50 dark:bg-background-dark sticky top-0 z-10 shadow-sm shadow-gray-100 dark:shadow-gray-900 border-b border-border-light dark:border-border-dark">
+              <th className="px-3 py-2.5 text-left font-semibold text-gray-600">No</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-gray-600">No. Pend</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Nama Siswa</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-gray-600">NISN</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Status PPDB</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Status Daftar Ulang</th>
+              <th className="px-3 py-2.5 text-center font-semibold text-gray-600">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
+            {loading ? (
+              <tr><td colSpan={7} className="py-12 text-center"><Loader2 className="animate-spin mx-auto text-emerald-500" size={20} /></td></tr>
+            ) : data.length === 0 ? (
+              <tr><td colSpan={7} className="py-12 text-center text-gray-400">Belum ada data pendaftar ulang</td></tr>
+            ) : data.map((row: any, i: number) => {
+              const statusMeta = STATUS_MAP[row.status] || STATUS_MAP.menunggu;
+              return (
+                <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-[#0a0a0a] transition-colors">
+                  <td className="px-3 py-2.5 text-gray-500">{(page - 1) * 15 + i + 1}</td>
+                  <td className="px-3 py-2.5 font-mono text-gray-800 dark:text-gray-200 font-bold">{row.noPendaftaran}</td>
+                  <td className="px-3 py-2.5 font-medium text-gray-800 dark:text-white truncate max-w-[200px]">{row.nama}</td>
+                  <td className="px-3 py-2.5 font-mono text-gray-500 dark:text-gray-400 italic">{row.nisn}</td>
+                  <td className="px-3 py-2.5">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${statusMeta.color}`}>
+                      {statusMeta.label}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${row.daftarUlangStatus === 'sudah_validasi' ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                      {row.daftarUlangStatus.replace('_', ' ').toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5 text-center">
+                    <button onClick={() => openDetail(row.id)} className="px-2.5 py-1 bg-gray-100 dark:bg-[#222] rounded text-[10px] font-semibold text-gray-600 hover:text-emerald-600 transition-colors">
+                      <Eye size={12} className="inline mr-1" />Detail
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between text-xs text-gray-500">
+        <span>Total: {total} data</span>
+        <div className="flex items-center gap-2">
+          <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1.5 border rounded disabled:opacity-30">← Prev</button>
+          <span>Hal {page} / {totalPages}</span>
+          <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="px-3 py-1.5 border rounded disabled:opacity-30">Next →</button>
+        </div>
+      </div>
+
+      {/* Reused Detail Modal Logic */}
+      {selectedId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedId(null)}>
+          <div className="bg-white dark:bg-background-dark rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            {loadingDetail ? (
+              <div className="flex justify-center py-16"><Loader2 className="animate-spin text-emerald-500" size={24} /></div>
+            ) : detail ? (
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-800 dark:text-white">{detail.dataDiri?.namaLengkap}</h2>
+                    <p className="text-xs text-gray-500">No: {detail.noPendaftaran} • NISN: {detail.nisn}</p>
+                  </div>
+                  <button onClick={() => setSelectedId(null)} className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#222] flex items-center justify-center hover:bg-gray-200">
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {/* Status & Actions */}
+                <div className="flex flex-wrap items-center gap-2 mb-5 p-3 bg-gray-50 dark:bg-background-dark rounded-xl border border-gray-200 dark:border-[#333]">
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${STATUS_MAP[detail.status]?.color || ''}`}>
+                    Status PPDB: {STATUS_MAP[detail.status]?.label || detail.status}
+                  </span>
+                  {detail.daftarUlang && (
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${detail.daftarUlang.status === 'sudah_validasi' ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                      Daftar Ulang: {detail.daftarUlang.status.replace('_', ' ').toUpperCase()}
+                    </span>
+                  )}
+                  <div className="flex-1" />
+                </div>
+
+                {/* Data Orang Tua */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div className="p-4 border border-border-light dark:border-border-dark rounded-xl">
+                    <h3 className="text-xs font-bold text-gray-600 mb-2">📋 Data Diri & Orang Tua</h3>
+                    <div className="space-y-1 text-xs text-gray-600">
+                      <p>NIK: {detail.dataDiri?.nik}</p>
+                      <p>Gender: {detail.dataDiri?.jenisKelamin}</p>
+                      <p>Alamat: {detail.dataDiri?.alamat}</p>
+                      <hr className="my-2 border-gray-200 dark:border-border-dark" />
+                      <p>Ayah: <b>{detail.dataDiri?.namaAyah}</b> ({detail.dataDiri?.pekerjaanAyah})</p>
+                      <p>Ibu: <b>{detail.dataDiri?.namaIbu}</b> ({detail.dataDiri?.pekerjaanIbu})</p>
+                      <p>HP Ortu: <b>{detail.dataDiri?.noHpOrtu}</b></p>
+                    </div>
+                  </div>
+                  <div className="p-4 border border-border-light dark:border-border-dark rounded-xl">
+                    <h3 className="text-xs font-bold text-gray-600 mb-2">🏫 Data Sekolah Asal</h3>
+                    <div className="space-y-1 text-xs text-gray-600">
+                      <p>Sekolah: {detail.dataSekolah?.namaSekolah}</p>
+                      <p>NPSN: {detail.dataSekolah?.npsn || '-'}</p>
+                      <p>Status: {detail.dataSekolah?.statusSekolah}</p>
+                      <p>Tahun Lulus: {detail.dataSekolah?.tahunLulus}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Data Daftar Ulang Detail */}
+                {detail.daftarUlang && (
+                  <div className="p-4 border-2 border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl mb-4">
+                    <h3 className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-3 flex items-center gap-2">
+                      <ClipboardList size={14} /> Berkas Daftar Ulang
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+                      <div className="space-y-1 text-xs text-gray-600">
+                        <p className="font-semibold text-gray-700">Dimensi Seragam:</p>
+                        <p>Baju: <b>{detail.daftarUlang.ukuranBaju || '-'}</b></p>
+                        <p>Celana/Rok: <b>{detail.daftarUlang.ukuranCelana || '-'}</b></p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: 'Bukti Bayar', url: detail.daftarUlang.buktiPembayaranUrl },
+                        { label: 'Ijazah/SKL', url: detail.daftarUlang.ijazahUrl },
+                        { label: 'Kartu Keluarga', url: detail.daftarUlang.kkUrl },
+                        { label: 'KIP/KKS', url: detail.daftarUlang.kipUrl },
+                        { label: 'Pas Foto', url: detail.daftarUlang.photoUrl },
+                      ].map((doc, idx) => doc.url ? (
+                        <a 
+                          key={idx} 
+                          href={`${API_BASE_URL.replace('/api', '')}${doc.url}`} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold bg-white dark:bg-[#222] text-gray-700 dark:text-gray-300 border border-border-light shadow-sm hover:border-emerald-300 hover:text-emerald-600 transition-all"
+                        >
+                          <Eye size={12} /> {doc.label}
+                        </a>
+                      ) : null)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

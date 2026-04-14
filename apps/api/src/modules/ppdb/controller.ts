@@ -166,6 +166,15 @@ export class PPDBController {
     }
   }
 
+  static async listDaftarUlangAdmin(req: Request, res: Response) {
+    try {
+      const result = await PPDBService.listDaftarUlangAdmin(req.query);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   static async getDaftarUlangInfo(req: Request, res: Response) {
     try {
       const data = await PPDBService.getDaftarUlangInfo(req.params.noPendaftaran);
