@@ -517,6 +517,7 @@ const SeleksiTab = ({ stats }: { stats: any }) => {
           <thead>
             <tr className="bg-gray-50 dark:bg-background-dark">
               <th className="px-3 py-2.5 text-center font-semibold text-gray-600 border-b w-16">Rank</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-gray-600 border-b">No. Pend</th>
               <th className="px-3 py-2.5 text-left font-semibold text-gray-600 border-b">NISN</th>
               <th className="px-3 py-2.5 text-left font-semibold text-gray-600 border-b">Nama Siswa</th>
               <th className="px-3 py-2.5 text-left font-semibold text-gray-600 border-b">Asal Sekolah</th>
@@ -526,16 +527,17 @@ const SeleksiTab = ({ stats }: { stats: any }) => {
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
             {loading ? (
-              <tr><td colSpan={6} className="py-12 text-center"><Loader2 className="animate-spin mx-auto text-emerald-500" size={20} /></td></tr>
+              <tr><td colSpan={7} className="py-12 text-center"><Loader2 className="animate-spin mx-auto text-emerald-500" size={20} /></td></tr>
             ) : data.length === 0 ? (
-              <tr><td colSpan={6} className="py-12 text-center text-gray-400">Belum ada data pendaftar</td></tr>
+              <tr><td colSpan={7} className="py-12 text-center text-gray-400">Belum ada data pendaftar</td></tr>
             ) : data.map((row: any) => {
               const p = row.pendaftar;
               const statusMeta = STATUS_MAP[p.status] || STATUS_MAP.menunggu;
               return (
                 <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-[#0a0a0a]">
                   <td className="px-3 py-2 text-center font-black text-gray-400">{p.ranking || '-'}</td>
-                  <td className="px-3 py-2 font-mono text-gray-600">{p.nisn}</td>
+                  <td className="px-3 py-2 font-mono text-gray-800 dark:text-gray-200 font-bold">{p.noPendaftaran}</td>
+                  <td className="px-3 py-2 font-mono text-gray-500 italic">{p.nisn}</td>
                   <td className="px-3 py-2 font-bold text-gray-800 dark:text-white">{row.dataDiri?.namaLengkap}</td>
                   <td className="px-3 py-2 text-gray-600">{row.dataSekolah?.namaSekolah}</td>
                   <td className="px-3 py-2 text-center font-bold text-emerald-600">{p.nilaiAkhir || '-'}</td>

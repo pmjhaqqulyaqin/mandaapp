@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   GraduationCap, Trophy, ClipboardList, ChevronDown,
-  ArrowRight, Users, Calendar, Target, CheckCircle, Clock, Search, Printer, X
+  ArrowRight, Users, Calendar, Target, CheckCircle, Clock, Search, Printer, X, Loader2
 } from 'lucide-react';
 import { HeaderWithSettings } from '../../components/HeaderWithSettings';
 import { FooterWithSettings } from '../../components/FooterWithSettings';
 import { SEO } from '../../components/SEO';
 import { apiClient, API_BASE_URL } from '../../lib/api';
 import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 // ============================================================
 // Intersection Observer Hook (same as LayananPage)
@@ -281,6 +283,60 @@ export const PPDBInfoPage = () => {
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successData, setSuccessData] = useState<any>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportPDF = async () => {
+    const printArea = document.getElementById('print-area');
+    if (!printArea) return;
+    
+    try {
+      setIsExporting(true);
+      // Sembunyikan pesan penting dan tombol sebelum capture
+      const warningText = printArea.querySelector('.print-warning') as HTMLElement;
+      const buttons = printArea.querySelector('.print-action-buttons') as HTMLElement;
+      if (warningText) warningText.style.display = 'none';
+      if (buttons) buttons.style.display = 'none';
+
+      // Pastikan border radius dan elemen terlihat rapi di canvas
+      printArea.style.borderRadius = '0px';
+
+      const canvas = await html2canvas(printArea, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+      
+      // Kembalikan tampilan semula
+      if (warningText) warningText.style.display = 'block';
+      if (buttons) buttons.style.display = 'flex';
+      printArea.style.borderRadius = '1rem';
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Bukti_Pendaftaran_${successData?.noPendaftaran?.replace(/[^a-zA-Z0-9]/g, '_') || 'Siswa'}.pdf`);
+      toast.success('Bukti pendaftaran berhasil diunduh sebagai PDF');
+    } catch (error) {
+      console.error(error);
+      toast.error('Gagal mengunduh PDF');
+      // Kembalikan style jika error
+      const warningText = printArea.querySelector('.print-warning') as HTMLElement;
+      const buttons = printArea.querySelector('.print-action-buttons') as HTMLElement;
+      if (warningText) warningText.style.display = 'block';
+      if (buttons) buttons.style.display = 'flex';
+      printArea.style.borderRadius = '1rem';
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   useEffect(() => {
     if (location.state?.success && location.state?.noPendaftaran) {
@@ -652,20 +708,23 @@ export const PPDBInfoPage = () => {
                 </div>
               </div>
 
-              <p className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200 text-center mb-6 print:hidden">
-                <span className="font-bold">Penting:</span> Simpan atau cetak halaman ini sebelum menutup jendela.
+              <p className="print-warning text-xs text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200 text-center mb-6">
+                <span className="font-bold">Penting:</span> Simpan dokumen PDF ini sebagai bukti pendaftaran Anda.
               </p>
 
-              <div className="flex items-center gap-3 print:hidden">
+              <div className="print-action-buttons flex items-center gap-3">
                 <button 
-                  onClick={() => window.print()} 
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold transition-all"
+                  onClick={handleExportPDF} 
+                  disabled={isExporting}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 disabled:opacity-70 text-white rounded-xl font-bold transition-all"
                 >
-                  <Printer size={18} /> Cetak Bukti
+                  {isExporting ? <Loader2 size={18} className="animate-spin" /> : <Printer size={18} />} 
+                  {isExporting ? 'Mempersiapkan PDF...' : 'Download PDF'}
                 </button>
                 <button 
                   onClick={() => setShowSuccessModal(false)} 
-                  className="flex items-center justify-center p-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl font-bold transition-all"
+                  disabled={isExporting}
+                  className="flex items-center justify-center p-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl font-bold transition-all disabled:opacity-50"
                 >
                   <X size={18} />
                 </button>
