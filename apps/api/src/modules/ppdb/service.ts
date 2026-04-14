@@ -50,11 +50,34 @@ export class PPDBService {
 
   // ============ PUBLIC: Pendaftaran ============
 
-  /** Generate nomor pendaftaran: PMB2026/00001 */
-  static async generateNoPendaftaran(): Promise<string> {
+  /** Generate nomor pendaftaran: MND2604MTS0101001 */
+  static async generateNoPendaftaran(params: {
+    namaSekolah: string;
+    statusSekolah: string;
+    jenisKelamin: string;
+  }): Promise<string> {
     const result = await db.select({ count: count() }).from(ppdbPendaftar);
     const nextNum = (result[0]?.count || 0) + 1;
-    return `PMB2026/${String(nextNum).padStart(5, '0')}`;
+    
+    const prefix = 'MND';
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    
+    let kodesekolah = 'MTS'; // Default
+    const namaUpper = params.namaSekolah ? params.namaSekolah.toUpperCase() : '';
+    if (namaUpper.includes('SMP')) {
+      kodesekolah = 'SMP';
+    } else if (namaUpper.includes('MTS') || namaUpper.includes('TSANAWIYAH')) {
+      kodesekolah = 'MTS';
+    }
+    
+    const statusSekolahKode = (params.statusSekolah || '').toLowerCase() === 'swasta' ? '02' : '01';
+    const genderKode = (params.jenisKelamin || '').toLowerCase() === 'perempuan' ? '02' : '01';
+    
+    const seq = String(nextNum).padStart(3, '0');
+    
+    return `${prefix}${yy}${mm}${kodesekolah}${statusSekolahKode}${genderKode}${seq}`;
   }
 
   /** Submit pendaftaran lengkap (single transaction-like call) */
@@ -115,7 +138,11 @@ export class PPDBService {
     }
 
     // 2. Create pendaftar
-    const noPendaftaran = await this.generateNoPendaftaran();
+    const noPendaftaran = await this.generateNoPendaftaran({
+      namaSekolah: data.dataSekolah.namaSekolah,
+      statusSekolah: data.dataSekolah.statusSekolah,
+      jenisKelamin: data.dataDiri.jenisKelamin,
+    });
     const [pendaftar] = await db.insert(ppdbPendaftar).values({
       jalurId: data.jalurId,
       noPendaftaran,
