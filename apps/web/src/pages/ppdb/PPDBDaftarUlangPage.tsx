@@ -344,7 +344,7 @@ export const PPDBDaftarUlangPage = () => {
       doc.setFontSize(5);
       doc.setTextColor(100, 130, 115);
       doc.text('Pindai untuk verifikasi', pageW / 2, y + qrSize + 6, { align: 'center' });
-      y += qrContainerH + 6;
+      y += qrContainerH + 5;
 
       // ========== REF ID ==========
       doc.setFont('helvetica', 'normal');
@@ -353,17 +353,30 @@ export const PPDBDaftarUlangPage = () => {
       doc.text(`Ref ID: ${validationCode}`, pageW / 2, y, { align: 'center' });
       y += 5;
 
-      // ========== ISSUE DATE ==========
+      // ========== DAFTAR ULANG LINK ==========
+      const daftarUlangUrl = `https://mandualotim.sch.id/ppdb/daftar-ulang?no=${encodeURIComponent(noPend)}`;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(80, 100, 90);
+      doc.text('Link Pendaftaran Ulang:', pageW / 2, y, { align: 'center' });
+      y += 3.5;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(15, 77, 56);
+      doc.textWithLink(daftarUlangUrl, pageW / 2 - doc.getTextWidth(daftarUlangUrl) / 2, y, { url: daftarUlangUrl });
+      y += 8;
+
+      // ========== ISSUE DATE (paling bawah) ==========
       const now = new Date();
       const tanggal = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-      const issuedLocation = siteSettings.address || '';
+      const kabupaten = siteSettings.district_city || '';
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(7.5);
       doc.setTextColor(100, 110, 120);
-      const issueDateText = issuedLocation
-        ? `Diterbitkan pada tanggal ${tanggal} di ${issuedLocation}`
+      const issueDateText = kabupaten
+        ? `Diterbitkan pada tanggal ${tanggal} di ${kabupaten}`
         : `Diterbitkan pada tanggal ${tanggal}`;
-      doc.text(issueDateText, pageW / 2, y, { align: 'center', maxWidth: contentW });
+      doc.text(issueDateText, pageW / 2, y, { align: 'center' });
 
       // Save
       doc.save(`Surat_Kelulusan_${noPendaftaran?.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
