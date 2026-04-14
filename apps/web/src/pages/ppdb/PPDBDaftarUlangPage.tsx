@@ -165,17 +165,8 @@ export const PPDBDaftarUlangPage = () => {
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pageW = doc.internal.pageSize.getWidth(); // 210
       const pageH = doc.internal.pageSize.getHeight(); // 297
-      const marginX = 25;
+      const marginX = 20;
       const contentW = pageW - marginX * 2;
-      let y = 20;
-
-      // --- Background: subtle border frame ---
-      doc.setDrawColor(200, 215, 225);
-      doc.setLineWidth(0.5);
-      doc.rect(10, 10, pageW - 20, pageH - 20);
-      doc.setDrawColor(180, 200, 210);
-      doc.setLineWidth(0.2);
-      doc.rect(12, 12, pageW - 24, pageH - 24);
 
       // --- Helper: convert image URL to base64 ---
       const toBase64 = async (url: string): Promise<string> => {
@@ -197,7 +188,17 @@ export const PPDBDaftarUlangPage = () => {
         }
       };
 
-      // --- Header: School Logo + School Name ---
+      // --- Background: subtle double border frame ---
+      doc.setDrawColor(200, 215, 225);
+      doc.setLineWidth(0.5);
+      doc.rect(10, 10, pageW - 20, pageH - 20);
+      doc.setDrawColor(180, 200, 210);
+      doc.setLineWidth(0.2);
+      doc.rect(12, 12, pageW - 24, pageH - 24);
+
+      let y = 22;
+
+      // ========== HEADER: Logo + School Name ==========
       const logoUrl = siteSettings.logo_url || '';
       const schoolName = siteSettings.school_name || 'Madrasah';
 
@@ -205,163 +206,165 @@ export const PPDBDaftarUlangPage = () => {
         try {
           const logoB64 = await toBase64(logoUrl);
           if (logoB64) {
-            const logoSize = 18;
-            doc.addImage(logoB64, 'PNG', (pageW - logoSize) / 2, y - 2, logoSize, logoSize);
+            const logoSize = 16;
+            doc.addImage(logoB64, 'PNG', (pageW - logoSize) / 2, y, logoSize, logoSize);
+            y += logoSize + 2;
           }
-        } catch { /* ignore logo error */ }
+        } catch { /* ignore */ }
       }
-      y += 18;
 
-      // School Name
+      // School Name below logo
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
+      doc.setFontSize(10);
       doc.setTextColor(15, 77, 56);
-      doc.text(schoolName.toUpperCase(), pageW / 2, y, { align: 'center' });
-      y += 8;
+      doc.text(schoolName.toUpperCase(), pageW / 2, y + 4, { align: 'center' });
+      y += 10;
 
-      // --- Title ---
+      // ========== TITLE ==========
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(20);
+      doc.setFontSize(18);
       doc.setTextColor(20, 30, 40);
-      doc.text('PENGUMUMAN KELULUSAN', pageW / 2, y, { align: 'center' });
-      y += 4;
+      doc.text('PENGUMUMAN KELULUSAN', pageW / 2, y + 5, { align: 'center' });
+      y += 9;
 
       // Underline decoration
       doc.setDrawColor(15, 77, 56);
-      doc.setLineWidth(0.8);
-      doc.line(pageW / 2 - 40, y, pageW / 2 + 40, y);
-      y += 12;
+      doc.setLineWidth(0.7);
+      doc.line(pageW / 2 - 35, y, pageW / 2 + 35, y);
+      doc.setLineWidth(0.3);
+      doc.line(pageW / 2 - 33, y + 1.2, pageW / 2 + 33, y + 1.2);
+      y += 8;
 
-      // --- SK Reference paragraph ---
+      // ========== SK PARAGRAPH ==========
       const nomorSk = config?.nomorSk || 'PP.00.6/045/2026';
       const namaSk = config?.namaSk || 'Penetapan Hasil Seleksi Penerimaan Murid Baru (PMB) Tahun Ajaran 2026/2027';
-      const skSchoolName = siteSettings.school_name || 'Madrasah';
-      const skText = `Berdasarkan SK Kepala ${skSchoolName} Nomor: ${nomorSk} tentang ${namaSk}, dengan ini menerangkan bahwa peserta didik dengan identitas tersebut di bawah ini:`;
+      const skText = `Berdasarkan SK Kepala ${schoolName} Nomor: ${nomorSk} tentang ${namaSk}, dengan ini menerangkan bahwa peserta didik dengan identitas tersebut di bawah ini:`;
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       doc.setTextColor(50, 55, 60);
       const skLines = doc.splitTextToSize(skText, contentW);
       doc.text(skLines, marginX, y);
-      y += skLines.length * 5 + 8;
+      y += skLines.length * 4 + 5;
 
-      // --- Student Info Table ---
+      // ========== STUDENT INFO TABLE (compact) ==========
       const detail = studentDetail;
       const noPend = detail?.noPendaftaran || noPendaftaran;
       const formattedNoPend = `PPDB-2026-${noPend.replace(/[^0-9]/g, '').slice(-5).padStart(5, '0')}`;
 
       const tableData = [
-        ['NOMOR\nPENDAFTARAN', formattedNoPend],
+        ['NOMOR PENDAFTARAN', formattedNoPend],
         ['NAMA LENGKAP', detail?.namaLengkap || '-'],
         ['NISN', detail?.nisn || '-'],
         ['SEKOLAH ASAL', detail?.sekolahAsal || '-'],
         ['JALUR SELEKSI', `Jalur ${detail?.jalurSeleksi || '-'}`],
       ];
 
-      // Table background
-      const tableH = tableData.length * 11 + 6;
+      const rowH = 8;
+      const tableH = tableData.length * rowH + 4;
       doc.setFillColor(245, 250, 248);
       doc.setDrawColor(200, 220, 215);
       doc.setLineWidth(0.3);
-      doc.roundedRect(marginX, y - 3, contentW, tableH, 3, 3, 'FD');
+      doc.roundedRect(marginX, y, contentW, tableH, 2, 2, 'FD');
 
-      let tableY = y + 4;
+      let tableY = y + rowH - 1;
       tableData.forEach(([label, value]) => {
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9);
+        doc.setFontSize(8);
         doc.setTextColor(80, 90, 100);
-        doc.text(label.replace('\n', ' '), marginX + 6, tableY);
+        doc.text(label, marginX + 5, tableY);
 
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
+        doc.setFontSize(9);
         doc.setTextColor(20, 30, 40);
-        doc.text(`: ${value}`, marginX + 52, tableY);
-        tableY += 11;
+        doc.text(`: ${value}`, marginX + 50, tableY);
+        tableY += rowH;
       });
-      y += tableH + 10;
+      y += tableH + 6;
 
-      // --- Declaration text ---
+      // ========== DECLARATION TEXT ==========
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       doc.setTextColor(50, 55, 60);
       const declText = 'Setelah melalui serangkaian tahapan seleksi administrasi, akademik, dan wawancara, yang bersangkutan dinyatakan:';
       const declLines = doc.splitTextToSize(declText, contentW);
       doc.text(declLines, pageW / 2, y, { align: 'center', maxWidth: contentW });
-      y += declLines.length * 5 + 10;
+      y += declLines.length * 4 + 6;
 
-      // --- LULUS Badge ---
-      const badgeW = 60;
-      const badgeH = 28;
+      // ========== LULUS BADGE ==========
+      const badgeW = 50;
+      const badgeH = 22;
       const badgeX = (pageW - badgeW) / 2;
       doc.setFillColor(15, 77, 56);
-      doc.roundedRect(badgeX, y - 2, badgeW, badgeH, 4, 4, 'F');
+      doc.roundedRect(badgeX, y, badgeW, badgeH, 3, 3, 'F');
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       doc.setTextColor(180, 220, 200);
-      doc.text('STATUS AKHIR', pageW / 2, y + 7, { align: 'center' });
+      doc.text('STATUS AKHIR', pageW / 2, y + 6, { align: 'center' });
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(22);
+      doc.setFontSize(18);
       doc.setTextColor(255, 255, 255);
-      doc.text('LULUS', pageW / 2, y + 21, { align: 'center' });
-      y += badgeH + 12;
+      doc.text('LULUS', pageW / 2, y + 17, { align: 'center' });
+      y += badgeH + 8;
 
-      // --- Digital document notice ---
+      // ========== DIGITAL DOCUMENT NOTICE ==========
       doc.setFont('helvetica', 'italic');
-      doc.setFontSize(8.5);
+      doc.setFontSize(7.5);
       doc.setTextColor(180, 60, 60);
       const noticeText = 'Surat keterangan ini merupakan dokumen digital resmi yang diterbitkan secara elektronik dan tidak memerlukan tanda tangan basah.';
       const noticeLines = doc.splitTextToSize(noticeText, contentW - 10);
       doc.text(noticeLines, pageW / 2, y, { align: 'center', maxWidth: contentW - 10 });
-      y += noticeLines.length * 4 + 14;
+      y += noticeLines.length * 3.5 + 8;
 
-      // --- QR Code ---
+      // ========== QR CODE (compact) ==========
       const validationCode = detail?.validationCode || 'AUTH-VLD-2026-M2LT-0000000000-0000';
       const verificationUrl = `https://mandualotim.sch.id/ppdb/verifikasi?code=${validationCode}`;
 
       const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
-        width: 200,
+        width: 180,
         margin: 1,
         color: { dark: '#1a3a2a', light: '#f0f8f4' },
       });
 
-      // QR container background
-      const qrContainerW = 50;
-      const qrContainerH = 56;
+      const qrSize = 30;
+      const qrContainerW = 38;
+      const qrContainerH = 42;
       const qrContainerX = (pageW - qrContainerW) / 2;
+
       doc.setFillColor(240, 248, 244);
       doc.setDrawColor(200, 220, 210);
       doc.setLineWidth(0.3);
-      doc.roundedRect(qrContainerX, y - 4, qrContainerW, qrContainerH, 3, 3, 'FD');
+      doc.roundedRect(qrContainerX, y, qrContainerW, qrContainerH, 2, 2, 'FD');
 
-      const qrSize = 38;
       const qrX = (pageW - qrSize) / 2;
-      doc.addImage(qrDataUrl, 'PNG', qrX, y, qrSize, qrSize);
-      y += qrSize + 8;
+      doc.addImage(qrDataUrl, 'PNG', qrX, y + 2, qrSize, qrSize);
 
-      // Small scan hint under QR inside container
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(5.5);
+      doc.setFontSize(5);
       doc.setTextColor(100, 130, 115);
-      doc.text('Pindai untuk verifikasi', pageW / 2, y, { align: 'center' });
-      y += 16;
+      doc.text('Pindai untuk verifikasi', pageW / 2, y + qrSize + 6, { align: 'center' });
+      y += qrContainerH + 6;
 
-      // --- Ref ID ---
+      // ========== REF ID ==========
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(120, 130, 140);
+      doc.setFontSize(6.5);
+      doc.setTextColor(140, 150, 160);
       doc.text(`Ref ID: ${validationCode}`, pageW / 2, y, { align: 'center' });
-      y += 7;
+      y += 5;
 
-      // --- Issue date ---
+      // ========== ISSUE DATE ==========
       const now = new Date();
       const tanggal = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+      const issuedLocation = siteSettings.address || '';
       doc.setFont('helvetica', 'italic');
-      doc.setFontSize(8);
+      doc.setFontSize(7.5);
       doc.setTextColor(100, 110, 120);
-      const issuedLocation = siteSettings.address || 'Lombok Timur';
-      doc.text(`Diterbitkan pada tanggal ${tanggal} di ${issuedLocation}`, pageW / 2, y, { align: 'center', maxWidth: contentW });
+      const issueDateText = issuedLocation
+        ? `Diterbitkan pada tanggal ${tanggal} di ${issuedLocation}`
+        : `Diterbitkan pada tanggal ${tanggal}`;
+      doc.text(issueDateText, pageW / 2, y, { align: 'center', maxWidth: contentW });
 
       // Save
       doc.save(`Surat_Kelulusan_${noPendaftaran?.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
