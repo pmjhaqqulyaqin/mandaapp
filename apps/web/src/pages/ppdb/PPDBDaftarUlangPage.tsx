@@ -10,7 +10,8 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 export const PPDBDaftarUlangPage = () => {
-  const { noPendaftaran } = useParams();
+  const { noPendaftaran: rawNoPendaftaran } = useParams();
+  const noPendaftaran = rawNoPendaftaran ? decodeURIComponent(rawNoPendaftaran) : '';
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
