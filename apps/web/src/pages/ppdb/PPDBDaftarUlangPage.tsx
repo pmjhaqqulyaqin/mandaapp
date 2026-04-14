@@ -8,6 +8,7 @@ import { apiClient, API_BASE_URL } from '../../lib/api';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import QRCode from 'qrcode';
 
 export const PPDBDaftarUlangPage = () => {
   const [searchParams] = useSearchParams();
@@ -19,9 +20,17 @@ export const PPDBDaftarUlangPage = () => {
   const [exportingKelulusan, setExportingKelulusan] = useState(false);
   const [exportingDraft, setExportingDraft] = useState(false);
 
-  // Student Data
+  // Student Data from daftar ulang endpoint
   const [studentInfo, setStudentInfo] = useState<any>(null);
   const [config, setConfig] = useState<any>(null);
+  const [studentDetail, setStudentDetail] = useState<{
+    namaLengkap: string;
+    nisn: string;
+    noPendaftaran: string;
+    sekolahAsal: string;
+    jalurSeleksi: string;
+    validationCode: string | null;
+  } | null>(null);
 
   // Form Data
   const [buktiPembayaranUrl, setBuktiPembayaranUrl] = useState('');
@@ -45,12 +54,7 @@ export const PPDBDaftarUlangPage = () => {
       const conf = await apiClient<any>('/ppdb/config');
       setConfig(conf);
 
-      // Verify the student exists and is accepted
-      // Try to determine NISN (not available in URL, so we can't use /status easily if it strictly requires both,
-      // but wait, we can just use the admin endpoint or modify to allow fetch by no_pend. 
-      // Actually, since we created `getDaftarUlangInfo`, we can just fetch it directly if we add a public endpoint for student info? 
-      // We didn't add a public `getStudentInfo` by `noPendaftaran`. 
-      // Wait, let's fetch `/ppdb/daftar-ulang/${noPendaftaran}`.
+      // Fetch daftar ulang info (now includes student detail + validationCode)
       const existingDraft = await apiClient<any>(`/ppdb/daftar-ulang/${noPendaftaran}`);
       if (existingDraft) {
         setBuktiPembayaranUrl(existingDraft.buktiPembayaranUrl || '');
@@ -60,6 +64,16 @@ export const PPDBDaftarUlangPage = () => {
         setPhotoUrl(existingDraft.photoUrl || '');
         setUkuranBaju(existingDraft.ukuranBaju || '');
         setUkuranCelana(existingDraft.ukuranCelana || '');
+
+        // Store student detail for PDF generation
+        setStudentDetail({
+          namaLengkap: existingDraft.namaLengkap || '',
+          nisn: existingDraft.nisn || '',
+          noPendaftaran: existingDraft.noPendaftaran || noPendaftaran,
+          sekolahAsal: existingDraft.sekolahAsal || '',
+          jalurSeleksi: existingDraft.jalurSeleksi || '',
+          validationCode: existingDraft.validationCode || null,
+        });
       }
 
     } catch (error) {
@@ -135,27 +149,177 @@ export const PPDBDaftarUlangPage = () => {
   };
 
   const generatePDFBuktiKelulusan = async () => {
-    const banner = document.getElementById('kelulusan-banner');
-    if (!banner) return;
     try {
       setExportingKelulusan(true);
-      // Simplify layout for PDF
-      const buttons = banner.querySelector('.no-print');
-      if (buttons) (buttons as HTMLElement).style.display = 'none';
 
-      const canvas = await html2canvas(banner, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-      
-      if (buttons) (buttons as HTMLElement).style.display = 'flex';
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth(); // 210
+      const pageH = doc.internal.pageSize.getHeight(); // 297
+      const marginX = 25;
+      const contentW = pageW - marginX * 2;
+      let y = 20;
 
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Surat_Kelulusan_${noPendaftaran?.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
-      toast.success('Surat kelulusan diunduh');
+      // --- Background: subtle border frame ---
+      doc.setDrawColor(200, 215, 225);
+      doc.setLineWidth(0.5);
+      doc.rect(10, 10, pageW - 20, pageH - 20);
+      doc.setDrawColor(180, 200, 210);
+      doc.setLineWidth(0.2);
+      doc.rect(12, 12, pageW - 24, pageH - 24);
+
+      // --- Header Icon (graduation cap unicode) ---
+      doc.setFontSize(28);
+      doc.setTextColor(15, 77, 56); // dark emerald
+      doc.text('\uD83C\uDF93', pageW / 2, y + 8, { align: 'center' });
+      y += 18;
+
+      // --- Title ---
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.setTextColor(20, 30, 40);
+      doc.text('PENGUMUMAN KELULUSAN', pageW / 2, y, { align: 'center' });
+      y += 4;
+
+      // Underline decoration
+      doc.setDrawColor(15, 77, 56);
+      doc.setLineWidth(0.8);
+      doc.line(pageW / 2 - 40, y, pageW / 2 + 40, y);
+      y += 12;
+
+      // --- SK Reference paragraph ---
+      const nomorSk = config?.nomorSk || 'PP.00.6/045/2026';
+      const namaSk = config?.namaSk || 'Penetapan Hasil Seleksi Penerimaan Murid Baru (PMB) Tahun Ajaran 2026/2027';
+      const skText = `Berdasarkan SK Kepala MAN 2 Lombok Timur Nomor: ${nomorSk} tentang ${namaSk}, dengan ini menerangkan bahwa peserta didik dengan identitas tersebut di bawah ini:`;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(50, 55, 60);
+      const skLines = doc.splitTextToSize(skText, contentW);
+      doc.text(skLines, marginX, y);
+      y += skLines.length * 5 + 8;
+
+      // --- Student Info Table ---
+      const detail = studentDetail;
+      const noPend = detail?.noPendaftaran || noPendaftaran;
+      const formattedNoPend = `PPDB-2026-${noPend.replace(/[^0-9]/g, '').slice(-5).padStart(5, '0')}`;
+
+      const tableData = [
+        ['NOMOR\nPENDAFTARAN', formattedNoPend],
+        ['NAMA LENGKAP', detail?.namaLengkap || '-'],
+        ['NISN', detail?.nisn || '-'],
+        ['SEKOLAH ASAL', detail?.sekolahAsal || '-'],
+        ['JALUR SELEKSI', `Jalur ${detail?.jalurSeleksi || '-'}`],
+      ];
+
+      // Table background
+      const tableH = tableData.length * 11 + 6;
+      doc.setFillColor(245, 250, 248);
+      doc.setDrawColor(200, 220, 215);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(marginX, y - 3, contentW, tableH, 3, 3, 'FD');
+
+      let tableY = y + 4;
+      tableData.forEach(([label, value]) => {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(80, 90, 100);
+        doc.text(label.replace('\n', ' '), marginX + 6, tableY);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(20, 30, 40);
+        doc.text(`: ${value}`, marginX + 52, tableY);
+        tableY += 11;
+      });
+      y += tableH + 10;
+
+      // --- Declaration text ---
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(50, 55, 60);
+      const declText = 'Setelah melalui serangkaian tahapan seleksi administrasi, akademik, dan wawancara, yang bersangkutan dinyatakan:';
+      const declLines = doc.splitTextToSize(declText, contentW);
+      doc.text(declLines, pageW / 2, y, { align: 'center', maxWidth: contentW });
+      y += declLines.length * 5 + 10;
+
+      // --- LULUS Badge ---
+      const badgeW = 60;
+      const badgeH = 28;
+      const badgeX = (pageW - badgeW) / 2;
+      doc.setFillColor(15, 77, 56);
+      doc.roundedRect(badgeX, y - 2, badgeW, badgeH, 4, 4, 'F');
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(180, 220, 200);
+      doc.text('STATUS AKHIR', pageW / 2, y + 7, { align: 'center' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(22);
+      doc.setTextColor(255, 255, 255);
+      doc.text('LULUS', pageW / 2, y + 21, { align: 'center' });
+      y += badgeH + 12;
+
+      // --- Digital document notice ---
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(8.5);
+      doc.setTextColor(180, 60, 60);
+      const noticeText = 'Surat keterangan ini merupakan dokumen digital resmi yang diterbitkan secara elektronik dan tidak memerlukan tanda tangan basah.';
+      const noticeLines = doc.splitTextToSize(noticeText, contentW - 10);
+      doc.text(noticeLines, pageW / 2, y, { align: 'center', maxWidth: contentW - 10 });
+      y += noticeLines.length * 4 + 14;
+
+      // --- QR Code ---
+      const validationCode = detail?.validationCode || 'AUTH-VLD-2026-M2LT-0000000000-0000';
+      const verificationUrl = `https://mandualotim.sch.id/ppdb/verifikasi?code=${validationCode}`;
+
+      const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
+        width: 200,
+        margin: 1,
+        color: { dark: '#1a3a2a', light: '#f0f8f4' },
+      });
+
+      // QR container background
+      const qrContainerW = 50;
+      const qrContainerH = 56;
+      const qrContainerX = (pageW - qrContainerW) / 2;
+      doc.setFillColor(240, 248, 244);
+      doc.setDrawColor(200, 220, 210);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(qrContainerX, y - 4, qrContainerW, qrContainerH, 3, 3, 'FD');
+
+      const qrSize = 38;
+      const qrX = (pageW - qrSize) / 2;
+      doc.addImage(qrDataUrl, 'PNG', qrX, y, qrSize, qrSize);
+      y += qrSize + 8;
+
+      // Small scan hint under QR inside container
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(5.5);
+      doc.setTextColor(100, 130, 115);
+      doc.text('Pindai untuk verifikasi', pageW / 2, y, { align: 'center' });
+      y += 16;
+
+      // --- Ref ID ---
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(120, 130, 140);
+      doc.text(`Ref ID: ${validationCode}`, pageW / 2, y, { align: 'center' });
+      y += 7;
+
+      // --- Issue date ---
+      const now = new Date();
+      const tanggal = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 110, 120);
+      doc.text(`Diterbitkan pada tanggal ${tanggal} di Lombok Timur`, pageW / 2, y, { align: 'center' });
+
+      // Save
+      doc.save(`Surat_Kelulusan_${noPendaftaran?.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+      toast.success('Surat kelulusan berhasil diunduh');
     } catch(err) {
+      console.error('PDF generation error:', err);
       toast.error('Gagal membuat PDF Kelulusan');
     } finally {
       setExportingKelulusan(false);

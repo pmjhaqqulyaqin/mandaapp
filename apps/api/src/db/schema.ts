@@ -417,6 +417,8 @@ export const ppdbConfig = pgTable("ppdb_config", {
   isActive: boolean("is_active").default(true),
   tanggalPengumuman: timestamp("tanggal_pengumuman"),
   batasDaftarUlang: timestamp("batas_daftar_ulang"),
+  nomorSk: varchar("nomor_sk", { length: 100 }),
+  namaSk: text("nama_sk"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
@@ -449,6 +451,7 @@ export const ppdbPendaftar = pgTable("ppdb_pendaftar", {
   catatanAdmin: text("catatan_admin"),
   nilaiAkhir: varchar("nilai_akhir", { length: 10 }), // calculated final score
   ranking: integer("ranking"),
+  validationCode: varchar("validation_code", { length: 100 }),
   tglDaftar: timestamp("tgl_daftar").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()

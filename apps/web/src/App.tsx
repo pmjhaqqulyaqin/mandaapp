@@ -32,6 +32,7 @@ import { PPDBInfoPage } from './pages/ppdb/PPDBInfoPage';
 import { PPDBFormPage } from './pages/ppdb/PPDBFormPage';
 import { PPDBAdminPage } from './pages/ppdb/PPDBAdminPage';
 import { PPDBDaftarUlangPage } from './pages/ppdb/PPDBDaftarUlangPage';
+import { PPDBVerifikasiPage } from './pages/ppdb/PPDBVerifikasiPage';
 import { SystemUpdateCenter } from './pages/dashboard/SystemUpdateCenter';
 import { BatchPrintPage } from './pages/BatchPrintPage';
 import { PrintAcademicCalendar } from './pages/PrintAcademicCalendar';
@@ -62,6 +63,7 @@ function App() {
         <Route path="/ppdb" element={<MaintenanceGuard><PPDBInfoPage /></MaintenanceGuard>} />
         <Route path="/ppdb/daftar/:jalurId" element={<MaintenanceGuard><PPDBFormPage /></MaintenanceGuard>} />
         <Route path="/ppdb/daftar-ulang" element={<MaintenanceGuard><PPDBDaftarUlangPage /></MaintenanceGuard>} />
+        <Route path="/ppdb/verifikasi" element={<PPDBVerifikasiPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/select-role" element={
           <ProtectedRoute>

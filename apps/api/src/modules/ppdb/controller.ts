@@ -192,4 +192,14 @@ export class PPDBController {
       res.status(400).json({ error: error.message });
     }
   }
+
+  static async verifyCode(req: Request, res: Response) {
+    try {
+      const result = await PPDBService.verifyValidationCode(req.params.code);
+      if (!result) return res.status(404).json({ error: 'Kode validasi tidak ditemukan', valid: false });
+      res.json({ valid: true, data: result });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message, valid: false });
+    }
+  }
 }

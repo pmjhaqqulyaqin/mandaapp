@@ -478,13 +478,15 @@ export class PPDBService {
   // ============ ADMIN: Config & Selection (Batch 2) ============
 
   /** Update PPDB System Configuration (Tanggal Pengumuman, etc) */
-  static async updateConfig(id: string, data: { tahunAjaran?: string; isActive?: boolean; tanggalPengumuman?: string | null; batasDaftarUlang?: string | null }) {
+  static async updateConfig(id: string, data: { tahunAjaran?: string; isActive?: boolean; tanggalPengumuman?: string | null; batasDaftarUlang?: string | null; nomorSk?: string | null; namaSk?: string | null }) {
     const [updated] = await db.update(ppdbConfig)
       .set({
         tahunAjaran: data.tahunAjaran,
         isActive: data.isActive,
         tanggalPengumuman: data.tanggalPengumuman ? new Date(data.tanggalPengumuman) : null,
         batasDaftarUlang: data.batasDaftarUlang ? new Date(data.batasDaftarUlang) : null,
+        nomorSk: data.nomorSk !== undefined ? (data.nomorSk || null) : undefined,
+        namaSk: data.namaSk !== undefined ? (data.namaSk || null) : undefined,
         updatedAt: new Date(),
       })
       .where(eq(ppdbConfig.id, id))
@@ -566,6 +568,7 @@ export class PPDBService {
       .orderBy(asc(ppdbPendaftar.ranking));
 
     let acceptedCount = 0;
+    const year = new Date().getFullYear();
     
     // Process acceptance
     for (const p of ranked) {
@@ -579,8 +582,16 @@ export class PPDBService {
         newStatus = 'cadangan';
       }
 
+      // Generate unique validation code for accepted students
+      let validationCode = p.validationCode;
+      if (newStatus === 'diterima' && !validationCode) {
+        const rand = Math.floor(Math.random() * 10000000000).toString().padStart(10, '0');
+        const checksum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+        validationCode = `AUTH-VLD-${year}-M2LT-${rand}-${checksum}`;
+      }
+
       await db.update(ppdbPendaftar)
-        .set({ status: newStatus, updatedAt: new Date() })
+        .set({ status: newStatus, validationCode: validationCode || null, updatedAt: new Date() })
         .where(eq(ppdbPendaftar.id, p.id));
     }
 
@@ -658,6 +669,7 @@ export class PPDBService {
         ...row.pendaftar,
         nama: row.dataDiri?.namaLengkap || '-',
         daftarUlangStatus: row.daftarUlang?.status || '-',
+        validationCode: row.pendaftar?.validationCode || null,
       })),
       total: totalResult[0]?.count || 0,
       page,
@@ -720,7 +732,45 @@ export class PPDBService {
     if (pendaftarList.length === 0) return null;
     const pendaftar = pendaftarList[0];
 
-    const dList = await db.select().from(ppdbDaftarUlang).where(eq(ppdbDaftarUlang.pendaftarId, pendaftar.id));
-    return dList.length > 0 ? dList[0] : null;
+    const [dList, dataDiri, dataSekolah, jalurData] = await Promise.all([
+      db.select().from(ppdbDaftarUlang).where(eq(ppdbDaftarUlang.pendaftarId, pendaftar.id)),
+      db.select().from(ppdbDataDiri).where(eq(ppdbDataDiri.pendaftarId, pendaftar.id)),
+      db.select().from(ppdbDataSekolah).where(eq(ppdbDataSekolah.pendaftarId, pendaftar.id)),
+      db.select().from(ppdbJalur).where(eq(ppdbJalur.id, pendaftar.jalurId)),
+    ]);
+
+    return {
+      ...(dList.length > 0 ? dList[0] : {}),
+      validationCode: pendaftar.validationCode || null,
+      namaLengkap: dataDiri[0]?.namaLengkap || null,
+      nisn: pendaftar.nisn,
+      noPendaftaran: pendaftar.noPendaftaran,
+      sekolahAsal: dataSekolah[0]?.namaSekolah || null,
+      jalurSeleksi: jalurData[0]?.namaJalur || null,
+    };
+  }
+
+  /** Verify a validation code from QR scan */
+  static async verifyValidationCode(code: string) {
+    const results = await db.select().from(ppdbPendaftar).where(eq(ppdbPendaftar.validationCode, code));
+    if (results.length === 0) return null;
+    const pendaftar = results[0];
+
+    const [dataDiri, dataSekolah, jalurData] = await Promise.all([
+      db.select().from(ppdbDataDiri).where(eq(ppdbDataDiri.pendaftarId, pendaftar.id)),
+      db.select().from(ppdbDataSekolah).where(eq(ppdbDataSekolah.pendaftarId, pendaftar.id)),
+      db.select().from(ppdbJalur).where(eq(ppdbJalur.id, pendaftar.jalurId)),
+    ]);
+
+    return {
+      noPendaftaran: pendaftar.noPendaftaran,
+      nisn: pendaftar.nisn,
+      namaLengkap: dataDiri[0]?.namaLengkap || null,
+      sekolahAsal: dataSekolah[0]?.namaSekolah || null,
+      jalurSeleksi: jalurData[0]?.namaJalur || null,
+      status: pendaftar.status,
+      validationCode: pendaftar.validationCode,
+      tglDaftar: pendaftar.tglDaftar,
+    };
   }
 }

@@ -627,7 +627,10 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
   useEffect(() => {
     if (config) {
       setSysConfig({ 
-        tanggalPengumuman: config.tanggalPengumuman ? new Date(config.tanggalPengumuman).toISOString().slice(0, 16) : '' 
+        tanggalPengumuman: config.tanggalPengumuman ? new Date(config.tanggalPengumuman).toISOString().slice(0, 16) : '',
+        batasDaftarUlang: config.batasDaftarUlang ? new Date(config.batasDaftarUlang).toISOString().slice(0, 16) : '',
+        nomorSk: config.nomorSk || '',
+        namaSk: config.namaSk || '',
       });
     }
   }, [config]);
@@ -677,7 +680,9 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
         method: 'PUT',
         data: { 
           tanggalPengumuman: sysConfig.tanggalPengumuman || null,
-          batasDaftarUlang: sysConfig.batasDaftarUlang || null
+          batasDaftarUlang: sysConfig.batasDaftarUlang || null,
+          nomorSk: sysConfig.nomorSk || null,
+          namaSk: sysConfig.namaSk || null,
         },
       });
       toast.success('Jadwal Pengumuman berhasil disimpan');
@@ -719,6 +724,36 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
               />
             </div>
           </div>
+
+          {/* SK Kelulusan Section */}
+          <div className="w-full h-px bg-border-light dark:bg-border-dark my-3" />
+          <div className="flex items-center gap-2 mb-3">
+            <GraduationCap size={16} className="text-emerald-600" />
+            <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300">Pengaturan Surat Kelulusan (SK)</h4>
+          </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3 mb-3">
+            <div className="w-full sm:w-1/3">
+              <label className={labelClass}>Nomor SK</label>
+              <input 
+                type="text" 
+                placeholder="PP.00.6/045/2026"
+                value={sysConfig.nomorSk || ''} 
+                onChange={e => setSysConfig({...sysConfig, nomorSk: e.target.value})} 
+                className={inputClass} 
+              />
+            </div>
+            <div className="flex-1 w-full">
+              <label className={labelClass}>Nama / Tentang SK</label>
+              <input 
+                type="text" 
+                placeholder="Penetapan Hasil Seleksi Penerimaan Murid Baru (PMB) Tahun Ajaran 2026/2027"
+                value={sysConfig.namaSk || ''} 
+                onChange={e => setSysConfig({...sysConfig, namaSk: e.target.value})} 
+                className={inputClass} 
+              />
+            </div>
+          </div>
+
           <div className="flex justify-end mb-2">
             <button
               onClick={saveConfig}
@@ -730,7 +765,8 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
           </div>
           <p className="text-[10.5px] text-gray-500 bg-gray-50 p-2.5 rounded border border-gray-100">
             • Status Kelulusan tidak akan dapat dilihat oleh publik sebelum melewati "Pengumuman Kelulusan".<br/>
-            • Jendela Daftar Ulang dan Popup akan ditutup otomatis ketika melewawi "Batas Waktu Daftar Ulang".
+            • Jendela Daftar Ulang dan Popup akan ditutup otomatis ketika melewawi "Batas Waktu Daftar Ulang".<br/>
+            • Nomor SK dan Nama SK akan ditampilkan pada surat pengumuman kelulusan yang diunduh oleh siswa.
           </p>
       </div>
 
@@ -905,14 +941,15 @@ const DaftarUlangTab = () => {
               <th className="px-3 py-2.5 text-left font-semibold text-gray-600">NISN</th>
               <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Status PPDB</th>
               <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Status Daftar Ulang</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Kode Validasi</th>
               <th className="px-3 py-2.5 text-center font-semibold text-gray-600">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
             {loading ? (
-              <tr><td colSpan={7} className="py-12 text-center"><Loader2 className="animate-spin mx-auto text-emerald-500" size={20} /></td></tr>
+              <tr><td colSpan={8} className="py-12 text-center"><Loader2 className="animate-spin mx-auto text-emerald-500" size={20} /></td></tr>
             ) : data.length === 0 ? (
-              <tr><td colSpan={7} className="py-12 text-center text-gray-400">Belum ada data pendaftar ulang</td></tr>
+              <tr><td colSpan={8} className="py-12 text-center text-gray-400">Belum ada data pendaftar ulang</td></tr>
             ) : data.map((row: any, i: number) => {
               const statusMeta = STATUS_MAP[row.status] || STATUS_MAP.menunggu;
               return (
@@ -930,6 +967,19 @@ const DaftarUlangTab = () => {
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${row.daftarUlangStatus === 'sudah_validasi' ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}`}>
                       {row.daftarUlangStatus.replace('_', ' ').toUpperCase()}
                     </span>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    {row.validationCode ? (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(row.validationCode); toast.success('Kode disalin!'); }}
+                        className="font-mono text-[9px] text-gray-500 hover:text-emerald-600 bg-gray-50 dark:bg-[#111] px-2 py-1 rounded border border-gray-200 dark:border-[#333] cursor-pointer transition-colors truncate max-w-[140px] block"
+                        title="Klik untuk salin"
+                      >
+                        {row.validationCode.split('-').slice(-2).join('-')}
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-gray-300">—</span>
+                    )}
                   </td>
                   <td className="px-3 py-2.5 text-center">
                     <button onClick={() => openDetail(row.id)} className="px-2.5 py-1 bg-gray-100 dark:bg-[#222] rounded text-[10px] font-semibold text-gray-600 hover:text-emerald-600 transition-colors">
