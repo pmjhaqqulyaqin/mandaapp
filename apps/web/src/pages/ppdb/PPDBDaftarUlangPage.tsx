@@ -23,6 +23,7 @@ export const PPDBDaftarUlangPage = () => {
   // Student Data from daftar ulang endpoint
   const [studentInfo, setStudentInfo] = useState<any>(null);
   const [config, setConfig] = useState<any>(null);
+  const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
   const [studentDetail, setStudentDetail] = useState<{
     namaLengkap: string;
     nisn: string;
@@ -51,8 +52,17 @@ export const PPDBDaftarUlangPage = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const conf = await apiClient<any>('/ppdb/config');
+      const [conf, settingsRes] = await Promise.all([
+        apiClient<any>('/ppdb/config'),
+        apiClient<any>('/settings').catch(() => null),
+      ]);
       setConfig(conf);
+
+      // Parse settings array into key-value map
+      const arr = Array.isArray(settingsRes?.data || settingsRes) ? (settingsRes?.data || settingsRes) : [];
+      const map: Record<string, string> = {};
+      for (const s of arr) { if (s.key && s.value) map[s.key] = s.value; }
+      setSiteSettings(map);
 
       // Fetch daftar ulang info (now includes student detail + validationCode)
       const existingDraft = await apiClient<any>(`/ppdb/daftar-ulang/${noPendaftaran}`);
@@ -167,11 +177,47 @@ export const PPDBDaftarUlangPage = () => {
       doc.setLineWidth(0.2);
       doc.rect(12, 12, pageW - 24, pageH - 24);
 
-      // --- Header Icon (graduation cap unicode) ---
-      doc.setFontSize(28);
-      doc.setTextColor(15, 77, 56); // dark emerald
-      doc.text('\uD83C\uDF93', pageW / 2, y + 8, { align: 'center' });
+      // --- Helper: convert image URL to base64 ---
+      const toBase64 = async (url: string): Promise<string> => {
+        if (!url) return '';
+        if (url.startsWith('data:')) return url;
+        try {
+          const isRelative = url.startsWith('/');
+          const fullUrl = isRelative ? `${API_BASE_URL.replace(/\/api$/, '')}${url}` : url;
+          const response = await fetch(fullUrl, { mode: 'cors' });
+          const blob = await response.blob();
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = () => resolve('');
+            reader.readAsDataURL(blob);
+          });
+        } catch {
+          return '';
+        }
+      };
+
+      // --- Header: School Logo + School Name ---
+      const logoUrl = siteSettings.logo_url || '';
+      const schoolName = siteSettings.school_name || 'Madrasah';
+
+      if (logoUrl) {
+        try {
+          const logoB64 = await toBase64(logoUrl);
+          if (logoB64) {
+            const logoSize = 18;
+            doc.addImage(logoB64, 'PNG', (pageW - logoSize) / 2, y - 2, logoSize, logoSize);
+          }
+        } catch { /* ignore logo error */ }
+      }
       y += 18;
+
+      // School Name
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(15, 77, 56);
+      doc.text(schoolName.toUpperCase(), pageW / 2, y, { align: 'center' });
+      y += 8;
 
       // --- Title ---
       doc.setFont('helvetica', 'bold');
@@ -189,7 +235,8 @@ export const PPDBDaftarUlangPage = () => {
       // --- SK Reference paragraph ---
       const nomorSk = config?.nomorSk || 'PP.00.6/045/2026';
       const namaSk = config?.namaSk || 'Penetapan Hasil Seleksi Penerimaan Murid Baru (PMB) Tahun Ajaran 2026/2027';
-      const skText = `Berdasarkan SK Kepala MAN 2 Lombok Timur Nomor: ${nomorSk} tentang ${namaSk}, dengan ini menerangkan bahwa peserta didik dengan identitas tersebut di bawah ini:`;
+      const skSchoolName = siteSettings.school_name || 'Madrasah';
+      const skText = `Berdasarkan SK Kepala ${skSchoolName} Nomor: ${nomorSk} tentang ${namaSk}, dengan ini menerangkan bahwa peserta didik dengan identitas tersebut di bawah ini:`;
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
@@ -313,7 +360,8 @@ export const PPDBDaftarUlangPage = () => {
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(8);
       doc.setTextColor(100, 110, 120);
-      doc.text(`Diterbitkan pada tanggal ${tanggal} di Lombok Timur`, pageW / 2, y, { align: 'center' });
+      const issuedLocation = siteSettings.address || 'Lombok Timur';
+      doc.text(`Diterbitkan pada tanggal ${tanggal} di ${issuedLocation}`, pageW / 2, y, { align: 'center', maxWidth: contentW });
 
       // Save
       doc.save(`Surat_Kelulusan_${noPendaftaran?.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
