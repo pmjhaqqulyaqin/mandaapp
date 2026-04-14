@@ -156,4 +156,22 @@ export class PPDBController {
       res.status(400).json({ error: error.message });
     }
   }
+
+  static async submitDaftarUlang(req: Request, res: Response) {
+    try {
+      const result = await PPDBService.submitDaftarUlang(req.params.noPendaftaran, req.body);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  static async getDaftarUlangInfo(req: Request, res: Response) {
+    try {
+      const data = await PPDBService.getDaftarUlangInfo(req.params.noPendaftaran);
+      res.json(data);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
 }

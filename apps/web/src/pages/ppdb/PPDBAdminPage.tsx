@@ -616,7 +616,10 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
     try {
       await apiClient(`/ppdb/admin/config/${config.id}`, {
         method: 'PUT',
-        data: { tanggalPengumuman: sysConfig.tanggalPengumuman || null },
+        data: { 
+          tanggalPengumuman: sysConfig.tanggalPengumuman || null,
+          batasDaftarUlang: sysConfig.batasDaftarUlang || null
+        },
       });
       toast.success('Jadwal Pengumuman berhasil disimpan');
       onSaved();
@@ -637,16 +640,39 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
           <ClipboardList size={18} className="text-emerald-600" />
           <h3 className="font-bold text-gray-800">Pengaturan Publikasi & Pengumuman</h3>
         </div>
-        <div className="max-w-sm">
-          <label className={labelClass}>Waktu Pengumuman Kelulusan</label>
-          <div className="flex items-center gap-3">
-            <input 
-              type="datetime-local" 
-              value={sysConfig.tanggalPengumuman} 
-              onChange={e => setSysConfig({...sysConfig, tanggalPengumuman: e.target.value})} 
-              className={inputClass} 
-            />
+          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3 mb-3">
+            <div className="flex-1 w-full">
+              <label className={labelClass}>Pengumuman Kelulusan</label>
+              <input 
+                type="datetime-local" 
+                value={sysConfig.tanggalPengumuman || ''} 
+                onChange={e => setSysConfig({...sysConfig, tanggalPengumuman: e.target.value})} 
+                className={inputClass} 
+              />
+            </div>
+            <div className="flex-1 w-full">
+              <label className={labelClass}>Batas Waktu Daftar Ulang</label>
+              <input 
+                type="datetime-local" 
+                value={sysConfig.batasDaftarUlang || ''} 
+                onChange={e => setSysConfig({...sysConfig, batasDaftarUlang: e.target.value})} 
+                className={inputClass} 
+              />
+            </div>
+          </div>
+          <div className="flex justify-end mb-2">
             <button
+              onClick={saveConfig}
+              disabled={saving === 'config'}
+              className="px-6 py-2.5 bg-gray-900 text-white rounded-lg text-xs font-bold hover:bg-black transition-colors disabled:opacity-50"
+            >
+              {saving === 'config' ? 'Menyimpan...' : 'Simpan Pengaturan Jadwal'}
+            </button>
+          </div>
+          <p className="text-[10.5px] text-gray-500 bg-gray-50 p-2.5 rounded border border-gray-100">
+            • Status Kelulusan tidak akan dapat dilihat oleh publik sebelum melewati "Pengumuman Kelulusan".<br/>
+            • Jendela Daftar Ulang dan Popup akan ditutup otomatis ketika melewawi "Batas Waktu Daftar Ulang".
+          </p>
               onClick={saveConfig}
               disabled={saving === 'config'}
               className="px-4 py-2 bg-gray-800 text-white rounded-lg text-xs font-bold hover:bg-gray-900 disabled:opacity-50 whitespace-nowrap"

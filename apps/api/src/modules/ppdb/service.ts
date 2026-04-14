@@ -1,7 +1,7 @@
 import { db } from '../../db';
 import { 
   ppdbConfig, ppdbJalur, ppdbPendaftar, ppdbDataDiri, 
-  ppdbDataSekolah, ppdbNilaiRaport, ppdbPrestasi, ppdbDokumen 
+  ppdbDataSekolah, ppdbNilaiRaport, ppdbPrestasi, ppdbDokumen, ppdbDaftarUlang
 } from '../../db/schema';
 import { eq, and, desc, asc, ilike, or, sql, count } from 'drizzle-orm';
 import path from 'path';
@@ -437,12 +437,13 @@ export class PPDBService {
   // ============ ADMIN: Config & Selection (Batch 2) ============
 
   /** Update PPDB System Configuration (Tanggal Pengumuman, etc) */
-  static async updateConfig(id: string, data: { tahunAjaran?: string; isActive?: boolean; tanggalPengumuman?: string | null }) {
+  static async updateConfig(id: string, data: { tahunAjaran?: string; isActive?: boolean; tanggalPengumuman?: string | null; batasDaftarUlang?: string | null }) {
     const [updated] = await db.update(ppdbConfig)
       .set({
         tahunAjaran: data.tahunAjaran,
         isActive: data.isActive,
         tanggalPengumuman: data.tanggalPengumuman ? new Date(data.tanggalPengumuman) : null,
+        batasDaftarUlang: data.batasDaftarUlang ? new Date(data.batasDaftarUlang) : null,
         updatedAt: new Date(),
       })
       .where(eq(ppdbConfig.id, id))
@@ -567,5 +568,63 @@ export class PPDBService {
     .orderBy(asc(ppdbPendaftar.noPendaftaran));
 
     return whereClause ? (query as any).where(whereClause) : query;
+  }
+
+  // ============ PUBLIC: Daftar Ulang ============
+
+  static async submitDaftarUlang(noPendaftaran: string, data: {
+    buktiPembayaranUrl?: string;
+    ijazahUrl?: string;
+    kkUrl?: string;
+    kipUrl?: string;
+    photoUrl?: string;
+    ukuranBaju?: string;
+    ukuranCelana?: string;
+  }) {
+    const pendaftarList = await db.select().from(ppdbPendaftar).where(eq(ppdbPendaftar.noPendaftaran, noPendaftaran));
+    if (pendaftarList.length === 0) throw new Error('Pendaftar tidak ditemukan');
+    const pendaftar = pendaftarList[0];
+
+    if (pendaftar.status !== 'diterima') throw new Error('Status pendaftar belum atau tidak lulus');
+
+    // Check if already exists
+    const existing = await db.select().from(ppdbDaftarUlang).where(eq(ppdbDaftarUlang.pendaftarId, pendaftar.id));
+    if (existing.length > 0) {
+      await db.update(ppdbDaftarUlang)
+        .set({
+          buktiPembayaranUrl: data.buktiPembayaranUrl !== undefined ? data.buktiPembayaranUrl : existing[0].buktiPembayaranUrl,
+          ijazahUrl: data.ijazahUrl !== undefined ? data.ijazahUrl : existing[0].ijazahUrl,
+          kkUrl: data.kkUrl !== undefined ? data.kkUrl : existing[0].kkUrl,
+          kipUrl: data.kipUrl !== undefined ? data.kipUrl : existing[0].kipUrl,
+          photoUrl: data.photoUrl !== undefined ? data.photoUrl : existing[0].photoUrl,
+          ukuranBaju: data.ukuranBaju !== undefined ? data.ukuranBaju : existing[0].ukuranBaju,
+          ukuranCelana: data.ukuranCelana !== undefined ? data.ukuranCelana : existing[0].ukuranCelana,
+          updatedAt: new Date()
+        })
+        .where(eq(ppdbDaftarUlang.id, existing[0].id));
+      return { success: true, updated: true };
+    } else {
+      await db.insert(ppdbDaftarUlang).values({
+        pendaftarId: pendaftar.id,
+        buktiPembayaranUrl: data.buktiPembayaranUrl || null,
+        ijazahUrl: data.ijazahUrl || null,
+        kkUrl: data.kkUrl || null,
+        kipUrl: data.kipUrl || null,
+        photoUrl: data.photoUrl || null,
+        ukuranBaju: data.ukuranBaju || null,
+        ukuranCelana: data.ukuranCelana || null,
+        status: 'menunggu_validasi'
+      });
+      return { success: true, inserted: true };
+    }
+  }
+
+  static async getDaftarUlangInfo(noPendaftaran: string) {
+    const pendaftarList = await db.select().from(ppdbPendaftar).where(eq(ppdbPendaftar.noPendaftaran, noPendaftaran));
+    if (pendaftarList.length === 0) return null;
+    const pendaftar = pendaftarList[0];
+
+    const dList = await db.select().from(ppdbDaftarUlang).where(eq(ppdbDaftarUlang.pendaftarId, pendaftar.id));
+    return dList.length > 0 ? dList[0] : null;
   }
 }

@@ -11,6 +11,7 @@ interface PPDBPopupModalProps {
 export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [popupMode, setPopupMode] = useState<string>('pendaftaran');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,13 +20,26 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
         const config = await apiClient<any>('/ppdb/config');
         if (config && config.isActive && config.jalur && config.jalur.length > 0) {
           const now = new Date();
-          const hasOpenJalur = config.jalur.some((j: any) => {
-            const isBuka = j.jadwalBuka ? new Date(j.jadwalBuka) <= now : true;
-            const isTutup = j.jadwalTutup ? new Date(j.jadwalTutup) >= now : true;
-            return isBuka && isTutup;
-          });
+          let shouldShow = false;
+          let viewMode = 'pendaftaran'; // 'pendaftaran' or 'pengumuman'
+          
+          if (config.tanggalPengumuman && now >= new Date(config.tanggalPengumuman)) {
+            // Fase Pengumuman
+            if (!config.batasDaftarUlang || now <= new Date(config.batasDaftarUlang)) {
+              shouldShow = true;
+              viewMode = 'pengumuman';
+            }
+          } else {
+            // Fase Pendaftaran
+            shouldShow = config.jalur.some((j: any) => {
+              const isBuka = j.jadwalBuka ? new Date(j.jadwalBuka) <= now : true;
+              const isTutup = j.jadwalTutup ? new Date(j.jadwalTutup) >= now : true;
+              return isBuka && isTutup;
+            });
+          }
 
-          if (hasOpenJalur) {
+          if (shouldShow) {
+            setPopupMode(viewMode);
             // Show after a brief delay for page load
             setTimeout(() => {
               setIsVisible(true);
@@ -97,53 +111,59 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
           </div>
 
           {/* Title */}
-          <p className="text-xs font-bold text-emerald-600 uppercase tracking-[0.2em] mb-2">
-            Penerimaan Murid Baru
+          <p className={`text-xs font-bold uppercase tracking-[0.2em] mb-2 ${popupMode === 'pengumuman' ? 'text-blue-600' : 'text-emerald-600'}`}>
+            {popupMode === 'pengumuman' ? 'Pengumuman Kelulusan' : 'Penerimaan Murid Baru'}
           </p>
           <h2 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight tracking-tight">
-            SIMPMB{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-blue-600">
+            {popupMode === 'pengumuman' ? 'Ujian ' : 'SIMPMB '}
+            <span className={`text-transparent bg-clip-text bg-gradient-to-r ${popupMode === 'pengumuman' ? 'from-blue-500 to-indigo-600' : 'from-emerald-500 to-blue-600'}`}>
               2026
             </span>
           </h2>
 
           {/* Divider */}
-          <div className="w-16 h-0.5 bg-gradient-to-r from-emerald-400 to-blue-500 mx-auto my-4 rounded-full" />
+          <div className={`w-16 h-0.5 mx-auto my-4 rounded-full bg-gradient-to-r ${popupMode === 'pengumuman' ? 'from-blue-400 to-indigo-500' : 'from-emerald-400 to-blue-500'}`} />
 
           {/* Subtitle */}
           <p className="text-sm font-semibold text-gray-700 mb-1">
             Madrasah Aliyah Negeri 2 Lombok Timur
           </p>
           <p className="text-xs text-gray-500 leading-relaxed max-w-sm mx-auto mb-6">
-            Laman untuk memfasilitasi sistem penerimaan murid baru secara daring
+            {popupMode === 'pengumuman' 
+              ? 'Hasil seleksi penerimaan murid baru telah resmi diumumkan. Silakan periksa status kelulusan Anda.' 
+              : 'Laman untuk memfasilitasi sistem penerimaan murid baru secara daring'}
           </p>
 
           {/* Badges */}
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 text-xs font-bold rounded-full border border-amber-200">
-              🏆 Jalur Prestasi
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-bold rounded-full border border-blue-200">
-              📋 Jalur Reguler
-            </span>
-          </div>
+          {popupMode === 'pendaftaran' && (
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 text-xs font-bold rounded-full border border-amber-200">
+                🏆 Jalur Prestasi
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-bold rounded-full border border-blue-200">
+                📋 Jalur Reguler
+              </span>
+            </div>
+          )}
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
               onClick={() => handleAction('daftar')}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3 bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-sm"
+              className={`w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3 text-white font-bold rounded-xl shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-sm bg-gradient-to-r ${popupMode === 'pengumuman' ? 'from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-blue-500/25 hover:shadow-blue-500/40' : 'from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 shadow-emerald-500/25 hover:shadow-emerald-500/40'}`}
             >
-              🚀 Mulai Pendaftaran
+              {popupMode === 'pengumuman' ? '🚀 Cek Hasil Kelulusan' : '🚀 Mulai Pendaftaran'}
               <ArrowRight size={16} />
             </button>
-            <button
-              onClick={() => handleAction('info')}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3 bg-white hover:bg-gray-50 text-gray-700 font-bold rounded-xl border border-gray-200 hover:border-blue-300 shadow-sm transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-sm"
-            >
-              <Info size={16} />
-              Info Lengkap
-            </button>
+            {popupMode === 'pendaftaran' && (
+              <button
+                onClick={() => handleAction('info')}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3 bg-white hover:bg-gray-50 text-gray-700 font-bold rounded-xl border border-gray-200 hover:border-blue-300 shadow-sm transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-sm"
+              >
+                <Info size={16} />
+                Info Lengkap
+              </button>
+            )}
           </div>
         </div>
 

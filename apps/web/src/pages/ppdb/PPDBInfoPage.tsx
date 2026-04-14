@@ -654,7 +654,13 @@ export const PPDBInfoPage = () => {
                       <CheckCircle className="w-3 h-3 text-white" />
                     </div>
                     <div className="font-semibold text-emerald-700 text-sm">🎉 Selamat! Anda Diterima</div>
-                    <div className="text-xs text-gray-500 mt-0.5">Silakan lakukan registrasi ulang sesuai jadwal.</div>
+                    <div className="text-xs text-gray-500 mt-0.5 mb-3">Silakan lakukan registrasi ulang sesuai jadwal.</div>
+                    <button
+                      onClick={() => navigate(`/ppdb/daftar-ulang/${trackResult.noPendaftaran}`)}
+                      className="inline-flex flex-1 items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold transition-all shadow-sm shadow-emerald-500/20 text-xs w-full sm:w-auto"
+                    >
+                      Lanjutkan ke Daftar Ulang <ArrowRight size={14} />
+                    </button>
                   </div>
                 )}
                 {trackResult.status === 'ditolak' && (

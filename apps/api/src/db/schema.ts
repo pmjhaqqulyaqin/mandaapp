@@ -416,6 +416,7 @@ export const ppdbConfig = pgTable("ppdb_config", {
   namaSistem: varchar("nama_sistem", { length: 100 }).default("SIMPMB 2026"),
   isActive: boolean("is_active").default(true),
   tanggalPengumuman: timestamp("tanggal_pengumuman"),
+  batasDaftarUlang: timestamp("batas_daftar_ulang"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
@@ -514,4 +515,19 @@ export const ppdbDokumen = pgTable("ppdb_dokumen", {
   filePath: varchar("file_path", { length: 500 }).notNull(),
   isVerified: boolean("is_verified").default(false),
   createdAt: timestamp("created_at").defaultNow()
+});
+
+export const ppdbDaftarUlang = pgTable("ppdb_daftar_ulang", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  pendaftarId: uuid("pendaftar_id").references(() => ppdbPendaftar.id, { onDelete: "cascade" }).unique().notNull(),
+  buktiPembayaranUrl: varchar("bukti_pembayaran_url", { length: 500 }),
+  ijazahUrl: varchar("ijazah_url", { length: 500 }),
+  kkUrl: varchar("kk_url", { length: 500 }),
+  kipUrl: varchar("kip_url", { length: 500 }),
+  photoUrl: varchar("photo_url", { length: 500 }),
+  ukuranBaju: varchar("ukuran_baju", { length: 10 }), // S, M, L, XL, XXL
+  ukuranCelana: varchar("ukuran_celana", { length: 50 }),
+  status: varchar("status", { length: 30 }).default("menunggu_validasi"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
 });

@@ -11,6 +11,8 @@ router.get('/jalur', PPDBController.getJalur);
 router.post('/daftar', PPDBController.submitPendaftaran);
 router.get('/status/:nisn/:noPendaftaran', PPDBController.checkStatus);
 router.post('/upload', upload.single('file'), PPDBController.uploadFile);
+router.post('/daftar-ulang/:noPendaftaran', PPDBController.submitDaftarUlang);
+router.get('/daftar-ulang/:noPendaftaran', PPDBController.getDaftarUlangInfo);
 
 // ============ ADMIN ENDPOINTS ============
 router.get('/admin/stats', PPDBController.getAdminStats);
