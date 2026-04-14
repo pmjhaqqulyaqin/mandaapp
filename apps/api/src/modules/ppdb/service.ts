@@ -429,6 +429,18 @@ export class PPDBService {
     return updated;
   }
 
+  /** Update daftar ulang status (sudah_validasi / revisi) */
+  static async updateDaftarUlangStatus(id: string, status: string) {
+    const [updated] = await db.update(ppdbDaftarUlang)
+      .set({
+        status,
+        updatedAt: new Date(),
+      })
+      .where(eq(ppdbDaftarUlang.id, id))
+      .returning();
+    return updated;
+  }
+
   // ============ ADMIN: Jalur Configuration ============
 
   /** Get all jalur (including inactive) for admin */

@@ -103,6 +103,15 @@ export class PPDBController {
     }
   }
 
+  static async updateDaftarUlangStatus(req: Request, res: Response) {
+    try {
+      const result = await PPDBService.updateDaftarUlangStatus(req.params.id, req.body.status);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
   static async getAllJalurAdmin(req: Request, res: Response) {
     try {
       const jalur = await PPDBService.getAllJalurAdmin();

@@ -194,6 +194,15 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
     } catch (err: any) { toast.error(err.message); }
   };
 
+  const updateDaftarUlangStatus = async (id: string, status: string) => {
+    try {
+      await apiClient(`/ppdb/admin/daftar-ulang/${id}/status`, { data: { status }, method: 'PUT' });
+      toast.success(`Status daftar ulang diperbarui: ${status.replace('_', ' ').toUpperCase()}`);
+      fetchData();
+      if (selectedId) openDetail(selectedId);
+    } catch (err: any) { toast.error(err.message); }
+  };
+
   const jalurList = stats?.jalurStats || [];
 
   return (
@@ -412,12 +421,20 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
                 {/* Data Daftar Ulang */}
                 {detail.daftarUlang && (
                   <div className="p-4 border-2 border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl">
-                    <h3 className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-3 flex items-center gap-2">
-                      <ClipboardList size={14} /> Data Daftar Ulang
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] ${detail.daftarUlang.status === 'sudah_validasi' ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                        {detail.daftarUlang.status.replace('_', ' ').toUpperCase()}
-                      </span>
-                    </h3>
+                    <div className="flex items-center justify-between mb-3 border-b border-emerald-200/50 dark:border-emerald-900/50 pb-3">
+                      <h3 className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                        <ClipboardList size={14} /> Data Daftar Ulang
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] ${detail.daftarUlang.status === 'sudah_validasi' ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                          {detail.daftarUlang.status.replace('_', ' ').toUpperCase()}
+                        </span>
+                      </h3>
+                      {detail.daftarUlang.status === 'menunggu_validasi' && (
+                        <div className="flex gap-2">
+                          <button onClick={() => updateDaftarUlangStatus(detail.daftarUlang.id, 'sudah_validasi')} className="px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded text-[10px] font-bold shadow-sm transition-colors">✅ Validasi Berkas</button>
+                          <button onClick={() => updateDaftarUlangStatus(detail.daftarUlang.id, 'revisi')} className="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-[10px] font-bold shadow-sm transition-colors">⚠️ Revisi</button>
+                        </div>
+                      )}
+                    </div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                       <div className="space-y-1 text-xs text-gray-600">
@@ -852,6 +869,15 @@ const DaftarUlangTab = () => {
     } catch (err: any) { toast.error(err.message); }
   };
 
+  const updateDaftarUlangStatus = async (id: string, status: string) => {
+    try {
+      await apiClient(`/ppdb/admin/daftar-ulang/${id}/status`, { data: { status }, method: 'PUT' });
+      toast.success(`Status daftar ulang diperbarui: ${status.replace('_', ' ').toUpperCase()}`);
+      fetchData();
+      if (selectedId) openDetail(selectedId);
+    } catch (err: any) { toast.error(err.message); }
+  };
+
   return (
     <div className="space-y-4">
       {/* Filters */}
@@ -986,9 +1012,17 @@ const DaftarUlangTab = () => {
                 {/* Data Daftar Ulang Detail */}
                 {detail.daftarUlang && (
                   <div className="p-4 border-2 border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl mb-4">
-                    <h3 className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-3 flex items-center gap-2">
-                      <ClipboardList size={14} /> Berkas Daftar Ulang
-                    </h3>
+                    <div className="flex items-center justify-between mb-3 border-b border-emerald-200/50 dark:border-emerald-900/50 pb-3">
+                      <h3 className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                        <ClipboardList size={14} /> Berkas Daftar Ulang
+                      </h3>
+                      {detail.daftarUlang.status === 'menunggu_validasi' && (
+                        <div className="flex gap-2">
+                          <button onClick={() => updateDaftarUlangStatus(detail.daftarUlang.id, 'sudah_validasi')} className="px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded text-[10px] font-bold shadow-sm transition-colors">✅ Validasi Berkas</button>
+                          <button onClick={() => updateDaftarUlangStatus(detail.daftarUlang.id, 'revisi')} className="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-[10px] font-bold shadow-sm transition-colors">⚠️ Revisi</button>
+                        </div>
+                      )}
+                    </div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                       <div className="space-y-1 text-xs text-gray-600">
