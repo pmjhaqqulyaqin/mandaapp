@@ -65,7 +65,13 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
   const handleAction = (action: 'daftar' | 'info') => {
     handleDismiss();
     setTimeout(() => {
-      if (action === 'daftar') {
+      if (popupMode === 'pengumuman') {
+        // Navigate to the tracking/status section directly
+        navigate('/ppdb#tracking-section');
+        setTimeout(() => {
+          document.getElementById('tracking-section')?.scrollIntoView({ behavior: 'smooth' });
+        }, 500);
+      } else if (action === 'daftar') {
         navigate('/ppdb');
       } else {
         navigate('/ppdb');
