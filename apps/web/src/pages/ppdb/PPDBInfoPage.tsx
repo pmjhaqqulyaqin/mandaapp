@@ -388,6 +388,12 @@ export const PPDBInfoPage = () => {
 
   const jalurList = config?.jalur || [];
 
+  // Determine if we're in the announcement phase
+  const now = new Date();
+  const tglPengumuman = config?.tanggalPengumuman ? new Date(config.tanggalPengumuman) : null;
+  const batasDaftarUlang = config?.batasDaftarUlang ? new Date(config.batasDaftarUlang) : null;
+  const isAnnouncementPhase = tglPengumuman && now >= tglPengumuman && (!batasDaftarUlang || now <= batasDaftarUlang);
+
   return (
     <div className="min-h-screen bg-white">
       <SEO />
@@ -456,7 +462,7 @@ export const PPDBInfoPage = () => {
                 onClick={() => scrollTo('tracking-section')}
                 className="px-7 py-3 bg-white/80 backdrop-blur-sm hover:bg-white text-gray-800 font-bold rounded-lg border border-gray-200 hover:border-emerald-300 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-sm uppercase tracking-wider"
               >
-                Cek Status Pendaftaran
+                {isAnnouncementPhase ? 'Cek Status Kelulusan' : 'Cek Status Pendaftaran'}
               </button>
             </div>
           </div>
@@ -572,9 +578,14 @@ export const PPDBInfoPage = () => {
       {/* ====== TRACKING SECTION ====== */}
       <section id="tracking-section" className="py-16 md:py-20 bg-gradient-to-b from-[#ecfdf5] to-[#F8FBF8]">
         <div className="max-w-xl mx-auto px-4 text-center">
-          <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">Cek Status Pendaftaran</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">
+            {isAnnouncementPhase ? 'Cek Status Kelulusan' : 'Cek Status Pendaftaran'}
+          </h2>
           <p className="text-gray-500 text-xs mb-6 leading-relaxed max-w-lg mx-auto">
-            Cek status pendaftaran Anda dengan memasukkan NISN dan Nomor Pendaftaran.
+            {isAnnouncementPhase
+              ? 'Cek status Kelulusan Anda dengan memasukkan NISN dan Nomor Pendaftaran.'
+              : 'Cek status pendaftaran Anda dengan memasukkan NISN dan Nomor Pendaftaran.'
+            }
             <br />
             <span className="italic text-xs">
               Nomor Pendaftaran didapatkan setelah berhasil mendaftar.
