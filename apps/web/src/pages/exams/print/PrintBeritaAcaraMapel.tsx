@@ -40,7 +40,11 @@ export const PrintBeritaAcaraMapel = () => {
         ]);
 
         setUjian(uRes);
-        setGlobalSettings(sRes?.data || sRes || {});
+        // Parse settings array into key-value map
+        const settingsArr = Array.isArray(sRes?.data || sRes) ? (sRes?.data || sRes) : [];
+        const settingsMap: Record<string, string> = {};
+        for (const s of settingsArr) { if (s.key && s.value) settingsMap[s.key] = s.value; }
+        setGlobalSettings(settingsMap);
 
         const jadwalData = Array.isArray(jadwalRes) ? jadwalRes : [];
         const ruangData = Array.isArray(ruangRes) ? ruangRes : [];
@@ -160,8 +164,8 @@ export const PrintBeritaAcaraMapel = () => {
   const generateWordHtml = async () => {
     const kop_ = ujian.pengaturan?.kop || {};
     const kartuS_ = ujian.pengaturan?.kartuPeserta || {};
-    const lKiri = kartuS_.logoKiri || globalSettings?.kemenagLogoUrl || globalSettings?.schoolLogoUrl || '';
-    const lKanan = kartuS_.logoKanan || '';
+    const lKiri = globalSettings?.kemenag_logo_url || kartuS_.logoKiri || '';
+    const lKanan = globalSettings?.logo_url || kartuS_.logoKanan || '';
 
     // Convert logos to base64 so Word can embed them
     const logoKiriB64 = lKiri ? await toBase64(lKiri) : '';
@@ -333,8 +337,8 @@ export const PrintBeritaAcaraMapel = () => {
   const instansi = kop.instansi || 'MADRASAH ALIYAH NEGERI 2 LOMBOK TIMUR';
   const alamat = kop.alamat || 'Jl. Beririjarak Kec. Wanasaba Kab. Lombok Timur NTB';
 
-  const logoKiri = kartuSettings.logoKiri || globalSettings?.kemenagLogoUrl || globalSettings?.schoolLogoUrl || '';
-  const logoKanan = kartuSettings.logoKanan || '';
+  const logoKiri = globalSettings?.kemenag_logo_url || kartuSettings.logoKiri || '';
+  const logoKanan = globalSettings?.logo_url || kartuSettings.logoKanan || '';
 
   const namaUjian = (ujian.namaUjian || ujian.jenisUjian || ujian.title || 'Asesmen Sumatif Akhir Semester (ASAS)').toUpperCase();
   const tahunAjaran = ujian.tahunAjaran || new Date().getFullYear().toString();

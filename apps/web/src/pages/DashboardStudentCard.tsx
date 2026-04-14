@@ -33,6 +33,7 @@ export const DashboardStudentCard = () => {
   const { get: getSiteSetting, isLoading: isSiteSettingsLoading } = useSiteSettings();
   
   const globalLogoUrl = getSiteSetting('logo_url', '');
+  const globalKemenagLogoUrl = getSiteSetting('kemenag_logo_url', '');
   const globalSchoolName = getSiteSetting('school_name', '');
   const globalSchoolAddress = getSiteSetting('address', '');
   const globalSchoolPhone = getSiteSetting('phone', '');
@@ -323,7 +324,7 @@ export const DashboardStudentCard = () => {
         termsText: cardSettings.termsText,
         schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
         headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
-        kemenagLogoUrl: getFullUrl(editingSettings.kemenagLogoUrl),
+        kemenagLogoUrl: getFullUrl(globalKemenagLogoUrl || editingSettings.kemenagLogoUrl),
         schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
         academicYear: cardSettings.academicYear,
         showQrCode: cardSettings.showQrCode,
@@ -604,7 +605,7 @@ export const DashboardStudentCard = () => {
                                   termsText: editingSettings.termsText,
                                   schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
                                   headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
-                                  kemenagLogoUrl: getFullUrl(editingSettings.kemenagLogoUrl),
+                                  kemenagLogoUrl: getFullUrl(globalKemenagLogoUrl || editingSettings.kemenagLogoUrl),
                                   schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
                                   academicYear: cardSettings.academicYear,
                                   showQrCode: cardSettings.showQrCode,
@@ -725,25 +726,12 @@ export const DashboardStudentCard = () => {
                       />
                     </div>
                     <div className="md:col-span-2 mt-4 pt-4 border-t border-border-light dark:border-border-dark">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                        <div>
-                          <label className="block text-xs font-semibold text-text-secondary mb-3">Logo Kementerian (opsional)</label>
-                          <div className="w-full max-w-[200px]">
-                            <PhotoUploader
-                              currentPhotoUrl={getFullUrl(editingSettings.kemenagLogoUrl) || ''}
-                              onPhotoChange={(url) => setEditingSettings({...editingSettings, kemenagLogoUrl: url})}
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-text-secondary mb-3">Logo Madrasah (Kanan)</label>
-                          <div className="w-full max-w-[200px]">
-                            <PhotoUploader
-                              currentPhotoUrl={getFullUrl(editingSettings.schoolLogoUrl) || ''}
-                              onPhotoChange={(url) => setEditingSettings({...editingSettings, schoolLogoUrl: url})}
-                            />
-                          </div>
-                        </div>
+                      <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30 rounded-lg p-3 mb-4">
+                        <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                          <strong>ℹ️ Logo Kop</strong> — Logo Kemenag (kiri) dan Logo Sekolah (kanan) dikelola secara terpusat di menu <strong>Pengaturan Sistem → Logo & Kop Dokumen</strong>.
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div>
                           <label className="block text-xs font-semibold text-text-secondary mb-3">Tanda Tangan Kepsek (PNG Transparan)</label>
                           <div className="w-full max-w-[200px]">
@@ -926,7 +914,7 @@ export const DashboardStudentCard = () => {
                 termsText: cardSettings.termsText,
                 schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
                 headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
-                kemenagLogoUrl: getFullUrl(editingSettings.kemenagLogoUrl),
+                kemenagLogoUrl: getFullUrl(globalKemenagLogoUrl || editingSettings.kemenagLogoUrl),
                 schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
                 academicYear: cardSettings.academicYear,
                 showQrCode: cardSettings.showQrCode,
@@ -957,7 +945,7 @@ export const DashboardStudentCard = () => {
                 termsText: cardSettings.termsText,
                 schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
                 headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
-                kemenagLogoUrl: getFullUrl(editingSettings.kemenagLogoUrl),
+                kemenagLogoUrl: getFullUrl(globalKemenagLogoUrl || editingSettings.kemenagLogoUrl),
                 schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
                 academicYear: cardSettings.academicYear,
                 showQrCode: cardSettings.showQrCode,
@@ -1001,7 +989,7 @@ export const DashboardStudentCard = () => {
                             termsText: cardSettings.termsText,
                             schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
                             headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
-                            kemenagLogoUrl: getFullUrl(editingSettings.kemenagLogoUrl),
+                            kemenagLogoUrl: getFullUrl(globalKemenagLogoUrl || editingSettings.kemenagLogoUrl),
                             schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
                             academicYear: cardSettings.academicYear,
                             showQrCode: cardSettings.showQrCode,
@@ -1045,7 +1033,7 @@ export const DashboardStudentCard = () => {
                             termsText: cardSettings.termsText,
                             schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
                             headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl),
-                            kemenagLogoUrl: getFullUrl(editingSettings.kemenagLogoUrl),
+                            kemenagLogoUrl: getFullUrl(globalKemenagLogoUrl || editingSettings.kemenagLogoUrl),
                             schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
                             academicYear: cardSettings.academicYear,
                             showQrCode: cardSettings.showQrCode,
@@ -1114,7 +1102,7 @@ export const DashboardStudentCard = () => {
                       termsText: cardSettings.termsText,
                       schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl),
                       headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl || cardSettings.headmasterSignatureUrl),
-                      kemenagLogoUrl: getFullUrl(editingSettings.kemenagLogoUrl || cardSettings.kemenagLogoUrl),
+                      kemenagLogoUrl: getFullUrl(globalKemenagLogoUrl || editingSettings.kemenagLogoUrl || cardSettings.kemenagLogoUrl),
                       schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl || cardSettings.schoolStampUrl),
                       academicYear: cardSettings.academicYear,
                       showQrCode: cardSettings.showQrCode,

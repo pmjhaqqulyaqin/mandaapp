@@ -279,23 +279,12 @@ export const MasterUjianTab = ({ ujian, onRefresh }: Props) => {
               <h5 className="text-xs font-semibold text-gray-500 flex items-center gap-1.5">
                 <ImageIcon size={12} /> Gambar & Logo
               </h5>
+              <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30 rounded-lg p-3 mb-3">
+                <p className="text-[10px] text-blue-700 dark:text-blue-300 leading-relaxed">
+                  <strong>ℹ️ Logo Kop</strong> — Logo Kemenag (kiri) dan Logo Sekolah (kanan) dikelola secara terpusat di menu <strong>Pengaturan Sistem → Logo & Kop Dokumen</strong>. Semua dokumen di seluruh sistem akan menggunakan logo dari sumber tersebut.
+                </p>
+              </div>
               <div className="flex flex-wrap gap-4">
-                <div className="flex-1 min-w-[100px]">
-                  <label className="text-[10px] font-semibold text-gray-500 mb-1.5 block text-center">Logo Kiri</label>
-                  <div className="flex justify-center">
-                    <div className="scale-75 origin-top">
-                      <PhotoUploader currentPhotoUrl={kartuConfig.logoKiri} onPhotoChange={url => setKartuConfig({...kartuConfig, logoKiri: url})} />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex-1 min-w-[100px]">
-                  <label className="text-[10px] font-semibold text-gray-500 mb-1.5 block text-center">Logo Kanan</label>
-                  <div className="flex justify-center">
-                    <div className="scale-75 origin-top">
-                      <PhotoUploader currentPhotoUrl={kartuConfig.logoKanan} onPhotoChange={url => setKartuConfig({...kartuConfig, logoKanan: url})} />
-                    </div>
-                  </div>
-                </div>
                 <div className="flex-1 min-w-[100px]">
                   <label className="text-[10px] font-semibold text-gray-500 mb-1.5 block text-center">Tanda Tangan</label>
                   <div className="flex justify-center">
@@ -305,9 +294,6 @@ export const MasterUjianTab = ({ ujian, onRefresh }: Props) => {
                   </div>
                 </div>
               </div>
-              <p className="text-[10px] text-gray-400 leading-relaxed text-center mt-3">
-                Upload logo kiri (mis. Logo Kemenag) dan logo kanan (mis. Logo Sekolah).
-              </p>
             </div>
           </div>
 

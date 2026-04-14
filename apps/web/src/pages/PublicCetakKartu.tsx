@@ -12,6 +12,7 @@ export const PublicCetakKartu = () => {
 
   // Global settings overrides
   const globalLogoUrl = getSiteSetting('logo_url', '');
+  const globalKemenagLogoUrl = getSiteSetting('kemenag_logo_url', '');
   const globalSchoolName = getSiteSetting('school_name', '');
   const globalSchoolAddress = getSiteSetting('address', '');
   const globalSchoolPhone = getSiteSetting('phone', '');
@@ -234,7 +235,7 @@ export const PublicCetakKartu = () => {
                   termsText: settings.termsText,
                   schoolLogoUrl: getFullUrl(globalLogoUrl || settings.schoolLogoUrl),
                   headmasterSignatureUrl: getFullUrl(settings.headmasterSignatureUrl),
-                  kemenagLogoUrl: getFullUrl(settings.kemenagLogoUrl),
+                  kemenagLogoUrl: getFullUrl(globalKemenagLogoUrl || settings.kemenagLogoUrl),
                   schoolStampUrl: getFullUrl(settings.schoolStampUrl),
                   academicYear: settings.academicYear,
                   showQrCode: settings.showQrCode,

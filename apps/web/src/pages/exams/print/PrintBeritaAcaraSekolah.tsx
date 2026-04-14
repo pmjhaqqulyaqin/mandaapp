@@ -48,7 +48,12 @@ export const PrintBeritaAcaraSekolah = () => {
         ]);
 
         setUjian(uRes);
-        setGlobalSettings(sRes?.data || sRes || {});
+        setGlobalSettings(() => {
+          const arr = Array.isArray(sRes?.data || sRes) ? (sRes?.data || sRes) : [];
+          const map: Record<string, string> = {};
+          for (const s of arr) { if (s.key && s.value) map[s.key] = s.value; }
+          return map;
+        });
 
         const jadwalData = Array.isArray(jadwalRes) ? jadwalRes : [];
         const ruangData = Array.isArray(ruangRes) ? (ruangRes as any).data || ruangRes : [];
@@ -154,8 +159,8 @@ export const PrintBeritaAcaraSekolah = () => {
     const kop = ujian.pengaturan?.kop || {};
     const kartuS = ujian.pengaturan?.kartuPeserta || {};
 
-    const lKiri = kartuS.logoKiri || globalSettings?.kemenagLogoUrl || globalSettings?.schoolLogoUrl || '';
-    const lKanan = kartuS.logoKanan || '';
+    const lKiri = globalSettings?.kemenag_logo_url || kartuS.logoKiri || '';
+    const lKanan = globalSettings?.logo_url || kartuS.logoKanan || '';
 
     const logoKiriB64 = lKiri ? await toBase64(lKiri) : '';
     const logoKananB64 = lKanan ? await toBase64(lKanan) : '';
@@ -359,8 +364,8 @@ export const PrintBeritaAcaraSekolah = () => {
   const instansi = kop.instansi || 'MADRASAH ALIYAH NEGERI';
   const alamat = kop.alamat || 'Alamat Sekolah';
 
-  const logoKiri = kartuSettings.logoKiri || globalSettings?.kemenagLogoUrl || globalSettings?.schoolLogoUrl || '';
-  const logoKanan = kartuSettings.logoKanan || '';
+  const logoKiri = globalSettings?.kemenag_logo_url || kartuSettings.logoKiri || '';
+  const logoKanan = globalSettings?.logo_url || kartuSettings.logoKanan || '';
 
   const namaUjian = (ujian.namaUjian || 'UJIAN').toUpperCase();
   const tahunAjaran = ujian.tahunAjaran || '';

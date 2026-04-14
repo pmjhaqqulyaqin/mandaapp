@@ -28,18 +28,26 @@ export const PrintFormatNilai = () => {
   const [loading, setLoading] = useState(true);
   const [ujian, setUjian] = useState<any>(null);
   const [pages, setPages] = useState<any[]>([]);
+  const [globalSettings, setGlobalSettings] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [uRes, jadwalRes, ruangRes, distRes] = await Promise.all([
+        const [uRes, jadwalRes, ruangRes, distRes, sRes] = await Promise.all([
           apiClient(`/exams/${ujianId}`),
           apiClient<any[]>(`/exams/${ujianId}/jadwal`).catch(() => []),
           apiClient<any[]>(`/exams/${ujianId}/ruang`).catch(() => []),
           apiClient<any[]>(`/exams/${ujianId}/distribusi`).catch(() => []),
+          apiClient('/settings').catch(() => null),
         ]);
 
         setUjian(uRes);
+
+        // Parse settings array into key-value map
+        const settingsArr = Array.isArray(sRes?.data || sRes) ? (sRes?.data || sRes) : [];
+        const settingsMap: Record<string, string> = {};
+        for (const s of settingsArr) { if (s.key && s.value) settingsMap[s.key] = s.value; }
+        setGlobalSettings(settingsMap);
 
         const jadwalData = Array.isArray(jadwalRes) ? jadwalRes : [];
         const ruangData = Array.isArray(ruangRes) ? (ruangRes as any).data || ruangRes : [];
@@ -167,8 +175,8 @@ export const PrintFormatNilai = () => {
   const instansi = kop.instansi || 'MADRASAH ALIYAH NEGERI';
   const alamat = kop.alamat || 'Alamat Sekolah';
 
-  const logoKiri = kartuSettings.logoKiri || '';
-  const logoKanan = kartuSettings.logoKanan || '';
+  const logoKiri = globalSettings.kemenag_logo_url || kartuSettings.logoKiri || '';
+  const logoKanan = globalSettings.logo_url || kartuSettings.logoKanan || '';
 
   const namaUjian = (ujian.namaUjian || 'UJIAN').toUpperCase();
   const tahunAjaran = ujian.tahunAjaran || '';

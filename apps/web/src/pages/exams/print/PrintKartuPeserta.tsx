@@ -70,7 +70,11 @@ export const PrintKartuPeserta = () => {
         });
         
         setDistribusi(dist);
-        setGlobalSettings(sRes?.data || sRes || {});
+        // Parse settings array into key-value map
+        const settingsArr = Array.isArray(sRes?.data || sRes) ? (sRes?.data || sRes) : [];
+        const settingsMap: Record<string, string> = {};
+        for (const s of settingsArr) { if (s.key && s.value) settingsMap[s.key] = s.value; }
+        setGlobalSettings(settingsMap);
       } catch (err) {
         console.error(err);
       } finally {
@@ -101,8 +105,8 @@ export const PrintKartuPeserta = () => {
   const ttdDist = ujian.pengaturan?.distribusiTtd || {};
   const config = ujian.pengaturan?.kartuPeserta || {};
 
-  const logoKiri = config.logoKiri || globalSettings?.kemenagLogoUrl || globalSettings?.schoolLogoUrl || '';
-  const logoKanan = config.logoKanan || '';
+  const logoKiri = globalSettings?.kemenag_logo_url || config.logoKiri || '';
+  const logoKanan = globalSettings?.logo_url || config.logoKanan || '';
   const tempat = config.tempat || ttdDist.tempat || ttdMaster.tempat || 'Tempat';
   const tanggal = config.tanggal || ttdDist.tanggal || ttdMaster.tanggal || new Date().toISOString();
   const jabatan = config.jabatan || ttdDist.jabatan || ttdMaster.jabatan || 'Ketua Panitia';
