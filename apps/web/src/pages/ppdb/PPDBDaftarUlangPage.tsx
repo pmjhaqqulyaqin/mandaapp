@@ -250,10 +250,9 @@ export const PPDBDaftarUlangPage = () => {
       // ========== STUDENT INFO TABLE (compact) ==========
       const detail = studentDetail;
       const noPend = detail?.noPendaftaran || noPendaftaran;
-      const formattedNoPend = `PPDB-2026-${noPend.replace(/[^0-9]/g, '').slice(-5).padStart(5, '0')}`;
 
       const tableData = [
-        ['NOMOR PENDAFTARAN', formattedNoPend],
+        ['NOMOR PENDAFTARAN', noPend],
         ['NAMA LENGKAP', detail?.namaLengkap || '-'],
         ['NISN', detail?.nisn || '-'],
         ['SEKOLAH ASAL', detail?.sekolahAsal || '-'],
