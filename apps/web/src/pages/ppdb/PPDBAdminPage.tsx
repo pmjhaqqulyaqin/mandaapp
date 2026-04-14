@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { apiClient } from '../../lib/api';
+import { apiClient, API_BASE_URL } from '../../lib/api';
 import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
 import { MetricCard } from '@mandaapp/ui/src/components/MetricCard';
 import { toast } from 'sonner';
@@ -389,9 +389,17 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
                     <h3 className="text-xs font-bold text-gray-600 mb-2">📎 Dokumen</h3>
                     <div className="flex flex-wrap gap-2">
                       {detail.dokumen.map((d: any) => (
-                        <span key={d.id} className={`px-3 py-1 rounded-full text-[10px] font-bold ${d.isVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+                        <a 
+                          key={d.id} 
+                          href={`${API_BASE_URL.replace('/api', '')}${d.filePath}`} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all hover:scale-105 ${d.isVerified ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100 shadow-sm'}`}
+                          title="Klik untuk melihat dokumen"
+                        >
+                          <Eye size={12} />
                           {d.isVerified ? '☑️' : '☐'} {d.jenisDokumen}
-                        </span>
+                        </a>
                       ))}
                     </div>
                   </div>

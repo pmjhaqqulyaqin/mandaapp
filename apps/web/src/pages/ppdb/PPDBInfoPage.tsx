@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   GraduationCap, Trophy, ClipboardList, ChevronDown,
-  ArrowRight, Users, Calendar, Target, CheckCircle, Clock, Search,
+  ArrowRight, Users, Calendar, Target, CheckCircle, Clock, Search, Printer, X
 } from 'lucide-react';
 import { HeaderWithSettings } from '../../components/HeaderWithSettings';
 import { FooterWithSettings } from '../../components/FooterWithSettings';
@@ -268,6 +268,7 @@ const FAQItem = ({ item }: { item: typeof FAQ_ITEMS[0] }) => {
 // ============================================================
 export const PPDBInfoPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const heroSection = useInView();
   const jalurSection = useInView();
   const faqSection = useInView();
@@ -277,6 +278,26 @@ export const PPDBInfoPage = () => {
   const [trackNisn, setTrackNisn] = useState('');
   const [trackNoPendaftaran, setTrackNoPendaftaran] = useState('');
   const [trackResult, setTrackResult] = useState<any>(null);
+
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successData, setSuccessData] = useState<any>(null);
+
+  useEffect(() => {
+    if (location.state?.success && location.state?.noPendaftaran) {
+      setSuccessData({
+        noPendaftaran: location.state.noPendaftaran,
+        nisn: location.state.nisn,
+        nama: location.state.nama,
+      });
+      setShowSuccessModal(true);
+      // Automatically prefill the tracker form
+      if (location.state.nisn) setTrackNisn(location.state.nisn);
+      setTrackNoPendaftaran(location.state.noPendaftaran);
+      
+      // Clear state so it doesn't show again on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -597,11 +618,80 @@ export const PPDBInfoPage = () => {
 
       <FooterWithSettings />
 
-      {/* Shimmer animation */}
+      {/* Success Modal */}
+      {showSuccessModal && successData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm print:bg-white print:p-0">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative print:shadow-none print:max-w-none print:rounded-none" id="print-area">
+            <div className="bg-emerald-500 p-6 text-center text-white print:bg-emerald-500">
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                <CheckCircle className="w-10 h-10 text-emerald-500" />
+              </div>
+              <h2 className="text-xl font-bold">Pendaftaran Berhasil!</h2>
+              <p className="text-emerald-100 text-sm mt-1">Data Anda telah kami terima.</p>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-600 text-center text-sm mb-4">Harap simpan atau cetak nomor pendaftaran ini sebagai bukti pendaftaran Anda.</p>
+              
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center mb-6">
+                <p className="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wider">Nomor Pendaftaran</p>
+                <p className="text-2xl font-black text-gray-900 font-mono tracking-tight">{successData.noPendaftaran}</p>
+              </div>
+
+              <div className="space-y-3 mb-6">
+                <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
+                  <span className="text-gray-500">Nama Siswa</span>
+                  <span className="font-semibold text-gray-800">{successData.nama || '-'}</span>
+                </div>
+                <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
+                  <span className="text-gray-500">NISN</span>
+                  <span className="font-semibold text-gray-800">{successData.nisn || '-'}</span>
+                </div>
+                <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
+                  <span className="text-gray-500">Waktu Daftar</span>
+                  <span className="font-semibold text-gray-800">{new Date().toLocaleString('id-ID')}</span>
+                </div>
+              </div>
+
+              <p className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200 text-center mb-6 print:hidden">
+                <span className="font-bold">Penting:</span> Simpan atau cetak halaman ini sebelum menutup jendela.
+              </p>
+
+              <div className="flex items-center gap-3 print:hidden">
+                <button 
+                  onClick={() => window.print()} 
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold transition-all"
+                >
+                  <Printer size={18} /> Cetak Bukti
+                </button>
+                <button 
+                  onClick={() => setShowSuccessModal(false)} 
+                  className="flex items-center justify-center p-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl font-bold transition-all"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Shimmer animation & Print Styles */}
       <style>{`
         @keyframes shimmerSweep {
           0% { background-position: 200% 0; }
           100% { background-position: -200% 0; }
+        }
+        @media print {
+          body > #root > div > *:not(#print-area) {
+            display: none !important;
+          }
+          #print-area {
+            display: block !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+          }
         }
       `}</style>
     </div>

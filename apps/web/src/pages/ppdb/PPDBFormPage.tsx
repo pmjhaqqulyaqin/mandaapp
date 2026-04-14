@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   GraduationCap, User, School, BookOpen, FileUp,
-  ArrowLeft, ArrowRight, Check, Loader2, AlertCircle, Plus, Trash2, Upload
+  ArrowLeft, ArrowRight, Check, Loader2, AlertCircle, Plus, Trash2, Upload, Eye
 } from 'lucide-react';
 import { HeaderWithSettings } from '../../components/HeaderWithSettings';
 import { FooterWithSettings } from '../../components/FooterWithSettings';
@@ -188,7 +188,7 @@ export const PPDBFormPage = () => {
       });
       sessionStorage.removeItem(STORAGE_KEY);
       toast.success(`Pendaftaran berhasil! No: ${result.noPendaftaran}`);
-      navigate('/ppdb', { state: { success: true, noPendaftaran: result.noPendaftaran } });
+      navigate('/ppdb', { state: { success: true, noPendaftaran: result.noPendaftaran, nisn: formData.dataDiri.nisn, nama: formData.dataDiri.namaLengkap } });
     } catch (err: any) {
       toast.error(err.message || 'Gagal mengirim pendaftaran');
     } finally {
@@ -438,7 +438,7 @@ export const PPDBFormPage = () => {
                                   min="0" max="100"
                                   value={formData.nilaiRaport[si][MAPEL_KEYS[mi]]}
                                   onChange={e => updateNilai(si, MAPEL_KEYS[mi], e.target.value)}
-                                  className="w-full px-2 py-1.5 text-center text-xs rounded border-0 outline-none focus:ring-2 focus:ring-emerald-100 bg-transparent text-gray-900 dark:text-gray-100 font-medium"
+                                  className="w-full px-2 py-1.5 text-center text-xs rounded border-0 outline-none focus:ring-2 focus:ring-emerald-100 bg-transparent text-emerald-700 font-bold dark:text-emerald-400"
                                   placeholder="-"
                                 />
                             </td>
@@ -546,10 +546,23 @@ export const PPDBFormPage = () => {
                         <p className="text-xs text-gray-400">{uploaded ? 'Berhasil diupload ✓' : 'Belum diupload'}</p>
                       </div>
                     </div>
-                    <label className="cursor-pointer px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:border-emerald-400 hover:text-emerald-600 transition-colors">
-                      {uploaded ? 'Ganti' : 'Upload'}
-                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => handleFileUpload(e, doc)} />
-                    </label>
+                    <div className="flex items-center gap-2">
+                      {uploaded && (
+                        <a 
+                          href={`${API_BASE_URL.replace('/api', '')}${uploaded.filePath}`} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="p-2 bg-white border border-gray-200 rounded-lg text-emerald-600 hover:border-emerald-400 hover:bg-emerald-50 transition-colors"
+                          title="Preview"
+                        >
+                          <Eye size={16} />
+                        </a>
+                      )}
+                      <label className="cursor-pointer px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:border-emerald-400 hover:text-emerald-600 transition-colors">
+                        {uploaded ? 'Ganti' : 'Upload'}
+                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => handleFileUpload(e, doc)} />
+                      </label>
+                    </div>
                   </div>
                 );
               })}
