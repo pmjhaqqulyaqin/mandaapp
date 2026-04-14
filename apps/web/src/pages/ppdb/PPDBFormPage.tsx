@@ -438,7 +438,7 @@ export const PPDBFormPage = () => {
                                   min="0" max="100"
                                   value={formData.nilaiRaport[si][MAPEL_KEYS[mi]]}
                                   onChange={e => updateNilai(si, MAPEL_KEYS[mi], e.target.value)}
-                                  className="w-full px-2 py-1.5 text-center text-xs rounded border-0 outline-none focus:ring-2 focus:ring-emerald-100 bg-transparent text-emerald-700 font-bold dark:text-emerald-400"
+                                  className="w-full px-2 py-1.5 text-center text-sm rounded-md border border-gray-300 shadow-inner outline-none focus:ring-2 focus:ring-emerald-400 bg-white text-gray-900 font-black dark:bg-[#222] dark:border-[#444] dark:text-white"
                                   placeholder="-"
                                 />
                             </td>
@@ -547,21 +547,21 @@ export const PPDBFormPage = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      <label className="cursor-pointer px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:border-emerald-400 hover:text-emerald-600 transition-colors shadow-sm">
+                        {uploaded ? 'Ganti File' : 'Upload File'}
+                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => handleFileUpload(e, doc)} />
+                      </label>
                       {uploaded && (
                         <a 
                           href={`${API_BASE_URL.replace('/api', '')}${uploaded.filePath}`} 
                           target="_blank" 
                           rel="noreferrer"
-                          className="p-2 bg-white border border-gray-200 rounded-lg text-emerald-600 hover:border-emerald-400 hover:bg-emerald-50 transition-colors"
-                          title="Preview"
+                          className="flex items-center gap-1.5 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 hover:bg-emerald-100 transition-colors text-xs font-bold shadow-sm"
+                          title="Lihat Dokumen"
                         >
-                          <Eye size={16} />
+                          <Eye size={15} /> Lihat
                         </a>
                       )}
-                      <label className="cursor-pointer px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:border-emerald-400 hover:text-emerald-600 transition-colors">
-                        {uploaded ? 'Ganti' : 'Upload'}
-                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => handleFileUpload(e, doc)} />
-                      </label>
                     </div>
                   </div>
                 );

@@ -236,6 +236,7 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
           <thead>
             <tr className="bg-gray-50 dark:bg-background-dark">
               <th className="px-3 py-2.5 text-left font-semibold text-gray-600">No</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-gray-600">No. Pend</th>
               <th className="px-3 py-2.5 text-left font-semibold text-gray-600">NISN</th>
               <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Nama</th>
               <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Jalur</th>
@@ -246,15 +247,16 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
             {loading ? (
-              <tr><td colSpan={7} className="py-12 text-center"><Loader2 className="animate-spin mx-auto text-emerald-500" size={20} /></td></tr>
+              <tr><td colSpan={8} className="py-12 text-center"><Loader2 className="animate-spin mx-auto text-emerald-500" size={20} /></td></tr>
             ) : data.length === 0 ? (
-              <tr><td colSpan={7} className="py-12 text-center text-gray-400">Belum ada data pendaftar</td></tr>
+              <tr><td colSpan={8} className="py-12 text-center text-gray-400">Belum ada data pendaftar</td></tr>
             ) : data.map((row: any, i: number) => {
               const statusMeta = STATUS_MAP[row.status] || STATUS_MAP.menunggu;
               return (
                 <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-[#0a0a0a] transition-colors">
                   <td className="px-3 py-2.5 text-gray-500">{(page - 1) * 15 + i + 1}</td>
-                  <td className="px-3 py-2.5 font-mono text-gray-700 dark:text-gray-300">{row.nisn}</td>
+                  <td className="px-3 py-2.5 font-mono text-gray-800 dark:text-gray-200 font-bold">{row.noPendaftaran}</td>
+                  <td className="px-3 py-2.5 font-mono text-gray-500 dark:text-gray-400 italic">{row.nisn}</td>
                   <td className="px-3 py-2.5 font-medium text-gray-800 dark:text-white">{row.nama}</td>
                   <td className="px-3 py-2.5">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${row.jalurNama === 'PRESTASI' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'}`}>
