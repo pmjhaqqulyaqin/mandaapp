@@ -17,12 +17,21 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
     const checkConfig = async () => {
       try {
         const config = await apiClient<any>('/ppdb/config');
-        if (config && config.isActive) {
-          // Show after a brief delay for page load
-          setTimeout(() => {
-            setIsVisible(true);
-            setTimeout(() => setIsAnimating(true), 50);
-          }, 800);
+        if (config && config.isActive && config.jalur && config.jalur.length > 0) {
+          const now = new Date();
+          const hasOpenJalur = config.jalur.some((j: any) => {
+            const isBuka = j.jadwalBuka ? new Date(j.jadwalBuka) <= now : true;
+            const isTutup = j.jadwalTutup ? new Date(j.jadwalTutup) >= now : true;
+            return isBuka && isTutup;
+          });
+
+          if (hasOpenJalur) {
+            // Show after a brief delay for page load
+            setTimeout(() => {
+              setIsVisible(true);
+              setTimeout(() => setIsAnimating(true), 50);
+            }, 800);
+          }
         }
       } catch (err) {
         console.error('Failed to load PPDB config for popup:', err);
