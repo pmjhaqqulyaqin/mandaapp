@@ -91,11 +91,12 @@ export const PPDBDaftarUlangPage = () => {
       if (!response.ok) throw new Error('Gagal unggah');
       const data = await response.json();
       
-      if (field === 'buktiPembayaranUrl') setBuktiPembayaranUrl(data.url);
-      else if (field === 'ijazahUrl') setIjazahUrl(data.url);
-      else if (field === 'kkUrl') setKkUrl(data.url);
-      else if (field === 'kipUrl') setKipUrl(data.url);
-      else if (field === 'photoUrl') setPhotoUrl(data.url);
+      const uploadedUrl = data.url || data.filePath;
+      if (field === 'buktiPembayaranUrl') setBuktiPembayaranUrl(uploadedUrl);
+      else if (field === 'ijazahUrl') setIjazahUrl(uploadedUrl);
+      else if (field === 'kkUrl') setKkUrl(uploadedUrl);
+      else if (field === 'kipUrl') setKipUrl(uploadedUrl);
+      else if (field === 'photoUrl') setPhotoUrl(uploadedUrl);
 
       toast.success('File berhasil diunggah');
     } catch (err: any) {
