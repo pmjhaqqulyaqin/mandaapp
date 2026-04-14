@@ -61,7 +61,7 @@ function App() {
         {/* Public PPDB/PMB routes */}
         <Route path="/ppdb" element={<MaintenanceGuard><PPDBInfoPage /></MaintenanceGuard>} />
         <Route path="/ppdb/daftar/:jalurId" element={<MaintenanceGuard><PPDBFormPage /></MaintenanceGuard>} />
-        <Route path="/ppdb/daftar-ulang/:noPendaftaran" element={<MaintenanceGuard><PPDBDaftarUlangPage /></MaintenanceGuard>} />
+        <Route path="/ppdb/daftar-ulang" element={<MaintenanceGuard><PPDBDaftarUlangPage /></MaintenanceGuard>} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/select-role" element={
           <ProtectedRoute>

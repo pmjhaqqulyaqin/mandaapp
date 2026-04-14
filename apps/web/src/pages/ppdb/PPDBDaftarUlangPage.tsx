@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   CheckCircle, ArrowLeft, UploadCloud, Printer, FileText, 
   Send, Loader2, ArrowRight, BookOpen, AlertCircle 
@@ -10,8 +10,8 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 export const PPDBDaftarUlangPage = () => {
-  const { noPendaftaran: rawNoPendaftaran } = useParams();
-  const noPendaftaran = rawNoPendaftaran ? decodeURIComponent(rawNoPendaftaran) : '';
+  const [searchParams] = useSearchParams();
+  const noPendaftaran = searchParams.get('no') || '';
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
