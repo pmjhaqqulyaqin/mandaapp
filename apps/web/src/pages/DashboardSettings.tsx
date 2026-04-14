@@ -21,7 +21,7 @@ const tabs: TabConfig[] = [
   },
   {
     id: 'logo',
-    label: 'Logo Sekolah',
+    label: 'Logo & Kop Dokumen',
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
     ),
@@ -316,10 +316,13 @@ export const DashboardSettings = () => {
   const [websiteLinks, setWebsiteLinks] = useState<WebsiteLink[]>([]);
   const [saveStatus, setSaveStatus] = useState<Record<string, 'idle' | 'saving' | 'saved' | 'error'>>({});
   const [logoUploadStatus, setLogoUploadStatus] = useState<'idle' | 'uploading' | 'done' | 'error'>('idle');
+  const [kemenagLogoUploadStatus, setKemenagLogoUploadStatus] = useState<'idle' | 'uploading' | 'done' | 'error'>('idle');
   const [faviconUploadStatus, setFaviconUploadStatus] = useState<'idle' | 'uploading' | 'done' | 'error'>('idle');
   const [heroUploadStatus, setHeroUploadStatus] = useState<Record<number, boolean>>({});
   const [isDragging, setIsDragging] = useState(false);
+  const [isDraggingKemenag, setIsDraggingKemenag] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const kemenagInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
 
   // Load settings into form data
@@ -391,10 +394,35 @@ export const DashboardSettings = () => {
       const result = await settingsService.uploadLogo(file);
       setValue('logo_url', result.url);
       await queryAll.refetch();
+      setLogoUploadStatus('done');
       setTimeout(() => setLogoUploadStatus('idle'), 2500);
     } catch {
       setLogoUploadStatus('error');
       setTimeout(() => setLogoUploadStatus('idle'), 3000);
+    }
+  };
+
+  const handleKemenagLogoUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('Hanya file gambar yang diperbolehkan.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Ukuran file maksimal 5MB.');
+      return;
+    }
+    setKemenagLogoUploadStatus('uploading');
+    try {
+      const result = await settingsService.uploadLogo(file);
+      setValue('kemenag_logo_url', result.url);
+      // Also save immediately
+      await updateMutation.mutateAsync([{ key: 'kemenag_logo_url', value: result.url, group: 'logo' }]);
+      await queryAll.refetch();
+      setKemenagLogoUploadStatus('done');
+      setTimeout(() => setKemenagLogoUploadStatus('idle'), 2500);
+    } catch {
+      setKemenagLogoUploadStatus('error');
+      setTimeout(() => setKemenagLogoUploadStatus('idle'), 3000);
     }
   };
 
@@ -491,7 +519,7 @@ export const DashboardSettings = () => {
 
   const handleSaveGroup = (group: string) => {
     if (group === 'identity') handleSave('identity', identityFields.map((f) => f.key));
-    else if (group === 'logo') handleSave('logo', ['logo_url']);
+    else if (group === 'logo') handleSave('logo', ['logo_url', 'kemenag_logo_url']);
     else if (group === 'social') handleSave('social', socialFields.map((f) => f.key));
     else if (group === 'map') handleSave('map', ['map_embed_url', 'latitude', 'longitude']);
     else if (group === 'links') handleSaveLinks();
@@ -565,43 +593,122 @@ export const DashboardSettings = () => {
               </div>
             )}
 
-            {/* Tab: Logo Sekolah */}
+            {/* Tab: Logo & Kop Dokumen */}
             {activeTab === 'logo' && (
               <div className="p-6">
-                <h2 className="text-lg font-bold text-text-primary dark:text-text-darkPrimary mb-1">🖼️ Logo Sekolah</h2>
-                <p className="text-sm text-text-secondary mb-6">Upload file gambar logo sekolah.</p>
-                <div className="flex flex-col md:flex-row gap-8 items-start">
-                  {/* Logo Preview */}
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-44 h-44 rounded-2xl border-2 border-border-light dark:border-border-dark flex items-center justify-center bg-gray-50 dark:bg-[#111] overflow-hidden shadow-sm">
-                      {getValue('logo_url') ? (
-                        <img
-                          src={getValue('logo_url').startsWith('/') ? `${SERVER_BASE_URL}${getValue('logo_url')}` : getValue('logo_url')}
-                          alt="Logo Sekolah"
-                          className="w-full h-full object-contain p-3"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
+                <h2 className="text-lg font-bold text-text-primary dark:text-text-darkPrimary mb-1">🖼️ Logo & Kop Dokumen</h2>
+                <p className="text-sm text-text-secondary mb-6">Upload logo Kemenag/Yayasan (kiri) dan Logo Sekolah (kanan). Kedua logo ini digunakan pada kop surat/dokumen di seluruh sistem.</p>
+                
+                {/* Two-column logo grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+
+                  {/* === LEFT: Logo Kemenag/Yayasan === */}
+                  <div className="p-5 rounded-xl border border-border-light dark:border-border-dark bg-gray-50/50 dark:bg-white/5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                      <h3 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary">Logo Kemenag / Yayasan</h3>
+                      <span className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-semibold">KIRI</span>
+                    </div>
+                    <p className="text-[11px] text-text-secondary mb-4">Ditampilkan di sisi kiri kop surat semua dokumen.</p>
+
+                    {/* Preview */}
+                    <div className="flex flex-col items-center gap-3 mb-4">
+                      <div className="w-32 h-32 rounded-xl border-2 border-dashed border-border-light dark:border-border-dark flex items-center justify-center bg-white dark:bg-[#111] overflow-hidden shadow-sm">
+                        {getValue('kemenag_logo_url') ? (
+                          <img
+                            src={getValue('kemenag_logo_url').startsWith('/') ? `${SERVER_BASE_URL}${getValue('kemenag_logo_url')}` : getValue('kemenag_logo_url')}
+                            alt="Logo Kemenag"
+                            className="w-full h-full object-contain p-2"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="text-center text-text-secondary">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-1 opacity-30"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                            <p className="text-[10px] opacity-50">Belum ada</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Upload area */}
+                    <input
+                      ref={kemenagInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleKemenagLogoUpload(file);
+                        e.target.value = '';
+                      }}
+                    />
+                    <div
+                      onDragOver={(e) => { e.preventDefault(); setIsDraggingKemenag(true); }}
+                      onDragLeave={() => setIsDraggingKemenag(false)}
+                      onDrop={(e) => { e.preventDefault(); setIsDraggingKemenag(false); const f = e.dataTransfer.files[0]; if (f) handleKemenagLogoUpload(f); }}
+                      onClick={() => kemenagInputRef.current?.click()}
+                      className={`w-full py-6 rounded-lg border-2 border-dashed cursor-pointer transition-colors flex flex-col items-center justify-center gap-2 ${
+                        isDraggingKemenag
+                          ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/10'
+                          : 'border-border-light dark:border-border-dark bg-white dark:bg-[#111] hover:border-blue-400/50'
+                      }`}
+                    >
+                      {kemenagLogoUploadStatus === 'uploading' ? (
+                        <><div className="w-6 h-6 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+                        <p className="text-xs text-blue-600 font-medium">Mengupload...</p></>
+                      ) : kemenagLogoUploadStatus === 'done' ? (
+                        <><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><polyline points="20 6 9 17 4 12"/></svg>
+                        <p className="text-xs text-green-600 font-medium">Logo berhasil diupload!</p></>
                       ) : (
-                        <div className="text-center text-text-secondary">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 opacity-40"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-                          <p className="text-xs opacity-60">Belum ada logo</p>
-                        </div>
+                        <><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-secondary opacity-50"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <p className="text-xs text-text-secondary">Klik atau seret file ke sini</p>
+                        <p className="text-[10px] text-text-secondary opacity-60">PNG, JPG, SVG, WebP — Maks 5MB</p></>
                       )}
                     </div>
-                    {getValue('logo_url') && (
+
+                    {getValue('kemenag_logo_url') && (
                       <button
-                        onClick={handleRemoveLogo}
-                        className="text-xs text-red-500 hover:text-red-600 font-medium flex items-center gap-1 transition-colors"
+                        onClick={async () => {
+                          await updateMutation.mutateAsync([{ key: 'kemenag_logo_url', value: null, group: 'logo' }]);
+                          setValue('kemenag_logo_url', '');
+                        }}
+                        className="mt-3 text-xs text-red-500 hover:text-red-600 font-medium flex items-center gap-1 mx-auto"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                         Hapus Logo
                       </button>
                     )}
                   </div>
-                  {/* Upload Area */}
-                  <div className="flex-1 w-full">
+
+                  {/* === RIGHT: Logo Sekolah === */}
+                  <div className="p-5 rounded-xl border border-border-light dark:border-border-dark bg-gray-50/50 dark:bg-white/5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <h3 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary">Logo Sekolah / Madrasah</h3>
+                      <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-semibold">KANAN</span>
+                    </div>
+                    <p className="text-[11px] text-text-secondary mb-4">Ditampilkan di sisi kanan kop surat semua dokumen.</p>
+
+                    {/* Preview */}
+                    <div className="flex flex-col items-center gap-3 mb-4">
+                      <div className="w-32 h-32 rounded-xl border-2 border-dashed border-border-light dark:border-border-dark flex items-center justify-center bg-white dark:bg-[#111] overflow-hidden shadow-sm">
+                        {getValue('logo_url') ? (
+                          <img
+                            src={getValue('logo_url').startsWith('/') ? `${SERVER_BASE_URL}${getValue('logo_url')}` : getValue('logo_url')}
+                            alt="Logo Sekolah"
+                            className="w-full h-full object-contain p-2"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="text-center text-text-secondary">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-1 opacity-30"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                            <p className="text-[10px] opacity-50">Belum ada</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Upload area */}
                     <input
                       ref={logoInputRef}
                       type="file"
@@ -618,40 +725,90 @@ export const DashboardSettings = () => {
                       onDragLeave={() => setIsDragging(false)}
                       onDrop={handleLogoDrop}
                       onClick={() => logoInputRef.current?.click()}
-                      className={`w-full py-10 rounded-xl border-2 border-dashed cursor-pointer transition-colors flex flex-col items-center justify-center gap-3 ${
+                      className={`w-full py-6 rounded-lg border-2 border-dashed cursor-pointer transition-colors flex flex-col items-center justify-center gap-2 ${
                         isDragging
-                          ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                          : 'border-border-light dark:border-border-dark bg-gray-50 dark:bg-[#111] hover:border-primary/50 hover:bg-primary/5'
+                          ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/10'
+                          : 'border-border-light dark:border-border-dark bg-white dark:bg-[#111] hover:border-emerald-400/50'
                       }`}
                     >
                       {logoUploadStatus === 'uploading' ? (
-                        <>
-                          <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
-                          <p className="text-sm text-primary font-medium">Mengupload...</p>
-                        </>
+                        <><div className="w-6 h-6 border-2 border-emerald-300 border-t-emerald-600 rounded-full animate-spin" />
+                        <p className="text-xs text-emerald-600 font-medium">Mengupload...</p></>
                       ) : logoUploadStatus === 'done' ? (
-                        <>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><polyline points="20 6 9 17 4 12"/></svg>
-                          <p className="text-sm text-green-600 font-medium">Logo berhasil diupload!</p>
-                        </>
+                        <><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><polyline points="20 6 9 17 4 12"/></svg>
+                        <p className="text-xs text-green-600 font-medium">Logo berhasil diupload!</p></>
                       ) : logoUploadStatus === 'error' ? (
-                        <>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                          <p className="text-sm text-red-500 font-medium">Gagal upload. Coba lagi.</p>
-                        </>
+                        <><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                        <p className="text-xs text-red-500 font-medium">Gagal upload. Coba lagi.</p></>
                       ) : (
-                        <>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-secondary opacity-60"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                          <div className="text-center">
-                            <p className="text-sm font-medium text-text-primary dark:text-text-darkPrimary">
-                              {isDragging ? 'Lepaskan file di sini' : 'Klik atau seret file ke sini'}
-                            </p>
-                            <p className="text-xs text-text-secondary mt-1">PNG, JPG, SVG, WebP — Maks 5MB</p>
-                          </div>
-                        </>
+                        <><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-secondary opacity-50"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <p className="text-xs text-text-secondary">Klik atau seret file ke sini</p>
+                        <p className="text-[10px] text-text-secondary opacity-60">PNG, JPG, SVG, WebP — Maks 5MB</p></>
                       )}
                     </div>
+
+                    {getValue('logo_url') && (
+                      <button
+                        onClick={handleRemoveLogo}
+                        className="mt-3 text-xs text-red-500 hover:text-red-600 font-medium flex items-center gap-1 mx-auto"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        Hapus Logo
+                      </button>
+                    )}
                   </div>
+                </div>
+
+                {/* === Kop Dokumen Preview === */}
+                <div className="p-5 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-[#111]">
+                  <div className="flex items-center gap-2 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    <h3 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary">Preview Kop Dokumen</h3>
+                  </div>
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-[#0a0a0a]">
+                    <div className="flex items-center justify-between gap-4">
+                      {/* Left Logo */}
+                      <div className="w-16 h-16 shrink-0 flex items-center justify-center">
+                        {getValue('kemenag_logo_url') ? (
+                          <img
+                            src={getValue('kemenag_logo_url').startsWith('/') ? `${SERVER_BASE_URL}${getValue('kemenag_logo_url')}` : getValue('kemenag_logo_url')}
+                            alt="Logo Kemenag"
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <div className="w-full h-full rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center">
+                            <span className="text-[8px] text-gray-300 font-medium">KIRI</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Center Text */}
+                      <div className="flex-1 text-center">
+                        <p className="text-[8px] font-bold text-gray-500 tracking-wider uppercase">KEMENTERIAN AGAMA REPUBLIK INDONESIA</p>
+                        <p className="text-[10px] font-bold text-gray-800 dark:text-gray-200 tracking-wide">{getValue('school_name') || 'MAN 2 LOMBOK TIMUR'}</p>
+                        <p className="text-[7px] text-gray-400 mt-0.5">{getValue('address') || 'Jln. Pendidikan No. 1, Selong'}</p>
+                        <p className="text-[7px] text-gray-400">{getValue('phone') || '0376-21xxx'} | {getValue('email') || 'info@mandualotim.sch.id'}</p>
+                      </div>
+
+                      {/* Right Logo */}
+                      <div className="w-16 h-16 shrink-0 flex items-center justify-center">
+                        {getValue('logo_url') ? (
+                          <img
+                            src={getValue('logo_url').startsWith('/') ? `${SERVER_BASE_URL}${getValue('logo_url')}` : getValue('logo_url')}
+                            alt="Logo Sekolah"
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <div className="w-full h-full rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center">
+                            <span className="text-[8px] text-gray-300 font-medium">KANAN</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-2 border-t-2 border-gray-800 dark:border-gray-300"></div>
+                    <div className="mt-0.5 border-t border-gray-400 dark:border-gray-500"></div>
+                  </div>
+                  <p className="text-[10px] text-text-secondary mt-3 italic">* Preview di atas merupakan simulasi. Format aktual menyesuaikan dengan masing-masing template dokumen di seluruh sistem.</p>
                 </div>
               </div>
             )}
