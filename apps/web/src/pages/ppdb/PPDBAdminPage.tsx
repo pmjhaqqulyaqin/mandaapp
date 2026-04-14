@@ -673,17 +673,6 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
             • Status Kelulusan tidak akan dapat dilihat oleh publik sebelum melewati "Pengumuman Kelulusan".<br/>
             • Jendela Daftar Ulang dan Popup akan ditutup otomatis ketika melewawi "Batas Waktu Daftar Ulang".
           </p>
-              onClick={saveConfig}
-              disabled={saving === 'config'}
-              className="px-4 py-2 bg-gray-800 text-white rounded-lg text-xs font-bold hover:bg-gray-900 disabled:opacity-50 whitespace-nowrap"
-            >
-              {saving === 'config' ? 'Menyimpan...' : 'Simpan Jadwal'}
-            </button>
-          </div>
-          <p className="text-[10px] text-gray-500 mt-2">
-            Status Kelulusan tidak akan dapat dilihat oleh publik sebelum melewati batas waktu ini. (Status akan menjadi "Menunggu Pengumuman").
-          </p>
-        </div>
       </div>
 
       <div className="w-full h-px bg-border-light dark:bg-border-dark my-4" />
