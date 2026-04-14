@@ -205,8 +205,7 @@ export const PPDBFormPage = () => {
     try {
       const result = await apiClient<any>(`/ppdb/upload?type=${jenisDokumen}`, {
         method: 'POST',
-        body: fd,
-        headers: {}, // Let browser set content-type for FormData
+        data: fd,
       });
       setFormData((prev: any) => ({
         ...prev,
@@ -434,14 +433,14 @@ export const PPDBFormPage = () => {
                           <td className="px-3 py-1.5 font-medium text-gray-700 border border-gray-200 bg-gray-50">{mapel}</td>
                           {SEMESTERS.map((_, si) => (
                             <td key={si} className="px-1 py-1 border border-gray-200">
-                              <input
-                                type="number"
-                                min="0" max="100"
-                                value={formData.nilaiRaport[si][MAPEL_KEYS[mi]]}
-                                onChange={e => updateNilai(si, MAPEL_KEYS[mi], e.target.value)}
-                                className="w-full px-2 py-1.5 text-center text-xs rounded border-0 outline-none focus:ring-2 focus:ring-emerald-100 bg-transparent"
-                                placeholder="-"
-                              />
+                                <input
+                                  type="number"
+                                  min="0" max="100"
+                                  value={formData.nilaiRaport[si][MAPEL_KEYS[mi]]}
+                                  onChange={e => updateNilai(si, MAPEL_KEYS[mi], e.target.value)}
+                                  className="w-full px-2 py-1.5 text-center text-xs rounded border-0 outline-none focus:ring-2 focus:ring-emerald-100 bg-transparent text-gray-900 dark:text-gray-100 font-medium"
+                                  placeholder="-"
+                                />
                             </td>
                           ))}
                         </tr>
