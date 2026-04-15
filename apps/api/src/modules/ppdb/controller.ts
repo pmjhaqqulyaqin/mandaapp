@@ -57,6 +57,17 @@ export class PPDBController {
     }
   }
 
+  static async uploadBrosur(req: Request, res: Response) {
+    try {
+      if (!req.file) return res.status(400).json({ error: 'File brosur tidak ditemukan' });
+      const filePath = await PPDBService.uploadFile(req.file, 'ppdb/brosur');
+      const result = await PPDBService.saveBrosurUrl(filePath);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   // ============ ADMIN ============
 
   static async getAdminStats(req: Request, res: Response) {

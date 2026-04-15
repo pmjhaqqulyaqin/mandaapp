@@ -197,8 +197,11 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
         setTimeout(() => {
           document.getElementById('tracking-section')?.scrollIntoView({ behavior: 'smooth' });
         }, 500);
-      } else if (action === 'daftar') {
-        navigate('/ppdb');
+      } else if (action === 'info') {
+        navigate('/ppdb#info-section');
+        setTimeout(() => {
+          document.getElementById('info-section')?.scrollIntoView({ behavior: 'smooth' });
+        }, 500);
       } else {
         navigate('/ppdb');
       }

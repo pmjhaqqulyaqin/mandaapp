@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import {
   GraduationCap, Users, Trophy, ClipboardList, Settings, BarChart3,
   Search, ChevronDown, Filter, Eye, Check, X, Loader2, RefreshCw,
-  CheckCircle, Clock, XCircle, AlertCircle
+  CheckCircle, Clock, XCircle, AlertCircle, Upload, ImageIcon
 } from 'lucide-react';
 
 type TabKey = 'overview' | 'pendaftar' | 'daftar_ulang' | 'seleksi' | 'konfigurasi';
@@ -620,6 +620,8 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
   const [jalurList, setJalurList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [brosurUrl, setBrosurUrl] = useState<string | null>(null);
+  const [uploadingBrosur, setUploadingBrosur] = useState(false);
 
   // Local config state for tanggalPengumuman
   const [sysConfig, setSysConfig] = useState<any>({ tanggalPengumuman: '' });
@@ -632,6 +634,7 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
         nomorSk: config.nomorSk || '',
         namaSk: config.namaSk || '',
       });
+      setBrosurUrl(config.brosurUrl || null);
     }
   }, [config]);
 
@@ -689,6 +692,39 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
       onSaved();
     } catch (err: any) { toast.error(err.message); }
     finally { setSaving(null); }
+  };
+
+  const handleBrosurUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Ukuran file maksimal 5MB');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      toast.error('File harus berupa gambar (JPG, PNG, WebP)');
+      return;
+    }
+    setUploadingBrosur(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`${API_BASE_URL}/ppdb/admin/brosur`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Upload gagal');
+      const data = await res.json();
+      setBrosurUrl(data.brosurUrl);
+      toast.success('Brosur berhasil diupload!');
+      onSaved();
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal upload brosur');
+    } finally {
+      setUploadingBrosur(false);
+      e.target.value = '';
+    }
   };
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-emerald-500" size={24} /></div>;
@@ -768,6 +804,54 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
             • Jendela Daftar Ulang dan Popup akan ditutup otomatis ketika melewawi "Batas Waktu Daftar Ulang".<br/>
             • Nomor SK dan Nama SK akan ditampilkan pada surat pengumuman kelulusan yang diunduh oleh siswa.
           </p>
+      </div>
+
+      {/* Brosur PMB Section */}
+      <div className="p-4 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark">
+        <div className="flex items-center gap-2 mb-4">
+          <ImageIcon size={18} className="text-blue-600" />
+          <h3 className="font-bold text-gray-800 dark:text-white">Brosur PMB</h3>
+        </div>
+        <p className="text-[10.5px] text-gray-500 mb-3">Upload gambar brosur PMB yang akan ditampilkan di halaman informasi publik. Format: JPG, PNG, WebP. Maks 5MB.</p>
+
+        <div className="flex flex-col sm:flex-row items-start gap-4">
+          {/* Preview */}
+          <div className="w-full sm:w-48 h-48 rounded-xl border-2 border-dashed border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#111] flex items-center justify-center overflow-hidden">
+            {brosurUrl ? (
+              <img
+                src={`${API_BASE_URL.replace('/api', '')}${brosurUrl}`}
+                alt="Preview Brosur"
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <div className="text-center">
+                <ImageIcon size={32} className="mx-auto text-gray-300 mb-2" />
+                <p className="text-[10px] text-gray-400">Belum ada brosur</p>
+              </div>
+            )}
+          </div>
+
+          {/* Upload Button */}
+          <div className="flex-1">
+            <label className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors disabled:opacity-50">
+              {uploadingBrosur ? (
+                <><Loader2 size={14} className="animate-spin" /> Mengupload...</>
+              ) : (
+                <><Upload size={14} /> {brosurUrl ? 'Ganti Brosur' : 'Upload Brosur'}</>
+              )}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleBrosurUpload}
+                disabled={uploadingBrosur}
+                className="hidden"
+              />
+            </label>
+            {brosurUrl && (
+              <p className="mt-2 text-[10px] text-gray-400 break-all">File: {brosurUrl}</p>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="w-full h-px bg-border-light dark:bg-border-dark my-4" />

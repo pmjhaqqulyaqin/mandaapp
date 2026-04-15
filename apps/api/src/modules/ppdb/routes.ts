@@ -28,5 +28,6 @@ router.put('/admin/config/:id', PPDBController.updateConfig);
 router.post('/admin/jalur/:jalurId/ranking', PPDBController.generateRanking);
 router.post('/admin/jalur/:jalurId/kelulusan', PPDBController.tetapkanKelulusan);
 router.get('/admin/daftar-ulang', PPDBController.listDaftarUlangAdmin);
+router.post('/admin/brosur', upload.single('file'), PPDBController.uploadBrosur);
 
 export const ppdbRoutes = router;

@@ -1,7 +1,8 @@
 import { db } from '../../db';
 import { 
   ppdbConfig, ppdbJalur, ppdbPendaftar, ppdbDataDiri, 
-  ppdbDataSekolah, ppdbNilaiRaport, ppdbPrestasi, ppdbDokumen, ppdbDaftarUlang
+  ppdbDataSekolah, ppdbNilaiRaport, ppdbPrestasi, ppdbDokumen, ppdbDaftarUlang,
+  siteSettings
 } from '../../db/schema';
 import { eq, and, desc, asc, ilike, or, sql, count } from 'drizzle-orm';
 import path from 'path';
@@ -31,7 +32,28 @@ export class PPDBService {
       return { ...j, jumlahPendaftar: result[0]?.count || 0 };
     }));
 
-    return { ...config, jalur: jalurWithCounts };
+    // Fetch brosur URL from site_settings
+    const brosurSetting = await db.select().from(siteSettings).where(eq(siteSettings.key, 'ppdb_brosur_url')).limit(1);
+    const brosurUrl = brosurSetting[0]?.value || null;
+
+    return { ...config, jalur: jalurWithCounts, brosurUrl };
+  }
+
+  /** Save brosur URL to site_settings */
+  static async saveBrosurUrl(url: string) {
+    const existing = await db.select().from(siteSettings).where(eq(siteSettings.key, 'ppdb_brosur_url')).limit(1);
+    if (existing.length > 0) {
+      await db.update(siteSettings)
+        .set({ value: url, updatedAt: new Date() })
+        .where(eq(siteSettings.key, 'ppdb_brosur_url'));
+    } else {
+      await db.insert(siteSettings).values({
+        key: 'ppdb_brosur_url',
+        value: url,
+        group: 'ppdb',
+      });
+    }
+    return { brosurUrl: url };
   }
 
   /** Get active jalur list (public) */

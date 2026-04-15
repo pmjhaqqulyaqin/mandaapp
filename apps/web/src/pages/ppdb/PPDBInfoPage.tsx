@@ -284,6 +284,7 @@ export const PPDBInfoPage = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successData, setSuccessData] = useState<any>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const handleExportPDF = async () => {
     const printArea = document.getElementById('print-area');
@@ -539,9 +540,9 @@ export const PPDBInfoPage = () => {
         </div>
       </section>
 
-      {/* ====== FAQ SECTION ====== */}
-      <section id="faq-section" ref={faqSection.ref} className="py-16 md:py-24 bg-[#F8FBF8]">
-        <div className="max-w-3xl mx-auto px-4 md:px-8">
+      {/* ====== INFO & FAQ SECTION (2-column) ====== */}
+      <section id="info-section" ref={faqSection.ref} className="py-16 md:py-24 bg-[#F8FBF8]">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="text-center mb-10">
             <span
               className="inline-block px-4 py-1.5 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full uppercase tracking-widest mb-4"
@@ -551,7 +552,7 @@ export const PPDBInfoPage = () => {
                 transition: 'opacity 0.5s ease, transform 0.5s ease',
               }}
             >
-              F.A.Q
+              Informasi PMB
             </span>
             <h2
               className="text-2xl md:text-4xl font-black text-gray-900 tracking-tight"
@@ -561,19 +562,148 @@ export const PPDBInfoPage = () => {
                 transition: 'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s',
               }}
             >
-              Pertanyaan yang Sering{' '}
+              FAQ &{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-600">
-                Ditanyakan
+                Brosur PMB
               </span>
             </h2>
           </div>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y-0 px-5 md:px-8">
-            {FAQ_ITEMS.map((item, index) => (
-              <FAQItem key={index} item={item} />
-            ))}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* LEFT: FAQ Accordion */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs">?</span>
+                Pertanyaan Umum
+              </h3>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y-0 px-5 md:px-6">
+                {FAQ_ITEMS.map((item, index) => (
+                  <FAQItem key={index} item={item} />
+                ))}
+              </div>
+            </div>
+
+            {/* RIGHT: Brosur & Info */}
+            <div className="space-y-6">
+              {/* Brosur Card */}
+              {config?.brosurUrl && (
+                <div>
+                  <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 text-xs">📌</span>
+                    Brosur PMB
+                  </h3>
+                  <div 
+                    className="relative group cursor-pointer overflow-hidden rounded-2xl shadow-sm border border-gray-100 bg-white"
+                    onClick={() => setLightboxOpen(true)}
+                  >
+                    <img
+                      src={`${API_BASE_URL.replace('/api', '')}${config.brosurUrl}`}
+                      alt="Brosur PMB 2026"
+                      className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full text-xs font-bold text-gray-700 shadow-lg">
+                        🔍 Klik untuk memperbesar
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Timeline Penting */}
+              {jalurList.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                  <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+                    <Calendar size={16} className="text-emerald-600" />
+                    Timeline Penting
+                  </h3>
+                  <div className="relative border-l-2 border-emerald-200 ml-2 space-y-4">
+                    {/* Jadwal Buka */}
+                    {jalurList[0]?.jadwalBuka && (
+                      <div className="relative pl-5">
+                        <div className="absolute -left-[7px] top-1.5 w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_0_3px_white]" />
+                        <p className="text-xs font-bold text-gray-700">Pendaftaran Dibuka</p>
+                        <p className="text-xs text-gray-500">{new Date(jalurList[0].jadwalBuka).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                      </div>
+                    )}
+                    {/* Jadwal Tutup */}
+                    {jalurList[0]?.jadwalTutup && (
+                      <div className="relative pl-5">
+                        <div className="absolute -left-[7px] top-1.5 w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_0_3px_white]" />
+                        <p className="text-xs font-bold text-gray-700">Pendaftaran Ditutup</p>
+                        <p className="text-xs text-gray-500">{new Date(jalurList[0].jadwalTutup).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                      </div>
+                    )}
+                    {/* Pengumuman */}
+                    {config?.tanggalPengumuman && (
+                      <div className="relative pl-5">
+                        <div className="absolute -left-[7px] top-1.5 w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_0_3px_white]" />
+                        <p className="text-xs font-bold text-gray-700">Pengumuman Kelulusan</p>
+                        <p className="text-xs text-gray-500">{new Date(config.tanggalPengumuman).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                      </div>
+                    )}
+                    {/* Batas Daftar Ulang */}
+                    {config?.batasDaftarUlang && (
+                      <div className="relative pl-5">
+                        <div className="absolute -left-[7px] top-1.5 w-3 h-3 rounded-full bg-indigo-500 shadow-[0_0_0_3px_white]" />
+                        <p className="text-xs font-bold text-gray-700">Batas Daftar Ulang</p>
+                        <p className="text-xs text-gray-500">{new Date(config.batasDaftarUlang).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Kontak Info */}
+              <div className="bg-gradient-to-br from-emerald-50 to-blue-50 rounded-2xl border border-emerald-100/50 p-6">
+                <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                  📞 Kontak Panitia PMB
+                </h3>
+                <div className="space-y-2 text-xs text-gray-600">
+                  <p className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded bg-emerald-100 flex items-center justify-center text-[10px]">📱</span>
+                    <span>Hubungi TU MAN 2 Lombok Timur</span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded bg-blue-100 flex items-center justify-center text-[10px]">🌐</span>
+                    <span>Website: mandualotim.sch.id/ppdb</span>
+                  </p>
+                </div>
+                <div className="mt-4">
+                  <button
+                    onClick={() => scrollTo('tracking-section')}
+                    className="w-full px-4 py-2.5 bg-white hover:bg-gray-50 text-gray-700 font-bold rounded-xl border border-gray-200 shadow-sm transition-all text-xs flex items-center justify-center gap-2"
+                  >
+                    <Search size={14} />
+                    Cek Status Pendaftaran
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
+
+      {/* Brosur Lightbox */}
+      {lightboxOpen && config?.brosurUrl && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <button 
+            onClick={() => setLightboxOpen(false)} 
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors z-10"
+          >
+            <X size={20} />
+          </button>
+          <img
+            src={`${API_BASE_URL.replace('/api', '')}${config.brosurUrl}`}
+            alt="Brosur PMB 2026"
+            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {/* ====== TRACKING SECTION ====== */}
       <section id="tracking-section" className="py-16 md:py-20 bg-gradient-to-b from-[#ecfdf5] to-[#F8FBF8]">
