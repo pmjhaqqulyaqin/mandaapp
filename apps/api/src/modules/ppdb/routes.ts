@@ -41,4 +41,7 @@ router.get('/penguji/tes', PPDBController.getPengujiTesList);
 router.get('/penguji/tes/:tesConfigId/peserta', PPDBController.getPesertaByTes);
 router.put('/penguji/tes/:tesConfigId/nilai', PPDBController.bulkUpdateNilaiTes);
 
+router.get('/penguji/master-penilaian', PPDBController.getMasterPenilaian);
+router.put('/penguji/master-penilaian/bulk', PPDBController.bulkUpdateMasterNilaiTes);
+
 export const ppdbRoutes = router;

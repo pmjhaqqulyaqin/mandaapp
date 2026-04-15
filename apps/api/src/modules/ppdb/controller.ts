@@ -309,4 +309,43 @@ export class PPDBController {
       res.status(400).json({ error: error.message });
     }
   }
+
+  static async getMasterPenilaian(req: Request, res: Response) {
+    try {
+      const { jalurId } = req.query;
+      if (!jalurId) throw new Error("Jalur ID is required");
+
+      let userId: string | undefined = req.headers['x-user-id'] as string;
+      let userRole: string | undefined;
+
+      try {
+        const session = await auth.api.getSession({ headers: req.headers as any });
+        if (session?.user) {
+          userId = session.user.id;
+          userRole = (session.user as any).role;
+        }
+      } catch { /* session fallback */ }
+
+      if (!userId) throw new Error("Unauthorized");
+
+      if (!userRole) {
+        const found = await db.select({ role: userTable.role }).from(userTable).where(eq(userTable.id, userId)).limit(1);
+        userRole = found[0]?.role || 'student';
+      }
+
+      const result = await PPDBService.getMasterPenilaianData(jalurId as string, userId, userRole);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async bulkUpdateMasterNilaiTes(req: Request, res: Response) {
+    try {
+      const result = await PPDBService.bulkUpdateMasterNilaiTes(req.body.data);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
 }

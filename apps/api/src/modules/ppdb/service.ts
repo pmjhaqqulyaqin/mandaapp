@@ -4,7 +4,7 @@ import {
   ppdbDataSekolah, ppdbNilaiRaport, ppdbPrestasi, ppdbDokumen, ppdbDaftarUlang,
   ppdbTesConfig, ppdbNilaiTes, siteSettings
 } from '../../db/schema';
-import { eq, and, desc, asc, ilike, or, sql, count } from 'drizzle-orm';
+import { eq, and, desc, asc, ilike, or, sql, count, inArray } from 'drizzle-orm';
 import path from 'path';
 import fs from 'fs';
 
@@ -967,6 +967,115 @@ export class PPDBService {
         await db.insert(ppdbNilaiTes).values({
           pendaftarId: u.pendaftarId,
           tesConfigId: tesConfigId,
+          nilai: u.nilai
+        });
+      }
+    }));
+
+    return { success: true, count: updates.length };
+  }
+
+  static async getMasterPenilaianData(jalurId: string, userId: string, userRole?: string) {
+    const isAdmin = userRole === 'admin';
+
+    // Get all tests for this jalur
+    const jalursTests = await db.select({
+      id: ppdbTesConfig.id,
+      namaTes: ppdbTesConfig.namaTes,
+      isActive: ppdbTesConfig.isActive,
+      pengujiId: ppdbTesConfig.pengujiId,
+    }).from(ppdbTesConfig).where(and(eq(ppdbTesConfig.jalurId, jalurId), eq(ppdbTesConfig.isActive, true)));
+
+    // Get all pendaftar for this jalur
+    const pendaftarList = await db.select({
+      pendaftarId: ppdbPendaftar.id,
+      noPendaftaran: ppdbPendaftar.noPendaftaran,
+      namaLengkap: ppdbDataDiri.namaLengkap,
+      status: ppdbPendaftar.status,
+    }).from(ppdbPendaftar)
+      .leftJoin(ppdbDataDiri, eq(ppdbPendaftar.id, ppdbDataDiri.pendaftarId))
+      .where(eq(ppdbPendaftar.jalurId, jalurId))
+      .orderBy(ppdbPendaftar.noPendaftaran);
+
+    if (pendaftarList.length === 0) {
+      return { tests: jalursTests.map(t => ({ id: t.id, namaTes: t.namaTes, isOwnedByCurrentUser: isAdmin || t.pengujiId === userId })), pendaftar: [] };
+    }
+
+    const pendaftarIds = pendaftarList.map(p => p.pendaftarId);
+
+    // Get raport (rata-rata)
+    const { ppdbNilaiRaport } = await import('../../db/schema');
+    const raportData = await db.select({
+      pendaftarId: ppdbNilaiRaport.pendaftarId,
+      rataRata: ppdbNilaiRaport.rataRata
+    }).from(ppdbNilaiRaport).where(inArray(ppdbNilaiRaport.pendaftarId, pendaftarIds));
+
+    // Get test scores
+    const nilaiTeses = await db.select({
+      id: ppdbNilaiTes.id,
+      pendaftarId: ppdbNilaiTes.pendaftarId,
+      tesConfigId: ppdbNilaiTes.tesConfigId,
+      nilai: ppdbNilaiTes.nilai
+    }).from(ppdbNilaiTes).where(inArray(ppdbNilaiTes.pendaftarId, pendaftarIds));
+
+    const finalPendaftar = pendaftarList.map(p => {
+      // average raport
+      const raports = raportData.filter(r => r.pendaftarId === p.pendaftarId);
+      const raportParsed = raports.map(r => parseFloat(r.rataRata || '0') || 0);
+      const raportAvg = raportParsed.length > 0 ? raportParsed.reduce((a, b) => a + b, 0) / raportParsed.length : 0;
+
+      // test scores
+      const tes: Record<string, number> = {};
+      const thisPendaftarTes = nilaiTeses.filter(n => n.pendaftarId === p.pendaftarId);
+      thisPendaftarTes.forEach(n => {
+        tes[n.tesConfigId] = n.nilai;
+      });
+
+      // Compute Nilai Akhir
+      let scoresSum = raportAvg;
+      let scoresCount = 1;
+
+      jalursTests.forEach(t => {
+        if (tes[t.id] !== undefined) {
+          scoresSum += tes[t.id];
+          scoresCount++;
+        }
+      });
+      const nilaiAkhir = Number((scoresSum / scoresCount).toFixed(2));
+
+      return {
+        ...p,
+        raportRataRata: Number(raportAvg.toFixed(2)),
+        nilaiTes: tes,
+        nilaiAkhir
+      };
+    });
+
+    return {
+      tests: jalursTests.map(t => ({
+        id: t.id,
+        namaTes: t.namaTes,
+        isOwnedByCurrentUser: isAdmin || t.pengujiId === userId
+      })),
+      pendaftar: finalPendaftar
+    };
+  }
+
+  static async bulkUpdateMasterNilaiTes(updates: {tesConfigId: string, pendaftarId: string, nilai: number}[]) {
+    if (!updates || !Array.isArray(updates)) throw new Error("Invalid request");
+
+    await Promise.all(updates.map(async (u) => {
+      const existing = await db.select().from(ppdbNilaiTes).where(
+        and(eq(ppdbNilaiTes.pendaftarId, u.pendaftarId), eq(ppdbNilaiTes.tesConfigId, u.tesConfigId))
+      ).limit(1);
+
+      if (existing.length > 0) {
+        await db.update(ppdbNilaiTes).set({ nilai: u.nilai, updatedAt: new Date() })
+          .where(eq(ppdbNilaiTes.id, existing[0].id));
+      } else {
+        await db.insert(ppdbNilaiTes).values({
+          pendaftarId: u.pendaftarId,
+          tesConfigId: u.tesConfigId,
           nilai: u.nilai
         });
       }
