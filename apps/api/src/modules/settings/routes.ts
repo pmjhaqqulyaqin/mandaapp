@@ -34,6 +34,7 @@ const upload = multer({
 });
 
 router.get("/", SettingsController.getAll);
+router.get("/serve-favicon", SettingsController.serveFavicon);
 router.get("/:group", SettingsController.getByGroup);
 router.put("/", SettingsController.bulkUpdate);
 router.post("/upload-logo", upload.single("logo"), SettingsController.uploadLogo);

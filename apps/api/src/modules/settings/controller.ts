@@ -4,6 +4,48 @@ import fs from "fs";
 import path from "path";
 
 export class SettingsController {
+  /**
+   * GET /api/settings/serve-favicon
+   * Serves the favicon/logo as an actual image file (not JSON).
+   * Google crawler reads this to display the favicon in search results.
+   * Priority: favicon_url → logo_url → 404
+   */
+  static async serveFavicon(req: Request, res: Response) {
+    try {
+      const allSettings = await SettingsService.getAll();
+      const settingsMap: Record<string, string> = {};
+      allSettings.forEach((s: any) => {
+        if (s.value) settingsMap[s.key] = s.value;
+      });
+
+      const dataUri = settingsMap['favicon_url'] || settingsMap['logo_url'];
+
+      if (!dataUri || !dataUri.startsWith('data:')) {
+        return res.status(404).send('No favicon configured');
+      }
+
+      // Parse data URI: data:image/png;base64,iVBOR...
+      const match = dataUri.match(/^data:(image\/[^;]+);base64,(.+)$/);
+      if (!match) {
+        return res.status(404).send('Invalid favicon data');
+      }
+
+      const mimeType = match[1];
+      const base64Data = match[2];
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      // Set headers for browser & crawler caching (24 hours)
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Length', buffer.length);
+      res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.send(buffer);
+    } catch (error: any) {
+      console.error("Serve favicon error:", error);
+      res.status(500).send('Failed to serve favicon');
+    }
+  }
+
   static async getAll(req: Request, res: Response) {
     try {
       const settings = await SettingsService.getAll();
