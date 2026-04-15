@@ -337,8 +337,12 @@ export class PPDBService {
       .innerJoin(ppdbJalur, eq(ppdbPendaftar.jalurId, ppdbJalur.id))
       .where(eq(ppdbJalur.configId, config.id));
 
+    // Fetch brosur URL from site_settings (needed by admin frontend preview)
+    const brosurSetting = await db.select().from(siteSettings).where(eq(siteSettings.key, 'ppdb_brosur_url')).limit(1);
+    const brosurUrl = brosurSetting[0]?.value || null;
+
     return {
-      config,
+      config: { ...config, brosurUrl },
       totalPendaftar: totalResult[0]?.count || 0,
       jalurStats,
     };
