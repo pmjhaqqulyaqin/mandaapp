@@ -14,15 +14,15 @@ const ALL_MENU_KEYS = [
 
 const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
   admin: ALL_MENU_KEYS,
-  kepala_madrasah: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb"],
-  wakil_kepala: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb"],
-  kepala_unit: ["overview", "news", "calendar", "student-card", "gallery", "contacts", "exams"],
-  wali_kelas: ["overview", "news", "calendar", "student-card", "students", "gallery"],
-  pembina_ekstra: ["overview", "news", "calendar", "student-card", "gallery"],
+  kepala_madrasah: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb"],
+  wakil_kepala: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb"],
+  kepala_unit: ["overview", "news", "calendar", "student-card", "gallery", "contacts", "exams", "penilaian-pmb"],
+  wali_kelas: ["overview", "news", "calendar", "student-card", "students", "gallery", "penilaian-pmb"],
+  pembina_ekstra: ["overview", "news", "calendar", "student-card", "gallery", "penilaian-pmb"],
   guru: ["overview", "news", "calendar", "student-card", "exams", "penilaian-pmb"],
   student: ["overview", "calendar", "student-card"],
-  kepala_tu: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb"],
-  pegawai_tu: ["overview", "news", "calendar", "student-card", "students", "employees", "e-office", "ppdb"],
+  kepala_tu: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb"],
+  pegawai_tu: ["overview", "news", "calendar", "student-card", "students", "employees", "e-office", "ppdb", "penilaian-pmb"],
 };
 
 export async function getAuditLogsHandler(req: Request, res: Response) {
