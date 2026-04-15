@@ -135,18 +135,9 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
               if (closingDates.length > 0) {
                 const closestClose = new Date(Math.min(...closingDates.map((d: Date) => d.getTime())));
                 
-                // Check if TODAY is the closing day (same date in WITA = UTC+8)
-                // WITA offset: +8 hours
-                const witaOffset = 8 * 60; // minutes
-                const nowWita = new Date(now.getTime() + (witaOffset + now.getTimezoneOffset()) * 60000);
-                const closeWita = new Date(closestClose.getTime() + (witaOffset + closestClose.getTimezoneOffset()) * 60000);
-
-                const isSameDay = 
-                  nowWita.getFullYear() === closeWita.getFullYear() &&
-                  nowWita.getMonth() === closeWita.getMonth() &&
-                  nowWita.getDate() === closeWita.getDate();
-
-                if (isSameDay) {
+                // Show countdown if closing is within 24 hours from now
+                const hoursUntilClose = (closestClose.getTime() - now.getTime()) / (1000 * 60 * 60);
+                if (hoursUntilClose > 0 && hoursUntilClose <= 24) {
                   cdTarget = closestClose;
                   cdLabel = 'Pendaftaran ditutup dalam';
                 }
