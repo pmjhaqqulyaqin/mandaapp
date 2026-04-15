@@ -257,30 +257,28 @@ export const DashboardLayout = () => {
     if (user) fetchPermissions();
   }, [user?.id, user?.role]);
 
-  // Dynamically check if the user has any assigned tests to hide the menu if they don't
+  // Dynamically check if the user has any assigned tests to hide the menu if they don't, OR show it even if their role lacks permission (bypass)
   useEffect(() => {
     if (!permissionsLoaded || !user) return;
     
-    // Admin always sees it. If the role doesn't have it natively, they won't see it either.
+    // Admin always sees it.
     if (user.role === 'admin') {
       setHasPenilaianTests(true);
       return;
     }
     
-    if (allowedMenus.includes('penilaian-pmb')) {
-      apiClient<any[]>('/ppdb/penguji/tes')
-        .then(res => setHasPenilaianTests(res && res.length > 0))
-        .catch(() => setHasPenilaianTests(false));
-    } else {
-      setHasPenilaianTests(false);
-    }
-  }, [permissionsLoaded, user, allowedMenus]);
+    // Always check for assigned tests regardless of role. This implements the "IDE PAMUNGKAS":
+    // If they are assigned as an examiner, show the menu even if their role normally doesn't have it.
+    apiClient<any[]>('/ppdb/penguji/tes')
+      .then(res => setHasPenilaianTests(res && res.length > 0))
+      .catch(() => setHasPenilaianTests(false));
+  }, [permissionsLoaded, user]);
 
   // Route protection: redirect only after permissions have actually loaded
   useEffect(() => {
     if (!permissionsLoaded || !user) return;
-    // Don't protect until the dynamic evaluation is complete if they natively have the menu
-    if (allowedMenus.includes('penilaian-pmb') && hasPenilaianTests === null) return;
+    // Don't protect until the dynamic evaluation is complete
+    if (hasPenilaianTests === null && user.role !== 'admin') return;
     
     const pathSegment = location.pathname.replace('/dashboard', '').replace(/^\//, '').split('/')[0] || '';
     
@@ -290,10 +288,13 @@ export const DashboardLayout = () => {
       menuKey = 'penilaian-pmb';
     }
 
-    const finalAllowed = allowedMenus.filter(key => {
-      if (key === 'penilaian-pmb' && hasPenilaianTests === false) return false;
-      return true;
-    });
+    const finalAllowed = [...allowedMenus];
+    if (hasPenilaianTests === true && !finalAllowed.includes('penilaian-pmb')) {
+      finalAllowed.push('penilaian-pmb'); // Force inject permission
+    } else if (hasPenilaianTests === false) {
+      const idx = finalAllowed.indexOf('penilaian-pmb');
+      if (idx > -1) finalAllowed.splice(idx, 1); // Force remove permission
+    }
 
     if (menuKey && !finalAllowed.includes(menuKey)) {
       navigate('/dashboard', { replace: true });
@@ -307,12 +308,19 @@ export const DashboardLayout = () => {
   };
 
   // Filter menu items based on permissions
-  const finalAllowedMenusForRender = allowedMenus.filter(key => {
-    if (key === 'penilaian-pmb' && hasPenilaianTests === false) return false;
-    // Hide until we are sure, to prevent menu flash 
-    if (key === 'penilaian-pmb' && hasPenilaianTests === null && user?.role !== 'admin') return false; 
-    return true;
-  });
+  const finalAllowedMenusForRender = [...allowedMenus];
+  if (hasPenilaianTests === true && !finalAllowedMenusForRender.includes('penilaian-pmb')) {
+    finalAllowedMenusForRender.push('penilaian-pmb'); // Force inject permission
+  } else if (hasPenilaianTests === false) {
+    const idx = finalAllowedMenusForRender.indexOf('penilaian-pmb');
+    if (idx > -1) finalAllowedMenusForRender.splice(idx, 1); // Force remove permission
+  }
+
+  // Hide until we are sure, to prevent menu flash 
+  if (hasPenilaianTests === null && user?.role !== 'admin') {
+    const idx = finalAllowedMenusForRender.indexOf('penilaian-pmb');
+    if (idx > -1) finalAllowedMenusForRender.splice(idx, 1);
+  }
 
   const mainMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'main' && finalAllowedMenusForRender.includes(item.key));
   const systemMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'system' && finalAllowedMenusForRender.includes(item.key));
