@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, GraduationCap, ArrowRight, Info } from 'lucide-react';
+import { X, GraduationCap, ArrowRight, Info, Clock } from 'lucide-react';
 
 import { apiClient } from '../../../lib/api';
 
@@ -8,11 +8,76 @@ interface PPDBPopupModalProps {
   onClose?: () => void;
 }
 
+interface TimeLeft {
+  hours: number;
+  minutes: number;
+  seconds: number;
+  total: number; // total ms remaining
+}
+
+const calculateTimeLeft = (target: Date): TimeLeft => {
+  const now = new Date();
+  const diff = target.getTime() - now.getTime();
+  if (diff <= 0) return { hours: 0, minutes: 0, seconds: 0, total: 0 };
+  return {
+    hours: Math.floor(diff / (1000 * 60 * 60)),
+    minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+    seconds: Math.floor((diff % (1000 * 60)) / 1000),
+    total: diff,
+  };
+};
+
+/** Single countdown digit box */
+const CountdownBox: React.FC<{ value: number; label: string; color: 'blue' | 'emerald' }> = ({ value, label, color }) => {
+  const gradients = {
+    blue: 'from-blue-600 to-indigo-700',
+    emerald: 'from-emerald-600 to-teal-700',
+  };
+  return (
+    <div className="flex flex-col items-center">
+      <div className={`relative w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] rounded-xl bg-gradient-to-br ${gradients[color]} shadow-lg flex items-center justify-center overflow-hidden`}>
+        {/* Subtle glass overlay */}
+        <div className="absolute inset-0 bg-white/5 rounded-xl" />
+        <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/10 rounded-t-xl" />
+        <span className="relative text-2xl sm:text-3xl font-black text-white tabular-nums font-mono tracking-tight">
+          {String(value).padStart(2, '0')}
+        </span>
+      </div>
+      <span className="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">{label}</span>
+    </div>
+  );
+};
+
+/** Animated colon separator */
+const ColonSeparator: React.FC = () => (
+  <div className="flex flex-col items-center gap-1.5 pb-5">
+    <div className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-pulse" />
+    <div className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-pulse" />
+  </div>
+);
+
 export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [popupMode, setPopupMode] = useState<string>('pendaftaran');
+  const [timeLeft, setTimeLeft] = useState<TimeLeft | null>(null);
+  const [countdownTarget, setCountdownTarget] = useState<Date | null>(null);
+  const [countdownLabel, setCountdownLabel] = useState('');
+  const [ctaDisabled, setCtaDisabled] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const navigate = useNavigate();
+
+  // Memoized tick function
+  const tick = useCallback(() => {
+    if (!countdownTarget) return;
+    const tl = calculateTimeLeft(countdownTarget);
+    setTimeLeft(tl);
+    if (tl.total <= 0) {
+      // Countdown finished
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      setCtaDisabled(false); // enable CTA when countdown ends (for pengumuman mode)
+    }
+  }, [countdownTarget]);
 
   useEffect(() => {
     const checkConfig = async () => {
@@ -22,24 +87,81 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
           const now = new Date();
           let shouldShow = false;
           let viewMode = 'pendaftaran'; // 'pendaftaran' or 'pengumuman'
-          
-          if (config.tanggalPengumuman && now >= new Date(config.tanggalPengumuman)) {
-            // Fase Pengumuman
-            if (!config.batasDaftarUlang || now <= new Date(config.batasDaftarUlang)) {
+          let cdTarget: Date | null = null;
+          let cdLabel = '';
+          let disableCta = false;
+
+          const pengumumanDate = config.tanggalPengumuman ? new Date(config.tanggalPengumuman) : null;
+          const batasDaftarUlang = config.batasDaftarUlang ? new Date(config.batasDaftarUlang) : null;
+
+          if (pengumumanDate) {
+            // Calculate H-2 before pengumuman
+            const twoDaysBefore = new Date(pengumumanDate.getTime() - 2 * 24 * 60 * 60 * 1000);
+
+            if (now >= pengumumanDate) {
+              // Fase Pengumuman (sudah lewat tanggal pengumuman)
+              if (!batasDaftarUlang || now <= batasDaftarUlang) {
+                shouldShow = true;
+                viewMode = 'pengumuman';
+                // No countdown needed — pengumuman sudah aktif
+              }
+            } else if (now >= twoDaysBefore) {
+              // H-2 s/d H-0: tampilkan popup pengumuman dengan countdown
               shouldShow = true;
               viewMode = 'pengumuman';
+              cdTarget = pengumumanDate;
+              cdLabel = 'Pengumuman dimulai dalam';
+              disableCta = true; // CTA disabled until pengumuman time
             }
-          } else {
-            // Fase Pendaftaran
-            shouldShow = config.jalur.some((j: any) => {
+          }
+
+          if (!shouldShow) {
+            // Fase Pendaftaran — cek apakah ada jalur yang masih buka
+            const openJalur = config.jalur.filter((j: any) => {
               const isBuka = j.jadwalBuka ? new Date(j.jadwalBuka) <= now : true;
               const isTutup = j.jadwalTutup ? new Date(j.jadwalTutup) >= now : true;
               return isBuka && isTutup;
             });
+
+            if (openJalur.length > 0) {
+              shouldShow = true;
+              viewMode = 'pendaftaran';
+
+              // Find closest jadwalTutup among open jalur
+              const closingDates = openJalur
+                .filter((j: any) => j.jadwalTutup)
+                .map((j: any) => new Date(j.jadwalTutup));
+
+              if (closingDates.length > 0) {
+                const closestClose = new Date(Math.min(...closingDates.map((d: Date) => d.getTime())));
+                
+                // Check if TODAY is the closing day (same date in WITA = UTC+8)
+                // WITA offset: +8 hours
+                const witaOffset = 8 * 60; // minutes
+                const nowWita = new Date(now.getTime() + (witaOffset + now.getTimezoneOffset()) * 60000);
+                const closeWita = new Date(closestClose.getTime() + (witaOffset + closestClose.getTimezoneOffset()) * 60000);
+
+                const isSameDay = 
+                  nowWita.getFullYear() === closeWita.getFullYear() &&
+                  nowWita.getMonth() === closeWita.getMonth() &&
+                  nowWita.getDate() === closeWita.getDate();
+
+                if (isSameDay) {
+                  cdTarget = closestClose;
+                  cdLabel = 'Pendaftaran ditutup dalam';
+                }
+              }
+            }
           }
 
           if (shouldShow) {
             setPopupMode(viewMode);
+            setCtaDisabled(disableCta);
+            if (cdTarget) {
+              setCountdownTarget(cdTarget);
+              setCountdownLabel(cdLabel);
+              setTimeLeft(calculateTimeLeft(cdTarget));
+            }
             // Show after a brief delay for page load
             setTimeout(() => {
               setIsVisible(true);
@@ -54,6 +176,18 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
     checkConfig();
   }, []);
 
+  // Start countdown interval when target is set
+  useEffect(() => {
+    if (countdownTarget) {
+      // Initial tick
+      tick();
+      intervalRef.current = setInterval(tick, 1000);
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [countdownTarget, tick]);
+
   const handleDismiss = () => {
     setIsAnimating(false);
     setTimeout(() => {
@@ -63,6 +197,7 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
   };
 
   const handleAction = (action: 'daftar' | 'info') => {
+    if (ctaDisabled) return;
     handleDismiss();
     setTimeout(() => {
       if (popupMode === 'pengumuman') {
@@ -80,6 +215,10 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
   };
 
   if (!isVisible) return null;
+
+  const isPengumuman = popupMode === 'pengumuman';
+  const showCountdown = timeLeft !== null && timeLeft.total > 0;
+  const countdownColor = isPengumuman ? 'blue' : 'emerald';
 
   return (
     <div
@@ -117,26 +256,28 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
           </div>
 
           {/* Title */}
-          <p className={`text-xs font-bold uppercase tracking-[0.2em] mb-2 ${popupMode === 'pengumuman' ? 'text-blue-600' : 'text-emerald-600'}`}>
-            {popupMode === 'pengumuman' ? 'Pengumuman Kelulusan' : 'Penerimaan Murid Baru'}
+          <p className={`text-xs font-bold uppercase tracking-[0.2em] mb-2 ${isPengumuman ? 'text-blue-600' : 'text-emerald-600'}`}>
+            {isPengumuman ? 'Pengumuman Kelulusan' : 'Penerimaan Murid Baru'}
           </p>
           <h2 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight tracking-tight">
-            {popupMode === 'pengumuman' ? 'Ujian ' : 'SIMPMB '}
-            <span className={`text-transparent bg-clip-text bg-gradient-to-r ${popupMode === 'pengumuman' ? 'from-blue-500 to-indigo-600' : 'from-emerald-500 to-blue-600'}`}>
+            {isPengumuman ? 'PMB ' : 'SIMPMB '}
+            <span className={`text-transparent bg-clip-text bg-gradient-to-r ${isPengumuman ? 'from-blue-500 to-indigo-600' : 'from-emerald-500 to-blue-600'}`}>
               2026
             </span>
           </h2>
 
           {/* Divider */}
-          <div className={`w-16 h-0.5 mx-auto my-4 rounded-full bg-gradient-to-r ${popupMode === 'pengumuman' ? 'from-blue-400 to-indigo-500' : 'from-emerald-400 to-blue-500'}`} />
+          <div className={`w-16 h-0.5 mx-auto my-4 rounded-full bg-gradient-to-r ${isPengumuman ? 'from-blue-400 to-indigo-500' : 'from-emerald-400 to-blue-500'}`} />
 
           {/* Subtitle */}
           <p className="text-sm font-semibold text-gray-700 mb-1">
             Madrasah Aliyah Negeri 2 Lombok Timur
           </p>
           <p className="text-xs text-gray-500 leading-relaxed max-w-sm mx-auto mb-6">
-            {popupMode === 'pengumuman' 
-              ? 'Hasil seleksi penerimaan murid baru telah resmi diumumkan. Silakan periksa status kelulusan Anda.' 
+            {isPengumuman 
+              ? (ctaDisabled 
+                  ? 'Pengumuman hasil seleksi penerimaan murid baru akan segera diumumkan. Harap tunggu hingga waktu yang ditentukan.'
+                  : 'Hasil seleksi penerimaan murid baru telah resmi diumumkan. Silakan periksa status kelulusan Anda.')
               : 'Laman untuk memfasilitasi sistem penerimaan murid baru secara daring'}
           </p>
 
@@ -152,13 +293,37 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
             </div>
           )}
 
+          {/* ====== COUNTDOWN TIMER ====== */}
+          {showCountdown && (
+            <div className="mb-6">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-[11px] font-bold mb-4">
+                <Clock size={12} className="animate-pulse" />
+                {countdownLabel}
+              </div>
+              <div className="flex items-center justify-center gap-2 sm:gap-3">
+                <CountdownBox value={timeLeft.hours} label="Jam" color={countdownColor} />
+                <ColonSeparator />
+                <CountdownBox value={timeLeft.minutes} label="Menit" color={countdownColor} />
+                <ColonSeparator />
+                <CountdownBox value={timeLeft.seconds} label="Detik" color={countdownColor} />
+              </div>
+            </div>
+          )}
+
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
               onClick={() => handleAction('daftar')}
-              className={`w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3 text-white font-bold rounded-xl shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-sm bg-gradient-to-r ${popupMode === 'pengumuman' ? 'from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-blue-500/25 hover:shadow-blue-500/40' : 'from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 shadow-emerald-500/25 hover:shadow-emerald-500/40'}`}
+              disabled={ctaDisabled}
+              className={`w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3 text-white font-bold rounded-xl shadow-lg transition-all duration-300 text-sm bg-gradient-to-r ${
+                ctaDisabled 
+                  ? 'from-gray-400 to-gray-500 cursor-not-allowed opacity-60 shadow-none' 
+                  : isPengumuman 
+                    ? 'from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:scale-95' 
+                    : 'from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5 active:scale-95'
+              }`}
             >
-              {popupMode === 'pengumuman' ? '🚀 Cek Hasil Kelulusan' : '🚀 Mulai Pendaftaran'}
+              {isPengumuman ? '🚀 Cek Hasil Kelulusan' : '🚀 Mulai Pendaftaran'}
               <ArrowRight size={16} />
             </button>
             {popupMode === 'pendaftaran' && (
@@ -171,6 +336,13 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
               </button>
             )}
           </div>
+
+          {/* Disabled CTA hint */}
+          {ctaDisabled && (
+            <p className="mt-3 text-[10px] text-gray-400 italic">
+              Tombol akan aktif pada waktu pengumuman
+            </p>
+          )}
         </div>
 
         {/* Footer */}
