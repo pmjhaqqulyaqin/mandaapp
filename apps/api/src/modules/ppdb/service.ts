@@ -978,13 +978,16 @@ export class PPDBService {
   static async getMasterPenilaianData(jalurId: string, userId: string, userRole?: string) {
     const isAdmin = userRole === 'admin';
 
-    // Get all tests for this jalur
-    const jalursTests = await db.select({
+    // Get tests for this jalur — admin sees all, penguji sees only their assigned tests
+    const allJalursTests = await db.select({
       id: ppdbTesConfig.id,
       namaTes: ppdbTesConfig.namaTes,
       isActive: ppdbTesConfig.isActive,
       pengujiId: ppdbTesConfig.pengujiId,
     }).from(ppdbTesConfig).where(and(eq(ppdbTesConfig.jalurId, jalurId), eq(ppdbTesConfig.isActive, true)));
+
+    // Filter: non-admin only sees tests assigned to them
+    const jalursTests = isAdmin ? allJalursTests : allJalursTests.filter(t => t.pengujiId === userId);
 
     // Get all pendaftar for this jalur
     const pendaftarList = await db.select({
@@ -1031,11 +1034,11 @@ export class PPDBService {
         tes[n.tesConfigId] = n.nilai;
       });
 
-      // Compute Nilai Akhir
+      // Compute Nilai Akhir using ALL tests (not just filtered ones) for accuracy
       let scoresSum = raportAvg;
       let scoresCount = 1;
 
-      jalursTests.forEach(t => {
+      allJalursTests.forEach(t => {
         if (tes[t.id] !== undefined) {
           scoresSum += tes[t.id];
           scoresCount++;
@@ -1052,6 +1055,7 @@ export class PPDBService {
     });
 
     return {
+      isAdmin,
       tests: jalursTests.map(t => ({
         id: t.id,
         namaTes: t.namaTes,

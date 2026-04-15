@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../../lib/api';
 import { toast } from 'sonner';
-import { Loader2, Save, Filter } from 'lucide-react';
+import { Loader2, Save, Filter, ClipboardCheck, ShieldCheck } from 'lucide-react';
 import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const PPDBPenilaianPage = () => {
+  const { user } = useAuth();
+
   const [loadingJalur, setLoadingJalur] = useState(true);
   const [jalurList, setJalurList] = useState<any[]>([]);
   const [selectedJalur, setSelectedJalur] = useState<string>('');
@@ -15,6 +18,8 @@ export const PPDBPenilaianPage = () => {
   // Master Data
   const [tests, setTests] = useState<any[]>([]);
   const [pendaftar, setPendaftar] = useState<any[]>([]);
+  // Whether current user is admin (returned by API)
+  const [isAdminView, setIsAdminView] = useState(false);
   // Local edits tracking
   const [edits, setEdits] = useState<Record<string, Record<string, number>>>({});
 
@@ -43,6 +48,7 @@ export const PPDBPenilaianPage = () => {
       const res = await apiClient<any>(`/ppdb/penguji/master-penilaian?jalurId=${jalurId}`);
       if (res) {
         setTests(res.tests || []);
+        setIsAdminView(!!res.isAdmin);
         
         // Transform the dictionary so local edits work smoothly
         const list = res.pendaftar || [];
@@ -122,7 +128,7 @@ export const PPDBPenilaianPage = () => {
     }
   };
 
-  // Compute live Nilai Akhir for UI based on edits
+  // Compute live Nilai Akhir for UI based on edits (Admin only)
   const getLiveNilaiAkhir = (p: any) => {
     let sum = p.raportRataRata || 0;
     let count = 1;
@@ -136,18 +142,44 @@ export const PPDBPenilaianPage = () => {
     return (sum / count).toFixed(2);
   };
 
+  // Determine number of fixed columns (No + Nama + NoPendaftar + optionally Nilai Rapor)
+  const fixedColCount = isAdminView ? 4 : 3;
+  const totalColSpan = fixedColCount + tests.length + (isAdminView ? 1 : 0);
+
   return (
     <div className="space-y-6">
       <Breadcrumbs items={[
         { label: 'Dashboard', href: '/dashboard' },
         { label: 'PPDB', href: '/dashboard/ppdb' },
-        { label: 'Penilaian Terpadu', href: '/dashboard/ppdb/penilaian' },
+        { label: isAdminView ? 'Penilaian Terpadu' : 'Input Nilai Tes', href: '/dashboard/ppdb/penilaian' },
       ]} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-gray-800 dark:text-white">Master Penilaian PMB</h1>
-          <p className="text-gray-500 text-sm mt-1">Muara perhitungan akhir pendaftar. Kolom tes yang menjadi tugas Anda dapat langsung diubah.</p>
+          {isAdminView ? (
+            <>
+              <h1 className="text-2xl font-black text-gray-800 dark:text-white flex items-center gap-3">
+                <ShieldCheck size={24} className="text-emerald-500" />
+                Master Penilaian PMB
+              </h1>
+              <p className="text-gray-500 text-sm mt-1">Muara perhitungan akhir pendaftar. Semua tes dan nilai ditampilkan lengkap.</p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-black text-gray-800 dark:text-white flex items-center gap-3">
+                <ClipboardCheck size={24} className="text-blue-500" />
+                Input Nilai Tes
+              </h1>
+              <p className="text-gray-500 text-sm mt-1">
+                Masukkan nilai untuk tes yang menjadi tugas Anda. 
+                {tests.length > 0 && (
+                  <span className="ml-1 font-semibold text-blue-600 dark:text-blue-400">
+                    ({tests.map(t => t.namaTes).join(', ')})
+                  </span>
+                )}
+              </p>
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -181,6 +213,26 @@ export const PPDBPenilaianPage = () => {
         </div>
       </div>
 
+      {/* Info banner for penguji */}
+      {!isAdminView && !loadingData && tests.length > 0 && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-xl p-4 flex items-start gap-3">
+          <ClipboardCheck size={20} className="text-blue-500 mt-0.5 shrink-0" />
+          <div className="text-sm text-blue-700 dark:text-blue-300">
+            <strong>Tes Anda:</strong> Anda ditugaskan untuk menilai <strong>{tests.map(t => t.namaTes).join(', ')}</strong>.
+            Input nilai pada kolom di bawah, lalu klik <strong>"Simpan Nilai"</strong>. Nilai yang Anda simpan akan otomatis masuk ke Master Penilaian admin.
+          </div>
+        </div>
+      )}
+
+      {!isAdminView && !loadingData && tests.length === 0 && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-xl p-4 flex items-start gap-3">
+          <Filter size={20} className="text-amber-500 mt-0.5 shrink-0" />
+          <div className="text-sm text-amber-700 dark:text-amber-300">
+            <strong>Belum ada tes yang ditugaskan.</strong> Hubungi admin untuk mengatur penugasan tes pada menu Konfigurasi PPDB.
+          </div>
+        </div>
+      )}
+
       <div className="bg-white dark:bg-background-dark border border-border-light dark:border-border-dark rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-sm">
@@ -189,30 +241,45 @@ export const PPDBPenilaianPage = () => {
                 <th className="px-4 py-3 border-b border-border-light dark:border-border-dark text-left font-semibold text-gray-600 whitespace-nowrap">No</th>
                 <th className="px-4 py-3 border-b border-border-light dark:border-border-dark text-left font-semibold text-gray-600 whitespace-nowrap">Nama Peserta</th>
                 <th className="px-4 py-3 border-b border-border-light dark:border-border-dark text-left font-semibold text-gray-600 whitespace-nowrap">NoPendaftar</th>
-                <th className="px-4 py-3 border-b border-border-light dark:border-border-dark text-center font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">Nilai Rapor<br/><span className="text-[10px] font-normal tracking-wide uppercase opacity-70">Rata-rata Sem 1-5</span></th>
+                
+                {/* Nilai Rapor column — only visible for admin */}
+                {isAdminView && (
+                  <th className="px-4 py-3 border-b border-border-light dark:border-border-dark text-center font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">Nilai Rapor<br/><span className="text-[10px] font-normal tracking-wide uppercase opacity-70">Rata-rata Sem 1-5</span></th>
+                )}
                 
                 {tests.map(t => (
-                  <th key={t.id} className="px-4 py-3 border-b border-border-light dark:border-border-dark text-center font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                  <th key={t.id} className={`px-4 py-3 border-b border-border-light dark:border-border-dark text-center font-bold whitespace-nowrap ${
+                    t.isOwnedByCurrentUser 
+                      ? 'text-emerald-600 dark:text-emerald-400' 
+                      : 'text-gray-500 dark:text-gray-400'
+                  }`}>
                     {t.namaTes}
-                    {t.isOwnedByCurrentUser && <span className="block mt-0.5 text-[10px] bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded px-1 w-max mx-auto">(Edit)</span>}
+                    {t.isOwnedByCurrentUser && isAdminView && <span className="block mt-0.5 text-[10px] bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded px-1 w-max mx-auto">(Edit)</span>}
                   </th>
                 ))}
                 
-                <th className="px-4 py-3 border-b border-border-light dark:border-border-dark text-center font-bold text-purple-600 dark:text-purple-400 whitespace-nowrap">Nilai Akhir<br/><span className="text-[10px] font-normal tracking-wide uppercase opacity-70">Rata-rata Total</span></th>
+                {/* Nilai Akhir column — only visible for admin */}
+                {isAdminView && (
+                  <th className="px-4 py-3 border-b border-border-light dark:border-border-dark text-center font-bold text-purple-600 dark:text-purple-400 whitespace-nowrap">Nilai Akhir<br/><span className="text-[10px] font-normal tracking-wide uppercase opacity-70">Rata-rata Total</span></th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-border-light dark:divide-border-dark">
               {loadingData ? (
-                <tr><td colSpan={5 + tests.length} className="py-16 text-center"><Loader2 className="animate-spin mx-auto text-emerald-500" size={28}/></td></tr>
+                <tr><td colSpan={totalColSpan} className="py-16 text-center"><Loader2 className="animate-spin mx-auto text-emerald-500" size={28}/></td></tr>
               ) : pendaftar.length === 0 ? (
-                <tr><td colSpan={5 + tests.length} className="py-16 text-center text-gray-400 flex-col flex items-center justify-center"><Filter className="mb-2 opacity-50" size={32}/>Belum ada peserta di jalur ini.</td></tr>
+                <tr><td colSpan={totalColSpan} className="py-16 text-center text-gray-400 flex-col flex items-center justify-center"><Filter className="mb-2 opacity-50" size={32}/>Belum ada peserta di jalur ini.</td></tr>
               ) : (
                 pendaftar.map((p, idx) => (
                   <tr key={p.pendaftarId} className="hover:bg-gray-50/50 dark:hover:bg-[#0a0a0a] transition-colors">
                     <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
                     <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">{p.namaLengkap || '-'}</td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-500">{p.noPendaftaran}</td>
-                    <td className="px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-bold">{p.raportRataRata || '0'}</td>
+                    
+                    {/* Nilai Rapor — admin only */}
+                    {isAdminView && (
+                      <td className="px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-bold">{p.raportRataRata || '0'}</td>
+                    )}
                     
                     {tests.map(t => (
                       <td key={t.id} className="px-4 py-3 text-center bg-gray-50/30 dark:bg-[#111]/30">
@@ -232,9 +299,12 @@ export const PPDBPenilaianPage = () => {
                       </td>
                     ))}
 
-                    <td className="px-4 py-3 text-center font-black text-purple-600 dark:text-purple-400 text-lg bg-purple-50/30 dark:bg-purple-900/10">
-                      {getLiveNilaiAkhir(p)}
-                    </td>
+                    {/* Nilai Akhir — admin only */}
+                    {isAdminView && (
+                      <td className="px-4 py-3 text-center font-black text-purple-600 dark:text-purple-400 text-lg bg-purple-50/30 dark:bg-purple-900/10">
+                        {getLiveNilaiAkhir(p)}
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
