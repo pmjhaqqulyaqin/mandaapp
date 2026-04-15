@@ -203,6 +203,7 @@ export const DashboardLayout = () => {
   // Start with all menu keys visible so sidebar never flashes empty
   const [allowedMenus, setAllowedMenus] = useState<string[]>(ALL_MENU_ITEMS.map((i) => i.key));
   const [permissionsLoaded, setPermissionsLoaded] = useState(false);
+  const [hasPenilaianTests, setHasPenilaianTests] = useState<boolean | null>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -256,15 +257,48 @@ export const DashboardLayout = () => {
     if (user) fetchPermissions();
   }, [user?.id, user?.role]);
 
+  // Dynamically check if the user has any assigned tests to hide the menu if they don't
+  useEffect(() => {
+    if (!permissionsLoaded || !user) return;
+    
+    // Admin always sees it. If the role doesn't have it natively, they won't see it either.
+    if (user.role === 'admin') {
+      setHasPenilaianTests(true);
+      return;
+    }
+    
+    if (allowedMenus.includes('penilaian-pmb')) {
+      apiClient<any[]>('/ppdb/penguji/tes')
+        .then(res => setHasPenilaianTests(res && res.length > 0))
+        .catch(() => setHasPenilaianTests(false));
+    } else {
+      setHasPenilaianTests(false);
+    }
+  }, [permissionsLoaded, user, allowedMenus]);
+
   // Route protection: redirect only after permissions have actually loaded
   useEffect(() => {
     if (!permissionsLoaded || !user) return;
+    // Don't protect until the dynamic evaluation is complete if they natively have the menu
+    if (allowedMenus.includes('penilaian-pmb') && hasPenilaianTests === null) return;
+    
     const pathSegment = location.pathname.replace('/dashboard', '').replace(/^\//, '').split('/')[0] || '';
-    const menuKey = ROUTE_TO_MENU_KEY[pathSegment];
-    if (menuKey && !allowedMenus.includes(menuKey)) {
+    
+    // Exact path matching for nested route logic
+    let menuKey = ROUTE_TO_MENU_KEY[pathSegment];
+    if (location.pathname.includes('/ppdb/penilaian')) {
+      menuKey = 'penilaian-pmb';
+    }
+
+    const finalAllowed = allowedMenus.filter(key => {
+      if (key === 'penilaian-pmb' && hasPenilaianTests === false) return false;
+      return true;
+    });
+
+    if (menuKey && !finalAllowed.includes(menuKey)) {
       navigate('/dashboard', { replace: true });
     }
-  }, [permissionsLoaded, allowedMenus, location.pathname, navigate, user]);
+  }, [permissionsLoaded, allowedMenus, hasPenilaianTests, location.pathname, navigate, user]);
 
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -273,8 +307,15 @@ export const DashboardLayout = () => {
   };
 
   // Filter menu items based on permissions
-  const mainMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'main' && allowedMenus.includes(item.key));
-  const systemMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'system' && allowedMenus.includes(item.key));
+  const finalAllowedMenusForRender = allowedMenus.filter(key => {
+    if (key === 'penilaian-pmb' && hasPenilaianTests === false) return false;
+    // Hide until we are sure, to prevent menu flash 
+    if (key === 'penilaian-pmb' && hasPenilaianTests === null && user?.role !== 'admin') return false; 
+    return true;
+  });
+
+  const mainMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'main' && finalAllowedMenusForRender.includes(item.key));
+  const systemMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'system' && finalAllowedMenusForRender.includes(item.key));
 
   return (
     <div className="flex h-[100dvh] print:h-auto print:min-h-0 w-screen print:w-full overflow-hidden print:overflow-visible print:block bg-gray-50 dark:bg-[#050505] relative">
