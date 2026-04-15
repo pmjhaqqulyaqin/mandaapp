@@ -897,17 +897,24 @@ export class PPDBService {
     return { success: true };
   }
 
-  static async getPengujiTesList(userId: string) {
-    // A teacher might have multiple tests assigned across multiple jalur
-    const assignedTests = await db.select({
+  static async getPengujiTesList(userId: string, userRole?: string) {
+    // Admin sees ALL active tests; guru/penguji sees only their assigned tests
+    const isAdmin = userRole === 'admin';
+    
+    const baseQuery = db.select({
       id: ppdbTesConfig.id,
       namaTes: ppdbTesConfig.namaTes,
       jalurId: ppdbTesConfig.jalurId,
       namaJalur: ppdbJalur.namaJalur,
-      isActive: ppdbTesConfig.isActive
+      isActive: ppdbTesConfig.isActive,
+      pengujiId: ppdbTesConfig.pengujiId,
     }).from(ppdbTesConfig)
-      .innerJoin(ppdbJalur, eq(ppdbJalur.id, ppdbTesConfig.jalurId))
-      .where(and(eq(ppdbTesConfig.pengujiId, userId), eq(ppdbTesConfig.isActive, true)));
+      .innerJoin(ppdbJalur, eq(ppdbJalur.id, ppdbTesConfig.jalurId));
+
+    const assignedTests = isAdmin
+      ? await baseQuery.where(eq(ppdbTesConfig.isActive, true))
+      : await baseQuery.where(and(eq(ppdbTesConfig.pengujiId, userId), eq(ppdbTesConfig.isActive, true)));
+    
     return assignedTests;
   }
 

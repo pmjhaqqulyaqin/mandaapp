@@ -1,5 +1,9 @@
 import { Request, Response } from 'express';
 import { PPDBService } from './service';
+import { auth } from "../auth";
+import { db } from '../../db';
+import { user as userTable } from '../../db/schema';
+import { eq } from 'drizzle-orm';
 
 export class PPDBController {
 
@@ -256,9 +260,32 @@ export class PPDBController {
 
   static async getPengujiTesList(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.id; // Assuming auth middleware sets req.user
+      // Try session-based auth first, then fall back to X-User-Id header
+      let userId: string | undefined;
+      let userRole: string | undefined;
+      
+      try {
+        const session = await auth.api.getSession({ headers: req.headers as any });
+        if (session?.user) {
+          userId = session.user.id;
+          userRole = (session.user as any).role;
+        }
+      } catch { /* session auth failed, try header fallback */ }
+      
+      // Fallback to X-User-Id header (used by the frontend apiClient)
+      if (!userId) {
+        userId = req.headers['x-user-id'] as string;
+      }
+      
       if (!userId) throw new Error("Unauthorized");
-      const result = await PPDBService.getPengujiTesList(userId);
+      
+      // If role not available from session, look it up from DB
+      if (!userRole) {
+        const found = await db.select({ role: userTable.role }).from(userTable).where(eq(userTable.id, userId)).limit(1);
+        userRole = found[0]?.role || 'student';
+      }
+      
+      const result = await PPDBService.getPengujiTesList(userId, userRole);
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
