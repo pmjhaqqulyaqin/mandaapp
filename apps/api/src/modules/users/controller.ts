@@ -9,7 +9,7 @@ import { SettingsService } from "../settings/service";
 // All available menu keys
 const ALL_MENU_KEYS = [
   "overview", "news", "calendar", "student-card", "students", "classes", "employees", "nis",
-  "gallery", "contacts", "pages", "menus", "settings", "users", "updates", "e-office", "ptsp", "exams", "ppdb"
+  "gallery", "contacts", "pages", "menus", "settings", "users", "updates", "e-office", "ptsp", "exams", "ppdb", "penilaian-pmb"
 ];
 
 const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
@@ -19,7 +19,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
   kepala_unit: ["overview", "news", "calendar", "student-card", "gallery", "contacts", "exams"],
   wali_kelas: ["overview", "news", "calendar", "student-card", "students", "gallery"],
   pembina_ekstra: ["overview", "news", "calendar", "student-card", "gallery"],
-  guru: ["overview", "news", "calendar", "student-card", "exams"],
+  guru: ["overview", "news", "calendar", "student-card", "exams", "penilaian-pmb"],
   student: ["overview", "calendar", "student-card"],
   kepala_tu: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb"],
   pegawai_tu: ["overview", "news", "calendar", "student-card", "students", "employees", "e-office", "ppdb"],
