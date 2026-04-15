@@ -759,7 +759,19 @@ const JalurTesConfigManager = ({ jalurId }: { jalurId: string }) => {
     } catch(e: any) { toast.error(e.message); }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleUpdateBobot = async (id: string, newBobot: number) => {
+    if (newBobot < 0) newBobot = 0;
+    try {
+      await apiClient(`/ppdb/admin/tes-config/${id}`, {
+        method: 'PUT',
+        data: { bobot: newBobot }
+      });
+      toast.success('Bobot diperbarui');
+      fetchConfigsAndUsers();
+    } catch(e: any) { toast.error(e.message); }
+  };
+
+   const handleDelete = async (id: string) => {
     if(!window.confirm('Yakin hapus tes ini? Semua nilai peserta untuk tes ini juga akan terhapus.')) return;
     try {
       await apiClient(`/ppdb/admin/tes-config/${id}`, { method: 'DELETE' });
@@ -781,7 +793,22 @@ const JalurTesConfigManager = ({ jalurId }: { jalurId: string }) => {
             <div key={c.id} className="flex items-center gap-3 bg-white dark:bg-[#111] p-2.5 rounded border border-gray-100 dark:border-[#222]">
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-gray-700 dark:text-gray-200">{c.namaTes}</p>
-                <p className="text-[10px] text-gray-500 mb-1">Bobot: {c.bobot}</p>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-[10px] text-gray-500">Bobot:</span>
+                  <input 
+                    type="number"
+                    min="0"
+                    defaultValue={c.bobot}
+                    onBlur={(e) => {
+                      const val = Number(e.target.value);
+                      if (val !== c.bobot) handleUpdateBobot(c.id, val);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                    }}
+                    className="w-14 px-1.5 py-0.5 text-[10px] font-bold text-center border border-gray-200 dark:border-[#333] rounded outline-none focus:border-emerald-500 bg-gray-50 dark:bg-[#0a0a0a]"
+                  />
+                </div>
                 
                 <select 
                   value={c.pengujiId || ''} 

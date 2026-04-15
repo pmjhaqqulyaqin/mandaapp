@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../../lib/api';
 import { toast } from 'sonner';
-import { Loader2, Save, Filter, ClipboardCheck, ShieldCheck } from 'lucide-react';
+import { Loader2, Save, Filter, ClipboardCheck, ShieldCheck, Lock } from 'lucide-react';
 import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -22,6 +22,8 @@ export const PPDBPenilaianPage = () => {
   const [isAdminView, setIsAdminView] = useState(false);
   // Local edits tracking
   const [edits, setEdits] = useState<Record<string, Record<string, number>>>({});
+  // Track original values from DB — used to lock admin editing on pre-existing scores
+  const [originalNilai, setOriginalNilai] = useState<Record<string, Record<string, number>>>({});
 
   // 1. Fetch available Jalurs that the user can grade (or just all Jalurs)
   const fetchJalurList = useCallback(async () => {
@@ -54,12 +56,15 @@ export const PPDBPenilaianPage = () => {
         const list = res.pendaftar || [];
         setPendaftar(list);
 
-        // Reset local edits
+        // Reset local edits & track original values from DB
         const initEdits: any = {};
+        const initOriginal: any = {};
         list.forEach((p: any) => {
           initEdits[p.pendaftarId] = { ...(p.nilaiTes || {}) };
+          initOriginal[p.pendaftarId] = { ...(p.nilaiTes || {}) };
         });
         setEdits(initEdits);
+        setOriginalNilai(initOriginal);
       }
     } catch(e) {
       toast.error('Gagal memuat data penilaian');
@@ -74,7 +79,17 @@ export const PPDBPenilaianPage = () => {
     }
   }, [selectedJalur, fetchMasterData]);
 
+  // Check if a cell is locked for admin (value already exists from penguji)
+  const isCellLocked = (pendaftarId: string, tesId: string): boolean => {
+    if (!isAdminView) return false; // Penguji can always edit their own tests
+    const origVal = originalNilai[pendaftarId]?.[tesId];
+    return origVal !== undefined && origVal !== null && origVal > 0;
+  };
+
   const handleUpdateNilai = (pendaftarId: string, tesId: string, val: string) => {
+    // Prevent admin from editing locked cells
+    if (isCellLocked(pendaftarId, tesId)) return;
+    
     let num = parseInt(val) || 0;
     if (num > 100) num = 100;
     if (num < 0) num = 0;
@@ -96,6 +111,9 @@ export const PPDBPenilaianPage = () => {
         if (!tes.isOwnedByCurrentUser) return;
         
         pendaftar.forEach(p => {
+          // Skip locked cells for admin
+          if (isCellLocked(p.pendaftarId, tes.id)) return;
+          
           const val = edits[p.pendaftarId]?.[tes.id];
           if (val !== undefined && val !== null) {
             payload.push({
@@ -162,7 +180,7 @@ export const PPDBPenilaianPage = () => {
                 <ShieldCheck size={24} className="text-emerald-500" />
                 Master Penilaian PMB
               </h1>
-              <p className="text-gray-500 text-sm mt-1">Muara perhitungan akhir pendaftar. Semua tes dan nilai ditampilkan lengkap.</p>
+              <p className="text-gray-500 text-sm mt-1">Muara perhitungan akhir pendaftar. Nilai yang sudah diinput penguji terkunci otomatis.</p>
             </>
           ) : (
             <>
@@ -233,6 +251,16 @@ export const PPDBPenilaianPage = () => {
         </div>
       )}
 
+      {/* Admin lock info banner */}
+      {isAdminView && !loadingData && pendaftar.length > 0 && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-xl p-4 flex items-start gap-3">
+          <Lock size={20} className="text-amber-500 mt-0.5 shrink-0" />
+          <div className="text-sm text-amber-700 dark:text-amber-300">
+            <strong>Proteksi Nilai:</strong> Nilai yang sudah diinput oleh penguji/penilai ditandai dengan ikon 🔒 dan <strong>tidak dapat diubah</strong> dari dashboard admin untuk mencegah manipulasi. Hanya penguji yang ditugaskan yang dapat mengubah nilainya.
+          </div>
+        </div>
+      )}
+
       <div className="bg-white dark:bg-background-dark border border-border-light dark:border-border-dark rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-sm">
@@ -254,7 +282,7 @@ export const PPDBPenilaianPage = () => {
                       : 'text-gray-500 dark:text-gray-400'
                   }`}>
                     {t.namaTes}
-                    {t.isOwnedByCurrentUser && isAdminView && <span className="block mt-0.5 text-[10px] bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded px-1 w-max mx-auto">(Edit)</span>}
+                    {!isAdminView && <span className="block mt-0.5 text-[10px] bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded px-1 w-max mx-auto">✏️ Edit</span>}
                   </th>
                 ))}
                 
@@ -281,23 +309,35 @@ export const PPDBPenilaianPage = () => {
                       <td className="px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-bold">{p.raportRataRata || '0'}</td>
                     )}
                     
-                    {tests.map(t => (
-                      <td key={t.id} className="px-4 py-3 text-center bg-gray-50/30 dark:bg-[#111]/30">
-                        <input 
-                          type="number" 
-                          min="0" max="100"
-                          title={t.isOwnedByCurrentUser ? `Input nilai ${t.namaTes}` : 'Hanya penguji tes ini yang dapat mengubah nilainya'}
-                          disabled={!t.isOwnedByCurrentUser}
-                          value={edits[p.pendaftarId]?.[t.id] ?? ''}
-                          onChange={e => handleUpdateNilai(p.pendaftarId, t.id, e.target.value)}
-                          className={`w-16 px-2 py-1.5 text-center font-bold border rounded-md outline-none transition-colors 
-                            ${t.isOwnedByCurrentUser 
-                              ? 'bg-white dark:bg-background-dark border-gray-300 dark:border-border-dark focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 shadow-sm' 
-                              : 'bg-transparent border-transparent text-gray-500 cursor-not-allowed opacity-70'}`}
-                          placeholder="0"
-                        />
-                      </td>
-                    ))}
+                    {tests.map(t => {
+                      const locked = isCellLocked(p.pendaftarId, t.id);
+                      const canEdit = t.isOwnedByCurrentUser && !locked;
+                      
+                      return (
+                        <td key={t.id} className={`px-4 py-3 text-center ${locked ? 'bg-amber-50/40 dark:bg-amber-900/10' : 'bg-gray-50/30 dark:bg-[#111]/30'}`}>
+                          <div className="relative inline-flex items-center">
+                            <input 
+                              type="number" 
+                              min="0" max="100"
+                              title={locked ? '🔒 Nilai terkunci — sudah diinput oleh penguji' : (canEdit ? `Input nilai ${t.namaTes}` : 'Hanya penguji tes ini yang dapat mengubah nilainya')}
+                              disabled={!canEdit}
+                              value={edits[p.pendaftarId]?.[t.id] ?? ''}
+                              onChange={e => handleUpdateNilai(p.pendaftarId, t.id, e.target.value)}
+                              className={`w-16 px-2 py-1.5 text-center font-bold border rounded-md outline-none transition-colors 
+                                ${locked
+                                  ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40 text-amber-700 dark:text-amber-400 cursor-not-allowed'
+                                  : canEdit 
+                                    ? 'bg-white dark:bg-background-dark border-gray-300 dark:border-border-dark focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 shadow-sm' 
+                                    : 'bg-transparent border-transparent text-gray-500 cursor-not-allowed opacity-70'}`}
+                              placeholder="0"
+                            />
+                            {locked && (
+                              <Lock size={10} className="absolute -top-1 -right-1 text-amber-500" />
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
 
                     {/* Nilai Akhir — admin only */}
                     {isAdminView && (
