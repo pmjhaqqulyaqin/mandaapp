@@ -617,27 +617,54 @@ export const PPDBInfoPage = () => {
                     <Calendar size={16} className="text-emerald-600" />
                     Timeline Penting
                   </h3>
-                  <div className="relative border-l-2 border-emerald-200 ml-2 space-y-4">
-                    {/* Jadwal Buka */}
-                    {jalurList[0]?.jadwalBuka && (
-                      <div className="relative pl-5">
-                        <div className="absolute -left-[7px] top-1.5 w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_0_3px_white]" />
-                        <p className="text-xs font-bold text-gray-700">Pendaftaran Dibuka</p>
-                        <p className="text-xs text-gray-500">{new Date(jalurList[0].jadwalBuka).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                      </div>
-                    )}
-                    {/* Jadwal Tutup */}
-                    {jalurList[0]?.jadwalTutup && (
-                      <div className="relative pl-5">
-                        <div className="absolute -left-[7px] top-1.5 w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_0_3px_white]" />
-                        <p className="text-xs font-bold text-gray-700">Pendaftaran Ditutup</p>
-                        <p className="text-xs text-gray-500">{new Date(jalurList[0].jadwalTutup).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                      </div>
-                    )}
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+                    {/* Prestasi */}
+                    {jalurList.find(j => j.namaJalur.toUpperCase() === 'PRESTASI') && (() => {
+                      const j = jalurList.find(j => j.namaJalur.toUpperCase() === 'PRESTASI')!;
+                      return (
+                        <div className="relative border-l-2 border-orange-200 ml-2 space-y-4">
+                          <p className="absolute -top-3 left-3 bg-orange-100 text-orange-600 px-2 py-0.5 rounded text-[10px] font-bold">Jalur PRESTASI</p>
+                          <div className="relative pl-5 pt-4">
+                            <div className="absolute -left-[7px] top-5 w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_0_3px_white]" />
+                            <p className="text-xs font-bold text-gray-700">Dibuka</p>
+                            <p className="text-xs text-gray-500">{j.jadwalBuka ? new Date(j.jadwalBuka).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</p>
+                          </div>
+                          <div className="relative pl-5">
+                            <div className="absolute -left-[7px] top-1.5 w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_0_3px_white]" />
+                            <p className="text-xs font-bold text-gray-700">Ditutup</p>
+                            <p className="text-xs text-gray-500">{j.jadwalTutup ? new Date(j.jadwalTutup).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</p>
+                          </div>
+                        </div>
+                      )
+                    })()}
+
+                    {/* Reguler */}
+                    {jalurList.find(j => j.namaJalur.toUpperCase() === 'REGULER') && (() => {
+                      const j = jalurList.find(j => j.namaJalur.toUpperCase() === 'REGULER')!;
+                      return (
+                        <div className="relative border-l-2 border-blue-200 ml-2 space-y-4">
+                          <p className="absolute -top-3 left-3 bg-blue-100 text-blue-600 px-2 py-0.5 rounded text-[10px] font-bold">Jalur REGULER</p>
+                          <div className="relative pl-5 pt-4">
+                            <div className="absolute -left-[7px] top-5 w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_0_3px_white]" />
+                            <p className="text-xs font-bold text-gray-700">Dibuka</p>
+                            <p className="text-xs text-gray-500">{j.jadwalBuka ? new Date(j.jadwalBuka).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</p>
+                          </div>
+                          <div className="relative pl-5">
+                            <div className="absolute -left-[7px] top-1.5 w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_0_3px_white]" />
+                            <p className="text-xs font-bold text-gray-700">Ditutup</p>
+                            <p className="text-xs text-gray-500">{j.jadwalTutup ? new Date(j.jadwalTutup).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</p>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
+
+                  <div className="relative border-l-2 border-gray-200 ml-2 space-y-4 pt-2 border-t border-gray-100/50 mt-2">
                     {/* Pengumuman */}
                     {config?.tanggalPengumuman && (
-                      <div className="relative pl-5">
-                        <div className="absolute -left-[7px] top-1.5 w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_0_3px_white]" />
+                      <div className="relative pl-5 mt-2">
+                        <div className="absolute -left-[7px] top-1.5 w-3 h-3 rounded-full bg-indigo-500 shadow-[0_0_0_3px_white]" />
                         <p className="text-xs font-bold text-gray-700">Pengumuman Kelulusan</p>
                         <p className="text-xs text-gray-500">{new Date(config.tanggalPengumuman).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                       </div>
@@ -645,7 +672,7 @@ export const PPDBInfoPage = () => {
                     {/* Batas Daftar Ulang */}
                     {config?.batasDaftarUlang && (
                       <div className="relative pl-5">
-                        <div className="absolute -left-[7px] top-1.5 w-3 h-3 rounded-full bg-indigo-500 shadow-[0_0_0_3px_white]" />
+                        <div className="absolute -left-[7px] top-1.5 w-3 h-3 rounded-full bg-purple-500 shadow-[0_0_0_3px_white]" />
                         <p className="text-xs font-bold text-gray-700">Batas Daftar Ulang</p>
                         <p className="text-xs text-gray-500">{new Date(config.batasDaftarUlang).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                       </div>
@@ -656,27 +683,44 @@ export const PPDBInfoPage = () => {
 
               {/* Kontak Info */}
               <div className="bg-gradient-to-br from-emerald-50 to-blue-50 rounded-2xl border border-emerald-100/50 p-6">
-                <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
                   📞 Kontak Panitia PMB
                 </h3>
-                <div className="space-y-2 text-xs text-gray-600">
-                  <p className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded bg-emerald-100 flex items-center justify-center text-[10px]">📱</span>
-                    <span>Hubungi TU MAN 2 Lombok Timur</span>
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded bg-blue-100 flex items-center justify-center text-[10px]">🌐</span>
-                    <span>Website: mandualotim.sch.id/ppdb</span>
-                  </p>
-                </div>
-                <div className="mt-4">
-                  <button
-                    onClick={() => scrollTo('tracking-section')}
-                    className="w-full px-4 py-2.5 bg-white hover:bg-gray-50 text-gray-700 font-bold rounded-xl border border-gray-200 shadow-sm transition-all text-xs flex items-center justify-center gap-2"
-                  >
-                    <Search size={14} />
-                    Cek Status Pendaftaran
-                  </button>
+                <div className="space-y-3 text-xs text-gray-600">
+                  {config?.kontakPanitia?.length > 0 ? (
+                    config.kontakPanitia.map((k: any, i: number) => (
+                      <div key={i} className="flex items-center justify-between p-2.5 bg-white rounded-xl shadow-sm border border-emerald-100/50 transition-transform hover:scale-[1.02]">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-[14px]">
+                            👤
+                          </div>
+                          <div>
+                            <p className="font-bold text-gray-800">{k.nama}</p>
+                            <p className="text-[10px] text-gray-500 font-mono mt-0.5">{k.noHp}</p>
+                          </div>
+                        </div>
+                        <a 
+                          href={`https://wa.me/${k.noHp.replace(/^0/, '62').replace(/\D/g, '')}`} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg transition-colors text-[10px]"
+                        >
+                          Chat WA
+                        </a>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <p className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded bg-emerald-100 flex items-center justify-center text-[10px]">📱</span>
+                        <span>Hubungi TU MAN 2 Lombok Timur</span>
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded bg-blue-100 flex items-center justify-center text-[10px]">🌐</span>
+                        <span>Website: mandualotim.sch.id/ppdb</span>
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

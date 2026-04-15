@@ -6,7 +6,8 @@ import { toast } from 'sonner';
 import {
   GraduationCap, Users, Trophy, ClipboardList, Settings, BarChart3,
   Search, ChevronDown, Filter, Eye, Check, X, Loader2, RefreshCw,
-  CheckCircle, Clock, XCircle, AlertCircle, Upload, ImageIcon
+  CheckCircle, Clock, XCircle, AlertCircle, Upload, ImageIcon,
+  Plus, Trash2, Phone
 } from 'lucide-react';
 
 type TabKey = 'overview' | 'pendaftar' | 'daftar_ulang' | 'seleksi' | 'konfigurasi';
@@ -622,6 +623,7 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
   const [saving, setSaving] = useState<string | null>(null);
   const [brosurUrl, setBrosurUrl] = useState<string | null>(null);
   const [uploadingBrosur, setUploadingBrosur] = useState(false);
+  const [kontakPanitia, setKontakPanitia] = useState<{nama: string, noHp: string}[]>([]);
 
   // Local config state for tanggalPengumuman
   const [sysConfig, setSysConfig] = useState<any>({ tanggalPengumuman: '' });
@@ -635,6 +637,11 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
         namaSk: config.namaSk || '',
       });
       setBrosurUrl(config.brosurUrl || null);
+      if (Array.isArray(config.kontakPanitia)) {
+        setKontakPanitia(config.kontakPanitia);
+      } else {
+        setKontakPanitia([]);
+      }
     }
   }, [config]);
 
@@ -686,9 +693,10 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
           batasDaftarUlang: sysConfig.batasDaftarUlang || null,
           nomorSk: sysConfig.nomorSk || null,
           namaSk: sysConfig.namaSk || null,
+          kontakPanitia,
         },
       });
-      toast.success('Jadwal Pengumuman berhasil disimpan');
+      toast.success('Pengaturan berhasil disimpan');
       onSaved();
     } catch (err: any) { toast.error(err.message); }
     finally { setSaving(null); }
@@ -807,49 +815,116 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
       </div>
 
       {/* Brosur PMB Section */}
-      <div className="p-4 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark">
-        <div className="flex items-center gap-2 mb-4">
-          <ImageIcon size={18} className="text-blue-600" />
-          <h3 className="font-bold text-gray-800 dark:text-white">Brosur PMB</h3>
-        </div>
-        <p className="text-[10.5px] text-gray-500 mb-3">Upload gambar brosur PMB yang akan ditampilkan di halaman informasi publik. Format: JPG, PNG, WebP. Maks 5MB.</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="p-4 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark">
+          <div className="flex items-center gap-2 mb-4">
+            <ImageIcon size={18} className="text-blue-600" />
+            <h3 className="font-bold text-gray-800 dark:text-white">Brosur PMB</h3>
+          </div>
+          <p className="text-[10.5px] text-gray-500 mb-3">Upload gambar brosur PMB yang akan ditampilkan di halaman informasi publik. Format: JPG, PNG, WebP. Maks 5MB.</p>
 
-        <div className="flex flex-col sm:flex-row items-start gap-4">
-          {/* Preview */}
-          <div className="w-full sm:w-48 h-48 rounded-xl border-2 border-dashed border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#111] flex items-center justify-center overflow-hidden">
-            {brosurUrl ? (
-              <img
-                src={`${API_BASE_URL.replace('/api', '')}${brosurUrl}`}
-                alt="Preview Brosur"
-                className="w-full h-full object-contain"
-              />
-            ) : (
-              <div className="text-center">
-                <ImageIcon size={32} className="mx-auto text-gray-300 mb-2" />
-                <p className="text-[10px] text-gray-400">Belum ada brosur</p>
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            {/* Preview */}
+            <div className="w-full sm:w-32 h-32 rounded-xl border-2 border-dashed border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#111] flex items-center justify-center overflow-hidden shrink-0">
+              {brosurUrl ? (
+                <img
+                  src={`${API_BASE_URL.replace('/api', '')}${brosurUrl}`}
+                  alt="Preview Brosur"
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <div className="text-center">
+                  <ImageIcon size={24} className="mx-auto text-gray-300 mb-1" />
+                  <p className="text-[9px] text-gray-400">Belum ada brosur</p>
+                </div>
+              )}
+            </div>
+
+            {/* Upload Button */}
+            <div className="flex-1 w-full text-center sm:text-left">
+              <label className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors disabled:opacity-50">
+                {uploadingBrosur ? (
+                  <><Loader2 size={14} className="animate-spin" /> Mengupload...</>
+                ) : (
+                  <><Upload size={14} /> {brosurUrl ? 'Ganti Brosur' : 'Upload Brosur'}</>
+                )}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleBrosurUpload}
+                  disabled={uploadingBrosur}
+                  className="hidden"
+                />
+              </label>
+              {brosurUrl && (
+                <p className="mt-2 text-[10px] text-gray-400 break-all">Terupload</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Kontak Panitia Section */}
+        <div className="p-4 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark">
+          <div className="flex items-center gap-2 mb-4">
+            <Phone size={18} className="text-emerald-600" />
+            <h3 className="font-bold text-gray-800 dark:text-white">Kontak Panitia</h3>
+          </div>
+          <p className="text-[10.5px] text-gray-500 mb-3">Daftar contact person panitia yang akan dihubungi oleh calon pendaftar.</p>
+
+          <div className="space-y-3 mb-4 max-h-[160px] overflow-y-auto pr-2">
+            {kontakPanitia.map((kontak, idx) => (
+              <div key={idx} className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  placeholder="Nama Panitia"
+                  value={kontak.nama}
+                  onChange={(e) => {
+                    const newKontak = [...kontakPanitia];
+                    newKontak[idx].nama = e.target.value;
+                    setKontakPanitia(newKontak);
+                  }}
+                  className="flex-1 px-3 py-2 text-xs rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 focus:bg-white focus:border-emerald-500 outline-none"
+                />
+                <input
+                  type="text"
+                  placeholder="No. HP / WA"
+                  value={kontak.noHp}
+                  onChange={(e) => {
+                    const newKontak = [...kontakPanitia];
+                    newKontak[idx].noHp = e.target.value;
+                    setKontakPanitia(newKontak);
+                  }}
+                  className="flex-1 px-3 py-2 text-xs rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 focus:bg-white focus:border-emerald-500 outline-none"
+                />
+                <button
+                  onClick={() => {
+                    setKontakPanitia(kontakPanitia.filter((_, i) => i !== idx));
+                  }}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
+            ))}
+            {kontakPanitia.length === 0 && (
+              <p className="text-xs text-gray-400 text-center py-2 italic cursor-pointer hover:text-emerald-500" onClick={() => setKontakPanitia([...kontakPanitia, { nama: '', noHp: '' }])}>Belum ada kontak. Klik tombol di bawah untuk menambah.</p>
             )}
           </div>
-
-          {/* Upload Button */}
-          <div className="flex-1">
-            <label className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors disabled:opacity-50">
-              {uploadingBrosur ? (
-                <><Loader2 size={14} className="animate-spin" /> Mengupload...</>
-              ) : (
-                <><Upload size={14} /> {brosurUrl ? 'Ganti Brosur' : 'Upload Brosur'}</>
-              )}
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handleBrosurUpload}
-                disabled={uploadingBrosur}
-                className="hidden"
-              />
-            </label>
-            {brosurUrl && (
-              <p className="mt-2 text-[10px] text-gray-400 break-all">File: {brosurUrl}</p>
-            )}
+          
+          <div className="flex justify-between items-center bg-gray-50 p-2 -mx-2 -mb-2 rounded-b-lg border-t border-gray-100">
+             <button
+                onClick={() => setKontakPanitia([...kontakPanitia, { nama: '', noHp: '' }])}
+                className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full"
+              >
+                <Plus size={12} /> Tambah Kontak
+              </button>
+             <button
+               onClick={saveConfig}
+               disabled={saving === 'config'}
+               className="px-4 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-bold hover:bg-black transition-colors disabled:opacity-50"
+             >
+               {saving === 'config' ? 'Menyimpan...' : 'Simpan Kontak'}
+             </button>
           </div>
         </div>
       </div>

@@ -32,11 +32,14 @@ export class PPDBService {
       return { ...j, jumlahPendaftar: result[0]?.count || 0 };
     }));
 
-    // Fetch brosur URL from site_settings
-    const brosurSetting = await db.select().from(siteSettings).where(eq(siteSettings.key, 'ppdb_brosur_url')).limit(1);
-    const brosurUrl = brosurSetting[0]?.value || null;
+    // Fetch brosur URL and kontak panitia from site_settings
+    const settings = await db.select().from(siteSettings).where(or(eq(siteSettings.key, 'ppdb_brosur_url'), eq(siteSettings.key, 'ppdb_kontak_panitia')));
+    const brosurUrl = settings.find((s: any) => s.key === 'ppdb_brosur_url')?.value || null;
+    const rawKontak = settings.find((s: any) => s.key === 'ppdb_kontak_panitia')?.value;
+    let kontakPanitia = [];
+    try { if (rawKontak) kontakPanitia = JSON.parse(rawKontak); } catch (e) {}
 
-    return { ...config, jalur: jalurWithCounts, brosurUrl };
+    return { ...config, jalur: jalurWithCounts, brosurUrl, kontakPanitia };
   }
 
   /** Save brosur URL to site_settings */
@@ -337,12 +340,15 @@ export class PPDBService {
       .innerJoin(ppdbJalur, eq(ppdbPendaftar.jalurId, ppdbJalur.id))
       .where(eq(ppdbJalur.configId, config.id));
 
-    // Fetch brosur URL from site_settings (needed by admin frontend preview)
-    const brosurSetting = await db.select().from(siteSettings).where(eq(siteSettings.key, 'ppdb_brosur_url')).limit(1);
-    const brosurUrl = brosurSetting[0]?.value || null;
+    // Fetch brosur URL and kontak panitia from site_settings (needed by admin frontend preview/edit)
+    const settings = await db.select().from(siteSettings).where(or(eq(siteSettings.key, 'ppdb_brosur_url'), eq(siteSettings.key, 'ppdb_kontak_panitia')));
+    const brosurUrl = settings.find((s: any) => s.key === 'ppdb_brosur_url')?.value || null;
+    const rawKontak = settings.find((s: any) => s.key === 'ppdb_kontak_panitia')?.value;
+    let kontakPanitia = [];
+    try { if (rawKontak) kontakPanitia = JSON.parse(rawKontak); } catch (e) {}
 
     return {
-      config: { ...config, brosurUrl },
+      config: { ...config, brosurUrl, kontakPanitia },
       totalPendaftar: totalResult[0]?.count || 0,
       jalurStats,
     };
@@ -504,7 +510,11 @@ export class PPDBService {
   // ============ ADMIN: Config & Selection (Batch 2) ============
 
   /** Update PPDB System Configuration (Tanggal Pengumuman, etc) */
-  static async updateConfig(id: string, data: { tahunAjaran?: string; isActive?: boolean; tanggalPengumuman?: string | null; batasDaftarUlang?: string | null; nomorSk?: string | null; namaSk?: string | null }) {
+  static async updateConfig(id: string, data: { 
+    tahunAjaran?: string; isActive?: boolean; tanggalPengumuman?: string | null; 
+    batasDaftarUlang?: string | null; nomorSk?: string | null; namaSk?: string | null;
+    kontakPanitia?: any[]; 
+  }) {
     const [updated] = await db.update(ppdbConfig)
       .set({
         tahunAjaran: data.tahunAjaran,
@@ -517,6 +527,18 @@ export class PPDBService {
       })
       .where(eq(ppdbConfig.id, id))
       .returning();
+
+    // Handle kontakPanitia update in site_settings
+    if (data.kontakPanitia !== undefined) {
+      const kontakStr = JSON.stringify(data.kontakPanitia);
+      const existing = await db.select().from(siteSettings).where(eq(siteSettings.key, 'ppdb_kontak_panitia')).limit(1);
+      if (existing.length > 0) {
+        await db.update(siteSettings).set({ value: kontakStr, updatedAt: new Date() }).where(eq(siteSettings.key, 'ppdb_kontak_panitia'));
+      } else {
+        await db.insert(siteSettings).values({ key: 'ppdb_kontak_panitia', value: kontakStr, group: 'ppdb' });
+      }
+    }
+
     return updated;
   }
 
