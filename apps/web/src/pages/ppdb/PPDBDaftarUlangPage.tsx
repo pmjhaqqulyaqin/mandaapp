@@ -7,7 +7,7 @@ import {
 import { apiClient, API_BASE_URL } from '../../lib/api';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+
 import QRCode from 'qrcode';
 
 export const PPDBDaftarUlangPage = () => {
@@ -31,6 +31,15 @@ export const PPDBDaftarUlangPage = () => {
     sekolahAsal: string;
     jalurSeleksi: string;
     validationCode: string | null;
+    tempatLahir: string;
+    tanggalLahir: string;
+    jenisKelamin: string;
+    alamat: string;
+    namaAyah: string;
+    namaIbu: string;
+    noHpOrtu: string;
+    npsn: string;
+    registrationPhotoUrl: string | null;
   } | null>(null);
 
   // Form Data
@@ -83,6 +92,15 @@ export const PPDBDaftarUlangPage = () => {
           sekolahAsal: existingDraft.sekolahAsal || '',
           jalurSeleksi: existingDraft.jalurSeleksi || '',
           validationCode: existingDraft.validationCode || null,
+          tempatLahir: existingDraft.tempatLahir || '',
+          tanggalLahir: existingDraft.tanggalLahir || '',
+          jenisKelamin: existingDraft.jenisKelamin || '',
+          alamat: existingDraft.alamat || '',
+          namaAyah: existingDraft.namaAyah || '',
+          namaIbu: existingDraft.namaIbu || '',
+          noHpOrtu: existingDraft.noHpOrtu || '',
+          npsn: existingDraft.npsn || '',
+          registrationPhotoUrl: existingDraft.registrationPhotoUrl || null,
         });
       }
 
@@ -390,32 +408,360 @@ export const PPDBDaftarUlangPage = () => {
   };
 
   const generatePDFDraft = async () => {
-    const draft = document.getElementById('daftar-ulang-form');
-    if (!draft) return;
     try {
       setExportingDraft(true);
-      // Prevent sidebars/buttons from printing
-      const noPrints = draft.querySelectorAll('.no-print');
-      noPrints.forEach(el => (el as HTMLElement).style.display = 'none');
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth(); // 210
+      const pageH = doc.internal.pageSize.getHeight(); // 297
+      const marginX = 15;
+      const contentW = pageW - marginX * 2;
 
-      // Tampilkan temp footer
-      const tmpFooter = document.getElementById('temp-footer');
-      if (tmpFooter) tmpFooter.style.display = 'block';
+      // --- Helper: convert image URL to base64 ---
+      const toBase64 = async (url: string): Promise<string> => {
+        if (!url) return '';
+        if (url.startsWith('data:')) return url;
+        try {
+          const isRelative = url.startsWith('/');
+          const fullUrl = isRelative ? `${API_BASE_URL.replace(/\/api$/, '')}${url}` : url;
+          const response = await fetch(fullUrl, { mode: 'cors' });
+          const blob = await response.blob();
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = () => resolve('');
+            reader.readAsDataURL(blob);
+          });
+        } catch {
+          return '';
+        }
+      };
 
-      const canvas = await html2canvas(draft, { scale: 1.5, useCORS: true, backgroundColor: '#ffffff' });
-      
-      noPrints.forEach(el => (el as HTMLElement).style.display = '');
-      if (tmpFooter) tmpFooter.style.display = 'none';
+      const detail = studentDetail;
+      const schoolName = siteSettings.school_name || 'MAN 2 LOMBOK TIMUR';
+      const schoolSubtitle = siteSettings.school_subtitle || 'Lembaga Pendidikan Berkualitas Berbasis Pesantren';
+      const kabupaten = siteSettings.district_city || 'Lombok Timur';
 
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth - 20, pdfHeight - 20);
-      pdf.save(`Form_Daftar_Ulang_${noPendaftaran?.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+      // ========== HEADER SECTION ==========
+      let y = 12;
+
+      // Background header band
+      doc.setFillColor(15, 77, 56);
+      doc.rect(0, 0, pageW, 38, 'F');
+
+      // School Name
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(255, 255, 255);
+      doc.text(schoolName.toUpperCase(), marginX, y + 6);
+
+      // Subtitle
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(8);
+      doc.setTextColor(180, 220, 200);
+      doc.text(schoolSubtitle, marginX, y + 12);
+
+      // Title badge
+      y = 26;
+      doc.setFillColor(218, 165, 32);
+      doc.roundedRect(marginX, y, 72, 8, 1.5, 1.5, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(255, 255, 255);
+      doc.text('RINGKASAN DATA DAFTAR ULANG', marginX + 3, y + 5.5);
+
+      // Photo placeholder / actual photo (top right)
+      const photoW = 25;
+      const photoH = 30;
+      const photoX = pageW - marginX - photoW;
+      const photoY = 5;
+
+      // Determine photo URL: daftar ulang photo > registration photo
+      const finalPhotoUrl = photoUrl || detail?.registrationPhotoUrl || '';
+      let photoB64 = '';
+      if (finalPhotoUrl) {
+        try { photoB64 = await toBase64(finalPhotoUrl); } catch { /* ignore */ }
+      }
+
+      if (photoB64) {
+        // Draw white border around photo
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(photoX - 1, photoY - 1, photoW + 2, photoH + 2, 1, 1, 'F');
+        doc.addImage(photoB64, 'JPEG', photoX, photoY, photoW, photoH);
+      } else {
+        // Placeholder
+        doc.setFillColor(220, 230, 225);
+        doc.roundedRect(photoX, photoY, photoW, photoH, 1, 1, 'F');
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6);
+        doc.setTextColor(100, 120, 110);
+        doc.text('PAS FOTO', photoX + photoW / 2, photoY + photoH / 2 - 2, { align: 'center' });
+        doc.text('3x4', photoX + photoW / 2, photoY + photoH / 2 + 2, { align: 'center' });
+      }
+
+      // Registration number under header
+      y = 40;
+      doc.setFillColor(245, 248, 250);
+      doc.setDrawColor(200, 210, 220);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(marginX, y, contentW, 8, 1, 1, 'FD');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(100, 110, 120);
+      doc.text('NO. PENDAFTARAN:', marginX + 3, y + 5.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(20, 30, 40);
+      doc.text(detail?.noPendaftaran || noPendaftaran, marginX + 38, y + 5.5);
+
+      // ========== IDENTITAS DIRI + ORTU/WALI SECTION ==========
+      y = 54;
+
+      // Section header: Identitas Diri
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(15, 77, 56);
+      doc.text('\u{1F464}  Identitas Diri', marginX, y);
+
+      // Section header: Identitas Ortu/Wali (right column)
+      const rightColX = pageW / 2 + 5;
+      doc.text('\u{1F464}  Identitas Ortu/Wali', rightColX, y);
+      y += 5;
+
+      // Draw separator line
+      doc.setDrawColor(200, 215, 225);
+      doc.setLineWidth(0.3);
+      doc.line(marginX, y, marginX + contentW, y);
+      y += 5;
+
+      // Data fields helper
+      const drawField = (label: string, value: string, x: number, yPos: number, labelW: number = 28) => {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(120, 130, 140);
+        doc.text(label, x, yPos);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(30, 40, 50);
+        doc.text(value || '-', x + labelW, yPos);
+      };
+
+      // Format TTL
+      const formatDate = (dateStr: string) => {
+        if (!dateStr) return '-';
+        try {
+          const d = new Date(dateStr);
+          return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        } catch { return dateStr; }
+      };
+
+      const ttl = detail?.tempatLahir && detail?.tanggalLahir
+        ? `${detail.tempatLahir}, ${formatDate(detail.tanggalLahir)}`
+        : '-';
+
+      // Left column: Identitas Diri
+      const leftFields = [
+        ['NISN', detail?.nisn || '-'],
+        ['NAMA LENGKAP', detail?.namaLengkap || '-'],
+        ['TTL', ttl],
+        ['GENDER', detail?.jenisKelamin || '-'],
+        ['ALAMAT', detail?.alamat || '-'],
+      ];
+
+      let fieldY = y;
+      const lineH = 7;
+      for (const [label, value] of leftFields) {
+        if (label === 'ALAMAT') {
+          // Alamat may be long, wrap it
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7);
+          doc.setTextColor(120, 130, 140);
+          doc.text(label, marginX, fieldY);
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8);
+          doc.setTextColor(30, 40, 50);
+          const alamatLines = doc.splitTextToSize(value, (pageW / 2) - marginX - 35);
+          doc.text(alamatLines, marginX + 28, fieldY);
+          fieldY += Math.max(alamatLines.length * 4, lineH);
+        } else {
+          drawField(label, value, marginX, fieldY);
+          fieldY += lineH;
+        }
+      }
+
+      // Right column: Identitas Ortu/Wali
+      const rightFields = [
+        ['NAMA AYAH', detail?.namaAyah || '-'],
+        ['NAMA IBU', detail?.namaIbu || '-'],
+        ['KONTAK (WA)', detail?.noHpOrtu || '-'],
+      ];
+
+      let rightFieldY = y;
+      for (const [label, value] of rightFields) {
+        drawField(label, value, rightColX, rightFieldY, 28);
+        rightFieldY += lineH;
+      }
+
+      // Identitas Sekolah (right column, after ortu)
+      rightFieldY += 3;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(15, 77, 56);
+      doc.text('\u{1F3EB}  Identitas Sekolah', rightColX, rightFieldY);
+      rightFieldY += 5;
+      doc.setDrawColor(200, 215, 225);
+      doc.line(rightColX, rightFieldY, pageW - marginX, rightFieldY);
+      rightFieldY += 5;
+
+      const schoolFields = [
+        ['SEKOLAH ASAL', detail?.sekolahAsal || '-'],
+        ['NPSN', detail?.npsn || '-'],
+      ];
+      for (const [label, value] of schoolFields) {
+        drawField(label, value, rightColX, rightFieldY, 28);
+        rightFieldY += lineH;
+      }
+
+      // ========== CHECKLIST DOKUMEN & PERLENGKAPAN ==========
+      y = Math.max(fieldY, rightFieldY) + 8;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(15, 77, 56);
+      doc.text('\u{1F4CB}  Checklist Dokumen & Perlengkapan', marginX, y);
+      y += 3;
+      doc.setDrawColor(200, 215, 225);
+      doc.setLineWidth(0.3);
+      doc.line(marginX, y, marginX + contentW, y);
+      y += 4;
+
+      // Table header
+      const colWidths = [80, 35, 65];
+      const tableX = marginX;
+      doc.setFillColor(15, 77, 56);
+      doc.rect(tableX, y, contentW, 7, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(255, 255, 255);
+      doc.text('JENIS DOKUMEN / KEBUTUHAN', tableX + 3, y + 5);
+      doc.text('STATUS', tableX + colWidths[0] + 5, y + 5);
+      doc.text('KETERANGAN', tableX + colWidths[0] + colWidths[1] + 5, y + 5);
+      y += 7;
+
+      // Table rows
+      const getStatusLabel = (url: string, optional: boolean = false): [string, [number, number, number]] => {
+        if (url) return ['UPLOADED', [15, 130, 80]];
+        if (optional) return ['OPTIONAL', [180, 100, 50]];
+        return ['BELUM', [200, 80, 80]];
+      };
+
+      const docRows = [
+        { label: 'Ijazah / SKL', url: ijazahUrl, note: ijazahUrl ? 'Terverifikasi sistem' : 'Belum diunggah' },
+        { label: 'Kartu Keluarga (KK)', url: kkUrl, note: kkUrl ? 'File format: PDF' : 'Belum diunggah' },
+        { label: 'Kartu PIP/PKH', url: kipUrl, optional: true, note: kipUrl ? 'Telah diunggah' : 'Tidak diunggah' },
+        { label: 'Bukti Bayar Daftar Ulang', url: buktiPembayaranUrl, note: buktiPembayaranUrl ? 'Referensi: BSI' : 'Belum diunggah' },
+        { label: 'Ukuran Baju Seragam', value: ukuranBaju || '-', isSize: true, note: ukuranBaju ? 'Ukuran Ditetapkan' : 'Belum dipilih' },
+        { label: 'Ukuran Celana / Rok', value: ukuranCelana || '-', isSize: true, note: ukuranCelana ? 'Sesuai standar Nasional' : 'Belum dipilih' },
+      ];
+
+      docRows.forEach((row, i) => {
+        const rowY = y + (i * 9);
+        // Alternate row bg
+        if (i % 2 === 0) {
+          doc.setFillColor(250, 252, 254);
+          doc.rect(tableX, rowY, contentW, 9, 'F');
+        }
+        // Row border
+        doc.setDrawColor(230, 235, 240);
+        doc.setLineWidth(0.15);
+        doc.line(tableX, rowY + 9, tableX + contentW, rowY + 9);
+
+        // Label
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(30, 40, 50);
+        doc.text(row.label, tableX + 3, rowY + 6);
+
+        // Status badge or value
+        if (row.isSize) {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(9);
+          doc.setTextColor(30, 40, 50);
+          doc.text(row.value || '-', tableX + colWidths[0] + 10, rowY + 6);
+        } else {
+          const [statusText, statusColor] = getStatusLabel(row.url, row.optional);
+          // Draw badge
+          const badgeW = doc.getTextWidth(statusText) + 6;
+          doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
+          doc.roundedRect(tableX + colWidths[0] + 3, rowY + 1.5, badgeW + 2, 6, 1, 1, 'F');
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(5.5);
+          doc.setTextColor(255, 255, 255);
+          doc.text(statusText, tableX + colWidths[0] + 6, rowY + 5.5);
+        }
+
+        // Keterangan
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(6.5);
+        doc.setTextColor(140, 150, 160);
+        doc.text(row.note, tableX + colWidths[0] + colWidths[1] + 5, rowY + 6);
+      });
+
+      y += docRows.length * 9 + 8;
+
+      // ========== SIGNATURE SECTION ==========
+      const now = new Date();
+      const tanggal = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+      // Place & Date (right aligned)
+      const signatureBlockY = y + 5;
+      const sigRightX = pageW - marginX - 60;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(50, 60, 70);
+
+      // Left signature - Orang Tua/Wali
+      doc.text('Orang Tua/Wali,', marginX + 15, signatureBlockY);
+      // Signature line
+      doc.setDrawColor(150, 160, 170);
+      doc.setLineWidth(0.3);
+      doc.line(marginX + 5, signatureBlockY + 25, marginX + 55, signatureBlockY + 25);
+      // Parent name placeholder
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(130, 140, 150);
+      doc.text('NAMA TERANG & TANDA TANGAN', marginX + 5, signatureBlockY + 29);
+
+      // Right signature - Calon Siswa with place & date
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(50, 60, 70);
+      doc.text(`${kabupaten}, ${tanggal}`, sigRightX, signatureBlockY - 5);
+      doc.text('Calon Siswa,', sigRightX + 10, signatureBlockY);
+      // Signature line
+      doc.line(sigRightX, signatureBlockY + 25, sigRightX + 55, signatureBlockY + 25);
+      // Student name
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(30, 40, 50);
+      doc.text((detail?.namaLengkap || '').toUpperCase(), sigRightX + 5, signatureBlockY + 30);
+
+      // ========== FOOTER ==========
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(5.5);
+      doc.setTextColor(170, 180, 190);
+      doc.text(
+        `Dokumen ini dihasilkan otomatis dari sistem Scholarly Campus Registry ${schoolName}.`,
+        pageW / 2,
+        pageH - 8,
+        { align: 'center' }
+      );
+
+      // Save
+      doc.save(`Form_Daftar_Ulang_${noPendaftaran?.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
       toast.success('Form berhasil diunduh');
     } catch(err) {
+      console.error('PDF generation error:', err);
       toast.error('Gagal membuat PDF Form');
     } finally {
       setExportingDraft(false);
@@ -600,22 +946,7 @@ export const PPDBDaftarUlangPage = () => {
              </div>
           </div>
           
-          {/* Temporary string print-only for signature */}
-          <div id="temp-footer" className="mt-16 hidden">
-            <p className="text-xs text-justify text-gray-600 mb-8 border border-gray-300 p-4 rounded bg-gray-50">
-              Dengan menandatangani form ini, kami menyatakan bahwa seluruh data dan dokumen yang diserahkan adalah benar. Kami bersedia tunduk pada aturan Madrasah.
-            </p>
-            <div className="flex justify-between px-10 text-center">
-              <div>
-                <p className="text-sm mb-16 font-semibold">Orang Tua / Wali</p>
-                <p className="font-bold underline">_________________</p>
-              </div>
-              <div>
-                <p className="text-sm mb-16 font-semibold">Calon Siswa</p>
-                <p className="font-bold underline">_________________</p>
-              </div>
-            </div>
-          </div>
+
 
         </div>
 

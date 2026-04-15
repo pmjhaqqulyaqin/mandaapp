@@ -732,12 +732,16 @@ export class PPDBService {
     if (pendaftarList.length === 0) return null;
     const pendaftar = pendaftarList[0];
 
-    const [dList, dataDiri, dataSekolah, jalurData] = await Promise.all([
+    const [dList, dataDiri, dataSekolah, jalurData, dokumenList] = await Promise.all([
       db.select().from(ppdbDaftarUlang).where(eq(ppdbDaftarUlang.pendaftarId, pendaftar.id)),
       db.select().from(ppdbDataDiri).where(eq(ppdbDataDiri.pendaftarId, pendaftar.id)),
       db.select().from(ppdbDataSekolah).where(eq(ppdbDataSekolah.pendaftarId, pendaftar.id)),
       db.select().from(ppdbJalur).where(eq(ppdbJalur.id, pendaftar.jalurId)),
+      db.select().from(ppdbDokumen).where(eq(ppdbDokumen.pendaftarId, pendaftar.id)),
     ]);
+
+    // Find registration photo from documents (uploaded during initial registration)
+    const registrationPhoto = dokumenList.find(d => d.jenisDokumen === 'Pas Foto 3x4');
 
     return {
       ...(dList.length > 0 ? dList[0] : {}),
@@ -747,6 +751,16 @@ export class PPDBService {
       noPendaftaran: pendaftar.noPendaftaran,
       sekolahAsal: dataSekolah[0]?.namaSekolah || null,
       jalurSeleksi: jalurData[0]?.namaJalur || null,
+      // Extended fields for PDF generation
+      tempatLahir: dataDiri[0]?.tempatLahir || null,
+      tanggalLahir: dataDiri[0]?.tanggalLahir || null,
+      jenisKelamin: dataDiri[0]?.jenisKelamin || null,
+      alamat: dataDiri[0]?.alamat || null,
+      namaAyah: dataDiri[0]?.namaAyah || null,
+      namaIbu: dataDiri[0]?.namaIbu || null,
+      noHpOrtu: dataDiri[0]?.noHpOrtu || null,
+      npsn: dataSekolah[0]?.npsn || null,
+      registrationPhotoUrl: registrationPhoto?.filePath || null,
     };
   }
 
