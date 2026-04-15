@@ -2,7 +2,7 @@ import { db } from '../../db';
 import { 
   ppdbConfig, ppdbJalur, ppdbPendaftar, ppdbDataDiri, 
   ppdbDataSekolah, ppdbNilaiRaport, ppdbPrestasi, ppdbDokumen, ppdbDaftarUlang,
-  siteSettings
+  ppdbTesConfig, ppdbNilaiTes, siteSettings
 } from '../../db/schema';
 import { eq, and, desc, asc, ilike, or, sql, count } from 'drizzle-orm';
 import path from 'path';
@@ -555,13 +555,16 @@ export class PPDBService {
         or(eq(ppdbPendaftar.status, 'terverifikasi'), eq(ppdbPendaftar.status, 'diterima'), eq(ppdbPendaftar.status, 'cadangan'))
       ));
 
+    // Fetch active Tes configs for this Jalur
+    const tesConfigs = await db.select().from(ppdbTesConfig)
+      .where(and(eq(ppdbTesConfig.jalurId, jalurId), eq(ppdbTesConfig.isActive, true)));
+
     // Calculate final true score based on bobot
     const scoredCandidates = await Promise.all(candidates.map(async (c) => {
-      // Base score is nilaiAkhir
+      // Base score is nilaiAkhir (from Raport)
       const baseScore = parseFloat(c.nilaiAkhir || '0');
       
-      // Calculate prestasi score loosely (count certificates or level)
-      // Just a simple approximation since real ranking is complex. Let's say Internasional = +100, Nasional=+80, Provinsi=+60, Kabupaten=+40
+      // Calculate prestasi score loosely
       const prestasiList = await db.select().from(ppdbPrestasi).where(eq(ppdbPrestasi.pendaftarId, c.id));
       let prestasiScore = 0;
       for (const p of prestasiList) {
@@ -571,18 +574,36 @@ export class PPDBService {
         else if (p.tingkat?.toLowerCase() === 'kabupaten') prestasiScore += 40;
         else prestasiScore += 20; // Default
       }
-      // Cap prestasiScore to 100
       prestasiScore = Math.min(prestasiScore, 100);
+
+      // Fetch internal tests scores
+      const nilaiTeses = await db.select().from(ppdbNilaiTes).where(eq(ppdbNilaiTes.pendaftarId, c.id));
+      
+      let sumTesWeighted = 0;
+      let totalTesBobot = 0;
+
+      for (const config of tesConfigs) {
+        const matchingScore = nilaiTeses.find((n) => n.tesConfigId === config.id);
+        const userScore = matchingScore ? matchingScore.nilai : 0;
+        sumTesWeighted += (userScore * config.bobot);
+        totalTesBobot += config.bobot;
+      }
 
       const bobotNilai = jalur.bobotNilai || 100;
       const bobotPrestasi = jalur.bobotPrestasi || 0;
-
-      const finalScore = ((baseScore * bobotNilai) + (prestasiScore * bobotPrestasi)) / (bobotNilai + bobotPrestasi);
+      
+      const totalBobotAll = bobotNilai + bobotPrestasi + totalTesBobot;
+      
+      let finalScore = 0;
+      if (totalBobotAll > 0) {
+        finalScore = ((baseScore * bobotNilai) + (prestasiScore * bobotPrestasi) + sumTesWeighted) / totalBobotAll;
+      }
 
       return {
         id: c.id,
         rawScore: baseScore,
         prestasiScore,
+        sumTesWeighted,
         finalScore,
       };
     }));
@@ -601,7 +622,7 @@ export class PPDBService {
   }
 
   /** Bulk update acceptance based on ranking and quota */
-  static async tetapkanKelulusan(jalurId: string) {
+  static async tetapkanKelulusan(jalurId: string, jumlahCadangan: number = 0) {
     const jalurData = await db.select().from(ppdbJalur).where(eq(ppdbJalur.id, jalurId));
     if (jalurData.length === 0) throw new Error('Jalur tidak ditemukan');
     const jalur = jalurData[0];
@@ -616,18 +637,24 @@ export class PPDBService {
       .orderBy(asc(ppdbPendaftar.ranking));
 
     let acceptedCount = 0;
+    let cadanganCount = 0;
+    let ditolakCount = 0;
     const year = new Date().getFullYear();
     
     // Process acceptance
     for (const p of ranked) {
       if (p.status === 'ditolak') continue; // Skip already rejected explicitly
       
-      let newStatus = 'cadangan';
+      let newStatus = 'ditolak';
       if (acceptedCount < quota) {
         newStatus = 'diterima';
         acceptedCount++;
-      } else {
+      } else if (cadanganCount < jumlahCadangan) {
         newStatus = 'cadangan';
+        cadanganCount++;
+      } else {
+        newStatus = 'ditolak';
+        ditolakCount++;
       }
 
       // Generate unique validation code for accepted students
@@ -834,5 +861,110 @@ export class PPDBService {
       validationCode: pendaftar.validationCode,
       tglDaftar: pendaftar.tglDaftar,
     };
+  }
+
+  // ============ PENILAIAN TES ENDPOINTS ============
+
+  static async getTesConfig(jalurId: string) {
+    return await db.select().from(ppdbTesConfig).where(eq(ppdbTesConfig.jalurId, jalurId)).orderBy(asc(ppdbTesConfig.createdAt));
+  }
+
+  static async createTesConfig(jalurId: string, data: any) {
+    const inserted = await db.insert(ppdbTesConfig).values({
+      jalurId,
+      namaTes: data.namaTes,
+      bobot: data.bobot || 10,
+      isActive: data.isActive !== undefined ? data.isActive : true,
+      pengujiId: data.pengujiId || null
+    }).returning();
+    return inserted[0];
+  }
+
+  static async updateTesConfig(id: string, data: any) {
+    const updated = await db.update(ppdbTesConfig).set({
+      namaTes: data.namaTes,
+      bobot: data.bobot,
+      isActive: data.isActive,
+      pengujiId: data.pengujiId,
+      updatedAt: new Date()
+    }).where(eq(ppdbTesConfig.id, id)).returning();
+    return updated[0];
+  }
+
+  static async deleteTesConfig(id: string) {
+    await db.delete(ppdbNilaiTes).where(eq(ppdbNilaiTes.tesConfigId, id));
+    await db.delete(ppdbTesConfig).where(eq(ppdbTesConfig.id, id));
+    return { success: true };
+  }
+
+  static async getPengujiTesList(userId: string) {
+    // A teacher might have multiple tests assigned across multiple jalur
+    const assignedTests = await db.select({
+      id: ppdbTesConfig.id,
+      namaTes: ppdbTesConfig.namaTes,
+      jalurId: ppdbTesConfig.jalurId,
+      namaJalur: ppdbJalur.namaJalur,
+      isActive: ppdbTesConfig.isActive
+    }).from(ppdbTesConfig)
+      .innerJoin(ppdbJalur, eq(ppdbJalur.id, ppdbTesConfig.jalurId))
+      .where(and(eq(ppdbTesConfig.pengujiId, userId), eq(ppdbTesConfig.isActive, true)));
+    return assignedTests;
+  }
+
+  static async getPesertaByTes(tesConfigId: string, query: any) {
+    const tesConf = await db.select().from(ppdbTesConfig).where(eq(ppdbTesConfig.id, tesConfigId));
+    if (tesConf.length === 0) throw new Error("Test config not found");
+    const jalurId = tesConf[0].jalurId;
+
+    // Get all candidates for the given jalur
+    const pendaftarQuery = db.select({
+      pendaftarId: ppdbPendaftar.id,
+      noPendaftaran: ppdbPendaftar.noPendaftaran,
+      nisn: ppdbPendaftar.nisn,
+      namaLengkap: ppdbDataDiri.namaLengkap,
+      sekolahAsal: ppdbDataSekolah.namaSekolah,
+      status: ppdbPendaftar.status,
+    }).from(ppdbPendaftar)
+      .leftJoin(ppdbDataDiri, eq(ppdbPendaftar.id, ppdbDataDiri.pendaftarId))
+      .leftJoin(ppdbDataSekolah, eq(ppdbPendaftar.id, ppdbDataSekolah.pendaftarId))
+      .where(eq(ppdbPendaftar.jalurId, jalurId));
+
+    const pendaftarList = await pendaftarQuery;
+
+    // Lookup their scores
+    const nilaiTeses = await db.select().from(ppdbNilaiTes).where(eq(ppdbNilaiTes.tesConfigId, tesConfigId));
+
+    return pendaftarList.map(p => {
+      const match = nilaiTeses.find(n => n.pendaftarId === p.pendaftarId);
+      return {
+        ...p,
+        nilaiId: match?.id || null,
+        nilai: match?.nilai || 0
+      };
+    });
+  }
+
+  static async bulkUpdateNilaiTes(tesConfigId: string, updates: [{pendaftarId: string, nilai: number}]) {
+    if (!tesConfigId || !updates || !Array.isArray(updates)) throw new Error("Invalid request");
+
+    // Can use promise.all since bulk upsert in raw sql for pg takes more effort
+    await Promise.all(updates.map(async (u) => {
+      const existing = await db.select().from(ppdbNilaiTes).where(
+        and(eq(ppdbNilaiTes.pendaftarId, u.pendaftarId), eq(ppdbNilaiTes.tesConfigId, tesConfigId))
+      ).limit(1);
+
+      if (existing.length > 0) {
+        await db.update(ppdbNilaiTes).set({ nilai: u.nilai, updatedAt: new Date() })
+          .where(eq(ppdbNilaiTes.id, existing[0].id));
+      } else {
+        await db.insert(ppdbNilaiTes).values({
+          pendaftarId: u.pendaftarId,
+          tesConfigId: tesConfigId,
+          nilai: u.nilai
+        });
+      }
+    }));
+
+    return { success: true, count: updates.length };
   }
 }

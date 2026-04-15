@@ -24,10 +24,21 @@ router.put('/admin/daftar-ulang/:id/status', PPDBController.updateDaftarUlangSta
 router.get('/admin/jalur', PPDBController.getAllJalurAdmin);
 router.put('/admin/jalur/:id', PPDBController.updateJalur);
 router.get('/admin/export', PPDBController.exportPendaftar);
+router.get('/admin/pendaftar/export', PPDBController.exportPendaftar);
 router.put('/admin/config/:id', PPDBController.updateConfig);
 router.post('/admin/jalur/:jalurId/ranking', PPDBController.generateRanking);
 router.post('/admin/jalur/:jalurId/kelulusan', PPDBController.tetapkanKelulusan);
 router.get('/admin/daftar-ulang', PPDBController.listDaftarUlangAdmin);
 router.post('/admin/brosur', upload.single('file'), PPDBController.uploadBrosur);
+
+// ============ PENILAIAN TES & UJIAN ENDPOINTS ============
+router.get('/admin/tes-config/:jalurId', PPDBController.getTesConfig);
+router.post('/admin/tes-config/:jalurId', PPDBController.createTesConfig);
+router.put('/admin/tes-config/:id', PPDBController.updateTesConfig);
+router.delete('/admin/tes-config/:id', PPDBController.deleteTesConfig);
+
+router.get('/penguji/tes', PPDBController.getPengujiTesList);
+router.get('/penguji/tes/:tesConfigId/peserta', PPDBController.getPesertaByTes);
+router.put('/penguji/tes/:tesConfigId/nilai', PPDBController.bulkUpdateNilaiTes);
 
 export const ppdbRoutes = router;

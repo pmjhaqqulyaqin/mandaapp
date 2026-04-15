@@ -511,6 +511,27 @@ export const ppdbPrestasi = pgTable("ppdb_prestasi", {
   createdAt: timestamp("created_at").defaultNow()
 });
 
+// Custom Tests / Ujian Internal (Ditambahkan sesuai revisi)
+export const ppdbTesConfig = pgTable("ppdb_tes_config", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  jalurId: uuid("jalur_id").references(() => ppdbJalur.id, { onDelete: "cascade" }).notNull(),
+  namaTes: varchar("nama_tes", { length: 150 }).notNull(),
+  bobot: integer("bobot").notNull().default(10),
+  isActive: boolean("is_active").default(true),
+  pengujiId: text("penguji_id").references(() => user.id), // Tying test to specific examiner
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const ppdbNilaiTes = pgTable("ppdb_nilai_tes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  pendaftarId: uuid("pendaftar_id").references(() => ppdbPendaftar.id, { onDelete: "cascade" }).notNull(),
+  tesConfigId: uuid("tes_config_id").references(() => ppdbTesConfig.id, { onDelete: "cascade" }).notNull(),
+  nilai: integer("nilai").notNull().default(0), // e.g. 0-100
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
 export const ppdbDokumen = pgTable("ppdb_dokumen", {
   id: uuid("id").primaryKey().defaultRandom(),
   pendaftarId: uuid("pendaftar_id").references(() => ppdbPendaftar.id, { onDelete: "cascade" }).notNull(),

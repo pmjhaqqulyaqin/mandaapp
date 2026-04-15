@@ -31,6 +31,7 @@ import { ExamManagementPage } from './pages/exams/ExamManagementPage';
 import { PPDBInfoPage } from './pages/ppdb/PPDBInfoPage';
 import { PPDBFormPage } from './pages/ppdb/PPDBFormPage';
 import { PPDBAdminPage } from './pages/ppdb/PPDBAdminPage';
+import { PPDBPenilaianPage } from './pages/ppdb/PPDBPenilaianPage';
 import { PPDBDaftarUlangPage } from './pages/ppdb/PPDBDaftarUlangPage';
 import { PPDBVerifikasiPage } from './pages/ppdb/PPDBVerifikasiPage';
 import { SystemUpdateCenter } from './pages/dashboard/SystemUpdateCenter';
@@ -140,6 +141,7 @@ function App() {
           <Route path="updates" element={<SystemUpdateCenter />} />
           <Route path="services" element={<DashboardServices />} />
           <Route path="ppdb" element={<PPDBAdminPage />} />
+          <Route path="ppdb/penilaian" element={<PPDBPenilaianPage />} />
         </Route>
       </Routes>
       <FloatingActionButton />

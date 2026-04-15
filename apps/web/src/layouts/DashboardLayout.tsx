@@ -22,6 +22,7 @@ import {
   LogOut,
   ClipboardCheck,
   GraduationCap,
+  Star,
 } from 'lucide-react';
 import { ProfileModal } from '../components/modals/ProfileModal';
 
@@ -106,6 +107,13 @@ const ALL_MENU_ITEMS = [
     group: 'main',
   },
   {
+    key: 'penilaian-pmb',
+    label: 'Penilaian PMB',
+    href: '/dashboard/ppdb/penilaian',
+    icon: <Star size={16} />,
+    group: 'main',
+  },
+  {
     key: 'ptsp',
     label: 'Pusat Layanan',
     href: '/dashboard/services',
@@ -178,6 +186,7 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'employees': 'employees',
   'exams': 'exams',
   'ppdb': 'ppdb',
+  'ppdb/penilaian': 'penilaian-pmb',
 };
 
 const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');

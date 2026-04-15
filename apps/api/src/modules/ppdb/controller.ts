@@ -170,7 +170,9 @@ export class PPDBController {
 
   static async tetapkanKelulusan(req: Request, res: Response) {
     try {
-      const result = await PPDBService.tetapkanKelulusan(req.params.jalurId);
+      const { jumlahCadangan } = req.body || {};
+      const cadangan = parseInt(jumlahCadangan) || 0;
+      const result = await PPDBService.tetapkanKelulusan(req.params.jalurId, cadangan);
       res.json(result);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -211,6 +213,73 @@ export class PPDBController {
       res.json({ valid: true, data: result });
     } catch (error: any) {
       res.status(500).json({ error: error.message, valid: false });
+    }
+  }
+
+  // ============ PENILAIAN TES ENDPOINTS ============
+
+  static async getTesConfig(req: Request, res: Response) {
+    try {
+      const result = await PPDBService.getTesConfig(req.params.jalurId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async createTesConfig(req: Request, res: Response) {
+    try {
+      const result = await PPDBService.createTesConfig(req.params.jalurId, req.body);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  static async updateTesConfig(req: Request, res: Response) {
+    try {
+      const result = await PPDBService.updateTesConfig(req.params.id, req.body);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  static async deleteTesConfig(req: Request, res: Response) {
+    try {
+      const result = await PPDBService.deleteTesConfig(req.params.id);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  static async getPengujiTesList(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id; // Assuming auth middleware sets req.user
+      if (!userId) throw new Error("Unauthorized");
+      const result = await PPDBService.getPengujiTesList(userId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async getPesertaByTes(req: Request, res: Response) {
+    try {
+      const result = await PPDBService.getPesertaByTes(req.params.tesConfigId, req.query);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async bulkUpdateNilaiTes(req: Request, res: Response) {
+    try {
+      const result = await PPDBService.bulkUpdateNilaiTes(req.params.tesConfigId, req.body.data);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
     }
   }
 }

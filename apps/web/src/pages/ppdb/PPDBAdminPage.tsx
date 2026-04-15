@@ -7,8 +7,9 @@ import {
   GraduationCap, Users, Trophy, ClipboardList, Settings, BarChart3,
   Search, ChevronDown, Filter, Eye, Check, X, Loader2, RefreshCw,
   CheckCircle, Clock, XCircle, AlertCircle, Upload, ImageIcon,
-  Plus, Trash2, Phone
+  Plus, Trash2, Phone, FileDown
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 type TabKey = 'overview' | 'pendaftar' | 'daftar_ulang' | 'seleksi' | 'konfigurasi';
 
@@ -156,6 +157,7 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -204,6 +206,53 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
     } catch (err: any) { toast.error(err.message); }
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      if (filterJalur) params.set('jalurId', filterJalur);
+      if (filterStatus) params.set('status', filterStatus);
+      
+      const result = await apiClient<any>(`/ppdb/admin/pendaftar/export?${params}`);
+      if (!result || result.length === 0) {
+        toast.error('Tidak ada data untuk diekspor');
+        return;
+      }
+      
+      const formattedData = result.map((p: any) => ({
+        'Tanggal Daftar': new Date(p.tglDaftar).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'}),
+        'No Pendaftaran': p.noPendaftaran,
+        'NISN': p.nisn,
+        'Nama Lengkap': p.ppdb_data_diri?.namaLengkap || '-',
+        'L/P': p.ppdb_data_diri?.jenisKelamin === 'Laki-laki' ? 'L' : p.ppdb_data_diri?.jenisKelamin === 'Perempuan' ? 'P' : '-',
+        'Asal Sekolah': p.ppdb_data_diri?.namaSekolah || '-',
+        'Jalur': p.ppdb_jalur?.namaJalur || '-',
+        'Status': p.status,
+        'Nilai Akhir': p.nilaiAkhir || '-',
+        'Ranking': p.ranking || '-'
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(formattedData);
+      
+      // Auto-size columns
+      const colWidths = [
+        {wch: 15}, {wch: 20}, {wch: 15}, {wch: 35}, {wch: 5}, {wch: 30}, {wch: 15}, {wch: 15}, {wch: 10}, {wch: 10}
+      ];
+      ws['!cols'] = colWidths;
+      
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'DataPendaftar');
+      XLSX.writeFile(wb, `Data_Pendaftar_PMB_${new Date().getTime()}.xlsx`);
+      toast.success('Berhasil mengekspor data');
+    } catch (err) {
+      toast.error('Gagal mengekspor data');
+      console.error(err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const jalurList = stats?.jalurStats || [];
 
   return (
@@ -240,6 +289,15 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
             <option key={key} value={key}>{meta.label}</option>
           ))}
         </select>
+        
+        <button
+          onClick={handleExport}
+          disabled={exporting || total === 0}
+          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50 whitespace-nowrap"
+        >
+          {exporting ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
+          Export Excel
+        </button>
       </div>
 
       {/* Table */}
@@ -481,6 +539,7 @@ const SeleksiTab = ({ stats }: { stats: any }) => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [jumlahCadangan, setJumlahCadangan] = useState<number>(0);
 
   useEffect(() => {
     if (stats?.jalurStats?.length > 0 && !selectedJalur) {
@@ -519,10 +578,10 @@ const SeleksiTab = ({ stats }: { stats: any }) => {
   };
 
   const handleTetapkanKelulusan = async () => {
-    if (!selectedJalur || !window.confirm('Yakin ingin menetapkan status Kelulusan (Diterima/Cadangan) berdasarkan Kuota?')) return;
+    if (!selectedJalur || !window.confirm(`Yakin ingin menetapkan status Kelulusan (Diterima/Cadangan) berdasarkan Kuota dan Cadangan (${jumlahCadangan})?`)) return;
     setProcessing(true);
     try {
-      await apiClient(`/ppdb/admin/jalur/${selectedJalur}/kelulusan`, { method: 'POST' });
+      await apiClient(`/ppdb/admin/jalur/${selectedJalur}/kelulusan`, { method: 'POST', data: { jumlahCadangan } });
       toast.success('Kelulusan berhasil ditetapkan!');
       fetchRankedData();
     } catch (err: any) { toast.error(err.message); }
@@ -530,19 +589,25 @@ const SeleksiTab = ({ stats }: { stats: any }) => {
   };
 
   const exportExcel = () => {
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + "Ranking,No Pendaftaran,NISN,Nama,Sekolah Asal,Nilai Akhir,Status\n"
-      + data.map(row => {
-          return `${row.pendaftar.ranking || '-'},${row.pendaftar.noPendaftaran},${row.pendaftar.nisn},"${row.dataDiri?.namaLengkap || ''}","${row.dataSekolah?.namaSekolah || ''}",${row.pendaftar.nilaiAkhir || 0},${row.pendaftar.status}`;
-        }).join("\n");
-        
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `SIMPMB_Export_Jalur_${selectedJalur}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const formattedData = data.map(row => ({
+      'Ranking': row.pendaftar.ranking || '-',
+      'No Pendaftaran': row.pendaftar.noPendaftaran,
+      'NISN': row.pendaftar.nisn,
+      'Nama': row.dataDiri?.namaLengkap || '-',
+      'Sekolah Asal': row.dataSekolah?.namaSekolah || '-',
+      'Nilai Akhir': row.pendaftar.nilaiAkhir || 0,
+      'Status': row.pendaftar.status
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(formattedData);
+    const colWidths = [{wch: 10}, {wch: 20}, {wch: 15}, {wch: 35}, {wch: 30}, {wch: 15}, {wch: 20}];
+    ws['!cols'] = colWidths;
+    
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'HasilRanking');
+    const namaJalur = currentJalurInfo ? currentJalurInfo.namaJalur.replace(/\s+/g, '_') : selectedJalur;
+    XLSX.writeFile(wb, `Hasil_Ranking_PMB_${namaJalur}.xlsx`);
+    toast.success('Berhasil mengekspor peringkat ke Excel');
   };
 
   // Find info about current selected jalur
@@ -562,14 +627,26 @@ const SeleksiTab = ({ stats }: { stats: any }) => {
         </select>
         <div className="flex-1" />
         <button onClick={exportExcel} disabled={data.length === 0} className="px-4 py-2 bg-white border border-border-light text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-50 flex items-center gap-1.5 disabled:opacity-50">
-          <ClipboardList size={14} /> Export CSV
+          <FileDown size={14} /> Export Excel
         </button>
         <button onClick={handleGenerateRanking} disabled={processing || !selectedJalur} className="px-4 py-2 bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-blue-600 disabled:opacity-50">
           <RefreshCw size={14} className={processing ? 'animate-spin' : ''} /> 1. Generate Peringkat
         </button>
-        <button onClick={handleTetapkanKelulusan} disabled={processing || !selectedJalur} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-700 disabled:opacity-50">
-          <Check size={14} /> 2. Tetapkan Diterima
-        </button>
+        
+        {/* Cadangan Input */}
+        <div className="flex items-center gap-2 bg-emerald-50 rounded-lg pr-1">
+          <label className="text-[11px] font-bold text-emerald-800 pl-3">Cadangan:</label>
+          <input 
+            type="number" 
+            min="0"
+            className="w-16 h-8 text-xs text-center border-emerald-200 rounded-md outline-none focus:border-emerald-500 bg-white"
+            value={jumlahCadangan}
+            onChange={(e) => setJumlahCadangan(parseInt(e.target.value) || 0)}
+          />
+          <button onClick={handleTetapkanKelulusan} disabled={processing || !selectedJalur} className="h-8 px-3 bg-emerald-600 text-white rounded-md text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-700 disabled:opacity-50">
+            <Check size={14} /> 2. Tetapkan
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto border border-border-light dark:border-border-dark rounded-xl">
@@ -611,6 +688,114 @@ const SeleksiTab = ({ stats }: { stats: any }) => {
             })}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+};
+
+// ============ KOMPONEN PENGATURAN TES JALUR ============
+const JalurTesConfigManager = ({ jalurId }: { jalurId: string }) => {
+  const [configs, setConfigs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Form state
+  const [namaTes, setNamaTes] = useState('');
+  const [bobot, setBobot] = useState<number>(10);
+  const [isActive, setIsActive] = useState(true);
+
+  const fetchConfigs = useCallback(async () => {
+    try {
+      const res = await apiClient<any[]>(`/ppdb/admin/tes-config/${jalurId}`);
+      setConfigs(res || []);
+    } catch(e) { console.error(e); }
+    finally { setLoading(false); }
+  }, [jalurId]);
+
+  useEffect(() => { fetchConfigs(); }, [fetchConfigs]);
+
+  const handleAdd = async () => {
+    if(!namaTes) return;
+    setSaving(true);
+    try {
+      await apiClient(`/ppdb/admin/tes-config/${jalurId}`, {
+        method: 'POST',
+        data: { namaTes, bobot, isActive }
+      });
+      toast.success('Berhasil menambahkan tes');
+      setNamaTes('');
+      setBobot(10);
+      fetchConfigs();
+    } catch(e: any) { toast.error(e.message); }
+    finally { setSaving(false); }
+  };
+
+  const toggleActive = async (id: string, active: boolean) => {
+    try {
+      await apiClient(`/ppdb/admin/tes-config/${id}`, {
+        method: 'PUT',
+        data: { isActive: active }
+      });
+      fetchConfigs();
+    } catch(e: any) { toast.error(e.message); }
+  };
+
+  const handleDelete = async (id: string) => {
+    if(!window.confirm('Yakin hapus tes ini? Semua nilai peserta untuk tes ini juga akan terhapus.')) return;
+    try {
+      await apiClient(`/ppdb/admin/tes-config/${id}`, { method: 'DELETE' });
+      toast.success('Tes dihapus');
+      fetchConfigs();
+    } catch(e: any) { toast.error(e.message); }
+  }
+
+  if (loading) return <div className="p-4 text-center"><Loader2 className="animate-spin mx-auto text-emerald-500" size={16}/></div>;
+
+  return (
+    <div className="mt-4 p-4 border border-dashed border-emerald-300 bg-emerald-50/30 rounded-xl dark:border-emerald-900 dark:bg-emerald-900/10">
+      <h4 className="font-bold text-emerald-800 dark:text-emerald-400 mb-2 text-sm">Ujian / Tes Tambahan</h4>
+      <p className="text-[11px] text-emerald-600/80 mb-3">Tambahkan mata ujian khusus untuk jalur ini (misal: Tes Tulis, Wawancara). Bobot tes ini akan dijumlahkan dengan bobot Nilai Raport & Prestasi secara otomatis.</p>
+      
+      {configs.length > 0 && (
+        <div className="space-y-2 mb-4">
+          {configs.map((c) => (
+            <div key={c.id} className="flex items-center gap-3 bg-white dark:bg-[#111] p-2.5 rounded border border-gray-100 dark:border-[#222]">
+              <div className="flex-1">
+                <p className="text-xs font-bold text-gray-700 dark:text-gray-200">{c.namaTes}</p>
+                <p className="text-[10px] text-gray-500">Bobot: {c.bobot}</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={c.isActive} onChange={e => toggleActive(c.id, e.target.checked)} className="sr-only peer" />
+                <div className="w-7 h-4 bg-gray-200 peer-checked:bg-emerald-500 rounded-full peer transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-3" />
+              </label>
+              <button onClick={() => handleDelete(c.id)} className="text-red-400 hover:text-red-600 p-1"><Trash2 size={14}/></button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row gap-2">
+        <input 
+          type="text" 
+          placeholder="Nama Tes (cth: Tes Tulis)" 
+          value={namaTes} 
+          onChange={e => setNamaTes(e.target.value)}
+          className="flex-1 px-3 py-2 text-xs rounded border border-gray-200 outline-none"
+        />
+        <input 
+          type="number" 
+          placeholder="Bobot" 
+          value={bobot} 
+          onChange={e => setBobot(Number(e.target.value))}
+          className="w-20 px-3 py-2 text-xs rounded border border-gray-200 outline-none"
+        />
+        <button 
+          onClick={handleAdd}
+          disabled={saving || !namaTes}
+          className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold disabled:opacity-50 flex items-center justify-center gap-1"
+        >
+          {saving ? <Loader2 size={12} className="animate-spin"/> : <Plus size={12}/>} Tambah 
+        </button>
       </div>
     </div>
   );
@@ -1001,14 +1186,18 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
               <textarea rows={2} value={jalur.deskripsi || ''} onChange={e => updateJalur(jalur.id, 'deskripsi', e.target.value)} className={inputClass} />
             </div>
 
-            <button
-              onClick={() => saveJalur(jalur)}
-              disabled={saving === jalur.id}
-              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
-            >
-              {saving === jalur.id ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-              Simpan Perubahan
-            </button>
+            <JalurTesConfigManager jalurId={jalur.id} />
+
+            <div className="mt-4">
+              <button
+                onClick={() => saveJalur(jalur)}
+                disabled={saving === jalur.id}
+                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
+              >
+                {saving === jalur.id ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                Simpan Perubahan
+              </button>
+            </div>
           </div>
         );
       })}
