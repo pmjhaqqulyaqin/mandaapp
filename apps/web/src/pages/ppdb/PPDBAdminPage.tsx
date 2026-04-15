@@ -702,17 +702,24 @@ const JalurTesConfigManager = ({ jalurId }: { jalurId: string }) => {
   // Form state
   const [namaTes, setNamaTes] = useState('');
   const [bobot, setBobot] = useState<number>(10);
+  const [pengujiId, setPengujiId] = useState<string>('');
   const [isActive, setIsActive] = useState(true);
 
-  const fetchConfigs = useCallback(async () => {
+  const [pengujiOptions, setPengujiOptions] = useState<any[]>([]);
+
+  const fetchConfigsAndUsers = useCallback(async () => {
     try {
-      const res = await apiClient<any[]>(`/ppdb/admin/tes-config/${jalurId}`);
-      setConfigs(res || []);
+      const [resConfigs, resUsers] = await Promise.all([
+        apiClient<any[]>(`/ppdb/admin/tes-config/${jalurId}`),
+        apiClient<any[]>('/users/dropdown')
+      ]);
+      setConfigs(resConfigs || []);
+      setPengujiOptions(resUsers || []);
     } catch(e) { console.error(e); }
     finally { setLoading(false); }
   }, [jalurId]);
 
-  useEffect(() => { fetchConfigs(); }, [fetchConfigs]);
+  useEffect(() => { fetchConfigsAndUsers(); }, [fetchConfigsAndUsers]);
 
   const handleAdd = async () => {
     if(!namaTes) return;
@@ -720,12 +727,13 @@ const JalurTesConfigManager = ({ jalurId }: { jalurId: string }) => {
     try {
       await apiClient(`/ppdb/admin/tes-config/${jalurId}`, {
         method: 'POST',
-        data: { namaTes, bobot, isActive }
+        data: { namaTes, bobot, isActive, pengujiId: pengujiId || null }
       });
       toast.success('Berhasil menambahkan tes');
       setNamaTes('');
       setBobot(10);
-      fetchConfigs();
+      setPengujiId('');
+      fetchConfigsAndUsers();
     } catch(e: any) { toast.error(e.message); }
     finally { setSaving(false); }
   };
@@ -736,7 +744,18 @@ const JalurTesConfigManager = ({ jalurId }: { jalurId: string }) => {
         method: 'PUT',
         data: { isActive: active }
       });
-      fetchConfigs();
+      fetchConfigsAndUsers();
+    } catch(e: any) { toast.error(e.message); }
+  };
+
+  const handleUpdatePenguji = async (id: string, newPengujiId: string) => {
+    try {
+      await apiClient(`/ppdb/admin/tes-config/${id}`, {
+        method: 'PUT',
+        data: { pengujiId: newPengujiId || null }
+      });
+      toast.success('Penguji diperbarui');
+      fetchConfigsAndUsers();
     } catch(e: any) { toast.error(e.message); }
   };
 
@@ -745,7 +764,7 @@ const JalurTesConfigManager = ({ jalurId }: { jalurId: string }) => {
     try {
       await apiClient(`/ppdb/admin/tes-config/${id}`, { method: 'DELETE' });
       toast.success('Tes dihapus');
-      fetchConfigs();
+      fetchConfigsAndUsers();
     } catch(e: any) { toast.error(e.message); }
   }
 
@@ -760,15 +779,28 @@ const JalurTesConfigManager = ({ jalurId }: { jalurId: string }) => {
         <div className="space-y-2 mb-4">
           {configs.map((c) => (
             <div key={c.id} className="flex items-center gap-3 bg-white dark:bg-[#111] p-2.5 rounded border border-gray-100 dark:border-[#222]">
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-gray-700 dark:text-gray-200">{c.namaTes}</p>
-                <p className="text-[10px] text-gray-500">Bobot: {c.bobot}</p>
+                <p className="text-[10px] text-gray-500 mb-1">Bobot: {c.bobot}</p>
+                
+                <select 
+                  value={c.pengujiId || ''} 
+                  onChange={e => handleUpdatePenguji(c.id, e.target.value)}
+                  className="w-full text-[10px] p-1 border border-gray-200 dark:border-[#333] rounded outline-none dark:bg-[#111]"
+                >
+                  <option value="">-- Pilih Guru/Penguji --</option>
+                  {pengujiOptions.map(u => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.role || 'user'})</option>
+                  ))}
+                </select>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" checked={c.isActive} onChange={e => toggleActive(c.id, e.target.checked)} className="sr-only peer" />
-                <div className="w-7 h-4 bg-gray-200 peer-checked:bg-emerald-500 rounded-full peer transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-3" />
-              </label>
-              <button onClick={() => handleDelete(c.id)} className="text-red-400 hover:text-red-600 p-1"><Trash2 size={14}/></button>
+              <div className="flex flex-col items-end gap-2">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" checked={c.isActive} onChange={e => toggleActive(c.id, e.target.checked)} className="sr-only peer" />
+                  <div className="w-7 h-4 bg-gray-200 peer-checked:bg-emerald-500 rounded-full peer transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-3" />
+                </label>
+                <button onClick={() => handleDelete(c.id)} className="text-red-400 hover:text-red-600 p-1"><Trash2 size={14}/></button>
+              </div>
             </div>
           ))}
         </div>
@@ -787,8 +819,18 @@ const JalurTesConfigManager = ({ jalurId }: { jalurId: string }) => {
           placeholder="Bobot" 
           value={bobot} 
           onChange={e => setBobot(Number(e.target.value))}
-          className="w-20 px-3 py-2 text-xs rounded border border-gray-200 outline-none"
+          className="w-16 px-3 py-2 text-xs rounded border border-gray-200 outline-none"
         />
+        <select 
+          value={pengujiId}
+          onChange={e => setPengujiId(e.target.value)}
+          className="w-32 px-2 py-2 text-xs rounded border border-gray-200 outline-none"
+        >
+          <option value="">Tanpa Penilai</option>
+          {pengujiOptions.map(u => (
+            <option key={u.id} value={u.id}>{u.name}</option>
+          ))}
+        </select>
         <button 
           onClick={handleAdd}
           disabled={saving || !namaTes}

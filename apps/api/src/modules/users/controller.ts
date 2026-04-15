@@ -107,6 +107,22 @@ export async function selectOwnRoleHandler(req: Request, res: Response) {
   }
 }
 
+
+export async function getUsersDropdownHandler(_req: Request, res: Response) {
+  try {
+    const list = await db.select({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    }).from(user);
+    res.json(list);
+  } catch(error) {
+    console.error(error);
+    res.status(500).json({ error: "Gagal memuat pengguna" });
+  }
+}
+
 // ─── Role Menu Permissions ───
 
 const ROLE_PERMISSIONS_KEY = "role_menu_permissions";
