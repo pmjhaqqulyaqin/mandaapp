@@ -11,13 +11,18 @@ const resolveUrl = (url: string) => {
   return url;
 };
 
-/** Convert /uploads/file.webp → /uploads/thumb/file.webp?w=400 for lightweight thumbnails */
+/** Convert upload URLs → /uploads/thumb/file.webp?w=400 for lightweight thumbnails */
 const toThumb = (url: string, width = 400) => {
   if (!url) return '';
-  // Only transform local /uploads/ paths
-  const match = url.match(/^\/uploads\/([^/]+)$/);
-  if (match) {
-    return `${SERVER_BASE}/uploads/thumb/${match[1]}?w=${width}`;
+  // Match /uploads/filename.webp
+  const uploadsMatch = url.match(/\/uploads\/([^/?#]+)$/);
+  if (uploadsMatch) {
+    return `${SERVER_BASE}/uploads/thumb/${uploadsMatch[1]}?w=${width}`;
+  }
+  // Match /api/system/file/filename.webp (news editor images)
+  const systemMatch = url.match(/\/api\/system\/file\/([^/?#]+)$/);
+  if (systemMatch) {
+    return `${SERVER_BASE}/uploads/thumb/${systemMatch[1]}?w=${width}`;
   }
   return resolveUrl(url);
 };

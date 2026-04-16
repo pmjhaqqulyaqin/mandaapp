@@ -3,11 +3,15 @@ import React from 'react';
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
 const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
 
-/** Convert /uploads/file.webp → server/uploads/thumb/file.webp?w=400 for lightweight thumbnails */
+/** Convert upload URLs → server/uploads/thumb/file.webp?w=400 for lightweight thumbnails */
 const toThumbUrl = (url: string) => {
   if (!url) return '';
-  const match = url.match(/\/uploads\/([^/?#]+)$/);
-  if (match) return `${SERVER_BASE}/uploads/thumb/${match[1]}?w=400`;
+  // Match /uploads/filename.webp
+  const uploadsMatch = url.match(/\/uploads\/([^/?#]+)$/);
+  if (uploadsMatch) return `${SERVER_BASE}/uploads/thumb/${uploadsMatch[1]}?w=400`;
+  // Match /api/system/file/filename.webp (news editor images)  
+  const systemMatch = url.match(/\/api\/system\/file\/([^/?#]+)$/);
+  if (systemMatch) return `${SERVER_BASE}/uploads/thumb/${systemMatch[1]}?w=400`;
   return url;
 };
 // Struktur data berita
