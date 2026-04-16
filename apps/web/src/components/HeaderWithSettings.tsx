@@ -1,4 +1,4 @@
-import { Header } from '@mandaapp/ui';
+import { Header } from '@mandaapp/ui/src/components/Header';
 import { useSiteSettings } from '../hooks/api/useSettings';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../lib/api';

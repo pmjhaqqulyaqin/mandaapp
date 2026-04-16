@@ -1,5 +1,13 @@
-import { HeroSection, NewsSection, GallerySection, ContactSection, QuickLinksSection } from '@mandaapp/ui';
-import type { NewsItem as UINewsItem } from '@mandaapp/ui';
+import React, { Suspense } from 'react';
+import { HeroSection } from '@mandaapp/ui/src/components/HeroSection';
+import type { NewsItem as UINewsItem } from '@mandaapp/ui/src/components/NewsSection';
+
+// Lazy loading below-the-fold components for Mobile Performance
+const NewsSection = React.lazy(() => import('@mandaapp/ui/src/components/NewsSection').then(m => ({ default: m.NewsSection })));
+const GallerySection = React.lazy(() => import('@mandaapp/ui/src/components/GallerySection').then(m => ({ default: m.GallerySection })));
+const ContactSection = React.lazy(() => import('@mandaapp/ui/src/components/ContactSection').then(m => ({ default: m.ContactSection })));
+const QuickLinksSection = React.lazy(() => import('@mandaapp/ui/src/components/QuickLinksSection').then(m => ({ default: m.QuickLinksSection })));
+
 import { useNavigate } from 'react-router-dom';
 import { useNews } from '../hooks/api/useNews';
 import { useGallery } from '../hooks/api/useGallery';
@@ -91,18 +99,20 @@ export const LandingPage = () => {
           sliderDuration={heroSliderDuration}
           sliderImages={resolvedHeroImages}
         />
-        <NewsSection items={newsItems} onReadMore={(id) => navigate(`/news/${id}`)} />
-        <QuickLinksSection />
-        <GallerySection items={galleryItems} socialLinks={socialLinks} />
-        <ContactSection
-          onSubmit={(data) => contactsService.submit(data)}
-          schoolName={get('school_name') || undefined}
-          address={fullAddress}
-          phone={get('phone') || undefined}
-          email={get('email') || undefined}
-          mapEmbedUrl={get('map_embed_url') || undefined}
-          logoUrl={resolvedLogo}
-        />
+        <Suspense fallback={<div className="h-[400px] flex items-center justify-center"><div className="w-8 h-8 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin"></div></div>}>
+          <NewsSection items={newsItems} onReadMore={(id) => navigate(`/news/${id}`)} />
+          <QuickLinksSection />
+          <GallerySection items={galleryItems} socialLinks={socialLinks} />
+          <ContactSection
+            onSubmit={(data) => contactsService.submit(data)}
+            schoolName={get('school_name') || undefined}
+            address={fullAddress}
+            phone={get('phone') || undefined}
+            email={get('email') || undefined}
+            mapEmbedUrl={get('map_embed_url') || undefined}
+            logoUrl={resolvedLogo}
+          />
+        </Suspense>
       </main>
       <FooterWithSettings />
     </div>

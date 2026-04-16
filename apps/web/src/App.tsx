@@ -6,7 +6,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { MaintenanceGuard } from './components/MaintenanceGuard';
 import { useFavicon } from './hooks/useFavicon';
-import { FloatingActionButton, ScrollToTopButton } from '@mandaapp/ui';
+import { FloatingActionButton } from '@mandaapp/ui/src/components/FloatingActionButton';
+import { ScrollToTopButton } from '@mandaapp/ui/src/components/ScrollToTopButton';
 import { Toaster } from 'sonner';
 
 // Lazy loading all pages

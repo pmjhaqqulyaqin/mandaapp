@@ -11,6 +11,7 @@ export default defineConfig({
     },
   },
   build: {
+    modulePreload: false,
     assetsDir: '', // Output assets directly to root, bypassing extraction bugs
     rollupOptions: {
       output: {

@@ -1,4 +1,4 @@
-import { Footer } from '@mandaapp/ui';
+import { Footer } from '@mandaapp/ui/src/components/Footer';
 import { useSiteSettings } from '../hooks/api/useSettings';
 import { API_BASE_URL } from '../lib/api';
 
