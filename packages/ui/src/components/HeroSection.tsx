@@ -228,14 +228,14 @@ export const HeroSection = ({
       <div className="absolute top-0 left-0 w-full h-[55%] z-[3] pointer-events-none overflow-hidden">
         <div 
           className="absolute inset-0 bg-no-repeat opacity-60 mix-blend-overlay bg-[length:auto_100%] md:bg-cover bg-bottom animate-pan-slow md:animate-none"
-          style={{ backgroundImage: "url('/Gambar Langit manda.png')" }}
+          style={{ backgroundImage: "url('/Gambar Langit manda.webp')" }}
         ></div>
       </div>
 
       {/* Layer 3: Foreground Building (Covers the bottom of the sky window) */}
       <div 
         className={`absolute inset-0 bg-no-repeat z-[10] transition-opacity duration-1000 ${isDaytime ? 'opacity-100' : 'opacity-50 brightness-75'} bg-[length:auto_100%] md:bg-cover bg-bottom animate-pan-slow md:animate-none`}
-        style={{ backgroundImage: "url('/hero-building.png')" }}
+        style={{ backgroundImage: "url('/hero-building.webp')" }}
       >
         <div className={`absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none`}></div>
       </div>

@@ -35,10 +35,10 @@ export const Footer = ({
   const websites = relatedWebsites && relatedWebsites.length > 0 ? relatedWebsites : defaultLinks;
 
   const socialLinks = [
-    { url: facebookUrl, icon: <Facebook className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> },
-    { url: twitterUrl, icon: <Twitter className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> },
-    { url: youtubeUrl, icon: <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> },
-    { url: instagramUrl, icon: <Instagram className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> },
+    { name: 'Facebook', url: facebookUrl, icon: <Facebook className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> },
+    { name: 'Twitter', url: twitterUrl, icon: <Twitter className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> },
+    { name: 'YouTube', url: youtubeUrl, icon: <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> },
+    { name: 'Instagram', url: instagramUrl, icon: <Instagram className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> },
   ];
 
   return (
@@ -117,7 +117,7 @@ export const Footer = ({
             {/* Social Media Icons */}
             <div className="flex gap-1.5 sm:gap-2 justify-center w-full pt-3 border-t border-gray-200 dark:border-gray-800 shrink-0">
               {socialLinks.map((s, i) => (
-                <a key={i} href={s.url || '#'} target="_blank" rel="noopener noreferrer" className="p-1.5 sm:p-2 rounded-md border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-text-secondary hover:text-primary transition-colors">
+                <a key={i} href={s.url || '#'} target="_blank" rel="noopener noreferrer" aria-label={s.name} className="p-1.5 sm:p-2 rounded-md border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-text-secondary hover:text-primary transition-colors">
                   {s.icon}
                 </a>
               ))}

@@ -220,6 +220,7 @@ export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
                     onClick={(e) => toggleShare(e, item.id)}
                     className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shadow-lg transition-all transform hover:scale-110 active:scale-95 opacity-0 group-hover:opacity-100 invisible group-hover:visible"
                     title="Bagikan"
+                    aria-label="Bagikan"
                   >
                     <Share2 size={20} />
                   </button>

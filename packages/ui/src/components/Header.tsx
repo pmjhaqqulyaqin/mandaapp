@@ -566,6 +566,8 @@ export const Header = ({
                     {hasChildren ? (
                       <button
                         onClick={() => setExpandedMobileMenus(prev => ({ ...prev, [menuItem.id]: !prev[menuItem.id] }))}
+                        aria-expanded={!!isExpanded}
+                        aria-label={`Buka submenu ${menuItem.label}`}
                         className="hover:bg-green-50/50 dark:hover:bg-white/5 active:scale-[0.98] transition-all duration-200 outline-none"
                         style={{
                           display: 'flex',
