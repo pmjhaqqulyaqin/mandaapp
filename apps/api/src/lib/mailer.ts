@@ -190,14 +190,14 @@ export const sendPMBAdminNotificationEmail = async (
 
   try {
     const info = await transporter.sendMail({
-      from: \`"Sistem SIMPMB MAN 2 LOTIM" <\${process.env.SMTP_USER}>\`,
+      from: `"Sistem SIMPMB MAN 2 LOTIM" <${process.env.SMTP_USER}>`,
       to,
-      subject: \`[PMB-Baru] \${pendaftar.namaLengkap} - \${pendaftar.asalSekolah}\`,
+      subject: `[PMB-Baru] ${pendaftar.namaLengkap} - ${pendaftar.asalSekolah}`,
       html: htmlContent
     });
-    console.log(\`[MAILER] PMB Admin Notification sent to \${to}: \${info.messageId}\`);
+    console.log(`[MAILER] PMB Admin Notification sent to ${to}: ${info.messageId}`);
   } catch (err: any) {
-    console.error(\`[MAILER] Failed to send PMB Admin Notification email:\`, err);
+    console.error(`[MAILER] Failed to send PMB Admin Notification email:`, err);
   }
 };
 
