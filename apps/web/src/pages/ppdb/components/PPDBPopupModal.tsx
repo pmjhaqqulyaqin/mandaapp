@@ -283,6 +283,11 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
               const isPrestasi = jalur.namaJalur?.toLowerCase().includes('prestasi');
               const isReguler = jalur.namaJalur?.toLowerCase().includes('reguler');
               const isSingle = activeJalurList.length === 1;
+              
+              let displayNama = (jalur.namaJalur || 'Aktif').toUpperCase();
+              if (!displayNama.startsWith('JALUR')) {
+                displayNama = `JALUR ${displayNama}`;
+              }
 
               const sizeClasses = isSingle 
                 ? 'px-5 py-2.5 text-sm shadow-md' 
@@ -292,19 +297,19 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
               if (isPrestasi) {
                 return (
                   <span key={idx} className={`inline-flex items-center gap-2 bg-amber-50 text-amber-700 font-bold rounded-full border border-amber-200 transition-all ${sizeClasses}`}>
-                    <span className={iconSize}>🏆</span> {jalur.namaJalur}
+                    <span className={iconSize}>🏆</span> {displayNama}
                   </span>
                 );
               } else if (isReguler) {
                 return (
                   <span key={idx} className={`inline-flex items-center gap-2 bg-blue-50 text-blue-700 font-bold rounded-full border border-blue-200 transition-all ${sizeClasses}`}>
-                    <span className={iconSize}>📋</span> {jalur.namaJalur}
+                    <span className={iconSize}>📋</span> {displayNama}
                   </span>
                 );
               }
               return (
                 <span key={idx} className={`inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 font-bold rounded-full border border-emerald-200 transition-all ${sizeClasses}`}>
-                  <span className={iconSize}>✨</span> {jalur.namaJalur || 'Jalur Aktif'}
+                  <span className={iconSize}>✨</span> {displayNama}
                 </span>
               );
             })}
