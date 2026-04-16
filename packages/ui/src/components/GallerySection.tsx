@@ -197,7 +197,7 @@ export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
                   <div className="flex justify-between items-end w-full gap-4">
                     <div className="flex-1 min-w-0">
-                      <span className="inline-block px-2 py-0.5 bg-primary/90 text-white text-[10px] font-semibold rounded mb-1.5 w-fit">
+                      <span className="inline-block px-2 py-0.5 bg-[#0f7b5f] text-white text-[10px] font-semibold rounded mb-1.5 w-fit">
                         {item.category}
                       </span>
                       <h3 className="text-base font-heading font-bold text-white mb-0.5 truncate">
@@ -366,7 +366,7 @@ export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
               {/* Image Info Overlay */}
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-6 pt-16">
                 {currentItem.category && (
-                  <span className="inline-block px-3 py-1 bg-primary/90 text-white text-xs font-semibold rounded-md mb-2">
+                  <span className="inline-block px-3 py-1 bg-[#0f7b5f] text-white text-xs font-semibold rounded-md mb-2">
                     {currentItem.category}
                   </span>
                 )}

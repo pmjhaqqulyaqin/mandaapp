@@ -143,7 +143,7 @@ export const Header = ({
       <div
         ref={infoBarRef}
         style={{
-          background: 'linear-gradient(135deg, #0f7b5f 0%, #1a9a6f 50%, #2aaa7a 100%)',
+          background: 'linear-gradient(135deg, #0a523f 0%, #0d6b52 50%, #0f7b5f 100%)',
           color: '#fff',
           overflow: 'hidden',
           maxHeight: isScrolled ? '0px' : '34px',
@@ -407,6 +407,7 @@ export const Header = ({
                 <input
                   ref={searchInputRef}
                   type="text"
+                  aria-label="Kolom Pencarian"
                   placeholder="Cari..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -458,7 +459,7 @@ export const Header = ({
                     minHeight: '34px',
                     borderRadius: searchOpen ? '0 6px 6px 0' : '6px',
                     border: 'none',
-                    background: '#1a9a6f',
+                    background: '#0f7b5f',
                     color: '#fff',
                     display: 'flex',
                     alignItems: 'center',
@@ -467,8 +468,8 @@ export const Header = ({
                     transition: 'background 200ms',
                     flexShrink: 0,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#0f7b5f'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = '#1a9a6f'; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#0c6a51'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '#0f7b5f'; }}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, width: '18px', height: '18px' }}>
                     <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
@@ -487,23 +488,23 @@ export const Header = ({
                 justifyContent: 'center',
                 padding: '0 16px',
                 borderRadius: '6px',
-                background: '#1a9a6f',
+                background: '#0f7b5f',
                 color: '#fff',
                 fontSize: '12.5px',
                 fontWeight: 600,
                 textDecoration: 'none',
                 transition: 'background 200ms, box-shadow 200ms',
-                boxShadow: '0 1px 3px rgba(26, 154, 111, 0.3)',
+                boxShadow: '0 1px 3px rgba(15, 123, 95, 0.3)',
                 flexShrink: 0,
                 minWidth: '80px',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#0f7b5f';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(26, 154, 111, 0.4)';
+                e.currentTarget.style.background = '#0c6a51';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 123, 95, 0.4)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#1a9a6f';
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(26, 154, 111, 0.3)';
+                e.currentTarget.style.background = '#0f7b5f';
+                e.currentTarget.style.boxShadow = '0 1px 3px rgba(15, 123, 95, 0.3)';
               }}
             >
               Login
@@ -701,8 +702,8 @@ export const Header = ({
                 marginTop: '12px',
                 padding: '10px 14px',
                 borderRadius: '10px',
-                background: 'linear-gradient(135deg, #1a9a6f 0%, #10b981 100%)',
-                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+                background: 'linear-gradient(135deg, #0f7b5f 0%, #0d6b52 100%)',
+                boxShadow: '0 4px 12px rgba(15, 123, 95, 0.25)',
                 color: '#fff',
                 fontSize: '13.5px',
                 fontWeight: 600,
