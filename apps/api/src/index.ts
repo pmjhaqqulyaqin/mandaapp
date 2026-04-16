@@ -112,7 +112,30 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: '50mb' }));
+// On-the-fly thumbnail generator for gallery images (reduces ~900KB → ~40KB per image)
+app.get('/uploads/thumb/:filename', async (req, res) => {
+  try {
+    const sharp = (await import('sharp')).default;
+    const filePath = path.join(process.cwd(), 'uploads', req.params.filename);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send('Not found');
+    }
+    const width = Math.min(parseInt(req.query.w as string) || 400, 800);
+    const buffer = await sharp(filePath)
+      .resize(width, undefined, { withoutEnlargement: true })
+      .webp({ quality: 75 })
+      .toBuffer();
+    res.setHeader('Content-Type', 'image/webp');
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable'); // 30 days
+    res.send(buffer);
+  } catch (err) {
+    console.error('Thumbnail error:', err);
+    res.status(500).send('Thumbnail generation failed');
+  }
+});
+
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), {
+  maxAge: '30d',
   setHeaders: (res, filePath) => {
     if (filePath.toLowerCase().endsWith('.pdf')) {
       res.setHeader('Content-Type', 'application/pdf');

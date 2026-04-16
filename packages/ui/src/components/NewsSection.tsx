@@ -1,5 +1,15 @@
 import React from 'react';
 
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
+const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
+
+/** Convert /uploads/file.webp → server/uploads/thumb/file.webp?w=400 for lightweight thumbnails */
+const toThumbUrl = (url: string) => {
+  if (!url) return '';
+  const match = url.match(/\/uploads\/([^/?#]+)$/);
+  if (match) return `${SERVER_BASE}/uploads/thumb/${match[1]}?w=400`;
+  return url;
+};
 // Struktur data berita
 export interface NewsItem {
   id: string;
@@ -96,7 +106,7 @@ export const NewsSection = ({ items, onReadMore }: NewsSectionProps) => {
                   {/* Thumbnail Gambar Utama Berita */}
                   {news.imageUrl && (
                     <div className="w-full aspect-video mb-3 rounded-lg overflow-hidden shrink-0 bg-gray-100 dark:bg-gray-800">
-                      <img src={news.imageUrl} alt={news.title} loading="lazy" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 ease-in-out" />
+                      <img src={toThumbUrl(news.imageUrl)} alt={news.title} loading="lazy" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 ease-in-out" />
                     </div>
                   )}
                   {/* Intisari Berita */}

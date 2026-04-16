@@ -52,7 +52,7 @@ export const ContactSection = ({
       <div 
         className="absolute inset-0 opacity-20 dark:opacity-10 pointer-events-none"
         style={{
-          backgroundImage: "url('/school_doodle_bg.png')",
+          backgroundImage: "url('/school_doodle_bg.webp')",
           backgroundSize: '400px',
           backgroundRepeat: 'repeat'
         }}

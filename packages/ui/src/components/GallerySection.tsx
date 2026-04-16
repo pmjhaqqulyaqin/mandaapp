@@ -11,6 +11,17 @@ const resolveUrl = (url: string) => {
   return url;
 };
 
+/** Convert /uploads/file.webp → /uploads/thumb/file.webp?w=400 for lightweight thumbnails */
+const toThumb = (url: string, width = 400) => {
+  if (!url) return '';
+  // Only transform local /uploads/ paths
+  const match = url.match(/^\/uploads\/([^/]+)$/);
+  if (match) {
+    return `${SERVER_BASE}/uploads/thumb/${match[1]}?w=${width}`;
+  }
+  return resolveUrl(url);
+};
+
 const galleryItems = [
   {
     id: 1,
@@ -189,7 +200,7 @@ export const GallerySection = ({ items, socialLinks }: GallerySectionProps) => {
                 onClick={() => openLightbox(index)}
               >
                 <img
-                  src={resolveUrl(item.imageUrl)}
+                  src={toThumb(item.imageUrl)}
                   alt={item.title}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   loading="lazy"
