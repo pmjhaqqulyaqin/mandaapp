@@ -9,8 +9,9 @@ const ContactSection = React.lazy(() => import('@mandaapp/ui/src/components/Cont
 const QuickLinksSection = React.lazy(() => import('@mandaapp/ui/src/components/QuickLinksSection').then(m => ({ default: m.QuickLinksSection })));
 
 import { useNavigate } from 'react-router-dom';
-import { useNews } from '../hooks/api/useNews';
-import { useGallery } from '../hooks/api/useGallery';
+import { useQuery } from '@tanstack/react-query';
+import { newsService } from '../lib/services/news';
+import { apiClient } from '../lib/api';
 import { useSiteSettings } from '../hooks/api/useSettings';
 import { contactsService } from '../lib/services/contacts';
 import { FooterWithSettings } from '../components/FooterWithSettings';
@@ -23,41 +24,36 @@ const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
 
 export const LandingPage = () => {
   const navigate = useNavigate();
-  const { queryAll } = useNews();
-  const { queryAll: galleryQuery } = useGallery();
   const { get } = useSiteSettings();
-  const apiNews = queryAll.data || [];
-  const apiGallery = galleryQuery.data || [];
 
-  // Transform API news data to the format expected by NewsSection
-  // Sort by newest first, limit to 6 most recent
-  const newsItems: UINewsItem[] = apiNews
-    .filter((n: any) => n.status === 'Published')
-    .sort((a: any, b: any) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime())
-    .slice(0, 6)
-    .map((n: any) => {
-      const imgMatch = n.content?.match(/<img[^>]+src=["']([^"']+)["']/);
-      const imageUrl = imgMatch ? imgMatch[1] : '';
-      const plainText = n.content?.replace(/<[^>]*>?/gm, '').trim() || '';
-      return {
-        id: n.id,
-        title: n.title,
-        excerpt: plainText.substring(0, 200),
-        imageUrl,
-      };
-    });
+  // Use lightweight summary endpoint (~5KB instead of 7.3MB)
+  const { data: newsSummary = [] } = useQuery({
+    queryKey: ['news', 'summary'],
+    queryFn: () => newsService.getSummary(6),
+  });
 
-  // Transform API gallery data — newest first, limit to 6 thumbnails
-  const galleryItems = apiGallery
-    .sort((a: any, b: any) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
-    .slice(0, 6)
-    .map((g: any) => ({
-      id: g.id,
-      imageUrl: g.url,
-      title: g.title,
-      description: g.description || '',
-      category: 'General',
-    }));
+  // Use limited gallery query (~80KB instead of 774KB)
+  const { data: galleryData = [] } = useQuery({
+    queryKey: ['gallery', 'landing'],
+    queryFn: () => apiClient<any[]>('/gallery?limit=6'),
+  });
+
+  // News summary already comes pre-processed from the API
+  const newsItems: UINewsItem[] = newsSummary.map((n: any) => ({
+    id: n.id,
+    title: n.title,
+    excerpt: n.excerpt || '',
+    imageUrl: n.imageUrl || '',
+  }));
+
+  // Gallery items
+  const galleryItems = galleryData.map((g: any) => ({
+    id: g.id,
+    imageUrl: g.url,
+    title: g.title,
+    description: g.description || '',
+    category: 'General',
+  }));
 
   // Build address with district for contact section
   const fullAddress = [get('address'), get('district_city')].filter(Boolean).join(', ') || undefined;

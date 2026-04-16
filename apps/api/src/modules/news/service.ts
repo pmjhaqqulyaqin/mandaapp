@@ -10,6 +10,36 @@ export class NewsService {
     return db.select().from(newsAnnouncements).where(eq(newsAnnouncements.status, "Published")).orderBy(desc(newsAnnouncements.publishDate));
   }
 
+  /** Lightweight summary for landing page — excludes heavy `content` field */
+  static async getNewsSummary(limit = 6) {
+    const rows = await db
+      .select({
+        id: newsAnnouncements.id,
+        title: newsAnnouncements.title,
+        content: newsAnnouncements.content,
+        publishDate: newsAnnouncements.publishDate,
+        status: newsAnnouncements.status,
+      })
+      .from(newsAnnouncements)
+      .where(eq(newsAnnouncements.status, "Published"))
+      .orderBy(desc(newsAnnouncements.publishDate))
+      .limit(limit);
+
+    // Extract only thumbnail URL and short excerpt from content — never send full HTML
+    return rows.map((row) => {
+      const imgMatch = row.content?.match(/<img[^>]+src=["']([^"']+)["']/);
+      const plainText = row.content?.replace(/<[^>]*>?/gm, "").trim() || "";
+      return {
+        id: row.id,
+        title: row.title,
+        publishDate: row.publishDate,
+        status: row.status,
+        imageUrl: imgMatch ? imgMatch[1] : "",
+        excerpt: plainText.substring(0, 200),
+      };
+    });
+  }
+
   static async getNewsById(id: string) {
     const results = await db.select().from(newsAnnouncements).where(eq(newsAnnouncements.id, id));
     return results[0] || null;

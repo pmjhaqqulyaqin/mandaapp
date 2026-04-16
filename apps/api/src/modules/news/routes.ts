@@ -3,6 +3,7 @@ import { NewsController } from "./controller";
 
 const router = Router();
 
+router.get("/summary", NewsController.getSummary); // Lightweight endpoint for landing page
 router.get("/", NewsController.getAll);
 router.get("/all", NewsController.getAllAdmin); // Admin route
 router.post("/", NewsController.create);

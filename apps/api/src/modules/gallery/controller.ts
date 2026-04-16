@@ -9,7 +9,8 @@ import sharp from "sharp";
 export class GalleryController {
   static async getImages(req: Request, res: Response) {
     try {
-      const images = await GalleryService.getImages();
+      const limit = req.query.limit ? Math.min(parseInt(req.query.limit as string), 50) : undefined;
+      const images = await GalleryService.getImages(limit);
       res.json(images);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch gallery images" });

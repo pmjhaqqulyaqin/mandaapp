@@ -14,6 +14,18 @@ export class NewsController {
     }
   }
 
+  /** Lightweight summary for public landing page (no heavy HTML content) */
+  static async getSummary(req: Request, res: Response) {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 6, 20);
+      const summary = await NewsService.getNewsSummary(limit);
+      res.json(summary);
+    } catch (error) {
+      console.error("Failed to fetch news summary:", error);
+      res.status(500).json({ error: "Failed to fetch news summary" });
+    }
+  }
+
   static async getAllAdmin(req: Request, res: Response) {
     try {
       const news = await NewsService.getAllNews(true);
