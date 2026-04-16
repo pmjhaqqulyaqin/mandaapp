@@ -41,7 +41,7 @@ export function ScrollToTopButton() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #1a9a6f 0%, #2e9e7a 50%, #3ba17e 100%)',
+        background: 'linear-gradient(135deg, #0a523f 0%, #0f7b5f 50%, #0d6b52 100%)',
         boxShadow: '0 4px 14px rgba(30, 130, 100, 0.35)',
         opacity: isVisible ? 1 : 0,
         transform: isVisible ? 'translateY(0)' : 'translateY(60px)',

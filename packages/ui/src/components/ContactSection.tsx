@@ -75,6 +75,7 @@ export const ContactSection = ({
                   <input
                     type="text"
                     placeholder="Name"
+                    aria-label="Nama"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full bg-transparent border-b border-gray-300 dark:border-gray-700 py-2 focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-500 text-text-primary dark:text-text-darkPrimary transition-colors"
@@ -84,6 +85,7 @@ export const ContactSection = ({
                   <input
                     type="email"
                     placeholder="E-mail"
+                    aria-label="Email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="w-full bg-transparent border-b border-gray-300 dark:border-gray-700 py-2 focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-500 text-text-primary dark:text-text-darkPrimary transition-colors"
@@ -94,6 +96,7 @@ export const ContactSection = ({
               <div className="flex flex-col">
                 <textarea
                   placeholder="Pesan"
+                  aria-label="Pesan"
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                   className="w-full min-h-[120px] bg-transparent border-b border-gray-300 dark:border-gray-700 py-2 focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-500 text-text-primary dark:text-text-darkPrimary resize-none transition-colors"
