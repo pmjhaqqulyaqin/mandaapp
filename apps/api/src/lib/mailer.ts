@@ -118,3 +118,86 @@ export const sendSurveyEmail = async (
     console.error(`[MAILER] Failed to send survey email to ${to}:`, err);
   }
 };
+
+export const sendPMBAdminNotificationEmail = async (
+  pendaftar: {
+    namaLengkap: string;
+    tempatLahir: string;
+    tanggalLahir: string;
+    noPendaftaran: string;
+    jenisKelamin: string;
+    asalSekolah: string;
+    jalurNama: string;
+  }
+) => {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn(`[MAILER] SMTP_USER or SMTP_PASS not set in .env! Skipping PMB Admin notification email.`);
+    return;
+  }
+
+  // Define admin email for PMB notifications. Use ADMIN_PMB_EMAIL if set, otherwise fallback to SMTP_USER.
+  const to = process.env.ADMIN_PMB_EMAIL || process.env.SMTP_USER;
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '465'),
+    secure: process.env.SMTP_PORT === '465', 
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
+    }
+  });
+
+  function formatDateIndonesia(dateString: string) {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return new Intl.DateTimeFormat('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }).format(date);
+    } catch {
+      return dateString;
+    }
+  }
+
+  const ttl = `${pendaftar.tempatLahir}, ${formatDateIndonesia(pendaftar.tanggalLahir)}`;
+  const jk = pendaftar.jenisKelamin?.toLowerCase() === 'perempuan' ? 'Perempuan' : 'Laki-Laki';
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-w: 600px; margin: 0 auto; color: #333;">
+      <h2 style="color: #1a73e8; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">Notifikasi Pendaftar Baru - SIMPMB</h2>
+      <p>Halo Panitia PMB,</p>
+      <p>Terdapat pendaftar baru yang berhasil masuk ke sistem Aplikasi SIMPMB MAN 2 LOMBOK TIMUR melalui <strong>${pendaftar.jalurNama}</strong>. Berikut adalah rincian pendaftar tersebut:</p>
+      
+      <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 5px solid #10b981;">
+        <p style="margin: 0 0 10px 0;"><strong>Nomor Pendaftaran:</strong> ${pendaftar.noPendaftaran}</p>
+        <p style="margin: 0 0 10px 0;"><strong>Nama Lengkap:</strong> ${pendaftar.namaLengkap}</p>
+        <p style="margin: 0 0 10px 0;"><strong>TTL:</strong> ${ttl}</p>
+        <p style="margin: 0 0 10px 0;"><strong>Jenis Kelamin:</strong> ${jk}</p>
+        <p style="margin: 0 0 10px 0;"><strong>Asal Sekolah:</strong> ${pendaftar.asalSekolah}</p>
+      </div>
+
+      <p style="font-size: 13px; color: #64748b;">
+        Silakan login ke panel administrator untuk meninjau detail lengkap berkas dan data pendaftar ini.
+      </p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px; border-top: 1px solid #f0f0f0; padding-top: 20px; text-align: center;">
+        Ini adalah pesan otomatis dari sistem PMB MAN 2 LOMBOK TIMUR.<br/>Harap tidak merespons email ini.
+      </p>
+    </div>
+  `;
+
+  try {
+    const info = await transporter.sendMail({
+      from: \`"Sistem SIMPMB MAN 2 LOTIM" <\${process.env.SMTP_USER}>\`,
+      to,
+      subject: \`[PMB-Baru] \${pendaftar.namaLengkap} - \${pendaftar.asalSekolah}\`,
+      html: htmlContent
+    });
+    console.log(\`[MAILER] PMB Admin Notification sent to \${to}: \${info.messageId}\`);
+  } catch (err: any) {
+    console.error(\`[MAILER] Failed to send PMB Admin Notification email:\`, err);
+  }
+};
+

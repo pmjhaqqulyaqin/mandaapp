@@ -7,6 +7,7 @@ import {
 import { eq, and, desc, asc, ilike, or, sql, count, inArray } from 'drizzle-orm';
 import path from 'path';
 import fs from 'fs';
+import { sendPMBAdminNotificationEmail } from '../../lib/mailer';
 
 export class PPDBService {
 
@@ -246,6 +247,17 @@ export class PPDBService {
         });
       }
     }
+
+    // 8. Send Real Time Notification to Admin
+    sendPMBAdminNotificationEmail({
+      namaLengkap: data.dataDiri.namaLengkap,
+      tempatLahir: data.dataDiri.tempatLahir,
+      tanggalLahir: data.dataDiri.tanggalLahir,
+      noPendaftaran,
+      jenisKelamin: data.dataDiri.jenisKelamin,
+      asalSekolah: data.dataSekolah.namaSekolah,
+      jalurNama: jalur.namaJalur
+    }).catch(e => console.error(e));
 
     return {
       id: pendaftar.id,
