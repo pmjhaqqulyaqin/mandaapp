@@ -1,51 +1,65 @@
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { LandingPage } from './pages/LandingPage';
-import { LoginPage } from './pages/LoginPage';
-import { NewsPage } from './pages/NewsPage';
-import { NewsDetailPage } from './pages/NewsDetailPage';
-import { GalleryPage } from './pages/GalleryPage';
-import { DynamicPage } from './pages/DynamicPage';
-import { DashboardLayout } from './layouts/DashboardLayout';
-import { DashboardOverview } from './pages/DashboardOverview';
-import { DashboardNews } from './pages/DashboardNews';
-import { DashboardCalendar } from './pages/DashboardCalendar';
-import { DashboardStudentCard } from './pages/DashboardStudentCard';
-import { DashboardGallery } from './pages/DashboardGallery';
-import { DashboardContacts } from './pages/DashboardContacts';
-import { DashboardSettings } from './pages/DashboardSettings';
-import { DashboardUsers } from './pages/DashboardUsers';
-import { DashboardPages } from './pages/dashboard/DashboardPages';
-import { DashboardMenus } from './pages/dashboard/DashboardMenus';
-import { DashboardServices } from './pages/dashboard/DashboardServices';
-import { DashboardStudents } from './pages/DashboardStudents';
-import { DashboardNIS } from './pages/DashboardNIS';
-import { DashboardEmployees } from './pages/DashboardEmployees';
-import { SelectRolePage } from './pages/SelectRolePage';
+
+// Core contexts and components that shouldn't be lazy loaded
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { MaintenanceGuard } from './components/MaintenanceGuard';
 import { useFavicon } from './hooks/useFavicon';
-import { ServicePageRoute } from './pages/layanan/ServicePageRoute';
-import { EOfficePage } from './pages/eoffice/EOfficePage';
-import { ExamManagementPage } from './pages/exams/ExamManagementPage';
-import { PPDBInfoPage } from './pages/ppdb/PPDBInfoPage';
-import { PPDBFormPage } from './pages/ppdb/PPDBFormPage';
-import { PPDBAdminPage } from './pages/ppdb/PPDBAdminPage';
-import { PPDBPenilaianPage } from './pages/ppdb/PPDBPenilaianPage';
-import { PPDBDaftarUlangPage } from './pages/ppdb/PPDBDaftarUlangPage';
-import { PPDBVerifikasiPage } from './pages/ppdb/PPDBVerifikasiPage';
-import { SystemUpdateCenter } from './pages/dashboard/SystemUpdateCenter';
-import { BatchPrintPage } from './pages/BatchPrintPage';
-import { PrintAcademicCalendar } from './pages/PrintAcademicCalendar';
-import { PrintKartuPeserta } from './pages/exams/print/PrintKartuPeserta';
-import { PrintIdCardPegawai } from './pages/exams/print/PrintIdCardPegawai';
-import { PrintBeritaAcaraMapel } from './pages/exams/print/PrintBeritaAcaraMapel';
-import { PrintBeritaAcaraSekolah } from './pages/exams/print/PrintBeritaAcaraSekolah';
-import { PrintPaktaIntegritas } from './pages/exams/print/PrintPaktaIntegritas';
-import { PrintDaftarHadirPeserta } from './pages/exams/print/PrintDaftarHadirPeserta';
-import { PrintFormatNilai } from './pages/exams/print/PrintFormatNilai';
 import { FloatingActionButton, ScrollToTopButton } from '@mandaapp/ui';
 import { Toaster } from 'sonner';
+
+// Lazy loading all pages
+const LandingPage = React.lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
+const LoginPage = React.lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
+const NewsPage = React.lazy(() => import('./pages/NewsPage').then(m => ({ default: m.NewsPage })));
+const NewsDetailPage = React.lazy(() => import('./pages/NewsDetailPage').then(m => ({ default: m.NewsDetailPage })));
+const GalleryPage = React.lazy(() => import('./pages/GalleryPage').then(m => ({ default: m.GalleryPage })));
+const DynamicPage = React.lazy(() => import('./pages/DynamicPage').then(m => ({ default: m.DynamicPage })));
+const DashboardLayout = React.lazy(() => import('./layouts/DashboardLayout').then(m => ({ default: m.DashboardLayout })));
+const DashboardOverview = React.lazy(() => import('./pages/DashboardOverview').then(m => ({ default: m.DashboardOverview })));
+const DashboardNews = React.lazy(() => import('./pages/DashboardNews').then(m => ({ default: m.DashboardNews })));
+const DashboardCalendar = React.lazy(() => import('./pages/DashboardCalendar').then(m => ({ default: m.DashboardCalendar })));
+const DashboardStudentCard = React.lazy(() => import('./pages/DashboardStudentCard').then(m => ({ default: m.DashboardStudentCard })));
+const DashboardGallery = React.lazy(() => import('./pages/DashboardGallery').then(m => ({ default: m.DashboardGallery })));
+const DashboardContacts = React.lazy(() => import('./pages/DashboardContacts').then(m => ({ default: m.DashboardContacts })));
+const DashboardSettings = React.lazy(() => import('./pages/DashboardSettings').then(m => ({ default: m.DashboardSettings })));
+const DashboardUsers = React.lazy(() => import('./pages/DashboardUsers').then(m => ({ default: m.DashboardUsers })));
+const DashboardPages = React.lazy(() => import('./pages/dashboard/DashboardPages').then(m => ({ default: m.DashboardPages })));
+const DashboardMenus = React.lazy(() => import('./pages/dashboard/DashboardMenus').then(m => ({ default: m.DashboardMenus })));
+const DashboardServices = React.lazy(() => import('./pages/dashboard/DashboardServices').then(m => ({ default: m.DashboardServices })));
+const DashboardStudents = React.lazy(() => import('./pages/DashboardStudents').then(m => ({ default: m.DashboardStudents })));
+const DashboardNIS = React.lazy(() => import('./pages/DashboardNIS').then(m => ({ default: m.DashboardNIS })));
+const DashboardEmployees = React.lazy(() => import('./pages/DashboardEmployees').then(m => ({ default: m.DashboardEmployees })));
+const SelectRolePage = React.lazy(() => import('./pages/SelectRolePage').then(m => ({ default: m.SelectRolePage })));
+const ServicePageRoute = React.lazy(() => import('./pages/layanan/ServicePageRoute').then(m => ({ default: m.ServicePageRoute })));
+const EOfficePage = React.lazy(() => import('./pages/eoffice/EOfficePage').then(m => ({ default: m.EOfficePage })));
+const ExamManagementPage = React.lazy(() => import('./pages/exams/ExamManagementPage').then(m => ({ default: m.ExamManagementPage })));
+const PPDBInfoPage = React.lazy(() => import('./pages/ppdb/PPDBInfoPage').then(m => ({ default: m.PPDBInfoPage })));
+const PPDBFormPage = React.lazy(() => import('./pages/ppdb/PPDBFormPage').then(m => ({ default: m.PPDBFormPage })));
+const PPDBAdminPage = React.lazy(() => import('./pages/ppdb/PPDBAdminPage').then(m => ({ default: m.PPDBAdminPage })));
+const PPDBPenilaianPage = React.lazy(() => import('./pages/ppdb/PPDBPenilaianPage').then(m => ({ default: m.PPDBPenilaianPage })));
+const PPDBDaftarUlangPage = React.lazy(() => import('./pages/ppdb/PPDBDaftarUlangPage').then(m => ({ default: m.PPDBDaftarUlangPage })));
+const PPDBVerifikasiPage = React.lazy(() => import('./pages/ppdb/PPDBVerifikasiPage').then(m => ({ default: m.PPDBVerifikasiPage })));
+const SystemUpdateCenter = React.lazy(() => import('./pages/dashboard/SystemUpdateCenter').then(m => ({ default: m.SystemUpdateCenter })));
+const BatchPrintPage = React.lazy(() => import('./pages/BatchPrintPage').then(m => ({ default: m.BatchPrintPage })));
+const PrintAcademicCalendar = React.lazy(() => import('./pages/PrintAcademicCalendar').then(m => ({ default: m.PrintAcademicCalendar })));
+const PrintKartuPeserta = React.lazy(() => import('./pages/exams/print/PrintKartuPeserta').then(m => ({ default: m.PrintKartuPeserta })));
+const PrintIdCardPegawai = React.lazy(() => import('./pages/exams/print/PrintIdCardPegawai').then(m => ({ default: m.PrintIdCardPegawai })));
+const PrintBeritaAcaraMapel = React.lazy(() => import('./pages/exams/print/PrintBeritaAcaraMapel').then(m => ({ default: m.PrintBeritaAcaraMapel })));
+const PrintBeritaAcaraSekolah = React.lazy(() => import('./pages/exams/print/PrintBeritaAcaraSekolah').then(m => ({ default: m.PrintBeritaAcaraSekolah })));
+const PrintPaktaIntegritas = React.lazy(() => import('./pages/exams/print/PrintPaktaIntegritas').then(m => ({ default: m.PrintPaktaIntegritas })));
+const PrintDaftarHadirPeserta = React.lazy(() => import('./pages/exams/print/PrintDaftarHadirPeserta').then(m => ({ default: m.PrintDaftarHadirPeserta })));
+const PrintFormatNilai = React.lazy(() => import('./pages/exams/print/PrintFormatNilai').then(m => ({ default: m.PrintFormatNilai })));
+
+// Loading fallback component
+const PageSpinner = () => (
+  <div className="flex h-screen w-full items-center justify-center bg-gray-50/50">
+    <div className="flex flex-col items-center gap-2">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-green-600 border-t-transparent"></div>
+    </div>
+  </div>
+);
 
 function App() {
   useFavicon();
@@ -53,101 +67,106 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-      <Routes>
-        <Route path="/" element={<MaintenanceGuard><LandingPage /></MaintenanceGuard>} />
-        <Route path="/news" element={<MaintenanceGuard><NewsPage /></MaintenanceGuard>} />
-        <Route path="/news/:id" element={<MaintenanceGuard><NewsDetailPage /></MaintenanceGuard>} />
-        <Route path="/gallery" element={<MaintenanceGuard><GalleryPage /></MaintenanceGuard>} />
-        <Route path="/page/:slug" element={<MaintenanceGuard><DynamicPage /></MaintenanceGuard>} />
-        <Route path="/services/:slug" element={<MaintenanceGuard><ServicePageRoute /></MaintenanceGuard>} />
-        {/* Public PPDB/PMB routes */}
-        <Route path="/ppdb" element={<MaintenanceGuard><PPDBInfoPage /></MaintenanceGuard>} />
-        <Route path="/ppdb/daftar/:jalurId" element={<MaintenanceGuard><PPDBFormPage /></MaintenanceGuard>} />
-        <Route path="/ppdb/daftar-ulang" element={<MaintenanceGuard><PPDBDaftarUlangPage /></MaintenanceGuard>} />
-        <Route path="/ppdb/verifikasi" element={<PPDBVerifikasiPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/select-role" element={
-          <ProtectedRoute>
-            <SelectRolePage />
-          </ProtectedRoute>
-        } />
-        {/* Dedicated batch print page — OUTSIDE DashboardLayout */}
-        <Route path="/dashboard/print-batch" element={
-          <ProtectedRoute>
-            <BatchPrintPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard/print-calendar" element={
-          <ProtectedRoute>
-            <PrintAcademicCalendar />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard/print-kartu-peserta/:ujianId" element={
-          <ProtectedRoute>
-            <PrintKartuPeserta />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard/print-id-pegawai/:ujianId" element={
-          <ProtectedRoute>
-            <PrintIdCardPegawai />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard/print-ba-mapel/:ujianId" element={
-          <ProtectedRoute>
-            <PrintBeritaAcaraMapel />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard/print-ba-sekolah/:ujianId" element={
-          <ProtectedRoute>
-            <PrintBeritaAcaraSekolah />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard/print-pakta/:ujianId" element={
-          <ProtectedRoute>
-            <PrintPaktaIntegritas />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard/print-daftar-hadir/:ujianId" element={
-          <ProtectedRoute>
-            <PrintDaftarHadirPeserta />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard/print-format-nilai/:ujianId" element={
-          <ProtectedRoute>
-            <PrintFormatNilai />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <DashboardLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<DashboardOverview />} />
-          <Route path="news" element={<DashboardNews />} />
-          <Route path="calendar" element={<DashboardCalendar />} />
-          <Route path="student-card" element={<DashboardStudentCard />} />
-          <Route path="gallery" element={<DashboardGallery />} />
-          <Route path="contacts" element={<DashboardContacts />} />
-          <Route path="settings" element={<DashboardSettings />} />
-          <Route path="users" element={<DashboardUsers />} />
-          <Route path="students" element={<DashboardStudents />} />
-          <Route path="nis" element={<DashboardNIS />} />
-          <Route path="employees" element={<DashboardEmployees />} />
-          <Route path="pages" element={<DashboardPages />} />
-          <Route path="menus" element={<DashboardMenus />} />
-          <Route path="e-office" element={<EOfficePage />} />
-          <Route path="exams" element={<ExamManagementPage />} />
-          <Route path="updates" element={<SystemUpdateCenter />} />
-          <Route path="services" element={<DashboardServices />} />
-          <Route path="ppdb" element={<PPDBAdminPage />} />
-          <Route path="ppdb/penilaian" element={<PPDBPenilaianPage />} />
-        </Route>
-      </Routes>
-      <FloatingActionButton />
-      <ScrollToTopButton />
-      <Toaster richColors position="top-right" />
-    </Router>
+        <Suspense fallback={<PageSpinner />}>
+          <Routes>
+            <Route path="/" element={<MaintenanceGuard><LandingPage /></MaintenanceGuard>} />
+            <Route path="/news" element={<MaintenanceGuard><NewsPage /></MaintenanceGuard>} />
+            <Route path="/news/:id" element={<MaintenanceGuard><NewsDetailPage /></MaintenanceGuard>} />
+            <Route path="/gallery" element={<MaintenanceGuard><GalleryPage /></MaintenanceGuard>} />
+            <Route path="/page/:slug" element={<MaintenanceGuard><DynamicPage /></MaintenanceGuard>} />
+            <Route path="/services/:slug" element={<MaintenanceGuard><ServicePageRoute /></MaintenanceGuard>} />
+            
+            {/* Public PPDB/PMB routes */}
+            <Route path="/ppdb" element={<MaintenanceGuard><PPDBInfoPage /></MaintenanceGuard>} />
+            <Route path="/ppdb/daftar/:jalurId" element={<MaintenanceGuard><PPDBFormPage /></MaintenanceGuard>} />
+            <Route path="/ppdb/daftar-ulang" element={<MaintenanceGuard><PPDBDaftarUlangPage /></MaintenanceGuard>} />
+            <Route path="/ppdb/verifikasi" element={<PPDBVerifikasiPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            
+            <Route path="/select-role" element={
+              <ProtectedRoute>
+                <SelectRolePage />
+              </ProtectedRoute>
+            } />
+            
+            {/* Dedicated batch print page — OUTSIDE DashboardLayout */}
+            <Route path="/dashboard/print-batch" element={
+              <ProtectedRoute>
+                <BatchPrintPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/print-calendar" element={
+              <ProtectedRoute>
+                <PrintAcademicCalendar />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/print-kartu-peserta/:ujianId" element={
+              <ProtectedRoute>
+                <PrintKartuPeserta />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/print-id-pegawai/:ujianId" element={
+              <ProtectedRoute>
+                <PrintIdCardPegawai />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/print-ba-mapel/:ujianId" element={
+              <ProtectedRoute>
+                <PrintBeritaAcaraMapel />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/print-ba-sekolah/:ujianId" element={
+              <ProtectedRoute>
+                <PrintBeritaAcaraSekolah />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/print-pakta/:ujianId" element={
+              <ProtectedRoute>
+                <PrintPaktaIntegritas />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/print-daftar-hadir/:ujianId" element={
+              <ProtectedRoute>
+                <PrintDaftarHadirPeserta />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/print-format-nilai/:ujianId" element={
+              <ProtectedRoute>
+                <PrintFormatNilai />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<DashboardOverview />} />
+              <Route path="news" element={<DashboardNews />} />
+              <Route path="calendar" element={<DashboardCalendar />} />
+              <Route path="student-card" element={<DashboardStudentCard />} />
+              <Route path="gallery" element={<DashboardGallery />} />
+              <Route path="contacts" element={<DashboardContacts />} />
+              <Route path="settings" element={<DashboardSettings />} />
+              <Route path="users" element={<DashboardUsers />} />
+              <Route path="students" element={<DashboardStudents />} />
+              <Route path="nis" element={<DashboardNIS />} />
+              <Route path="employees" element={<DashboardEmployees />} />
+              <Route path="pages" element={<DashboardPages />} />
+              <Route path="menus" element={<DashboardMenus />} />
+              <Route path="e-office" element={<EOfficePage />} />
+              <Route path="exams" element={<ExamManagementPage />} />
+              <Route path="updates" element={<SystemUpdateCenter />} />
+              <Route path="services" element={<DashboardServices />} />
+              <Route path="ppdb" element={<PPDBAdminPage />} />
+              <Route path="ppdb/penilaian" element={<PPDBPenilaianPage />} />
+            </Route>
+          </Routes>
+        </Suspense>
+        <FloatingActionButton />
+        <ScrollToTopButton />
+        <Toaster richColors position="top-right" />
+      </Router>
     </AuthProvider>
   );
 }

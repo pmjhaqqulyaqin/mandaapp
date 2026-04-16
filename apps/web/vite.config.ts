@@ -12,5 +12,17 @@ export default defineConfig({
   },
   build: {
     assetsDir: '', // Output assets directly to root, bypassing extraction bugs
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom', 'lucide-react'],
+          utils: ['axios', 'better-auth'],
+          query: ['@tanstack/react-query'],
+          heavy1: ['jspdf', 'html2canvas', 'xlsx'],
+          heavy2: ['quill', 'react-quill', 'jodit-react', 'react-image-crop'],
+          qr: ['qrcode']
+        }
+      }
+    }
   },
 });
