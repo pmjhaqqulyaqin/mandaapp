@@ -228,6 +228,9 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
 
       {/* Modal Card */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ppdb-popup-title"
         className={`relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden transition-all duration-500 ${
           isAnimating ? 'scale-100 translate-y-0' : 'scale-90 translate-y-8'
         }`}
@@ -239,6 +242,7 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
         {/* Close button */}
         <button
           onClick={handleDismiss}
+          aria-label="Tutup popup pendaftaran"
           className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-all z-10"
         >
           <X size={16} />
@@ -255,7 +259,7 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
           <p className={`text-xs font-bold uppercase tracking-[0.2em] mb-2 ${isPengumuman ? 'text-blue-600' : 'text-emerald-600'}`}>
             {isPengumuman ? 'Pengumuman Kelulusan' : 'Penerimaan Murid Baru'}
           </p>
-          <h2 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight tracking-tight">
+          <h2 id="ppdb-popup-title" className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight tracking-tight">
             {isPengumuman ? 'PMB ' : 'SIMPMB '}
             <span className={`text-transparent bg-clip-text bg-gradient-to-r ${isPengumuman ? 'from-blue-500 to-indigo-600' : 'from-emerald-500 to-blue-600'}`}>
               2026
