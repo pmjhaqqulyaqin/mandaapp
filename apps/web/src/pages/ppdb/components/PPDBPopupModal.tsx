@@ -64,6 +64,7 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
   const [countdownTarget, setCountdownTarget] = useState<Date | null>(null);
   const [countdownLabel, setCountdownLabel] = useState('');
   const [ctaDisabled, setCtaDisabled] = useState(false);
+  const [activeJalurList, setActiveJalurList] = useState<any[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const navigate = useNavigate();
 
@@ -126,6 +127,7 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
             if (openJalur.length > 0) {
               shouldShow = true;
               viewMode = 'pendaftaran';
+              setActiveJalurList(openJalur);
 
               // Find closest jadwalTutup among open jalur
               const closingDates = openJalur
@@ -276,16 +278,43 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
           </p>
 
           {/* Badges */}
-          {popupMode === 'pendaftaran' && (
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 text-xs font-bold rounded-full border border-amber-200">
-                🏆 Jalur Prestasi
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+            {popupMode === 'pendaftaran' && activeJalurList.map((jalur, idx) => {
+              const isPrestasi = jalur.nama?.toLowerCase().includes('prestasi');
+              const isReguler = jalur.nama?.toLowerCase().includes('reguler');
+              const isSingle = activeJalurList.length === 1;
+
+              const sizeClasses = isSingle 
+                ? 'px-5 py-2.5 text-sm shadow-md' 
+                : 'px-3 py-1.5 text-xs';
+              const iconSize = isSingle ? 'text-lg' : 'text-base';
+
+              if (isPrestasi) {
+                return (
+                  <span key={idx} className={`inline-flex items-center gap-2 bg-amber-50 text-amber-700 font-bold rounded-full border border-amber-200 transition-all ${sizeClasses}`}>
+                    <span className={iconSize}>🏆</span> {jalur.nama}
+                  </span>
+                );
+              } else if (isReguler) {
+                return (
+                  <span key={idx} className={`inline-flex items-center gap-2 bg-blue-50 text-blue-700 font-bold rounded-full border border-blue-200 transition-all ${sizeClasses}`}>
+                    <span className={iconSize}>📋</span> {jalur.nama}
+                  </span>
+                );
+              }
+              return (
+                <span key={idx} className={`inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 font-bold rounded-full border border-emerald-200 transition-all ${sizeClasses}`}>
+                  <span className={iconSize}>✨</span> {jalur.nama || 'Jalur Aktif'}
+                </span>
+              );
+            })}
+
+            {isPengumuman && (
+              <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-700 text-sm font-bold rounded-full border border-blue-200 shadow-md">
+                <span className="text-lg">📢</span> {ctaDisabled ? 'Menunggu Pengumuman' : 'Pengumuman Kelulusan'}
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-bold rounded-full border border-blue-200">
-                📋 Jalur Reguler
-              </span>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* ====== COUNTDOWN TIMER ====== */}
           {showCountdown && (
