@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { AnnouncementsWidget, ClassesWidget, type Announcement, type ScheduleItem, MetricCard, Breadcrumbs, Skeleton } from '@mandaapp/ui';
 import { useAuth } from '../contexts/AuthContext';
 

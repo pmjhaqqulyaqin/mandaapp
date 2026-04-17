@@ -128,15 +128,16 @@ export const sendPMBAdminNotificationEmail = async (
     jenisKelamin: string;
     asalSekolah: string;
     jalurNama: string;
-  }
+  },
+  adminEmail: string
 ) => {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.warn(`[MAILER] SMTP_USER or SMTP_PASS not set in .env! Skipping PMB Admin notification email.`);
     return;
   }
 
-  // Define admin email for PMB notifications. Use ADMIN_PMB_EMAIL if set, otherwise fallback to SMTP_USER.
-  const to = process.env.ADMIN_PMB_EMAIL || process.env.SMTP_USER;
+  // Support comma-separated emails for multiple recipients
+  const to = adminEmail.split(',').map(e => e.trim()).filter(Boolean).join(', ');
 
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -201,3 +202,65 @@ export const sendPMBAdminNotificationEmail = async (
   }
 };
 
+export const sendPMBRegistrantNotificationEmail = async (
+  pendaftar: {
+    email: string;
+    namaLengkap: string;
+    noPendaftaran: string;
+    jalurNama: string;
+  }
+) => {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn(`[MAILER] SMTP_USER or SMTP_PASS not set in .env! Skipping PMB Registrant notification email.`);
+    return;
+  }
+  
+  if (!pendaftar.email) return;
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '465'),
+    secure: process.env.SMTP_PORT === '465', 
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
+    }
+  });
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-w: 600px; margin: 0 auto; color: #333;">
+      <h2 style="color: #10b981; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">Pendaftaran Anda Berhasil!</h2>
+      <p>Halo <strong>${pendaftar.namaLengkap}</strong>,</p>
+      <p>Terima kasih telah mendaftar di MAN 2 Lombok Timur melalui jalur <strong>${pendaftar.jalurNama}</strong>. Data Anda telah berhasil masuk ke sistem kami dan saat ini sedang menunggu proses verifikasi oleh panitia.</p>
+      
+      <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 5px solid #1a73e8;">
+        <p style="margin: 0 0 10px 0; font-size: 13px; color: #64748b; text-transform: uppercase; font-weight: bold;">Nomor Pendaftaran Anda:</p>
+        <p style="margin: 0; font-size: 24px; font-weight: 900; color: #1e293b; letter-spacing: 1px;">${pendaftar.noPendaftaran}</p>
+      </div>
+
+      <p style="font-size: 14px; line-height: 1.6; color: #475569;">
+        Silakan simpan Nomor Pendaftaran ini dengan baik. Anda dapat menggunakannya bersama NISN Anda untuk mengecek status pendaftaran & kelulusan di website setiap saat.
+      </p>
+      
+      <p style="font-size: 14px; line-height: 1.6; color: #475569;">
+        Semoga sukses!
+      </p>
+      
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px; border-top: 1px solid #f0f0f0; padding-top: 20px; text-align: center;">
+        Ini adalah pesan otomatis dari sistem PMB MAN 2 LOMBOK TIMUR.<br/>Harap tidak merespons email ini.
+      </p>
+    </div>
+  `;
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"Panitia PMB MAN 2 LOTIM" <${process.env.SMTP_USER}>`,
+      to: pendaftar.email,
+      subject: `Berhasil Mendaftar - SIMPMB MAN 2 LOTIM [${pendaftar.noPendaftaran}]`,
+      html: htmlContent
+    });
+    console.log(`[MAILER] PMB Registrant successful notification sent to ${pendaftar.email}: ${info.messageId}`);
+  } catch (err: any) {
+    console.error(`[MAILER] Failed to send PMB Registrant notification email:`, err);
+  }
+};

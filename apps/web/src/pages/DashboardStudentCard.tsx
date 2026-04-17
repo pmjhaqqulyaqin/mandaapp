@@ -131,7 +131,7 @@ export const DashboardStudentCard = () => {
   // Batch print state
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [unselectedIds, setUnselectedIds] = useState<Set<string>>(new Set());
-  const printRef = useRef<HTMLDivElement>(null);
+
 
   useEffect(() => {
     if (studentList.length > 0 && !selectedStudent) {

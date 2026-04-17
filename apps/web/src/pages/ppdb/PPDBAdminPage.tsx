@@ -7,7 +7,7 @@ import {
   GraduationCap, Users, Trophy, ClipboardList, Settings, BarChart3,
   Search, ChevronDown, Filter, Eye, Check, X, Loader2, RefreshCw,
   CheckCircle, Clock, XCircle, AlertCircle, Upload, ImageIcon,
-  Plus, Trash2, Phone, FileDown
+  Plus, Trash2, Phone, FileDown, Mail
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -878,6 +878,7 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
   const [brosurUrl, setBrosurUrl] = useState<string | null>(null);
   const [uploadingBrosur, setUploadingBrosur] = useState(false);
   const [kontakPanitia, setKontakPanitia] = useState<{nama: string, noHp: string}[]>([]);
+  const [emailNotifikasi, setEmailNotifikasi] = useState('');
 
   // Local config state for tanggalPengumuman
   const [sysConfig, setSysConfig] = useState<any>({ tanggalPengumuman: '' });
@@ -891,6 +892,7 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
         namaSk: config.namaSk || '',
       });
       setBrosurUrl(config.brosurUrl || null);
+      setEmailNotifikasi(config.emailNotifikasi || '');
       if (Array.isArray(config.kontakPanitia)) {
         setKontakPanitia(config.kontakPanitia);
       } else {
@@ -948,6 +950,7 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
           nomorSk: sysConfig.nomorSk || null,
           namaSk: sysConfig.namaSk || null,
           kontakPanitia,
+          emailNotifikasi,
         },
       });
       toast.success('Pengaturan berhasil disimpan');
@@ -1180,6 +1183,44 @@ const KonfigurasiTab = ({ config, onSaved }: { config: any, onSaved: () => void 
                {saving === 'config' ? 'Menyimpan...' : 'Simpan Kontak'}
              </button>
           </div>
+        </div>
+      </div>
+
+      {/* Email Notifikasi Panitia Section */}
+      <div className="p-4 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark">
+        <div className="flex items-center gap-2 mb-4">
+          <Mail size={18} className="text-blue-600" />
+          <h3 className="font-bold text-gray-800 dark:text-white">Email Notifikasi Pendaftaran</h3>
+        </div>
+        <p className="text-[10.5px] text-gray-500 mb-3">
+          Alamat email yang akan menerima notifikasi otomatis setiap ada pendaftar baru masuk ke sistem SIMPMB. 
+          Pisahkan beberapa email dengan koma jika ingin mengirim ke lebih dari satu penerima.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+          <div className="flex-1 w-full">
+            <label className={labelClass}>Alamat Email Panitia</label>
+            <input
+              type="text"
+              placeholder="panitia@mandualotim.sch.id, panitia2@gmail.com"
+              value={emailNotifikasi}
+              onChange={(e) => setEmailNotifikasi(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <button
+            onClick={saveConfig}
+            disabled={saving === 'config'}
+            className="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+          >
+            {saving === 'config' ? 'Menyimpan...' : 'Simpan Email'}
+          </button>
+        </div>
+        <div className="mt-3 p-2.5 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30">
+          <p className="text-[10.5px] text-blue-700 dark:text-blue-400 leading-relaxed">
+            <strong>💡 Info:</strong> Sistem menggunakan konfigurasi SMTP dari environment server (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS) yang sudah dikonfigurasi via Docker. 
+            Email di atas adalah alamat <strong>penerima</strong> notifikasi, bukan pengirim.
+            {!emailNotifikasi && <><br/><span className="text-amber-600 dark:text-amber-400 font-semibold">⚠️ Belum ada email yang dikonfigurasi. Notifikasi pendaftaran baru tidak akan terkirim ke panitia.</span></>}
+          </p>
         </div>
       </div>
 
