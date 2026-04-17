@@ -131,7 +131,11 @@ export const cardSettings = pgTable("card_settings", {
   termsText: text("terms_text"),
   headmasterSignatureUrl: text("headmaster_signature_url"),
   kemenagLogoUrl: text("kemenag_logo_url"),
-  schoolStampUrl: text("school_stamp_url")
+  schoolStampUrl: text("school_stamp_url"),
+  customTemplateHorizontalFrontUrl: text("custom_template_horizontal_front_url"),
+  customTemplateHorizontalBackUrl: text("custom_template_horizontal_back_url"),
+  customTemplateVerticalFrontUrl: text("custom_template_vertical_front_url"),
+  customTemplateVerticalBackUrl: text("custom_template_vertical_back_url"),
 });
 
 export const newsAnnouncements = pgTable("news_announcements", {

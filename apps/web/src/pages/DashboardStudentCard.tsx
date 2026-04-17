@@ -64,6 +64,10 @@ export const DashboardStudentCard = () => {
     kemenagLogoUrl: cardSettings.kemenagLogoUrl || '',
     schoolLogoUrl: cardSettings.schoolLogoUrl || '',
     schoolStampUrl: cardSettings.schoolStampUrl || '',
+    customTemplateHorizontalFrontUrl: cardSettings.customTemplateHorizontalFrontUrl || '',
+    customTemplateHorizontalBackUrl: cardSettings.customTemplateHorizontalBackUrl || '',
+    customTemplateVerticalFrontUrl: cardSettings.customTemplateVerticalFrontUrl || '',
+    customTemplateVerticalBackUrl: cardSettings.customTemplateVerticalBackUrl || '',
   });
 
   // Keep editing state in sync if data loads later
@@ -78,6 +82,10 @@ export const DashboardStudentCard = () => {
         kemenagLogoUrl: cardSettingsQuery.data.kemenagLogoUrl || '',
         schoolLogoUrl: cardSettingsQuery.data.schoolLogoUrl || '',
         schoolStampUrl: cardSettingsQuery.data.schoolStampUrl || '',
+        customTemplateHorizontalFrontUrl: cardSettingsQuery.data.customTemplateHorizontalFrontUrl || '',
+        customTemplateHorizontalBackUrl: cardSettingsQuery.data.customTemplateHorizontalBackUrl || '',
+        customTemplateVerticalFrontUrl: cardSettingsQuery.data.customTemplateVerticalFrontUrl || '',
+        customTemplateVerticalBackUrl: cardSettingsQuery.data.customTemplateVerticalBackUrl || '',
       });
       setSelectedTemplate(cardSettingsQuery.data.selectedTemplate || defaultCardSettings.selectedTemplate);
       setOrientation(cardSettingsQuery.data.orientation || defaultCardSettings.orientation);
@@ -328,6 +336,8 @@ export const DashboardStudentCard = () => {
         schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
         academicYear: cardSettings.academicYear,
         showQrCode: cardSettings.showQrCode,
+                customTemplateFrontUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalFrontUrl : editingSettings.customTemplateVerticalFrontUrl) || undefined,
+                customTemplateBackUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalBackUrl : editingSettings.customTemplateVerticalBackUrl) || undefined,
       },
       templateId: template.id,
       orientation
@@ -403,7 +413,7 @@ export const DashboardStudentCard = () => {
     
     try {
       const finalSettings = { ...editingSettings };
-      const keysToUpload = ['headmasterSignatureUrl', 'kemenagLogoUrl', 'schoolLogoUrl', 'schoolStampUrl'] as const;
+      const keysToUpload = ['headmasterSignatureUrl', 'kemenagLogoUrl', 'schoolLogoUrl', 'schoolStampUrl', 'customTemplateHorizontalFrontUrl', 'customTemplateHorizontalBackUrl', 'customTemplateVerticalFrontUrl', 'customTemplateVerticalBackUrl'] as const;
       
       for (const key of keysToUpload) {
         if (finalSettings[key] && finalSettings[key].startsWith('data:image')) {
@@ -609,6 +619,8 @@ export const DashboardStudentCard = () => {
                                   schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
                                   academicYear: cardSettings.academicYear,
                                   showQrCode: cardSettings.showQrCode,
+                customTemplateFrontUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalFrontUrl : editingSettings.customTemplateVerticalFrontUrl) || undefined,
+                customTemplateBackUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalBackUrl : editingSettings.customTemplateVerticalBackUrl) || undefined,
                                 }}
                                 orientation={orientation}
                                 scale={1}
@@ -771,6 +783,84 @@ export const DashboardStudentCard = () => {
                   />
                 </div>
 
+                {/* === CUSTOM TEMPLATE UPLOAD === */}
+                <div className="pt-6 border-t border-border-light dark:border-border-dark">
+                  <h3 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary mb-2 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500">
+                      <rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                    </svg>
+                    Upload Template Custom Kartu Pelajar
+                  </h3>
+                  <p className="text-xs text-text-secondary mb-4 leading-relaxed">
+                    Upload gambar desain kartu pelajar custom (dari Canva, Photoshop, dll) sebagai background. Data siswa (foto, nama, NISN) akan di-overlay otomatis di atas template. 
+                    Jika tidak diupload, kartu menggunakan desain bawaan di atas.
+                  </p>
+
+                  <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-lg p-3 mb-5">
+                    <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                      <strong>💡 Tips:</strong> Buat desain dengan area kosong (transparan/putih) di bagian foto dan data siswa. Gunakan ukuran:
+                      <br/>• <strong>Horizontal</strong>: 856 × 540 px — foto di kiri (45px dari kiri, 145px dari atas), data di kanan
+                      <br/>• <strong>Vertikal</strong>: 408 × 646 px — foto di tengah atas (200px dari atas), data di bawah foto
+                    </p>
+                  </div>
+
+                  {/* Horizontal Templates */}
+                  <div className="mb-6">
+                    <h4 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/></svg>
+                      Template Horizontal (Landscape)
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-text-secondary mb-2">Sisi Depan (Front)</label>
+                        <div className="w-full aspect-[856/540] max-w-[280px]">
+                          <PhotoUploader
+                            currentPhotoUrl={getFullUrl(editingSettings.customTemplateHorizontalFrontUrl) || ''}
+                            onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateHorizontalFrontUrl: url})}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-text-secondary mb-2">Sisi Belakang (Back)</label>
+                        <div className="w-full aspect-[856/540] max-w-[280px]">
+                          <PhotoUploader
+                            currentPhotoUrl={getFullUrl(editingSettings.customTemplateHorizontalBackUrl) || ''}
+                            onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateHorizontalBackUrl: url})}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Vertical Templates */}
+                  <div>
+                    <h4 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="20" x="5" y="2" rx="2"/></svg>
+                      Template Vertikal (Portrait)
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-text-secondary mb-2">Sisi Depan (Front)</label>
+                        <div className="w-full aspect-[408/646] max-w-[200px]">
+                          <PhotoUploader
+                            currentPhotoUrl={getFullUrl(editingSettings.customTemplateVerticalFrontUrl) || ''}
+                            onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateVerticalFrontUrl: url})}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-text-secondary mb-2">Sisi Belakang (Back)</label>
+                        <div className="w-full aspect-[408/646] max-w-[200px]">
+                          <PhotoUploader
+                            currentPhotoUrl={getFullUrl(editingSettings.customTemplateVerticalBackUrl) || ''}
+                            onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateVerticalBackUrl: url})}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex justify-end mt-6">
                   <Button 
                      onClick={handleSaveSettings}
@@ -918,6 +1008,8 @@ export const DashboardStudentCard = () => {
                 schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
                 academicYear: cardSettings.academicYear,
                 showQrCode: cardSettings.showQrCode,
+                customTemplateFrontUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalFrontUrl : editingSettings.customTemplateVerticalFrontUrl) || undefined,
+                customTemplateBackUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalBackUrl : editingSettings.customTemplateVerticalBackUrl) || undefined,
               }}
               orientation={orientation}
               scale={1}
@@ -949,6 +1041,8 @@ export const DashboardStudentCard = () => {
                 schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
                 academicYear: cardSettings.academicYear,
                 showQrCode: cardSettings.showQrCode,
+                customTemplateFrontUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalFrontUrl : editingSettings.customTemplateVerticalFrontUrl) || undefined,
+                customTemplateBackUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalBackUrl : editingSettings.customTemplateVerticalBackUrl) || undefined,
               }}
               orientation={orientation}
               scale={1}
@@ -993,6 +1087,8 @@ export const DashboardStudentCard = () => {
                             schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
                             academicYear: cardSettings.academicYear,
                             showQrCode: cardSettings.showQrCode,
+                customTemplateFrontUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalFrontUrl : editingSettings.customTemplateVerticalFrontUrl) || undefined,
+                customTemplateBackUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalBackUrl : editingSettings.customTemplateVerticalBackUrl) || undefined,
                           }}
                           orientation={orientation}
                           scale={orientation === 'horizontal' ? 0.37795 : 0.5002}
@@ -1037,6 +1133,8 @@ export const DashboardStudentCard = () => {
                             schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl),
                             academicYear: cardSettings.academicYear,
                             showQrCode: cardSettings.showQrCode,
+                customTemplateFrontUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalFrontUrl : editingSettings.customTemplateVerticalFrontUrl) || undefined,
+                customTemplateBackUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalBackUrl : editingSettings.customTemplateVerticalBackUrl) || undefined,
                           }}
                           orientation={orientation}
                           scale={orientation === 'horizontal' ? 0.37795 : 0.5002}
@@ -1106,6 +1204,8 @@ export const DashboardStudentCard = () => {
                       schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl || cardSettings.schoolStampUrl),
                       academicYear: cardSettings.academicYear,
                       showQrCode: cardSettings.showQrCode,
+                customTemplateFrontUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalFrontUrl : editingSettings.customTemplateVerticalFrontUrl) || undefined,
+                customTemplateBackUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalBackUrl : editingSettings.customTemplateVerticalBackUrl) || undefined,
                     }}
                     orientation={orientation}
                     scale={1}

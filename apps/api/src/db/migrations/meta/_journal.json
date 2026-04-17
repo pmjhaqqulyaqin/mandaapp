@@ -15,6 +15,13 @@
       "when": 1776228562407,
       "tag": "0001_light_scorpion",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776393846258,
+      "tag": "0002_faulty_annihilus",
+      "breakpoints": true
     }
   ]
 }

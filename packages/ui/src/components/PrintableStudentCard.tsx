@@ -39,6 +39,8 @@ export interface PrintableCardSettings {
   schoolStampUrl?: string;
   academicYear: string;
   showQrCode: boolean;
+  customTemplateFrontUrl?: string;
+  customTemplateBackUrl?: string;
 }
 
 export interface PrintableStudentCardProps {
@@ -466,6 +468,85 @@ export const PrintableStudentCard = ({
     );
   };
 
+  // ============ CUSTOM TEMPLATE RENDERERS ============
+  // When the admin uploads a custom background image, we overlay student data at fixed positions.
+
+  const CustomTemplateFront = () => {
+    const barcodeText = `${student.nisn}`;
+    const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(barcodeText)}&scale=3&height=12&includetext=false`;
+
+    if (isHorizontal) {
+      // Horizontal: 856 x 540
+      return (
+        <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+          <img src={settings.customTemplateFrontUrl} alt="Template" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }} />
+          {/* Photo overlay — left area */}
+          <div style={{ position: 'absolute', top: '145px', left: '45px', width: '160px', height: '220px', backgroundColor: 'rgba(226,232,240,0.3)', borderRadius: '12px', overflow: 'hidden', zIndex: 10 }}>
+            {student.photoUrl ? (
+              <img src={student.photoUrl} alt="Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '48px', color: '#94a3b8', backgroundColor: 'rgba(226,232,240,0.6)' }}>
+                {student.name.charAt(0)}
+              </div>
+            )}
+          </div>
+          {/* Data overlay — right area */}
+          <div style={{ position: 'absolute', top: '170px', left: '245px', right: '40px', zIndex: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '120px 15px 1fr', gap: '14px', fontSize: '18px', color: '#111827', fontWeight: 700 }}>
+              <div>NAMA</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.name}</div>
+              <div>NIS/NISN</div><div>:</div><div style={{ fontWeight: 500 }}>{student.nisn}</div>
+              <div>T.T.L</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.birthPlace}, {formatDate(student.birthDate)}</div>
+              <div>ALAMAT</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase', lineHeight: 1.3 }}>{student.address || '-'}</div>
+            </div>
+            {/* Barcode */}
+            <div style={{ marginTop: '35px', height: '50px' }}>
+              <img src={barcodeUrl} alt="Barcode" style={{ height: '100%', width: '250px', objectFit: 'fill' }} />
+            </div>
+          </div>
+        </div>
+      );
+    } else {
+      // Vertical: 408 x 646
+      return (
+        <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+          <img src={settings.customTemplateFrontUrl} alt="Template" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }} />
+          {/* Photo overlay — center top */}
+          <div style={{ position: 'absolute', top: '200px', left: '50%', transform: 'translateX(-50%)', width: '170px', height: '230px', backgroundColor: 'rgba(226,232,240,0.3)', borderRadius: '4px', overflow: 'hidden', zIndex: 10 }}>
+            {student.photoUrl ? (
+              <img src={student.photoUrl} alt="Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '48px', color: '#94a3b8', backgroundColor: 'rgba(226,232,240,0.6)' }}>
+                {student.name.charAt(0)}
+              </div>
+            )}
+          </div>
+          {/* Data overlay — below photo */}
+          <div style={{ position: 'absolute', top: '450px', left: '30px', right: '30px', zIndex: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '105px 12px 1fr', gap: '10px', fontSize: '15px', color: '#111827', fontWeight: 700 }}>
+              <div>Nama</div><div>:</div><div style={{ fontWeight: 500 }}>{student.name}</div>
+              <div>NIS/NISN</div><div>:</div><div style={{ fontWeight: 500 }}>{student.nisn}</div>
+              <div>Tanggal Lahir</div><div>:</div><div style={{ fontWeight: 500 }}>{formatDate(student.birthDate)}</div>
+              <div>Alamat</div><div>:</div><div style={{ fontWeight: 500, lineHeight: 1.2 }}>{student.address || '-'}</div>
+            </div>
+          </div>
+          {/* Barcode — bottom */}
+          <div style={{ position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', height: '40px', zIndex: 10 }}>
+            <img src={barcodeUrl} alt="Barcode" style={{ height: '100%', width: '220px', objectFit: 'fill' }} />
+          </div>
+        </div>
+      );
+    }
+  };
+
+  const CustomTemplateBack = () => (
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <img src={settings.customTemplateBackUrl} alt="Template Belakang" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }} />
+    </div>
+  );
+
+  const hasCustomFront = !!settings.customTemplateFrontUrl;
+  const hasCustomBack = !!settings.customTemplateBackUrl;
+
   // We return a fragment containing both front and back cards if printing, or just front/back components in preview
   return (
     <>
@@ -510,14 +591,20 @@ export const PrintableStudentCard = ({
       {(side === 'both' || side === 'front') && (
         <div style={wrapperStyle} className={`printable-card-wrapper orientation-${orientation}`}>
           <div style={containerStyle} className="printable-card-front" id={`card-front-${student.nisn}`}>
-            {isHorizontal ? <HorizontalFront /> : <VerticalFront />}
+            {hasCustomFront
+              ? <CustomTemplateFront />
+              : (isHorizontal ? <HorizontalFront /> : <VerticalFront />)
+            }
           </div>
         </div>
       )}
       {(side === 'both' || side === 'back') && (
         <div style={{ ...wrapperStyle, marginTop: side === 'both' ? '24px' : '0' }} className={`printable-card-wrapper pt-back orientation-${orientation}`}>
           <div style={backContainerStyle} className="printable-card-back" id={`card-back-${student.nisn}`}>
-            {isHorizontal ? <HorizontalBack /> : <VerticalBack />}
+            {hasCustomBack
+              ? <CustomTemplateBack />
+              : (isHorizontal ? <HorizontalBack /> : <VerticalBack />)
+            }
           </div>
         </div>
       )}
