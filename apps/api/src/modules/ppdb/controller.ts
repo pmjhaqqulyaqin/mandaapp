@@ -76,7 +76,8 @@ export class PPDBController {
 
   static async getAdminStats(req: Request, res: Response) {
     try {
-      const stats = await PPDBService.getAdminStats();
+      const { configId } = req.query;
+      const stats = await PPDBService.getAdminStats(configId as string | undefined);
       res.json(stats);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -85,13 +86,14 @@ export class PPDBController {
 
   static async listPendaftar(req: Request, res: Response) {
     try {
-      const { jalurId, status, search, page, limit } = req.query;
+      const { jalurId, status, search, page, limit, configId } = req.query;
       const result = await PPDBService.listPendaftar({
         jalurId: jalurId as string,
         status: status as string,
         search: search as string,
         page: page ? parseInt(page as string) : 1,
         limit: limit ? parseInt(limit as string) : 20,
+        configId: configId as string | undefined,
       });
       res.json(result);
     } catch (error: any) {

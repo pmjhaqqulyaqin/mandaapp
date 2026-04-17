@@ -326,10 +326,24 @@ export class PPDBService {
   // ============ ADMIN: Stats ============
 
   /** Dashboard statistics */
-  static async getAdminStats() {
-    const configs = await db.select().from(ppdbConfig).where(eq(ppdbConfig.isActive, true)).limit(1);
-    if (configs.length === 0) return { totalPendaftar: 0, jalurStats: [], statusStats: {} };
-    const config = configs[0];
+  static async getAdminStats(configId?: string) {
+    // Get all configs for the dropdown
+    const allConfigs = await db.select({
+      id: ppdbConfig.id,
+      tahunAjaran: ppdbConfig.tahunAjaran,
+      isActive: ppdbConfig.isActive
+    }).from(ppdbConfig).orderBy(desc(ppdbConfig.createdAt));
+
+    let config;
+    if (configId) {
+      const configs = await db.select().from(ppdbConfig).where(eq(ppdbConfig.id, configId)).limit(1);
+      config = configs[0];
+    } else {
+      const configs = await db.select().from(ppdbConfig).where(eq(ppdbConfig.isActive, true)).limit(1);
+      config = configs[0];
+    }
+    
+    if (!config) return { totalPendaftar: 0, jalurStats: [], statusStats: {}, allConfigs, activeConfigId: null };
 
     const rawAllJalur = await db.select().from(ppdbJalur).where(eq(ppdbJalur.configId, config.id));
     const allJalur = Array.from(new Map(rawAllJalur.map(j => [j.namaJalur.toLowerCase(), j])).values());
@@ -376,6 +390,8 @@ export class PPDBService {
       config: { ...config, brosurUrl, kontakPanitia, emailNotifikasi },
       totalPendaftar: totalResult[0]?.count || 0,
       jalurStats,
+      allConfigs,
+      activeConfigId: config.id,
     };
   }
 
@@ -388,14 +404,22 @@ export class PPDBService {
     search?: string;
     page?: number;
     limit?: number;
+    configId?: string;
   }) {
-    const { jalurId, status, search, page = 1, limit = 20 } = params;
+    const { jalurId, status, search, page = 1, limit = 20, configId } = params;
     const offset = (page - 1) * limit;
+
+    let targetConfigId = configId;
+    if (!targetConfigId) {
+      const activeConfig = await db.select().from(ppdbConfig).where(eq(ppdbConfig.isActive, true)).limit(1);
+      if (activeConfig.length > 0) targetConfigId = activeConfig[0].id;
+    }
 
     // Build conditions
     const conditions: any[] = [];
     if (jalurId) conditions.push(eq(ppdbPendaftar.jalurId, jalurId));
     if (status) conditions.push(eq(ppdbPendaftar.status, status));
+    if (targetConfigId) conditions.push(eq(ppdbJalur.configId, targetConfigId));
 
     // Base query with join to data_diri for name search
     let query = db.select({

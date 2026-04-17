@@ -33,26 +33,51 @@ export const PPDBAdminPage = () => {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [stats, setStats] = useState<any>(null);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [selectedConfigId, setSelectedConfigId] = useState<string>('');
 
-  const fetchStats = useCallback(async () => {
+  const fetchStats = useCallback(async (configId?: string) => {
+    setLoadingStats(true);
     try {
-      const data = await apiClient<any>('/ppdb/admin/stats');
+      const params = configId ? `?configId=${configId}` : '';
+      const data = await apiClient<any>(`/ppdb/admin/stats${params}`);
       setStats(data);
+      if (!selectedConfigId && data?.activeConfigId) {
+        setSelectedConfigId(data.activeConfigId);
+      }
     } catch (err) { console.error(err); }
     finally { setLoadingStats(false); }
-  }, []);
+  }, [selectedConfigId]);
 
-  useEffect(() => { fetchStats(); }, [fetchStats]);
+  useEffect(() => { fetchStats(selectedConfigId); }, [selectedConfigId]);
 
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div>
-        <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'PMB / SIMPMB' }]} />
-        <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 dark:from-emerald-400 dark:to-blue-400 bg-clip-text text-transparent mt-1">
-          PMB / SIMPMB 2026
-        </h1>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Penerimaan Murid Baru — Tahun Ajaran {stats?.config?.tahunAjaran || '2026/2027'}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'PMB / SIMPMB' }]} />
+          <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 dark:from-emerald-400 dark:to-blue-400 bg-clip-text text-transparent mt-1">
+            PMB / SIMPMB {stats?.config?.tahunAjaran ? stats.config.tahunAjaran.split('/')[0] : '2026'}
+          </h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Penerimaan Murid Baru — Tahun Ajaran {stats?.config?.tahunAjaran || '2026/2027'}</p>
+        </div>
+        
+        {stats?.allConfigs && stats.allConfigs.length > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-gray-500">Tahun Ajaran:</span>
+            <select
+              value={selectedConfigId}
+              onChange={(e) => setSelectedConfigId(e.target.value)}
+              className="px-3 py-1.5 bg-white dark:bg-[#222] border border-border-light dark:border-border-dark rounded-lg text-sm font-bold text-emerald-600 dark:text-emerald-400 outline-none cursor-pointer focus:border-emerald-500 transition-colors"
+            >
+              {stats.allConfigs.map((c: any) => (
+                <option key={c.id} value={c.id}>
+                  {c.tahunAjaran} {c.isActive ? '(Aktif)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -81,7 +106,7 @@ export const PPDBAdminPage = () => {
 
         <div className="p-4 md:p-5">
           {activeTab === 'overview' && <OverviewTab stats={stats} loading={loadingStats} />}
-          {activeTab === 'pendaftar' && <PendaftarTab stats={stats} />}
+          {activeTab === 'pendaftar' && <PendaftarTab stats={stats} configId={selectedConfigId} />}
           {activeTab === 'daftar_ulang' && <DaftarUlangTab />}
           {activeTab === 'seleksi' && <SeleksiTab stats={stats} />}
           {activeTab === 'konfigurasi' && <KonfigurasiTab config={stats?.config} onSaved={fetchStats} />}
@@ -145,7 +170,7 @@ const OverviewTab = ({ stats, loading }: { stats: any; loading: boolean }) => {
 };
 
 // ============ PENDAFTAR TAB ============
-const PendaftarTab = ({ stats }: { stats: any }) => {
+const PendaftarTab = ({ stats, configId }: { stats: any; configId: string }) => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -170,13 +195,14 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
       if (filterStatus) params.set('status', filterStatus);
       params.set('page', String(page));
       params.set('limit', '15');
+      if (configId) params.set('configId', configId);
       const result = await apiClient<any>(`/ppdb/admin/pendaftar?${params}`);
       setData(result.data || []);
       setTotal(result.total || 0);
       setTotalPages(result.totalPages || 1);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, [search, filterJalur, filterStatus, page]);
+  }, [search, filterJalur, filterStatus, page, configId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
