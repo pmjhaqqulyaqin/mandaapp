@@ -20,6 +20,7 @@ router.get('/admin/stats', PPDBController.getAdminStats);
 router.get('/admin/pendaftar', PPDBController.listPendaftar);
 router.get('/admin/pendaftar/:id', PPDBController.getPendaftarDetail);
 router.put('/admin/pendaftar/:id/status', PPDBController.updatePendaftarStatus);
+router.delete('/admin/pendaftar/:id', PPDBController.deletePendaftar);
 router.put('/admin/daftar-ulang/:id/status', PPDBController.updateDaftarUlangStatus);
 router.get('/admin/jalur', PPDBController.getAllJalurAdmin);
 router.put('/admin/jalur/:id', PPDBController.updateJalur);

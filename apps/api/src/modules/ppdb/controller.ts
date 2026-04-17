@@ -118,6 +118,15 @@ export class PPDBController {
     }
   }
 
+  static async deletePendaftar(req: Request, res: Response) {
+    try {
+      const result = await PPDBService.deletePendaftar(req.params.id);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
   static async updateDaftarUlangStatus(req: Request, res: Response) {
     try {
       const result = await PPDBService.updateDaftarUlangStatus(req.params.id, req.body.status);

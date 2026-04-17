@@ -158,6 +158,8 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
   const [detail, setDetail] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -181,11 +183,27 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
   const openDetail = async (id: string) => {
     setSelectedId(id);
     setLoadingDetail(true);
+    setShowDeleteConfirm(false);
     try {
       const d = await apiClient<any>(`/ppdb/admin/pendaftar/${id}`);
       setDetail(d);
     } catch (err) { toast.error('Gagal memuat detail'); }
     finally { setLoadingDetail(false); }
+  };
+
+  const deletePendaftar = async (id: string) => {
+    setDeleting(true);
+    try {
+      await apiClient(`/ppdb/admin/pendaftar/${id}`, { method: 'DELETE' });
+      toast.success('Pendaftar berhasil dihapus permanen');
+      setSelectedId(null);
+      fetchData();
+    } catch (err: any) { 
+      toast.error(err.message || 'Gagal menghapus pendaftar'); 
+    } finally { 
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -385,8 +403,39 @@ const PendaftarTab = ({ stats }: { stats: any }) => {
                     {STATUS_MAP[detail.status]?.label || detail.status}
                   </span>
                   <div className="flex-1" />
-                  <button onClick={() => updateStatus(detail.id, 'terverifikasi')} className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-[10px] font-bold hover:bg-blue-600 transition-colors">✅ Verifikasi</button>
-                  <button onClick={() => updateStatus(detail.id, 'ditolak')} className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-[10px] font-bold hover:bg-red-600 transition-colors">❌ Tolak</button>
+                  
+                  {showDeleteConfirm ? (
+                    <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 p-1.5 rounded-lg border border-red-200 dark:border-red-900">
+                      <span className="text-[10px] font-bold text-red-600 px-2">Hapus data permanen?</span>
+                      <button 
+                        onClick={() => deletePendaftar(detail.id)} 
+                        disabled={deleting}
+                        className="px-3 py-1.5 bg-red-600 text-white rounded-md text-[10px] font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
+                      >
+                        {deleting ? 'Menghapus...' : 'Ya, Hapus'}
+                      </button>
+                      <button 
+                        onClick={() => setShowDeleteConfirm(false)} 
+                        disabled={deleting}
+                        className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md text-[10px] font-bold hover:bg-gray-300 transition-colors disabled:opacity-50"
+                      >
+                        Batal
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <button onClick={() => updateStatus(detail.id, 'terverifikasi')} className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-[10px] font-bold hover:bg-blue-600 transition-colors">✅ Verifikasi</button>
+                      <button onClick={() => updateStatus(detail.id, 'ditolak')} className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-[10px] font-bold hover:bg-red-600 transition-colors">❌ Tolak</button>
+                      {detail.status === 'ditolak' && (
+                        <button 
+                          onClick={() => setShowDeleteConfirm(true)} 
+                          className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-[10px] font-bold hover:bg-red-200 transition-colors ml-2 border border-red-200"
+                        >
+                          🗑️ Hapus
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 {/* Data Sections */}

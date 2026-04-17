@@ -486,7 +486,7 @@ export class PPDBService {
     return updated;
   }
 
-  /** Update daftar ulang status (sudah_validasi / revisi) */
+   /** Update daftar ulang status (sudah_validasi / revisi) */
   static async updateDaftarUlangStatus(id: string, status: string) {
     const [updated] = await db.update(ppdbDaftarUlang)
       .set({
@@ -497,6 +497,29 @@ export class PPDBService {
       .returning();
     return updated;
   }
+
+  /** Delete pendaftar permanently (only allowed when status is 'ditolak') */
+  static async deletePendaftar(id: string) {
+    // Verify the pendaftar exists and has status 'ditolak'
+    const pendaftarList = await db.select().from(ppdbPendaftar).where(eq(ppdbPendaftar.id, id));
+    if (pendaftarList.length === 0) throw new Error('Pendaftar tidak ditemukan');
+    
+    const pendaftar = pendaftarList[0];
+    if (pendaftar.status !== 'ditolak') {
+      throw new Error('Hanya pendaftar dengan status DITOLAK yang dapat dihapus');
+    }
+
+    // All child tables (data_diri, data_sekolah, nilai_raport, prestasi, dokumen, 
+    // daftar_ulang, nilai_tes) have onDelete: cascade, so deleting the parent row 
+    // will automatically clean up all related records.
+    const [deleted] = await db.delete(ppdbPendaftar)
+      .where(eq(ppdbPendaftar.id, id))
+      .returning();
+    
+    console.log(`[PPDB] Pendaftar ${deleted.noPendaftaran} (${deleted.nisn}) dihapus permanen.`);
+    return { deleted: true, noPendaftaran: deleted.noPendaftaran };
+  }
+
 
   // ============ ADMIN: Jalur Configuration ============
 
