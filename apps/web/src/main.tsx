@@ -19,7 +19,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider defaultTheme="system" storageKey="mandalotim-theme">
+        <ThemeProvider defaultTheme="light" storageKey="mandalotim-theme">
           <App />
         </ThemeProvider>
       </QueryClientProvider>

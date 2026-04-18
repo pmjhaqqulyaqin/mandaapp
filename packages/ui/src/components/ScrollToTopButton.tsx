@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
  */
 export function ScrollToTopButton() {
   const [isVisible, setIsVisible] = useState(false);
+  const [isHiddenByModal, setIsHiddenByModal] = useState(false);
 
   // Show button when user scrolls down past 300px
   useEffect(() => {
@@ -19,9 +20,22 @@ export function ScrollToTopButton() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Listen for fab-visibility custom events to hide when modals are active
+  useEffect(() => {
+    const handleFabVisibility = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setIsHiddenByModal(!!detail?.hidden);
+    };
+    window.addEventListener('fab-visibility', handleFabVisibility);
+    return () => window.removeEventListener('fab-visibility', handleFabVisibility);
+  }, []);
+
   const scrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
+
+  // Don't render when modal/popup is active
+  if (isHiddenByModal) return null;
 
   return (
     <button

@@ -181,6 +181,24 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
     };
   }, [countdownTarget, tick]);
 
+  // Hide FAB & lock body scroll when popup is visible
+  useEffect(() => {
+    if (isVisible) {
+      // Tell FAB + ScrollToTop to hide
+      window.dispatchEvent(new CustomEvent('fab-visibility', { detail: { hidden: true } }));
+      document.body.style.overflow = 'hidden';
+    } else {
+      // Tell FAB + ScrollToTop to show again
+      window.dispatchEvent(new CustomEvent('fab-visibility', { detail: { hidden: false } }));
+      document.body.style.overflow = '';
+    }
+    return () => {
+      // Cleanup on unmount
+      window.dispatchEvent(new CustomEvent('fab-visibility', { detail: { hidden: false } }));
+      document.body.style.overflow = '';
+    };
+  }, [isVisible]);
+
   const handleDismiss = () => {
     setIsAnimating(false);
     setTimeout(() => {

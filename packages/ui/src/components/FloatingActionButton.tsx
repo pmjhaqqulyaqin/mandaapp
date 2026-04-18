@@ -10,8 +10,30 @@ export function FloatingActionButton({ developerUrl = '#' }: FloatingActionButto
   const [isOpen, setIsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
+  const [isHiddenByModal, setIsHiddenByModal] = useState(false);
+  const [isDashboard, setIsDashboard] = useState(false);
   const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { theme, setTheme } = useTheme();
+
+  // Detect dashboard route to reposition FAB to the right side
+  useEffect(() => {
+    const checkPath = () => {
+      setIsDashboard(window.location.pathname.startsWith('/dashboard'));
+    };
+    checkPath();
+
+    // Listen for navigation changes (popstate for browser back/forward)
+    window.addEventListener('popstate', checkPath);
+
+    // Also observe URL changes via MutationObserver on <title> or polling
+    // We'll use a lightweight interval since React Router doesn't fire popstate
+    const pathInterval = setInterval(checkPath, 500);
+
+    return () => {
+      window.removeEventListener('popstate', checkPath);
+      clearInterval(pathInterval);
+    };
+  }, []);
 
   // Track fullscreen changes
   useEffect(() => {
@@ -20,11 +42,44 @@ export function FloatingActionButton({ developerUrl = '#' }: FloatingActionButto
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, []);
 
+  // Listen for fab-visibility custom events (dispatched by modals/popups)
+  useEffect(() => {
+    const handleFabVisibility = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.hidden) {
+        setIsHiddenByModal(true);
+        setIsOpen(false); // Close menu if open
+      } else {
+        setIsHiddenByModal(false);
+      }
+    };
+    window.addEventListener('fab-visibility', handleFabVisibility);
+    return () => window.removeEventListener('fab-visibility', handleFabVisibility);
+  }, []);
+
+  // Close menu with Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   const toggleMenu = useCallback(() => setIsOpen((o) => !o), []);
 
-  const scrollToTop = useCallback(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Navigate to landing page (home)
+  const goHome = useCallback(() => {
     setIsOpen(false);
+    // Use window.location for full navigation since FAB is outside React Router context
+    if (window.location.pathname === '/') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      window.location.href = '/';
+    }
   }, []);
 
   const scrollToContact = useCallback(() => {
@@ -70,18 +125,6 @@ export function FloatingActionButton({ developerUrl = '#' }: FloatingActionButto
     return () => {
       clearTimeout(timer);
       document.removeEventListener('mousedown', handleMouseDown);
-    };
-  }, [isOpen]);
-
-  // Lock scroll when menu is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
 
@@ -136,7 +179,7 @@ export function FloatingActionButton({ developerUrl = '#' }: FloatingActionButto
           <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
         </svg>
       ),
-      onClick: scrollToTop,
+      onClick: goHome,
     },
     {
       id: 'theme',
@@ -172,6 +215,17 @@ export function FloatingActionButton({ developerUrl = '#' }: FloatingActionButto
   const arcEnd = 80;    // degrees
   const arcStep = (arcEnd - arcStart) / (totalButtons - 1);
 
+  // Determine position: left for public pages, right for dashboard
+  const positionStyle: React.CSSProperties = isDashboard
+    ? { right: '20px', left: 'auto' }
+    : { left: '20px', right: 'auto' };
+
+  // When on right side, arc should expand to the left (flip x)
+  const xMultiplier = isDashboard ? -1 : 1;
+
+  // Completely hidden when modal is active
+  if (isHiddenByModal) return null;
+
   return (
     <>
       {/* Dim Overlay */}
@@ -186,11 +240,12 @@ export function FloatingActionButton({ developerUrl = '#' }: FloatingActionButto
       />
 
       <div
-        className="fab-container fixed left-5 top-1/2 z-[9999] print:hidden"
+        className="fab-container fixed top-1/2 z-[9999] print:hidden"
         style={{
+          ...positionStyle,
           transform: isVisible
             ? 'translateY(-50%) translateX(0)'
-            : 'translateY(-50%) translateX(-80px)',
+            : `translateY(-50%) translateX(${isDashboard ? '80px' : '-80px'})`,
           transition: 'transform 350ms cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
@@ -224,7 +279,7 @@ export function FloatingActionButton({ developerUrl = '#' }: FloatingActionButto
       {actions.map((action, i) => {
         const angleDeg = arcStart + i * arcStep;
         const angleRad = (angleDeg * Math.PI) / 180;
-        const x = Math.cos(angleRad) * RADIUS;
+        const x = Math.cos(angleRad) * RADIUS * xMultiplier;
         const y = Math.sin(angleRad) * RADIUS;
 
         return (
@@ -255,11 +310,18 @@ export function FloatingActionButton({ developerUrl = '#' }: FloatingActionButto
             >
               {action.icon}
             </button>
-            {/* Tooltip */}
-            <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap bg-gray-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none shadow-lg">
-              {action.label}
-              <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
-            </span>
+            {/* Tooltip — direction changes based on position (left vs right) */}
+            {isDashboard ? (
+              <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 whitespace-nowrap bg-gray-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none shadow-lg">
+                {action.label}
+                <span className="absolute left-full top-1/2 -translate-y-1/2 border-4 border-transparent border-l-gray-900" />
+              </span>
+            ) : (
+              <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap bg-gray-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none shadow-lg">
+                {action.label}
+                <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
+              </span>
+            )}
           </div>
         );
       })}
