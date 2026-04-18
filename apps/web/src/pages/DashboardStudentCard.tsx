@@ -345,11 +345,8 @@ export const DashboardStudentCard = () => {
 
     try {
       localStorage.setItem('batch-print-data', JSON.stringify(printData));
-      if (printData.students.length === 1) {
-         window.open('/page/cetak-kartu-pelajar?preview=1', '_blank');
-      } else {
-         window.open('/dashboard/print-batch', '_blank');
-      }
+      // Both single and batch prints use the same print page
+      window.open('/dashboard/print-batch', '_blank');
     } catch (e) {
       console.error('Failed to save print data:', e);
       toast.error('Gagal menyiapkan data cetak. Data mungkin terlalu besar.');
@@ -580,14 +577,13 @@ export const DashboardStudentCard = () => {
                       }}
                     >
                       <div 
+                        ref={mainPreviewInnerRef}
                         style={{ 
                           transform: `scale(${mainPreviewScale})`, 
                           transformOrigin: 'top left',
                           width: `${orientation === 'horizontal' ? 860 : 550}px`
                         }} 
                       >
-                        {/* Print bounds exclude scaling! */}
-                        <div className="card-outer-wrapper mt-8" style={{ display: 'none' }}></div> {/* keep ref intact but unused visually */}
                         <div 
                           className="card-wrapper flex flex-col items-center gap-6"
                         >
