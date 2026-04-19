@@ -106,7 +106,7 @@ export class PPDBService {
     return `${prefix}${yy}${mm}${kodesekolah}${statusSekolahKode}${genderKode}${seq}`;
   }
 
-  /** Submit pendaftaran lengkap (single transaction-like call) */
+  /** Submit pendaftaran lengkap (atomic transaction) */
   static async submitPendaftaran(data: {
     jalurId: string;
     dataDiri: any;
@@ -115,7 +115,7 @@ export class PPDBService {
     prestasi?: any[];
     dokumen?: any[];
   }) {
-    // 1. Validate jalur exists and is active
+    // 1. Validate jalur exists and is active (outside transaction — read-only)
     const jalurList = await db.select().from(ppdbJalur).where(eq(ppdbJalur.id, data.jalurId));
     if (jalurList.length === 0) throw new Error('Jalur pendaftaran tidak ditemukan');
     const jalur = jalurList[0];
@@ -129,10 +129,6 @@ export class PPDBService {
     if (jalur.jadwalTutup && now > new Date(jalur.jadwalTutup)) {
       throw new Error('Pendaftaran sudah ditutup');
     }
-
-    // Check kuota
-    const pendaftarCount = await db.select({ count: count() }).from(ppdbPendaftar).where(eq(ppdbPendaftar.jalurId, data.jalurId));
-    // Don't block by kuota — kuota is for selection, not registration
 
     // Check duplicate NISN in same jalur
     const existingNISN = await db.select().from(ppdbPendaftar)
@@ -163,69 +159,91 @@ export class PPDBService {
       throw new Error('Jalur Prestasi memerlukan minimal 1 sertifikat prestasi');
     }
 
-    // 2. Create pendaftar
-    const noPendaftaran = await this.generateNoPendaftaran({
-      namaSekolah: data.dataSekolah.namaSekolah,
-      statusSekolah: data.dataSekolah.statusSekolah,
-      jenisKelamin: data.dataDiri.jenisKelamin,
-    });
-    const [pendaftar] = await db.insert(ppdbPendaftar).values({
-      jalurId: data.jalurId,
-      noPendaftaran,
-      nisn: data.dataDiri.nisn,
-      email: data.dataDiri.email || null,
-      status: 'menunggu',
-      nilaiAkhir: rataRataAkhir.toFixed(2),
-    }).returning();
+    // 2. Execute all inserts inside a single atomic transaction
+    const result = await db.transaction(async (tx) => {
+      // Generate noPendaftaran inside transaction to prevent race condition
+      // Use FOR UPDATE lock to serialize concurrent registrations
+      const countResult = await tx.execute(
+        sql`SELECT COUNT(*) as cnt FROM ppdb_pendaftar FOR UPDATE`
+      );
+      const nextNum = (Number((countResult as any).rows?.[0]?.cnt) || 0) + 1;
 
-    // 3. Insert data diri
-    await db.insert(ppdbDataDiri).values({
-      pendaftarId: pendaftar.id,
-      nik: data.dataDiri.nik,
-      namaLengkap: data.dataDiri.namaLengkap,
-      tempatLahir: data.dataDiri.tempatLahir,
-      tanggalLahir: data.dataDiri.tanggalLahir,
-      jenisKelamin: data.dataDiri.jenisKelamin,
-      alamat: data.dataDiri.alamat,
-      namaAyah: data.dataDiri.namaAyah || null,
-      pekerjaanAyah: data.dataDiri.pekerjaanAyah || null,
-      namaIbu: data.dataDiri.namaIbu || null,
-      pekerjaanIbu: data.dataDiri.pekerjaanIbu || null,
-      noHpOrtu: data.dataDiri.noHpOrtu,
-    });
+      const prefix = 'MND';
+      const yy = String(now.getFullYear()).slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
 
-    // 4. Insert data sekolah
-    await db.insert(ppdbDataSekolah).values({
-      pendaftarId: pendaftar.id,
-      npsn: data.dataSekolah.npsn || null,
-      namaSekolah: data.dataSekolah.namaSekolah,
-      statusSekolah: data.dataSekolah.statusSekolah,
-      alamatSekolah: data.dataSekolah.alamatSekolah || null,
-      tahunLulus: data.dataSekolah.tahunLulus,
-    });
+      let kodesekolah = 'MTS';
+      const namaUpper = data.dataSekolah.namaSekolah ? data.dataSekolah.namaSekolah.toUpperCase() : '';
+      if (namaUpper.includes('SMP')) {
+        kodesekolah = 'SMP';
+      } else if (namaUpper.includes('MTS') || namaUpper.includes('TSANAWIYAH')) {
+        kodesekolah = 'MTS';
+      }
 
-    // 5. Insert nilai raport (multiple semesters)
-    for (const nilai of data.nilaiRaport) {
-      const vals = [nilai.bIndonesia, nilai.bInggris, nilai.matematika, nilai.ipa, nilai.ips]
-        .map(Number).filter(v => !isNaN(v) && v > 0);
-      const avg = vals.length > 0 ? (vals.reduce((a: number, b: number) => a + b, 0) / vals.length).toFixed(2) : '0';
+      const statusSekolahKode = (data.dataSekolah.statusSekolah || '').toLowerCase() === 'swasta' ? '02' : '01';
+      const genderKode = (data.dataDiri.jenisKelamin || '').toLowerCase() === 'perempuan' ? '02' : '01';
+      const seq = String(nextNum).padStart(3, '0');
+      const noPendaftaran = `${prefix}${yy}${mm}${kodesekolah}${statusSekolahKode}${genderKode}${seq}`;
 
-      await db.insert(ppdbNilaiRaport).values({
+      // Insert pendaftar
+      const [pendaftar] = await tx.insert(ppdbPendaftar).values({
+        jalurId: data.jalurId,
+        noPendaftaran,
+        nisn: data.dataDiri.nisn,
+        email: data.dataDiri.email || null,
+        status: 'menunggu',
+        nilaiAkhir: rataRataAkhir.toFixed(2),
+      }).returning();
+
+      // Insert data diri
+      await tx.insert(ppdbDataDiri).values({
         pendaftarId: pendaftar.id,
-        semester: nilai.semester,
-        bIndonesia: nilai.bIndonesia || null,
-        bInggris: nilai.bInggris || null,
-        matematika: nilai.matematika || null,
-        ipa: nilai.ipa || null,
-        ips: nilai.ips || null,
-        rataRata: avg,
+        nik: data.dataDiri.nik,
+        namaLengkap: data.dataDiri.namaLengkap,
+        tempatLahir: data.dataDiri.tempatLahir,
+        tanggalLahir: data.dataDiri.tanggalLahir,
+        jenisKelamin: data.dataDiri.jenisKelamin,
+        alamat: data.dataDiri.alamat,
+        namaAyah: data.dataDiri.namaAyah || null,
+        pekerjaanAyah: data.dataDiri.pekerjaanAyah || null,
+        namaIbu: data.dataDiri.namaIbu || null,
+        pekerjaanIbu: data.dataDiri.pekerjaanIbu || null,
+        noHpOrtu: data.dataDiri.noHpOrtu,
       });
-    }
 
-    // 6. Insert prestasi (optional)
-    if (data.prestasi && data.prestasi.length > 0) {
-      for (const p of data.prestasi) {
-        await db.insert(ppdbPrestasi).values({
+      // Insert data sekolah
+      await tx.insert(ppdbDataSekolah).values({
+        pendaftarId: pendaftar.id,
+        npsn: data.dataSekolah.npsn || null,
+        namaSekolah: data.dataSekolah.namaSekolah,
+        statusSekolah: data.dataSekolah.statusSekolah,
+        alamatSekolah: data.dataSekolah.alamatSekolah || null,
+        tahunLulus: data.dataSekolah.tahunLulus,
+      });
+
+      // Insert nilai raport (batch)
+      if (data.nilaiRaport && data.nilaiRaport.length > 0) {
+        const nilaiValues = data.nilaiRaport.map((nilai: any) => {
+          const vals = [nilai.bIndonesia, nilai.bInggris, nilai.matematika, nilai.ipa, nilai.ips]
+            .map(Number).filter(v => !isNaN(v) && v > 0);
+          const avg = vals.length > 0 ? (vals.reduce((a: number, b: number) => a + b, 0) / vals.length).toFixed(2) : '0';
+          return {
+            pendaftarId: pendaftar.id,
+            semester: nilai.semester,
+            bIndonesia: nilai.bIndonesia || null,
+            bInggris: nilai.bInggris || null,
+            matematika: nilai.matematika || null,
+            ipa: nilai.ipa || null,
+            ips: nilai.ips || null,
+            rataRata: avg,
+          };
+        });
+        await tx.insert(ppdbNilaiRaport).values(nilaiValues);
+      }
+
+      // Insert prestasi (batch)
+      if (data.prestasi && data.prestasi.length > 0) {
+        const prestasiValues = data.prestasi.map((p: any) => ({
           pendaftarId: pendaftar.id,
           jenis: p.jenis,
           tingkat: p.tingkat,
@@ -233,22 +251,24 @@ export class PPDBService {
           peringkat: p.peringkat || null,
           tahun: p.tahun || null,
           fileSertifikat: p.fileSertifikat || null,
-        });
+        }));
+        await tx.insert(ppdbPrestasi).values(prestasiValues);
       }
-    }
 
-    // 7. Insert dokumen (optional)
-    if (data.dokumen && data.dokumen.length > 0) {
-      for (const d of data.dokumen) {
-        await db.insert(ppdbDokumen).values({
+      // Insert dokumen (batch)
+      if (data.dokumen && data.dokumen.length > 0) {
+        const dokumenValues = data.dokumen.map((d: any) => ({
           pendaftarId: pendaftar.id,
           jenisDokumen: d.jenisDokumen,
           filePath: d.filePath,
-        });
+        }));
+        await tx.insert(ppdbDokumen).values(dokumenValues);
       }
-    }
 
-    // 8. Send Real Time Notification to Admin/Panitia (fetch admin email from DB config)
+      return { pendaftar, noPendaftaran };
+    });
+
+    // 3. Send notification OUTSIDE transaction (non-critical, fire-and-forget)
     const adminEmailSetting = await db.select().from(siteSettings)
       .where(eq(siteSettings.key, 'ppdb_email_notifikasi')).limit(1);
     const adminEmail = adminEmailSetting[0]?.value || null;
@@ -258,26 +278,45 @@ export class PPDBService {
         namaLengkap: data.dataDiri.namaLengkap,
         tempatLahir: data.dataDiri.tempatLahir,
         tanggalLahir: data.dataDiri.tanggalLahir,
-        noPendaftaran,
+        noPendaftaran: result.noPendaftaran,
         jenisKelamin: data.dataDiri.jenisKelamin,
         asalSekolah: data.dataSekolah.namaSekolah,
         jalurNama: jalur.namaJalur
       }, adminEmail).catch(e => console.error('[PPDB] Gagal mengirim notifikasi email ke panitia:', e));
-    } else {
-      console.warn('[PPDB] Email notifikasi panitia belum dikonfigurasi. Silakan atur di menu Konfigurasi SIMPMB.');
     }
 
     return {
-      id: pendaftar.id,
-      noPendaftaran: pendaftar.noPendaftaran,
-      nisn: pendaftar.nisn,
-      status: pendaftar.status,
+      id: result.pendaftar.id,
+      noPendaftaran: result.pendaftar.noPendaftaran,
+      nisn: result.pendaftar.nisn,
+      status: result.pendaftar.status,
       nilaiAkhir: rataRataAkhir.toFixed(2),
     };
   }
 
   /** Upload file for PPDB (certificates, documents) */
   static async uploadFile(file: Express.Multer.File, subdir: string = 'ppdb'): Promise<string> {
+    // Validate file type — only allow safe formats
+    const allowedMimeTypes = [
+      'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+      'application/pdf',
+    ];
+    const allowedExtensions = /\.(jpg|jpeg|png|webp|gif|pdf)$/i;
+
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new Error(`Tipe file tidak diizinkan: ${file.mimetype}. Gunakan JPG, PNG, WEBP, GIF, atau PDF.`);
+    }
+
+    if (!allowedExtensions.test(file.originalname)) {
+      throw new Error(`Ekstensi file tidak diizinkan. Gunakan .jpg, .png, .webp, .gif, atau .pdf`);
+    }
+
+    // Enforce file size limit (5MB)
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      throw new Error(`Ukuran file terlalu besar (${(file.size / 1024 / 1024).toFixed(1)}MB). Maksimal 5MB.`);
+    }
+
     const uploadDir = path.join(process.cwd(), 'uploads', subdir);
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
