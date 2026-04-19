@@ -22,6 +22,7 @@ COPY apps/api ./apps/api
 # 5. Build the api
 RUN npm run build -w @mandaapp/api
 
+ENV NODE_ENV=production
 EXPOSE 3001
 
 # The path to the built entry point
