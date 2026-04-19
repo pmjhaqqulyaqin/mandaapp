@@ -11,10 +11,6 @@ export async function apiClient<T>(
 ): Promise<T> {
   const { data, headers, ...customConfig } = options;
 
-  // Get mock user from localStorage for auth header
-  const savedUser = localStorage.getItem('mandualotim_user');
-  const userId = savedUser ? JSON.parse(savedUser)?.id : undefined;
-
   const isFormData = data instanceof FormData;
   const { method = data ? "POST" : "GET", ...configWithoutMethod } = customConfig;
 
@@ -23,10 +19,9 @@ export async function apiClient<T>(
     body: isFormData ? (data as FormData) : (data ? JSON.stringify(data) : undefined),
     headers: {
       ...(!isFormData && { "Content-Type": "application/json" }),
-      ...(userId ? { "X-User-Id": userId } : {}),
       ...headers,
     },
-    credentials: "include", // Required for better-auth session cookies via cross-origin
+    credentials: "include", // Required for better-auth session cookies
     ...configWithoutMethod,
   };
 
@@ -65,14 +60,11 @@ export async function apiUpload(
   formData: FormData, 
   onProgress?: (percent: number) => void
 ) {
-  const savedUser = localStorage.getItem('mandualotim_user');
-  const userId = savedUser ? JSON.parse(savedUser)?.id : undefined;
-
   const response = await axios.put(`${API_BASE_URL}${endpoint}`, formData, {
     headers: {
-      ...(userId ? { "X-User-Id": userId } : {}),
       'Content-Type': 'multipart/form-data'
     },
+    withCredentials: true, // Required for better-auth session cookies
     onUploadProgress: (progressEvent) => {
       if (onProgress && progressEvent.total) {
         const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -83,3 +75,4 @@ export async function apiUpload(
 
   return response.data;
 }
+

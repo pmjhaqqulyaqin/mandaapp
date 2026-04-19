@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { PPDBController } from './controller';
+import { requireStaff } from '../auth/middleware';
 import multer from 'multer';
 
 const router = Router();
@@ -15,34 +16,34 @@ router.post('/daftar-ulang/:noPendaftaran', PPDBController.submitDaftarUlang);
 router.get('/daftar-ulang/:noPendaftaran', PPDBController.getDaftarUlangInfo);
 router.get('/verify/:code', PPDBController.verifyCode);
 
-// ============ ADMIN ENDPOINTS ============
-router.get('/admin/stats', PPDBController.getAdminStats);
-router.get('/admin/pendaftar', PPDBController.listPendaftar);
-router.get('/admin/pendaftar/:id', PPDBController.getPendaftarDetail);
-router.put('/admin/pendaftar/:id/status', PPDBController.updatePendaftarStatus);
-router.delete('/admin/pendaftar/:id', PPDBController.deletePendaftar);
-router.put('/admin/daftar-ulang/:id/status', PPDBController.updateDaftarUlangStatus);
-router.get('/admin/jalur', PPDBController.getAllJalurAdmin);
-router.put('/admin/jalur/:id', PPDBController.updateJalur);
-router.get('/admin/export', PPDBController.exportPendaftar);
-router.get('/admin/pendaftar/export', PPDBController.exportPendaftar);
-router.put('/admin/config/:id', PPDBController.updateConfig);
-router.post('/admin/jalur/:jalurId/ranking', PPDBController.generateRanking);
-router.post('/admin/jalur/:jalurId/kelulusan', PPDBController.tetapkanKelulusan);
-router.get('/admin/daftar-ulang', PPDBController.listDaftarUlangAdmin);
-router.post('/admin/brosur', upload.single('file'), PPDBController.uploadBrosur);
+// ============ ADMIN ENDPOINTS (staff auth required) ============
+router.get('/admin/stats', requireStaff, PPDBController.getAdminStats);
+router.get('/admin/pendaftar', requireStaff, PPDBController.listPendaftar);
+router.get('/admin/pendaftar/:id', requireStaff, PPDBController.getPendaftarDetail);
+router.put('/admin/pendaftar/:id/status', requireStaff, PPDBController.updatePendaftarStatus);
+router.delete('/admin/pendaftar/:id', requireStaff, PPDBController.deletePendaftar);
+router.put('/admin/daftar-ulang/:id/status', requireStaff, PPDBController.updateDaftarUlangStatus);
+router.get('/admin/jalur', requireStaff, PPDBController.getAllJalurAdmin);
+router.put('/admin/jalur/:id', requireStaff, PPDBController.updateJalur);
+router.get('/admin/export', requireStaff, PPDBController.exportPendaftar);
+router.get('/admin/pendaftar/export', requireStaff, PPDBController.exportPendaftar);
+router.put('/admin/config/:id', requireStaff, PPDBController.updateConfig);
+router.post('/admin/jalur/:jalurId/ranking', requireStaff, PPDBController.generateRanking);
+router.post('/admin/jalur/:jalurId/kelulusan', requireStaff, PPDBController.tetapkanKelulusan);
+router.get('/admin/daftar-ulang', requireStaff, PPDBController.listDaftarUlangAdmin);
+router.post('/admin/brosur', requireStaff, upload.single('file'), PPDBController.uploadBrosur);
 
-// ============ PENILAIAN TES & UJIAN ENDPOINTS ============
-router.get('/admin/tes-config/:jalurId', PPDBController.getTesConfig);
-router.post('/admin/tes-config/:jalurId', PPDBController.createTesConfig);
-router.put('/admin/tes-config/:id', PPDBController.updateTesConfig);
-router.delete('/admin/tes-config/:id', PPDBController.deleteTesConfig);
+// ============ PENILAIAN TES & UJIAN ENDPOINTS (staff auth required) ============
+router.get('/admin/tes-config/:jalurId', requireStaff, PPDBController.getTesConfig);
+router.post('/admin/tes-config/:jalurId', requireStaff, PPDBController.createTesConfig);
+router.put('/admin/tes-config/:id', requireStaff, PPDBController.updateTesConfig);
+router.delete('/admin/tes-config/:id', requireStaff, PPDBController.deleteTesConfig);
 
-router.get('/penguji/tes', PPDBController.getPengujiTesList);
-router.get('/penguji/tes/:tesConfigId/peserta', PPDBController.getPesertaByTes);
-router.put('/penguji/tes/:tesConfigId/nilai', PPDBController.bulkUpdateNilaiTes);
+router.get('/penguji/tes', requireStaff, PPDBController.getPengujiTesList);
+router.get('/penguji/tes/:tesConfigId/peserta', requireStaff, PPDBController.getPesertaByTes);
+router.put('/penguji/tes/:tesConfigId/nilai', requireStaff, PPDBController.bulkUpdateNilaiTes);
 
-router.get('/penguji/master-penilaian', PPDBController.getMasterPenilaian);
-router.put('/penguji/master-penilaian/bulk', PPDBController.bulkUpdateMasterNilaiTes);
+router.get('/penguji/master-penilaian', requireStaff, PPDBController.getMasterPenilaian);
+router.put('/penguji/master-penilaian/bulk', requireStaff, PPDBController.bulkUpdateMasterNilaiTes);
 
 export const ppdbRoutes = router;

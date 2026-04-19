@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as systemController from './controller';
+import { requireStaff, requireAdmin } from '../auth/middleware';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -24,17 +25,19 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+// Public
 router.get('/status', systemController.getSystemStatus);
-router.get('/check-updates', systemController.checkForUpdates);
-router.post('/sync-github', systemController.syncGithubUpdate);
-router.post('/upload-update', upload.single('package'), systemController.uploadUpdatePackage);
-router.post('/rollback', systemController.rollbackUpdatePackage);
 
-// Generic image upload for Jodit/Editor (accepts any field name like 'files[0]', 'image', etc.)
-router.post('/upload/image', upload.any(), systemController.uploadImageHandler);
+// Staff — image upload for Jodit/Editor
+router.post('/upload/image', requireStaff, upload.any(), systemController.uploadImageHandler);
 
-// Explicitly serve files through Node API so we can strictly control HTTP headers
-// and bypass any Nginx blocks that might be enforcing octet-stream attachments on /uploads
+// Staff — serve files
 router.get('/file/:filename', systemController.serveFileHandler);
+
+// Admin only — system updates
+router.get('/check-updates', requireAdmin, systemController.checkForUpdates);
+router.post('/sync-github', requireAdmin, systemController.syncGithubUpdate);
+router.post('/upload-update', requireAdmin, upload.single('package'), systemController.uploadUpdatePackage);
+router.post('/rollback', requireAdmin, systemController.rollbackUpdatePackage);
 
 export const systemRoutes = router;

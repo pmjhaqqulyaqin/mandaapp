@@ -1,16 +1,18 @@
 import { Router } from "express";
 import { EmployeeController } from "./controller";
+import { requireStaff } from "../auth/middleware";
 import multer from "multer";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.get("/", EmployeeController.getAll);
-router.get("/template", EmployeeController.downloadTemplate);
-router.get("/:id", EmployeeController.getById);
-router.post("/", EmployeeController.create);
-router.put("/:id", EmployeeController.update);
-router.delete("/:id", EmployeeController.delete);
-router.post("/upload", upload.single("file"), EmployeeController.uploadExcel);
+// All employee routes are staff-protected
+router.get("/", requireStaff, EmployeeController.getAll);
+router.get("/template", requireStaff, EmployeeController.downloadTemplate);
+router.get("/:id", requireStaff, EmployeeController.getById);
+router.post("/", requireStaff, EmployeeController.create);
+router.put("/:id", requireStaff, EmployeeController.update);
+router.delete("/:id", requireStaff, EmployeeController.delete);
+router.post("/upload", requireStaff, upload.single("file"), EmployeeController.uploadExcel);
 
 export default router;

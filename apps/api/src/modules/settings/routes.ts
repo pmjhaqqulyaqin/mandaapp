@@ -3,6 +3,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { SettingsController } from "./controller";
+import { requireStaff } from "../auth/middleware";
 
 const router = Router();
 
@@ -33,11 +34,14 @@ const upload = multer({
   },
 });
 
+// Public (frontend needs settings to render)
 router.get("/", SettingsController.getAll);
 router.get("/serve-favicon", SettingsController.serveFavicon);
 router.get("/:group", SettingsController.getByGroup);
-router.put("/", SettingsController.bulkUpdate);
-router.post("/upload-logo", upload.single("logo"), SettingsController.uploadLogo);
-router.post("/upload-favicon", upload.single("favicon"), SettingsController.uploadFavicon);
+
+// Protected (staff only)
+router.put("/", requireStaff, SettingsController.bulkUpdate);
+router.post("/upload-logo", requireStaff, upload.single("logo"), SettingsController.uploadLogo);
+router.post("/upload-favicon", requireStaff, upload.single("favicon"), SettingsController.uploadFavicon);
 
 export const settingsRoutes = router;

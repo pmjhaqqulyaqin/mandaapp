@@ -69,9 +69,6 @@ export const DashboardPages = () => {
       url: `${API_BASE_URL}/system/upload/image`,
       format: 'json',
       withCredentials: true,
-      headers: {
-        'X-User-Id': localStorage.getItem('mandualotim_user') ? JSON.parse(localStorage.getItem('mandualotim_user')!).id : ''
-      },
       insertImageAsBase64URI: false,
       process: (res: any) => {
         const fileUrl = res.url || (res.data && res.data.url) || '';

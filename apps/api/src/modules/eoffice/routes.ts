@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { EOfficeController } from './controller';
+import { requireStaff } from '../auth/middleware';
 import multer from 'multer';
 import path from 'path';
-
 import fs from 'fs';
 
 const router = Router();
@@ -23,28 +23,28 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// E-Office Routes
-router.get('/jenis-surat', EOfficeController.getJenisSurat);
-router.post('/jenis-surat', EOfficeController.createJenisSurat);
-router.delete('/jenis-surat/:id', EOfficeController.deleteJenisSurat);
-router.post('/jenis-surat/seed', EOfficeController.seedTemplates);
+// All E-Office routes require staff auth
+router.get('/jenis-surat', requireStaff, EOfficeController.getJenisSurat);
+router.post('/jenis-surat', requireStaff, EOfficeController.createJenisSurat);
+router.delete('/jenis-surat/:id', requireStaff, EOfficeController.deleteJenisSurat);
+router.post('/jenis-surat/seed', requireStaff, EOfficeController.seedTemplates);
 
-router.get('/surat-keluar', EOfficeController.getSuratKeluar);
-router.post('/surat-keluar/generate', EOfficeController.generateNomorKeluar);
-router.get('/surat-keluar/export', EOfficeController.exportSuratKeluar);
-router.delete('/surat-keluar/:id', EOfficeController.deleteSuratKeluar);
-router.put('/surat-keluar/:id', EOfficeController.updateSuratKeluar);
-router.put('/surat-keluar/:id/upload', upload.single('file'), EOfficeController.uploadSuratKeluar);
+router.get('/surat-keluar', requireStaff, EOfficeController.getSuratKeluar);
+router.post('/surat-keluar/generate', requireStaff, EOfficeController.generateNomorKeluar);
+router.get('/surat-keluar/export', requireStaff, EOfficeController.exportSuratKeluar);
+router.delete('/surat-keluar/:id', requireStaff, EOfficeController.deleteSuratKeluar);
+router.put('/surat-keluar/:id', requireStaff, EOfficeController.updateSuratKeluar);
+router.put('/surat-keluar/:id/upload', requireStaff, upload.single('file'), EOfficeController.uploadSuratKeluar);
 
-router.get('/surat-masuk', EOfficeController.getSuratMasuk);
-router.post('/surat-masuk', EOfficeController.createSuratMasuk);
-router.get('/surat-masuk/export', EOfficeController.exportSuratMasuk);
-router.delete('/surat-masuk/:id', EOfficeController.deleteSuratMasuk);
-router.put('/surat-masuk/:id', EOfficeController.updateSuratMasuk);
-router.put('/surat-masuk/:id/upload', upload.single('file'), EOfficeController.uploadSuratMasuk);
+router.get('/surat-masuk', requireStaff, EOfficeController.getSuratMasuk);
+router.post('/surat-masuk', requireStaff, EOfficeController.createSuratMasuk);
+router.get('/surat-masuk/export', requireStaff, EOfficeController.exportSuratMasuk);
+router.delete('/surat-masuk/:id', requireStaff, EOfficeController.deleteSuratMasuk);
+router.put('/surat-masuk/:id', requireStaff, EOfficeController.updateSuratMasuk);
+router.put('/surat-masuk/:id/upload', requireStaff, upload.single('file'), EOfficeController.uploadSuratMasuk);
 
-router.get('/kka', EOfficeController.getKka);
-router.post('/kka', EOfficeController.createKka);
-router.delete('/kka/:id', EOfficeController.deleteKka);
+router.get('/kka', requireStaff, EOfficeController.getKka);
+router.post('/kka', requireStaff, EOfficeController.createKka);
+router.delete('/kka/:id', requireStaff, EOfficeController.deleteKka);
 
 export const eofficeRouter = router;

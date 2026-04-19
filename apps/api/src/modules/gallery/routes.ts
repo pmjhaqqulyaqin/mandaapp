@@ -3,6 +3,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { GalleryController } from "./controller";
+import { requireStaff } from "../auth/middleware";
 
 const router = Router();
 
@@ -33,10 +34,13 @@ const upload = multer({
   },
 });
 
+// Public
 router.get("/", GalleryController.getImages);
-router.post("/", GalleryController.createImage);
-router.post("/upload", upload.single("image"), GalleryController.uploadImage);
-router.delete("/:id", GalleryController.deleteImage);
-router.put("/:id", GalleryController.updateImage);
+
+// Protected (staff only)
+router.post("/", requireStaff, GalleryController.createImage);
+router.post("/upload", requireStaff, upload.single("image"), GalleryController.uploadImage);
+router.delete("/:id", requireStaff, GalleryController.deleteImage);
+router.put("/:id", requireStaff, GalleryController.updateImage);
 
 export const galleryRoutes = router;

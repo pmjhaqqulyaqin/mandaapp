@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import path from 'path';
 import dotenv from 'dotenv';
 import fs from 'fs';
@@ -32,6 +34,7 @@ dotenv.config();
 
 const app = express();
 app.use(compression());
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 const PORT = process.env.PORT || 3001;
 
 // Ensure uploads directory exists
@@ -41,51 +44,36 @@ if (!fs.existsSync(uploadDir)) {
   console.log(`[SYSTEM] Created missing uploads directory: ${uploadDir}`);
 }
 
-// Global Request Auditor (Diagnostic)
-app.use((req, res, next) => {
-  console.log(`[API ACCESS] ${req.method} ${req.path}`);
-  next();
-});
-
-// Diagnostic logging for auth routes
-app.all("/api/auth/*", (req, res, next) => {
-  console.log(`[AUTH REQUEST] ${req.method} ${req.url}`);
-  console.log(`[AUTH PATH] ${req.path}`);
-  console.log(`[AUTH HEADERS] Protocol: ${req.protocol}, X-Forwarded-Proto: ${req.headers['x-forwarded-proto']}, Origin: ${req.headers.origin}`);
-  console.log(`[AUTH DEBUG] Cookies Present:`, !!req.headers.cookie);
-  next();
-});
-
-// Cookie logging for debugging
-app.use((req, res, next) => {
-  if (req.path.includes('/api/auth')) {
-    console.log(`[AUTH DEBUG] ${req.method} ${req.path}`);
-    console.log(`[AUTH DEBUG] Incoming Cookies:`, req.headers.cookie ? 'Present' : 'None');
-    
-    // Intercept outgoing headers to log Set-Cookie
-    const originalEnd = res.end;
-    res.end = function(this: any, chunk: any, encoding?: any, cb?: any) {
-      const setCookie = res.getHeader('set-cookie');
-      if (setCookie) {
-        console.log(`[AUTH DEBUG] Outgoing Set-Cookie:`, Array.isArray(setCookie) ? setCookie.join(', ') : setCookie);
-      }
-      return originalEnd.call(this, chunk, encoding, cb);
-    } as any;
-  }
-  next();
-});
-
 // Trust proxy is required for 'Secure' cookies to work when running behind 
-// Railway's or Vercel's lead balancer/reverse proxy
+// Railway's or Vercel's reverse proxy
 app.set('trust proxy', true);
 
-// Comprehensive auth diagnostics
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api/auth')) {
-    console.log(`[AUTH ACCESS] ${req.method} ${req.path}`);
-  }
-  next();
+// Global rate limiting — 200 requests per 15 minutes per IP
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Terlalu banyak request. Silakan coba lagi nanti.' },
 });
+app.use(globalLimiter);
+
+// Stricter rate limit for public form submissions (PPDB, contacts)
+const formLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  message: { error: 'Terlalu banyak percobaan pengiriman. Silakan coba lagi dalam 15 menit.' },
+});
+app.use('/api/ppdb/daftar', formLimiter);
+app.use('/api/contacts', formLimiter);
+
+// Stricter rate limit for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: 'Terlalu banyak percobaan login. Silakan coba lagi dalam 15 menit.' },
+});
+app.use('/api/auth', authLimiter);
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -100,18 +88,17 @@ app.use(cors({
     // Allow requests with no origin (same-origin via Nginx proxy, curl, etc.)
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.includes(origin) || /https:\/\/.*vercel\.app$/.test(origin)) {
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.log(`[CORS] Blocked origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  allowedHeaders: ['Content-Type', 'X-User-Id', 'Authorization', 'Accept'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   credentials: true
 }));
 
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '5mb' }));
 // On-the-fly thumbnail generator for gallery images (reduces ~900KB → ~40KB per image)
 app.get('/uploads/thumb/:filename', async (req, res) => {
   try {

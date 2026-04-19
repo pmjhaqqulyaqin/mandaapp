@@ -46,9 +46,6 @@ services:
         condition: service_healthy
     volumes:
       - ./apps/api/uploads:/app/uploads
-      # [Trik DevOps] Mounting host docker socket & root directory untuk mengizinkan 1-Click Update
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./:/host_app
 
   web:
     build:

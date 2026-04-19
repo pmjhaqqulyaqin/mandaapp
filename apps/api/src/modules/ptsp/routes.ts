@@ -3,6 +3,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import * as controller from "./controller";
+import { requireStaff } from "../auth/middleware";
 
 export const ptspRoutes = Router();
 
@@ -29,7 +30,7 @@ const upload = multer({
 ptspRoutes.post("/submit", upload.any(), controller.handleSubmit);
 ptspRoutes.get("/track/:ticketId", controller.handleTrack);
 
-// Admin Routes (Auth will be checked at frontend and basic controller layer)
-ptspRoutes.get("/", controller.handleGetAll);
-ptspRoutes.patch("/:id/status", controller.handleUpdateStatus);
-ptspRoutes.delete("/:id", controller.handleDelete);
+// Admin Routes (staff auth required)
+ptspRoutes.get("/", requireStaff, controller.handleGetAll);
+ptspRoutes.patch("/:id/status", requireStaff, controller.handleUpdateStatus);
+ptspRoutes.delete("/:id", requireStaff, controller.handleDelete);

@@ -256,23 +256,7 @@ export class StudentController {
 
       const student = await StudentService.publicSearchStudent(fullName, birthPlace, birthDate);
       if (!student) {
-        // DEBUG: If not found, search by name only to see what's wrong
-        const { db } = require('../../db');
-        const { studentProfiles } = require('../../db/schema');
-        const { ilike } = require('drizzle-orm');
-        
-        const partialMatches = await db.select().from(studentProfiles)
-          .where(ilike(studentProfiles.fullName, `%${fullName.trim()}%`))
-          .limit(1);
-          
-        if (partialMatches.length > 0) {
-          const m = partialMatches[0];
-          return res.status(404).json({ 
-            error: `DEBUG - Ditemukan dlm DB dgn nama mirip, tapi beda data lain. DB: Tmp:[${m.birthPlace}], Tgl:[${m.birthDate}]. Input: Tmp:[${birthPlace}], Tgl:[${birthDate}]` 
-          });
-        }
-      
-        return res.status(404).json({ error: "Data siswa tidak ditemukan sama sekali." });
+        return res.status(404).json({ error: "Data siswa tidak ditemukan. Pastikan Nama, Tempat Lahir, dan Tanggal Lahir sudah benar." });
       }
 
       // Return only safe necessary data for card printing

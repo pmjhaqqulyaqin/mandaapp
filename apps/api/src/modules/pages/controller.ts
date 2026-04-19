@@ -1,7 +1,5 @@
 import { Request, Response } from 'express';
 import * as pagesService from './service';
-import { auth } from "../auth";
-import { fromNodeHeaders } from "better-auth/node";
 
 export const getPagesHandler = async (req: Request, res: Response) => {
   try {
@@ -29,33 +27,10 @@ export const getPageBySlugHandler = async (req: Request, res: Response) => {
 
 export const createPageHandler = async (req: Request, res: Response) => {
   try {
-    let userId: string | undefined;
-
-    // Try to get user session from better-auth first
-    try {
-      const session = await auth.api.getSession({
-        headers: fromNodeHeaders(req.headers),
-      });
-      if (session) {
-        userId = session.user.id;
-      }
-    } catch {
-      // Session lookup failed, will try fallback
-    }
-
-    // Fallback: read X-User-Id header
-    if (!userId) {
-      userId = (req.headers as any)["x-user-id"] || (req.headers as any).get?.("x-user-id");
-    }
-
-    if (!userId) {
-      console.warn("Unauthorized attempt to create page");
-      return res.status(401).json({ error: "Unauthorized. Please log in." });
-    }
-
+    // req.authUser is guaranteed by requireStaff middleware
     const page = await pagesService.createPage({
        ...req.body,
-       authorId: userId,
+       authorId: req.authUser!.id,
     });
     res.status(201).json(page);
   } catch (error) {
@@ -66,30 +41,6 @@ export const createPageHandler = async (req: Request, res: Response) => {
 
 export const updatePageHandler = async (req: Request, res: Response) => {
   try {
-    let userId: string | undefined;
-
-    // Try to get user session from better-auth first
-    try {
-      const session = await auth.api.getSession({
-        headers: fromNodeHeaders(req.headers),
-      });
-      if (session) {
-        userId = session.user.id;
-      }
-    } catch {
-      // Session lookup failed, will try fallback
-    }
-
-    // Fallback: read X-User-Id header
-    if (!userId) {
-      userId = (req.headers as any)["x-user-id"] || (req.headers as any).get?.("x-user-id");
-    }
-
-    if (!userId) {
-      console.warn("Unauthorized attempt to update page");
-      return res.status(401).json({ error: "Unauthorized. Please log in." });
-    }
-
     const { id } = req.params;
     const page = await pagesService.updatePage(id, req.body);
     if (!page) {

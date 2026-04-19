@@ -7,14 +7,20 @@ import {
   updateRoleMenuPermissionsHandler,
   getUsersDropdownHandler,
 } from "./controller";
+import { requireAuth, requireAdmin, requireStaff } from "../auth/middleware";
 
 const router = Router();
 
-router.get("/audit-logs", getAuditLogsHandler);
-router.get("/roles", getRolesHandler);
-router.get("/dropdown", getUsersDropdownHandler);
-router.post("/select-role", selectOwnRoleHandler);
-router.get("/role-permissions", getRoleMenuPermissionsHandler);
-router.put("/role-permissions", updateRoleMenuPermissionsHandler);
+// Authenticated (any logged-in user can select their own role)
+router.post("/select-role", requireAuth(), selectOwnRoleHandler);
+
+// Staff only
+router.get("/audit-logs", requireStaff, getAuditLogsHandler);
+router.get("/roles", requireStaff, getRolesHandler);
+router.get("/dropdown", requireStaff, getUsersDropdownHandler);
+router.get("/role-permissions", requireStaff, getRoleMenuPermissionsHandler);
+
+// Admin only
+router.put("/role-permissions", requireAdmin, updateRoleMenuPermissionsHandler);
 
 export const usersRoutes = router;

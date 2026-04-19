@@ -1,41 +1,43 @@
 import { Router } from "express";
 import { NISController } from "./controller";
+import { requireStaff } from "../auth/middleware";
 import multer from "multer";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
 const router = Router();
 
+// All NIS management routes require staff auth
 // Dashboard
-router.get("/stats", NISController.getStats);
-router.get("/recent-activity", NISController.getRecentActivity);
+router.get("/stats", requireStaff, NISController.getStats);
+router.get("/recent-activity", requireStaff, NISController.getRecentActivity);
 
 // Academic Years
-router.get("/academic-years", NISController.getAcademicYears);
-router.post("/academic-years", NISController.createAcademicYear);
-router.put("/academic-years/:id/activate", NISController.activateYear);
+router.get("/academic-years", requireStaff, NISController.getAcademicYears);
+router.post("/academic-years", requireStaff, NISController.createAcademicYear);
+router.put("/academic-years/:id/activate", requireStaff, NISController.activateYear);
 
 // Students without NIS
-router.get("/students-without-nis", NISController.getStudentsWithoutNIS);
-router.get("/pull-candidates", NISController.getPullCandidates);
+router.get("/students-without-nis", requireStaff, NISController.getStudentsWithoutNIS);
+router.get("/pull-candidates", requireStaff, NISController.getPullCandidates);
 
 // Batch Operations
-router.post("/preview-batch", NISController.previewBatch);
-router.post("/generate-batch", NISController.generateBatch);
-router.post("/upload-batch", upload.single("file"), NISController.uploadBatch);
-router.get("/batch-history", NISController.getBatchHistory);
+router.post("/preview-batch", requireStaff, NISController.previewBatch);
+router.post("/generate-batch", requireStaff, NISController.generateBatch);
+router.post("/upload-batch", requireStaff, upload.single("file"), NISController.uploadBatch);
+router.get("/batch-history", requireStaff, NISController.getBatchHistory);
 
 // Single Assignment
-router.get("/next-sequence", NISController.getNextSequence);
-router.post("/assign-single", NISController.assignSingle);
+router.get("/next-sequence", requireStaff, NISController.getNextSequence);
+router.post("/assign-single", requireStaff, NISController.assignSingle);
 
 // Records
-router.get("/records", NISController.getRecords);
-router.put("/records/:id", NISController.editRecord);
-router.delete("/records/:id/revoke", NISController.revokeRecord);
-router.get("/export", NISController.exportRecords);
+router.get("/records", requireStaff, NISController.getRecords);
+router.put("/records/:id", requireStaff, NISController.editRecord);
+router.delete("/records/:id/revoke", requireStaff, NISController.revokeRecord);
+router.get("/export", requireStaff, NISController.exportRecords);
 
 // Validation
-router.get("/check-duplicate/:nis", NISController.checkDuplicate);
+router.get("/check-duplicate/:nis", requireStaff, NISController.checkDuplicate);
 
 export const nisRoutes = router;

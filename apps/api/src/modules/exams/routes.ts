@@ -1,50 +1,52 @@
 import { Router } from 'express';
 import { ExamController } from './controller';
+import { requireStaff } from '../auth/middleware';
 import multer from 'multer';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
+// All exam management routes require staff auth
 // Ujian (Master)
-router.get('/', ExamController.getAllUjian);
-router.get('/:id', ExamController.getUjianById);
-router.post('/', ExamController.createUjian);
-router.put('/:id', ExamController.updateUjian);
-router.delete('/:id', ExamController.deleteUjian);
+router.get('/', requireStaff, ExamController.getAllUjian);
+router.get('/:id', requireStaff, ExamController.getUjianById);
+router.post('/', requireStaff, ExamController.createUjian);
+router.put('/:id', requireStaff, ExamController.updateUjian);
+router.delete('/:id', requireStaff, ExamController.deleteUjian);
 
 // Panitia
-router.get('/:ujianId/panitia', ExamController.getPanitia);
-router.post('/:ujianId/panitia', ExamController.addPanitia);
-router.delete('/panitia/:id', ExamController.deletePanitia);
+router.get('/:ujianId/panitia', requireStaff, ExamController.getPanitia);
+router.post('/:ujianId/panitia', requireStaff, ExamController.addPanitia);
+router.delete('/panitia/:id', requireStaff, ExamController.deletePanitia);
 
 // Jadwal
-router.get('/:ujianId/jadwal', ExamController.getJadwal);
-router.post('/:ujianId/jadwal', ExamController.addJadwal);
-router.put('/jadwal/:id', ExamController.updateJadwal);
-router.delete('/jadwal/:id', ExamController.deleteJadwal);
-router.post('/:ujianId/jadwal/upload', upload.single('file'), ExamController.importJadwal);
-router.get('/:ujianId/jadwal/template', ExamController.downloadJadwalTemplate);
-router.get('/:ujianId/jadwal/export', ExamController.exportJadwal);
+router.get('/:ujianId/jadwal', requireStaff, ExamController.getJadwal);
+router.post('/:ujianId/jadwal', requireStaff, ExamController.addJadwal);
+router.put('/jadwal/:id', requireStaff, ExamController.updateJadwal);
+router.delete('/jadwal/:id', requireStaff, ExamController.deleteJadwal);
+router.post('/:ujianId/jadwal/upload', requireStaff, upload.single('file'), ExamController.importJadwal);
+router.get('/:ujianId/jadwal/template', requireStaff, ExamController.downloadJadwalTemplate);
+router.get('/:ujianId/jadwal/export', requireStaff, ExamController.exportJadwal);
 
 // Ruang
-router.get('/:ujianId/ruang', ExamController.getRuang);
-router.post('/:ujianId/ruang', ExamController.addRuang);
-router.put('/ruang/:id', ExamController.updateRuang);
-router.delete('/ruang/:id', ExamController.deleteRuang);
+router.get('/:ujianId/ruang', requireStaff, ExamController.getRuang);
+router.post('/:ujianId/ruang', requireStaff, ExamController.addRuang);
+router.put('/ruang/:id', requireStaff, ExamController.updateRuang);
+router.delete('/ruang/:id', requireStaff, ExamController.deleteRuang);
 
 // Pengawas
-router.get('/:ujianId/pengawas', ExamController.getPengawas);
-router.post('/:ujianId/pengawas', ExamController.addPengawas);
-router.delete('/pengawas/:id', ExamController.deletePengawas);
-router.post('/:ujianId/pengawas/generate', ExamController.generatePengawas);
-router.get('/:ujianId/pengawas/export', ExamController.exportPengawas);
+router.get('/:ujianId/pengawas', requireStaff, ExamController.getPengawas);
+router.post('/:ujianId/pengawas', requireStaff, ExamController.addPengawas);
+router.delete('/pengawas/:id', requireStaff, ExamController.deletePengawas);
+router.post('/:ujianId/pengawas/generate', requireStaff, ExamController.generatePengawas);
+router.get('/:ujianId/pengawas/export', requireStaff, ExamController.exportPengawas);
 
 // Distribusi Peserta
-router.get('/:ujianId/distribusi', ExamController.getDistribusi);
-router.post('/:ujianId/distribusi/generate', ExamController.generateDistribusi);
-router.delete('/:ujianId/distribusi', ExamController.clearDistribusi);
-router.get('/:ujianId/distribusi/export', ExamController.exportDistribusi);
-router.get('/:ujianId/daftar-hadir/export', ExamController.exportDaftarHadir);
-router.get('/:ujianId/format-nilai/export', ExamController.exportFormatNilai);
+router.get('/:ujianId/distribusi', requireStaff, ExamController.getDistribusi);
+router.post('/:ujianId/distribusi/generate', requireStaff, ExamController.generateDistribusi);
+router.delete('/:ujianId/distribusi', requireStaff, ExamController.clearDistribusi);
+router.get('/:ujianId/distribusi/export', requireStaff, ExamController.exportDistribusi);
+router.get('/:ujianId/daftar-hadir/export', requireStaff, ExamController.exportDaftarHadir);
+router.get('/:ujianId/format-nilai/export', requireStaff, ExamController.exportFormatNilai);
 
 export const examRoutes = router;

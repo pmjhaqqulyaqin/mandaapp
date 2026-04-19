@@ -1,9 +1,15 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, UserRole } from '../contexts/AuthContext';
 
-export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  /** If specified, only these roles can access the route. If omitted, any authenticated user can access. */
+  allowedRoles?: UserRole[];
+}
+
+export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
+  const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -23,6 +29,14 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     // along to that page after they login, which is a nicer user experience
     // than dropping them off on the home page.
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Role-based access check
+  if (allowedRoles && allowedRoles.length > 0 && user) {
+    if (!allowedRoles.includes(user.role)) {
+      // User is authenticated but doesn't have the required role
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return <>{children}</>;

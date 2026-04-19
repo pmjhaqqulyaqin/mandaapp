@@ -1,9 +1,5 @@
 import { Request, Response } from 'express';
 import { PPDBService } from './service';
-import { auth } from "../auth";
-import { db } from '../../db';
-import { user as userTable } from '../../db/schema';
-import { eq } from 'drizzle-orm';
 
 export class PPDBController {
 
@@ -271,30 +267,9 @@ export class PPDBController {
 
   static async getPengujiTesList(req: Request, res: Response) {
     try {
-      // Try session-based auth first, then fall back to X-User-Id header
-      let userId: string | undefined;
-      let userRole: string | undefined;
-      
-      try {
-        const session = await auth.api.getSession({ headers: req.headers as any });
-        if (session?.user) {
-          userId = session.user.id;
-          userRole = (session.user as any).role;
-        }
-      } catch { /* session auth failed, try header fallback */ }
-      
-      // Fallback to X-User-Id header (used by the frontend apiClient)
-      if (!userId) {
-        userId = req.headers['x-user-id'] as string;
-      }
-      
-      if (!userId) throw new Error("Unauthorized");
-      
-      // If role not available from session, look it up from DB
-      if (!userRole) {
-        const found = await db.select({ role: userTable.role }).from(userTable).where(eq(userTable.id, userId)).limit(1);
-        userRole = found[0]?.role || 'student';
-      }
+      // req.authUser is guaranteed by requireStaff middleware
+      const userId = req.authUser!.id;
+      const userRole = req.authUser!.role;
       
       const result = await PPDBService.getPengujiTesList(userId, userRole);
       res.json(result);
@@ -326,23 +301,9 @@ export class PPDBController {
       const { jalurId } = req.query;
       if (!jalurId) throw new Error("Jalur ID is required");
 
-      let userId: string | undefined = req.headers['x-user-id'] as string;
-      let userRole: string | undefined;
-
-      try {
-        const session = await auth.api.getSession({ headers: req.headers as any });
-        if (session?.user) {
-          userId = session.user.id;
-          userRole = (session.user as any).role;
-        }
-      } catch { /* session fallback */ }
-
-      if (!userId) throw new Error("Unauthorized");
-
-      if (!userRole) {
-        const found = await db.select({ role: userTable.role }).from(userTable).where(eq(userTable.id, userId)).limit(1);
-        userRole = found[0]?.role || 'student';
-      }
+      // req.authUser is guaranteed by requireStaff middleware
+      const userId = req.authUser!.id;
+      const userRole = req.authUser!.role;
 
       const result = await PPDBService.getMasterPenilaianData(jalurId as string, userId, userRole);
       res.json(result);
