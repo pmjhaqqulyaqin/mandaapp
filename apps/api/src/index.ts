@@ -7,7 +7,7 @@ import path from 'path';
 import dotenv from 'dotenv';
 import fs from 'fs';
 
-import { db } from './db';
+
 import { authHandler } from './modules/auth';
 import { studentRoutes } from './modules/students/routes';
 import { newsRoutes } from './modules/news/routes';

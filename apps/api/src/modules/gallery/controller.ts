@@ -1,7 +1,5 @@
 import { Request, Response } from "express";
 import { GalleryService } from "./service";
-import { auth } from "../auth";
-import { fromNodeHeaders } from "better-auth/node";
 import path from "path";
 import fs from "fs";
 import sharp from "sharp";
@@ -19,20 +17,10 @@ export class GalleryController {
 
   static async createImage(req: Request, res: Response) {
     try {
-      let userId: string | undefined;
-      try {
-        const session = await auth.api.getSession({
-          headers: fromNodeHeaders(req.headers),
-        });
-        if (session) userId = session.user.id;
-      } catch {
-        // Session lookup failed
-      }
-      if (!userId) userId = req.headers["x-user-id"] as string;
-
+      // req.authUser is guaranteed by requireStaff middleware
       const image = await GalleryService.createImage({
         ...req.body,
-        uploadedBy: userId || null,
+        uploadedBy: req.authUser!.id,
       });
       res.status(201).json(image);
     } catch (error: any) {
@@ -52,17 +40,6 @@ export class GalleryController {
 
   static async updateImage(req: Request, res: Response) {
     try {
-      let userId: string | undefined;
-      try {
-        const session = await auth.api.getSession({
-          headers: fromNodeHeaders(req.headers),
-        });
-        if (session) userId = session.user.id;
-      } catch {
-        // Session lookup failed
-      }
-      if (!userId) userId = req.headers["x-user-id"] as string;
-
       const image = await GalleryService.updateImage(req.params.id, req.body);
       res.json(image);
     } catch (error: any) {

@@ -1,7 +1,5 @@
 import { Request, Response } from 'express';
 import { EOfficeService } from './service';
-import { auth } from '../auth';
-import { fromNodeHeaders } from 'better-auth/node';
 
 export class EOfficeController {
   
@@ -43,13 +41,10 @@ export class EOfficeController {
 
   static async generateNomorKeluar(req: Request, res: Response) {
     try {
-      // Get session from better-auth
-      const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
-      const userId = session?.user.id || (req.headers['x-user-id'] as string) || null;
-      
+      // req.authUser is guaranteed by requireStaff middleware
       const data = {
         ...req.body,
-        userId: userId
+        userId: req.authUser!.id
       };
       const result = await EOfficeService.generateNomor(data);
       res.status(201).json(result);
@@ -69,14 +64,11 @@ export class EOfficeController {
 
   static async createSuratMasuk(req: Request, res: Response) {
     try {
-      // Get session from better-auth
-      const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
-      const userId = session?.user.id || (req.headers['x-user-id'] as string) || null;
-
+      // req.authUser is guaranteed by requireStaff middleware
       const data = {
         ...req.body,
         tanggalSurat: new Date(req.body.tanggalSurat),
-        userIdPenerima: userId
+        userIdPenerima: req.authUser!.id
       };
       const result = await EOfficeService.registerSuratMasuk(data);
       res.status(201).json(result);

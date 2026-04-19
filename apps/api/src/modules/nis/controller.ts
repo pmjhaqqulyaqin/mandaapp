@@ -98,7 +98,7 @@ export class NISController {
   static async generateBatch(req: Request, res: Response) {
     try {
       const { studentIds, academicYearId } = req.body;
-      const operatorId = req.headers['x-user-id'] as string;
+      const operatorId = req.authUser!.id;
       if (!studentIds || !academicYearId) {
         return res.status(400).json({ error: "studentIds dan academicYearId wajib" });
       }
@@ -178,7 +178,7 @@ export class NISController {
   // POST /api/nis/assign-single
   static async assignSingle(req: Request, res: Response) {
     try {
-      const operatorId = req.headers['x-user-id'] as string;
+      const operatorId = req.authUser!.id;
       const result = await NISService.assignSingleNIS(req.body, operatorId);
       res.status(201).json(result);
     } catch (error: any) {
@@ -205,7 +205,7 @@ export class NISController {
   // PUT /api/nis/records/:id
   static async editRecord(req: Request, res: Response) {
     try {
-      const operatorId = req.headers['x-user-id'] as string;
+      const operatorId = req.authUser!.id;
       const { nis } = req.body;
       if (!nis) return res.status(400).json({ error: "NIS wajib" });
       const result = await NISService.editNIS(req.params.id, nis, operatorId);
@@ -218,7 +218,7 @@ export class NISController {
   // DELETE /api/nis/records/:id/revoke
   static async revokeRecord(req: Request, res: Response) {
     try {
-      const operatorId = req.headers['x-user-id'] as string;
+      const operatorId = req.authUser!.id;
       const deleteProfile = req.query.deleteProfile === 'true';
       const result = await NISService.revokeNIS(req.params.id, deleteProfile, operatorId);
       res.json(result);

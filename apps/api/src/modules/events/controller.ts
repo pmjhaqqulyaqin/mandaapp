@@ -44,10 +44,10 @@ export class EventController {
 
   static async create(req: Request, res: Response) {
     try {
-      const userId = req.headers["x-user-id"] as string;
+      // req.authUser is guaranteed by requireStaff middleware
       const event = await EventService.create({
         ...req.body,
-        createdBy: userId || undefined,
+        createdBy: req.authUser!.id,
       });
       res.status(201).json(event);
     } catch (error) {

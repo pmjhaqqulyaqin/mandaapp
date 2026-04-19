@@ -34,7 +34,12 @@ yarn-error.log*
 *.sln
 *.sw?
 
-# Backups and Large Binaries
+# Backups, temp data, and debug scripts
 *.zip
 *.json.bak
-temp_news.json
+temp_*.json
+test_*.js
+test_*.ts
+build-error.log
+test-extract/
+apps/api/tmp_extract/
