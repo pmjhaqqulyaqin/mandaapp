@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 // Core contexts and components that shouldn't be lazy loaded
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { MaintenanceGuard } from './components/MaintenanceGuard';
 import { useFavicon } from './hooks/useFavicon';
 import { FloatingActionButton } from '@mandaapp/ui/src/components/FloatingActionButton';
@@ -66,6 +67,7 @@ function App() {
   useFavicon();
 
   return (
+    <ErrorBoundary>
     <AuthProvider>
       <Router>
         <Suspense fallback={<PageSpinner />}>
@@ -138,7 +140,7 @@ function App() {
             } />
             
             <Route path="/dashboard" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['admin','kepala_madrasah','wakil_kepala','kepala_unit','wali_kelas','pembina_ekstra','guru','kepala_tu','pegawai_tu']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }>
@@ -148,8 +150,8 @@ function App() {
               <Route path="student-card" element={<DashboardStudentCard />} />
               <Route path="gallery" element={<DashboardGallery />} />
               <Route path="contacts" element={<DashboardContacts />} />
-              <Route path="settings" element={<DashboardSettings />} />
-              <Route path="users" element={<DashboardUsers />} />
+              <Route path="settings" element={<ProtectedRoute allowedRoles={['admin','kepala_madrasah']}><DashboardSettings /></ProtectedRoute>} />
+              <Route path="users" element={<ProtectedRoute allowedRoles={['admin']}><DashboardUsers /></ProtectedRoute>} />
               <Route path="students" element={<DashboardStudents />} />
               <Route path="nis" element={<DashboardNIS />} />
               <Route path="employees" element={<DashboardEmployees />} />
@@ -157,7 +159,7 @@ function App() {
               <Route path="menus" element={<DashboardMenus />} />
               <Route path="e-office" element={<EOfficePage />} />
               <Route path="exams" element={<ExamManagementPage />} />
-              <Route path="updates" element={<SystemUpdateCenter />} />
+              <Route path="updates" element={<ProtectedRoute allowedRoles={['admin']}><SystemUpdateCenter /></ProtectedRoute>} />
               <Route path="services" element={<DashboardServices />} />
               <Route path="ppdb" element={<PPDBAdminPage />} />
               <Route path="ppdb/penilaian" element={<PPDBPenilaianPage />} />
@@ -169,6 +171,7 @@ function App() {
         <Toaster richColors position="top-right" />
       </Router>
     </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

@@ -43,3 +43,7 @@ test_*.ts
 build-error.log
 test-extract/
 apps/api/tmp_extract/
+
+# Runtime data
+logs/
+backups/

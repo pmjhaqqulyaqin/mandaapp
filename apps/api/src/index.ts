@@ -3,9 +3,11 @@ import cors from 'cors';
 import compression from 'compression';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import pinoHttp from 'pino-http';
 import path from 'path';
 import dotenv from 'dotenv';
 import fs from 'fs';
+import logger from './lib/logger';
 
 
 import { authHandler } from './modules/auth';
@@ -41,8 +43,29 @@ const PORT = process.env.PORT || 3001;
 const uploadDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
-  console.log(`[SYSTEM] Created missing uploads directory: ${uploadDir}`);
+  logger.info({ path: uploadDir }, 'Created missing uploads directory');
 }
+
+// HTTP request logging (structured JSON in production)
+app.use(pinoHttp({
+  logger,
+  autoLogging: {
+    ignore: (req) => {
+      // Don't log health checks and static assets
+      const url = (req as any).url || '';
+      return url === '/health' || url.startsWith('/uploads/');
+    },
+  },
+  // Don't log request/response bodies
+  serializers: {
+    req: (req) => ({
+      method: req.method,
+      url: req.url,
+      remoteAddress: req.remoteAddress,
+    }),
+    res: (res) => ({ statusCode: res.statusCode }),
+  },
+}));
 
 // Trust proxy is required for 'Secure' cookies to work when running behind 
 // Railway's or Vercel's reverse proxy
@@ -161,5 +184,5 @@ app.get('/health', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  logger.info({ port: PORT }, `Server is running on port ${PORT}`);
 });
