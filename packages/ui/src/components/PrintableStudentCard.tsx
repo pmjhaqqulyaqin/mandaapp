@@ -186,7 +186,7 @@ export const PrintableStudentCard = ({
           {/* HEADER */}
           <div style={{ width: '100%', height: '130px', backgroundColor: bgUrl ? 'transparent' : headerColor, display: 'flex', alignItems: 'center', padding: '0 30px', justifyContent: 'space-between' }}>
             <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
-            <div style={{ flex: 1, textAlign: 'center', color: bgUrl ? textColor : '#ffffff', textShadow: bgUrl ? '0 1px 2px rgba(255,255,255,0.8)' : 'none' }}>
+            <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
               <div style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '1px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
               <div style={{ fontSize: '26px', fontWeight: 800, margin: '4px 0', letterSpacing: '0.5px' }}>{settings.schoolName || 'MADRASAH ALIYAH NEGERI'}</div>
               <div style={{ fontSize: '13px', fontWeight: 400, opacity: 0.9 }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
@@ -263,7 +263,7 @@ export const PrintableStudentCard = ({
           {/* HEADER (Identical to Front) */}
           <div style={{ width: '100%', height: '130px', backgroundColor: bgUrl ? 'transparent' : headerColor, display: 'flex', alignItems: 'center', padding: '0 30px', justifyContent: 'space-between' }}>
             <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
-            <div style={{ flex: 1, textAlign: 'center', color: bgUrl ? textColor : '#ffffff', textShadow: bgUrl ? '0 1px 2px rgba(255,255,255,0.8)' : 'none' }}>
+            <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
               <div style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '1px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
               <div style={{ fontSize: '26px', fontWeight: 800, margin: '4px 0', letterSpacing: '0.5px' }}>{settings.schoolName || 'MADRASAH ALIYAH NEGERI'}</div>
               <div style={{ fontSize: '13px', fontWeight: 400, opacity: 0.9 }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
@@ -365,7 +365,7 @@ export const PrintableStudentCard = ({
 
              <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '0 25px', width: '100%', marginTop: '10px' }}>
                 <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '65px', height: '65px', objectFit: 'contain' }} />
-                <div style={{ flex: 1, textAlign: 'center', color: bgUrl ? textColor : '#ffffff', textShadow: bgUrl ? '0 1px 2px rgba(255,255,255,0.8)' : 'none' }}>
+                <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
                   <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.5px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
                   <div style={{ fontSize: '19px', fontWeight: 800, margin: '4px 0', letterSpacing: '0.5px' }}>{settings.schoolName || 'MADRASAH ALIYAH NEGERI'}</div>
                   <div style={{ fontSize: '10px', fontWeight: 400, opacity: 0.9 }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
@@ -471,7 +471,7 @@ export const PrintableStudentCard = ({
 
              <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '0 25px', width: '100%', marginTop: '10px' }}>
                 <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '65px', height: '65px', objectFit: 'contain' }} />
-                <div style={{ flex: 1, textAlign: 'center', color: bgUrl ? textColor : '#ffffff', textShadow: bgUrl ? '0 1px 2px rgba(255,255,255,0.8)' : 'none' }}>
+                <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
                   <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.5px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
                   <div style={{ fontSize: '19px', fontWeight: 800, margin: '4px 0', letterSpacing: '0.5px' }}>{settings.schoolName || 'MADRASAH ALIYAH NEGERI'}</div>
                   <div style={{ fontSize: '10px', fontWeight: 400, opacity: 0.9 }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
