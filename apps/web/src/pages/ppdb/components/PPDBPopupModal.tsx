@@ -249,7 +249,7 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
         role="dialog"
         aria-modal="true"
         aria-labelledby="ppdb-popup-title"
-        className={`relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden transition-all duration-500 ${
+        className={`relative w-full max-w-lg max-h-[90vh] flex flex-col bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden transition-all duration-500 ${
           isAnimating ? 'scale-100 translate-y-0' : 'scale-90 translate-y-8'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -266,18 +266,18 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
           <X size={16} />
         </button>
 
-        {/* Content */}
-        <div className="px-5 pt-5 pb-4 sm:px-8 sm:pt-8 sm:pb-6 text-center">
+        {/* Content (Scrollable if needed) */}
+        <div className="px-5 pt-5 pb-4 sm:px-6 sm:pt-6 sm:pb-4 text-center overflow-y-auto flex-1 custom-scrollbar">
           {/* Icon */}
-          <div className="w-14 h-14 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-5 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <GraduationCap className="w-7 h-7 sm:w-10 sm:h-10 text-white" strokeWidth={1.5} />
+          <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2 sm:mb-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <GraduationCap className="w-6 h-6 sm:w-8 sm:h-8 text-white" strokeWidth={1.5} />
           </div>
 
           {/* Title */}
-          <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] mb-1 sm:mb-2 ${isPengumuman ? 'text-blue-600' : 'text-emerald-600'}`}>
+          <p className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] mb-1 ${isPengumuman ? 'text-blue-600' : 'text-emerald-600'}`}>
             {isPengumuman ? 'Pengumuman Kelulusan' : 'Penerimaan Murid Baru'}
           </p>
-          <h2 id="ppdb-popup-title" className="text-xl sm:text-3xl font-black text-gray-900 leading-tight tracking-tight">
+          <h2 id="ppdb-popup-title" className="text-xl sm:text-2xl font-black text-gray-900 leading-tight tracking-tight">
             {isPengumuman ? 'PMB ' : 'SIMPMB '}
             <span className={`text-transparent bg-clip-text bg-gradient-to-r ${isPengumuman ? 'from-blue-500 to-indigo-600' : 'from-emerald-500 to-blue-600'}`}>
               2026
@@ -285,22 +285,22 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
           </h2>
 
           {/* Divider */}
-          <div className={`w-12 sm:w-16 h-0.5 mx-auto my-2.5 sm:my-4 rounded-full bg-gradient-to-r ${isPengumuman ? 'from-blue-400 to-indigo-500' : 'from-emerald-400 to-blue-500'}`} />
+          <div className={`w-10 sm:w-12 h-0.5 mx-auto my-2 rounded-full bg-gradient-to-r ${isPengumuman ? 'from-blue-400 to-indigo-500' : 'from-emerald-400 to-blue-500'}`} />
 
           {/* Subtitle */}
-          <p className="text-xs sm:text-sm font-semibold text-gray-700 mb-0.5 sm:mb-1">
+          <p className="text-[11px] sm:text-sm font-semibold text-gray-700 mb-0.5">
             Madrasah Aliyah Negeri 2 Lombok Timur
           </p>
-          <p className="text-[11px] sm:text-xs text-gray-500 leading-relaxed max-w-sm mx-auto mb-4 sm:mb-6">
+          <p className="text-[10px] sm:text-xs text-gray-500 leading-relaxed max-w-sm mx-auto mb-3 sm:mb-4">
             {isPengumuman 
               ? (ctaDisabled 
-                  ? 'Pengumuman hasil seleksi penerimaan murid baru akan segera diumumkan. Harap tunggu hingga waktu yang ditentukan.'
+                  ? 'Pengumuman hasil seleksi PMB akan segera diumumkan. Harap tunggu hingga waktu yang ditentukan.'
                   : 'Hasil seleksi penerimaan murid baru telah resmi diumumkan. Silakan periksa status kelulusan Anda.')
-              : 'Laman untuk memfasilitasi sistem penerimaan murid baru secara daring'}
+              : 'Sistem penerimaan murid baru (SIMPMB) secara daring'}
           </p>
 
           {/* Badges */}
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+          <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mb-3 sm:mb-4">
             {popupMode === 'pendaftaran' && activeJalurList.map((jalur, idx) => {
               const isPrestasi = jalur.namaJalur?.toLowerCase().includes('prestasi');
               const isReguler = jalur.namaJalur?.toLowerCase().includes('reguler');
@@ -345,7 +345,7 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
 
           {/* ====== COUNTDOWN TIMER ====== */}
           {showCountdown && (
-            <div className="mb-4 sm:mb-6">
+            <div className="mb-3 sm:mb-4">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-gray-100 text-gray-600 text-[10px] sm:text-[11px] font-bold mb-2.5 sm:mb-4">
                 <Clock size={11} className="animate-pulse sm:w-3 sm:h-3" />
                 {countdownLabel}
@@ -361,27 +361,27 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
           )}
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
             <button
               onClick={() => handleAction('daftar')}
               disabled={ctaDisabled}
-              className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 sm:px-7 sm:py-3 text-white font-bold rounded-xl shadow-lg transition-all duration-300 text-xs sm:text-sm bg-gradient-to-r ${
+              className={`w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 sm:px-6 sm:py-2.5 text-white font-bold rounded-xl shadow-lg transition-all duration-300 text-xs bg-gradient-to-r ${
                 ctaDisabled 
                   ? 'from-gray-400 to-gray-500 cursor-not-allowed opacity-60 shadow-none' 
                   : isPengumuman 
-                    ? 'from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:scale-95' 
-                    : 'from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5 active:scale-95'
+                    ? 'from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-blue-500/25 hover:-translate-y-0.5' 
+                    : 'from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 shadow-emerald-500/25 hover:-translate-y-0.5'
               }`}
             >
-              {isPengumuman ? '🚀 Cek Hasil Kelulusan' : '🚀 Mulai Pendaftaran'}
-              <ArrowRight size={16} />
+              {isPengumuman ? '🚀 Cek Hasil' : '🚀 Mulai Pendaftaran'}
+              <ArrowRight size={14} />
             </button>
             {popupMode === 'pendaftaran' && (
               <button
                 onClick={() => handleAction('info')}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 sm:px-7 sm:py-3 bg-white hover:bg-gray-50 text-gray-700 font-bold rounded-xl border border-gray-200 hover:border-blue-300 shadow-sm transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-xs sm:text-sm"
+                className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 sm:px-6 sm:py-2.5 bg-white hover:bg-gray-50 text-gray-700 font-bold rounded-xl border border-gray-200 hover:border-blue-300 shadow-sm transition-all duration-300 hover:-translate-y-0.5 text-xs"
               >
-                <Info size={16} />
+                <Info size={14} />
                 Info Lengkap
               </button>
             )}
@@ -396,7 +396,7 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-2 sm:px-8 sm:py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-center">
+        <div className="px-5 py-2 sm:px-6 sm:py-2.5 bg-gray-50 border-t border-gray-100 flex items-center justify-center shrink-0">
           <button
             onClick={handleDismiss}
             className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
