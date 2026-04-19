@@ -160,8 +160,9 @@ export const DashboardStudentCard = () => {
         const { width } = entries[0].contentRect;
         // Approximate base widths of the card
         const baseWidth = orientation === 'horizontal' ? 860 : 550;
-        // Keep scale smooth, maximum 1 (100%)
-        const newScale = Math.min(1, width / baseWidth);
+        // Keep scale smooth, maximum 0.45 or 0.6
+        const maxScale = orientation === 'horizontal' ? 0.45 : 0.6;
+        const newScale = Math.min(maxScale, width / baseWidth);
         setPreviewScale(newScale);
       });
       observer.observe(previewContainerRef.current);
@@ -178,8 +179,9 @@ export const DashboardStudentCard = () => {
         outerObserver = new ResizeObserver((entries) => {
           const { width } = entries[0].contentRect;
           const baseWidth = orientation === 'horizontal' ? 860 : 550;
-          const newScale = Math.min(1, (width - 32) / baseWidth);
-          setMainPreviewScale(newScale > 0 ? newScale : 1);
+          const maxScale = orientation === 'horizontal' ? 0.45 : 0.6;
+          const newScale = Math.min(maxScale, (width - 32) / baseWidth);
+          setMainPreviewScale(newScale > 0 ? newScale : maxScale);
         });
         outerObserver.observe(mainPreviewContainerRef.current);
       }

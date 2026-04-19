@@ -1,6 +1,34 @@
-import React from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import QRCode from 'qrcode';
+import JsBarcode from 'jsbarcode';
 
-export type CardOrientation = 'horizontal' | 'vertical';
+const LocalQRCode = ({ data, size = 150, style }: { data: string, size?: number, style?: React.CSSProperties }) => {
+  const [url, setUrl] = useState('');
+  useEffect(() => {
+    if (data) {
+      QRCode.toDataURL(data, { width: size, margin: 0 })
+        .then(setUrl)
+        .catch(console.error);
+    }
+  }, [data, size]);
+  return url ? <img src={url} alt="QR Code" style={{ width: size, height: size, ...style }} /> : <div style={{ width: size, height: size, ...style }} />;
+};
+
+const LocalBarcode = ({ data, style }: { data: string, style?: React.CSSProperties }) => {
+  const svgRef = useRef<SVGSVGElement>(null);
+  useEffect(() => {
+    if (svgRef.current && data) {
+      JsBarcode(svgRef.current, data, {
+        format: "CODE128",
+        displayValue: false,
+        margin: 0,
+        height: 50,
+        width: 2
+      });
+    }
+  }, [data]);
+  return <svg ref={svgRef} style={style} />;
+};export type CardOrientation = 'horizontal' | 'vertical';
 export type CardTemplateName = 'classic-blue' | 'modern-green' | 'elegant-gold';
 
 export interface PrintableCardTemplate {
@@ -99,9 +127,6 @@ export const PrintableStudentCard = ({
   side = 'both',
 }: PrintableStudentCardProps) => {
   const qrData = `NISN: ${student.nisn}\nNama: ${student.name}\nTTL: ${student.birthPlace}, ${formatDate(student.birthDate)}\nSekolah: ${settings.schoolName}`;
-  const qrUrl = settings.showQrCode !== false
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}`
-    : null;
 
   // KTP dimensions in mm: 85.6 x 54mm
   // Typical ID Card in pixels at 300 DPI is approx 1011 x 638.
@@ -150,7 +175,6 @@ export const PrintableStudentCard = ({
     
     // Encode essential ID info into the 1D Barcode. Max ~30 chars for highly reliable scanning.
     const barcodeText = `${student.nisn}`;
-    const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(barcodeText)}&scale=3&height=12&includetext=false`;
 
     return (
       <div style={{ width: '100%', height: '100%', position: 'relative', backgroundColor: '#ffffff' }}>
@@ -195,7 +219,7 @@ export const PrintableStudentCard = ({
 
             {/* Barcode 1D */}
             <div style={{ marginTop: '35px', marginBottom: '5px', height: '50px', width: '100%' }}>
-              <img src={barcodeUrl} alt="Barcode" style={{ height: '100%', width: '250px', objectFit: 'fill' }} />
+              <LocalBarcode data={barcodeText} style={{ height: '100%', width: '250px', objectFit: 'fill' }} />
             </div>
           </div>
         </div>
@@ -218,7 +242,6 @@ export const PrintableStudentCard = ({
 
     // Advanced payload for QR Code tracking student legitimacy
     const qrPayload = `Sekolah: ${settings.schoolName}\nNPSN: ${settings.schoolSubtitle || '-'}\nDiterbitkan: ${formatDate(new Date().toISOString())}\nBerlaku: ${settings.academicYear}\nSiswa: ${student.name} (${student.nisn})\nLink: https://mandualotim.sch.id/student/${student.nisn}`;
-    const advancedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data=${encodeURIComponent(qrPayload)}`;
 
     return (
       <div style={{ width: '100%', height: '100%', position: 'relative', backgroundColor: '#ffffff' }}>
@@ -251,7 +274,7 @@ export const PrintableStudentCard = ({
         <div style={{ position: 'absolute', bottom: '45px', left: '90px', right: '60px', display: 'flex', justifyContent: 'space-between', zIndex: 10 }}>
            {/* QR Section */}
            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', paddingTop: '15px' }}>
-              <img src={advancedQrUrl} alt="QR Code Belakang" style={{ width: '105px', height: '105px', border: '4px solid #ffffff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
+              <LocalQRCode data={qrPayload} size={105} style={{ border: '4px solid #ffffff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
               <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#111827', backgroundColor: 'rgba(255,255,255,0.7)', padding: '2px 6px', borderRadius: '4px' }}>MASA BERLAKU</div>
            </div>
 
@@ -292,7 +315,6 @@ export const PrintableStudentCard = ({
     const textColor = '#111827';
     const kemenagLogoUrl = settings.kemenagLogoUrl || "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
     const barcodeText = `${student.nisn}`;
-    const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(barcodeText)}&scale=3&height=12&includetext=false`;
 
     const DotsMatrix = ({ color }: { color: string }) => (
       <svg width="40" height="40" viewBox="0 0 40 40" fill={color}>
@@ -359,7 +381,7 @@ export const PrintableStudentCard = ({
 
            {/* Barcode */}
            <div style={{ marginTop: 'auto', marginBottom: '10px', height: '40px', width: '100%', display: 'flex', justifyContent: 'center' }}>
-             <img src={barcodeUrl} alt="Barcode" style={{ height: '100%', width: '220px', objectFit: 'fill' }} />
+             <LocalBarcode data={barcodeText} style={{ height: '100%', width: '220px', objectFit: 'fill' }} />
            </div>
         </div>
 
@@ -387,7 +409,6 @@ export const PrintableStudentCard = ({
     const termsLines = termsTextRaw.split('\n');
 
     const qrPayload = `Sekolah: ${settings.schoolName}\nNPSN: ${settings.schoolSubtitle || '-'}\nDiterbitkan: ${formatDate(new Date().toISOString())}\nBerlaku: ${settings.academicYear}\nSiswa: ${student.name} (${student.nisn})\nLink: https://mandualotim.sch.id/student/${student.nisn}`;
-    const advancedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data=${encodeURIComponent(qrPayload)}`;
 
     const DotsMatrix = ({ color }: { color: string }) => (
       <svg width="40" height="40" viewBox="0 0 40 40" fill={color}>
@@ -443,7 +464,7 @@ export const PrintableStudentCard = ({
 
            {/* Central QR Code */}
            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginTop: 'auto', marginBottom: '8px' }}>
-              <img src={advancedQrUrl} alt="QR Code Belakang" style={{ width: '110px', height: '110px', borderRadius: '4px' }} />
+              <LocalQRCode data={qrPayload} size={110} style={{ borderRadius: '4px' }} />
               <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: textColor }}>MASA BERLAKU</div>
            </div>
 
@@ -473,7 +494,6 @@ export const PrintableStudentCard = ({
 
   const CustomTemplateFront = () => {
     const barcodeText = `${student.nisn}`;
-    const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(barcodeText)}&scale=3&height=12&includetext=false`;
 
     if (isHorizontal) {
       // Horizontal: 856 x 540
@@ -500,7 +520,7 @@ export const PrintableStudentCard = ({
             </div>
             {/* Barcode */}
             <div style={{ marginTop: '35px', height: '50px' }}>
-              <img src={barcodeUrl} alt="Barcode" style={{ height: '100%', width: '250px', objectFit: 'fill' }} />
+              <LocalBarcode data={barcodeText} style={{ height: '100%', width: '250px', objectFit: 'fill' }} />
             </div>
           </div>
         </div>
@@ -531,7 +551,7 @@ export const PrintableStudentCard = ({
           </div>
           {/* Barcode — bottom */}
           <div style={{ position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', height: '40px', zIndex: 10 }}>
-            <img src={barcodeUrl} alt="Barcode" style={{ height: '100%', width: '220px', objectFit: 'fill' }} />
+            <LocalBarcode data={barcodeText} style={{ height: '100%', width: '220px', objectFit: 'fill' }} />
           </div>
         </div>
       );
