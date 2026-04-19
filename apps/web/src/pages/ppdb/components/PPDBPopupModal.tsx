@@ -35,24 +35,24 @@ const CountdownBox: React.FC<{ value: number; label: string; color: 'blue' | 'em
   };
   return (
     <div className="flex flex-col items-center">
-      <div className={`relative w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] rounded-xl bg-gradient-to-br ${gradients[color]} shadow-lg flex items-center justify-center overflow-hidden`}>
+      <div className={`relative w-[48px] h-[48px] sm:w-[72px] sm:h-[72px] rounded-lg sm:rounded-xl bg-gradient-to-br ${gradients[color]} shadow-lg flex items-center justify-center overflow-hidden`}>
         {/* Subtle glass overlay */}
-        <div className="absolute inset-0 bg-white/5 rounded-xl" />
-        <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/10 rounded-t-xl" />
-        <span className="relative text-2xl sm:text-3xl font-black text-white tabular-nums font-mono tracking-tight">
+        <div className="absolute inset-0 bg-white/5 rounded-lg sm:rounded-xl" />
+        <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/10 rounded-t-lg sm:rounded-t-xl" />
+        <span className="relative text-lg sm:text-3xl font-black text-white tabular-nums font-mono tracking-tight">
           {String(value).padStart(2, '0')}
         </span>
       </div>
-      <span className="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">{label}</span>
+      <span className="mt-1 sm:mt-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-gray-400">{label}</span>
     </div>
   );
 };
 
 /** Animated colon separator */
 const ColonSeparator: React.FC = () => (
-  <div className="flex flex-col items-center gap-1.5 pb-5">
-    <div className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-pulse" />
-    <div className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-pulse" />
+  <div className="flex flex-col items-center gap-1 sm:gap-1.5 pb-4 sm:pb-5">
+    <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-gray-300 animate-pulse" />
+    <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-gray-300 animate-pulse" />
   </div>
 );
 
@@ -267,17 +267,17 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
         </button>
 
         {/* Content */}
-        <div className="px-8 pt-8 pb-6 text-center">
+        <div className="px-5 pt-5 pb-4 sm:px-8 sm:pt-8 sm:pb-6 text-center">
           {/* Icon */}
-          <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <GraduationCap className="w-10 h-10 text-white" strokeWidth={1.5} />
+          <div className="w-14 h-14 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-5 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <GraduationCap className="w-7 h-7 sm:w-10 sm:h-10 text-white" strokeWidth={1.5} />
           </div>
 
           {/* Title */}
-          <p className={`text-xs font-bold uppercase tracking-[0.2em] mb-2 ${isPengumuman ? 'text-blue-600' : 'text-emerald-600'}`}>
+          <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] mb-1 sm:mb-2 ${isPengumuman ? 'text-blue-600' : 'text-emerald-600'}`}>
             {isPengumuman ? 'Pengumuman Kelulusan' : 'Penerimaan Murid Baru'}
           </p>
-          <h2 id="ppdb-popup-title" className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight tracking-tight">
+          <h2 id="ppdb-popup-title" className="text-xl sm:text-3xl font-black text-gray-900 leading-tight tracking-tight">
             {isPengumuman ? 'PMB ' : 'SIMPMB '}
             <span className={`text-transparent bg-clip-text bg-gradient-to-r ${isPengumuman ? 'from-blue-500 to-indigo-600' : 'from-emerald-500 to-blue-600'}`}>
               2026
@@ -285,13 +285,13 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
           </h2>
 
           {/* Divider */}
-          <div className={`w-16 h-0.5 mx-auto my-4 rounded-full bg-gradient-to-r ${isPengumuman ? 'from-blue-400 to-indigo-500' : 'from-emerald-400 to-blue-500'}`} />
+          <div className={`w-12 sm:w-16 h-0.5 mx-auto my-2.5 sm:my-4 rounded-full bg-gradient-to-r ${isPengumuman ? 'from-blue-400 to-indigo-500' : 'from-emerald-400 to-blue-500'}`} />
 
           {/* Subtitle */}
-          <p className="text-sm font-semibold text-gray-700 mb-1">
+          <p className="text-xs sm:text-sm font-semibold text-gray-700 mb-0.5 sm:mb-1">
             Madrasah Aliyah Negeri 2 Lombok Timur
           </p>
-          <p className="text-xs text-gray-500 leading-relaxed max-w-sm mx-auto mb-6">
+          <p className="text-[11px] sm:text-xs text-gray-500 leading-relaxed max-w-sm mx-auto mb-4 sm:mb-6">
             {isPengumuman 
               ? (ctaDisabled 
                   ? 'Pengumuman hasil seleksi penerimaan murid baru akan segera diumumkan. Harap tunggu hingga waktu yang ditentukan.'
@@ -300,7 +300,7 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
           </p>
 
           {/* Badges */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
             {popupMode === 'pendaftaran' && activeJalurList.map((jalur, idx) => {
               const isPrestasi = jalur.namaJalur?.toLowerCase().includes('prestasi');
               const isReguler = jalur.namaJalur?.toLowerCase().includes('reguler');
@@ -345,12 +345,12 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
 
           {/* ====== COUNTDOWN TIMER ====== */}
           {showCountdown && (
-            <div className="mb-6">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-[11px] font-bold mb-4">
-                <Clock size={12} className="animate-pulse" />
+            <div className="mb-4 sm:mb-6">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-gray-100 text-gray-600 text-[10px] sm:text-[11px] font-bold mb-2.5 sm:mb-4">
+                <Clock size={11} className="animate-pulse sm:w-3 sm:h-3" />
                 {countdownLabel}
               </div>
-              <div className="flex items-center justify-center gap-2 sm:gap-3">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-3">
                 <CountdownBox value={timeLeft.hours} label="Jam" color={countdownColor} />
                 <ColonSeparator />
                 <CountdownBox value={timeLeft.minutes} label="Menit" color={countdownColor} />
@@ -361,11 +361,11 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
           )}
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
             <button
               onClick={() => handleAction('daftar')}
               disabled={ctaDisabled}
-              className={`w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3 text-white font-bold rounded-xl shadow-lg transition-all duration-300 text-sm bg-gradient-to-r ${
+              className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 sm:px-7 sm:py-3 text-white font-bold rounded-xl shadow-lg transition-all duration-300 text-xs sm:text-sm bg-gradient-to-r ${
                 ctaDisabled 
                   ? 'from-gray-400 to-gray-500 cursor-not-allowed opacity-60 shadow-none' 
                   : isPengumuman 
@@ -379,7 +379,7 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
             {popupMode === 'pendaftaran' && (
               <button
                 onClick={() => handleAction('info')}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3 bg-white hover:bg-gray-50 text-gray-700 font-bold rounded-xl border border-gray-200 hover:border-blue-300 shadow-sm transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-sm"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 sm:px-7 sm:py-3 bg-white hover:bg-gray-50 text-gray-700 font-bold rounded-xl border border-gray-200 hover:border-blue-300 shadow-sm transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-xs sm:text-sm"
               >
                 <Info size={16} />
                 Info Lengkap
@@ -396,7 +396,7 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="px-8 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-center">
+        <div className="px-5 py-2 sm:px-8 sm:py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-center">
           <button
             onClick={handleDismiss}
             className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
