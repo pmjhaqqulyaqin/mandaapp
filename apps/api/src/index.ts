@@ -183,6 +183,46 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
+import { db } from './db';
+import { sql } from 'drizzle-orm';
+
+async function runAutoMigration() {
+  try {
+    const cols = [
+      'headmaster_signature_url',
+      'kemenag_logo_url',
+      'school_stamp_url',
+      'custom_template_horizontal_front_url',
+      'custom_template_horizontal_back_url',
+      'custom_template_vertical_front_url',
+      'custom_template_vertical_back_url'
+    ];
+    
+    // Check if table exists first
+    const tableCheck = await db.execute(sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'card_settings'
+      );
+    `);
+    
+    if (tableCheck[0] && (tableCheck[0] as any).exists) {
+      logger.info("Checking card_settings table schema...");
+      for (const col of cols) {
+        try {
+          await db.execute(sql.raw(`ALTER TABLE "card_settings" ADD COLUMN IF NOT EXISTS "${col}" text;`));
+        } catch (err: any) {
+          // Ignore if column already exists (in case IF NOT EXISTS isn't supported on old PG)
+        }
+      }
+      logger.info("Schema check completed.");
+    }
+  } catch (err) {
+    logger.error({ err }, "Auto-migration failed");
+  }
+}
+
+app.listen(PORT, async () => {
+  await runAutoMigration();
   logger.info({ port: PORT }, `Server is running on port ${PORT}`);
 });
