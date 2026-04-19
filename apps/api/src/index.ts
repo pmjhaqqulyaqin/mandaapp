@@ -206,7 +206,9 @@ async function runAutoMigration() {
       );
     `);
     
-    if (tableCheck[0] && (tableCheck[0] as any).exists) {
+    // tableCheck.rows is where PostgreSQL puts the results
+    const rows = (tableCheck as any).rows || tableCheck;
+    if (rows[0] && rows[0].exists) {
       logger.info("Checking card_settings table schema...");
       for (const col of cols) {
         try {
