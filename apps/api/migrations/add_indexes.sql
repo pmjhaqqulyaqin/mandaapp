@@ -51,9 +51,7 @@ CREATE INDEX IF NOT EXISTS idx_jadwal_ujian_id ON jadwal_ujian (ujian_id);
 CREATE INDEX IF NOT EXISTS idx_distribusi_ujian_id ON distribusi_peserta (ujian_id);
 CREATE INDEX IF NOT EXISTS idx_distribusi_ruang_id ON distribusi_peserta (ruang_id);
 
--- NIS
-CREATE INDEX IF NOT EXISTS idx_nis_records_student ON nis_records (student_id);
-CREATE INDEX IF NOT EXISTS idx_nis_records_year ON nis_records (academic_year_id);
+-- NIS batches
 
 -- Site settings
 CREATE INDEX IF NOT EXISTS idx_site_settings_group ON site_settings ("group");
