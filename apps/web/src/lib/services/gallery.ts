@@ -8,11 +8,13 @@ export const galleryService = {
   delete: (id: string | number) => apiClient<any>(`/gallery/${id}`, { method: 'DELETE' }),
   upload: async (file: File | Blob): Promise<{ url: string }> => {
     // Compress image if it's a File (Blobs from CameraCapture are already handled or can be adapted)
-    const processedFile = file instanceof File ? await compressImage(file) : file;
+    // Convert Blob to File if needed so it always gets compressed and bypasses Nginx 1MB limits
+    const actualFile = file instanceof File ? file : new File([file], `camera_${Date.now()}.jpg`, { type: file.type || 'image/jpeg' });
+    const processedFile = await compressImage(actualFile);
 
     const formData = new FormData();
     // Use 'image' as matching the backend upload.single("image")
-    formData.append('image', processedFile, processedFile instanceof File ? processedFile.name : `camera_${Date.now()}.jpg`);
+    formData.append('image', processedFile, processedFile.name);
     const uploadTarget = `${API_BASE_URL}/gallery/upload`;
 
     const response = await fetch(uploadTarget, {
