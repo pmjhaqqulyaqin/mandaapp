@@ -434,8 +434,9 @@ export const DashboardStudentCard = () => {
         onSuccess: () => {
           toast.success('Pengaturan kartu berhasil disimpan!', { id: toastId });
         },
-        onError: () => {
-          toast.error('Gagal menyimpan pengaturan.', { id: toastId });
+        onError: (error: any) => {
+          console.error("Mutation error:", error);
+          toast.error(`Gagal menyimpan pengaturan: ${error.message || 'Unknown'}`, { id: toastId });
         }
       });
     } catch (err: any) {
