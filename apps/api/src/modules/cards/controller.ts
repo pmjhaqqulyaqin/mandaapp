@@ -35,11 +35,25 @@ export class CardSettingsController {
     try {
       const sanitized = sanitizeCardSettings(req.body);
       const current = await CardSettingsService.getSettings();
-      const updated = await CardSettingsService.updateSettings(current?.id as string, sanitized);
-      res.json(updated);
+
+      if (current?.id) {
+        // UPDATE existing row
+        const updated = await CardSettingsService.updateSettings(current.id, sanitized);
+        res.json(updated);
+      } else {
+        // INSERT new row — ensure NOT NULL columns have defaults
+        const insertData = {
+          schoolName: sanitized.schoolName || 'Sekolah',
+          schoolSubtitle: sanitized.schoolSubtitle || '-',
+          academicYear: sanitized.academicYear || new Date().getFullYear() + '/' + (new Date().getFullYear() + 1),
+          ...sanitized,
+        };
+        const created = await CardSettingsService.updateSettings('', insertData);
+        res.json(created);
+      }
     } catch (error: any) {
-      console.error("Card settings update error:", error?.message || error);
-      res.status(500).json({ error: "Failed to update card settings" });
+      console.error("Card settings update error:", error?.message || error, error?.stack);
+      res.status(500).json({ error: "Failed to update card settings", details: error?.message });
     }
   }
 }

@@ -45,14 +45,16 @@ export const DashboardStudentCard = () => {
   const getFullUrl = (url?: string) => url?.startsWith('/') ? `${SERVER_BASE_URL}${url}` : (url || '');
 
   const studentList: StudentProfile[] = Array.isArray(studentsQuery.data) ? studentsQuery.data : [];
-  const cardSettings = cardSettingsQuery.data && Object.keys(cardSettingsQuery.data).length > 0 ? cardSettingsQuery.data : defaultCardSettings;
+  const cardSettingsLoaded = cardSettingsQuery.data && Object.keys(cardSettingsQuery.data).length > 0;
+  const cardSettings = cardSettingsLoaded ? cardSettingsQuery.data : defaultCardSettings;
   const isLoadingData = studentsQuery.isLoading || cardSettingsQuery.isLoading || isSiteSettingsLoading;
 
   const [activeTab, setActiveTab] = useState<'preview' | 'edit' | 'settings' | 'batch'>('preview');
 
-  // Card settings state
-  const [selectedTemplate, setSelectedTemplate] = useState<CardTemplateName>(cardSettings.selectedTemplate || defaultCardSettings.selectedTemplate);
-  const [orientation, setOrientation] = useState<CardOrientation>(cardSettings.orientation || defaultCardSettings.orientation);
+  // Card settings state — don't use API data for initial values; the useEffect below syncs them once API loads
+  const [selectedTemplate, setSelectedTemplate] = useState<CardTemplateName>('classic-blue');
+  const [orientation, setOrientation] = useState<CardOrientation>('horizontal');
+  const [settingsReady, setSettingsReady] = useState(false);
   
   // Custom text for header and terms
   const [editingSettings, setEditingSettings] = useState({
@@ -70,9 +72,9 @@ export const DashboardStudentCard = () => {
     customTemplateVerticalBackUrl: cardSettings.customTemplateVerticalBackUrl || '',
   });
 
-  // Keep editing state in sync if data loads later
+  // Keep editing state in sync when API data loads/changes
   useEffect(() => {
-    if (cardSettingsQuery.data) {
+    if (cardSettingsQuery.data && !cardSettingsQuery.isLoading) {
       setEditingSettings({
         schoolName: cardSettingsQuery.data.schoolName || defaultCardSettings.schoolName,
         schoolAddress: cardSettingsQuery.data.schoolAddress || defaultCardSettings.schoolAddress,
@@ -89,8 +91,12 @@ export const DashboardStudentCard = () => {
       });
       setSelectedTemplate(cardSettingsQuery.data.selectedTemplate || defaultCardSettings.selectedTemplate);
       setOrientation(cardSettingsQuery.data.orientation || defaultCardSettings.orientation);
+      setSettingsReady(true);
+    } else if (!cardSettingsQuery.isLoading && !cardSettingsQuery.data) {
+      // No data in DB yet — use defaults
+      setSettingsReady(true);
     }
-  }, [cardSettingsQuery.data]);
+  }, [cardSettingsQuery.data, cardSettingsQuery.isLoading]);
 
   const [classesList, setClassesList] = useState<any[]>([]);
   const [majorsList, setMajorsList] = useState<any[]>([]);
@@ -200,7 +206,7 @@ export const DashboardStudentCard = () => {
     }
   }, [activeTab, orientation, selectedStudent, editingSettings, cardSettings]);
 
-  const isLoading = isLoadingData || !selectedStudent;
+  const isLoading = isLoadingData || !selectedStudent || !settingsReady;
 
   const template = CARD_TEMPLATES[selectedTemplate];
   const isAdmin = user?.role === 'admin';
@@ -425,22 +431,31 @@ export const DashboardStudentCard = () => {
         }
       }
 
-      updateSettingsMutation.mutate({
-        ...cardSettings,
-        ...finalSettings,
+      // Only send fields that exist as columns in the card_settings table
+      const payload: Record<string, any> = {
+        schoolName: finalSettings.schoolName || cardSettings.schoolName,
+        schoolSubtitle: finalSettings.schoolSubtitle || cardSettings.schoolSubtitle,
+        schoolLogoUrl: finalSettings.schoolLogoUrl || '',
+        academicYear: cardSettings.academicYear || '2025/2026',
         selectedTemplate,
         orientation,
-      }, {
-        onSuccess: () => {
-          toast.success('Pengaturan kartu berhasil disimpan!', { id: toastId });
-        },
-        onError: (error: any) => {
-          console.error("Mutation error:", error);
-          toast.error(`Gagal menyimpan pengaturan: ${error.message || 'Unknown'}`, { id: toastId });
-        }
-      });
+        showQrCode: cardSettings.showQrCode ?? true,
+        qrCodeContent: cardSettings.qrCodeContent || 'nisn',
+        termsText: finalSettings.termsText || '',
+        headmasterSignatureUrl: finalSettings.headmasterSignatureUrl || '',
+        kemenagLogoUrl: finalSettings.kemenagLogoUrl || '',
+        schoolStampUrl: finalSettings.schoolStampUrl || '',
+        customTemplateHorizontalFrontUrl: finalSettings.customTemplateHorizontalFrontUrl || '',
+        customTemplateHorizontalBackUrl: finalSettings.customTemplateHorizontalBackUrl || '',
+        customTemplateVerticalFrontUrl: finalSettings.customTemplateVerticalFrontUrl || '',
+        customTemplateVerticalBackUrl: finalSettings.customTemplateVerticalBackUrl || '',
+      };
+
+      await updateSettingsMutation.mutateAsync(payload);
+      toast.success('Pengaturan kartu berhasil disimpan!', { id: toastId });
     } catch (err: any) {
-      toast.error(`Gagal mengunggah gambar pengaturan: ${err.message}`, { id: toastId });
+      console.error("Save settings error:", err);
+      toast.error(`Gagal menyimpan pengaturan: ${err.message || 'Unknown error'}`, { id: toastId });
     }
   };
 
