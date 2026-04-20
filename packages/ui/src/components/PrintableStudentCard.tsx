@@ -196,12 +196,19 @@ export const PrintableStudentCard = ({
             ) : <div style={{ width: '85px' }} />}
           </div>
 
+          {/* TITLE - Centered */}
+          <div style={{ textAlign: 'center', padding: '8px 30px 0 30px' }}>
+            <h2 style={{ fontSize: '44px', color: textColor, fontWeight: 900, fontStyle: 'italic', letterSpacing: '3px', margin: 0 }}>
+              KARTU PELAJAR
+            </h2>
+          </div>
+
           {/* BODY */}
-          <div style={{ display: 'flex', padding: '20px 30px', gap: '30px', flex: 1 }}>
+          <div style={{ display: 'flex', padding: '10px 30px 0 30px', gap: '30px', flex: 1 }}>
             {/* Left Column: Photo + Barcode */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
               {/* Foto */}
-              <div style={{ width: '160px', height: '200px', backgroundColor: bgUrl ? 'rgba(226,232,240,0.5)' : '#e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
+              <div style={{ width: '160px', height: '190px', backgroundColor: bgUrl ? 'rgba(226,232,240,0.5)' : '#e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
                 {student.photoUrl ? (
                   <img src={student.photoUrl} alt="Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
@@ -211,18 +218,14 @@ export const PrintableStudentCard = ({
                 )}
               </div>
               {/* Barcode 1D - below photo */}
-              <div style={{ height: '40px', width: '160px' }}>
+              <div style={{ height: '38px', width: '160px' }}>
                 <LocalBarcode data={barcodeText} style={{ height: '100%', width: '100%', objectFit: 'fill' }} />
               </div>
             </div>
 
             {/* Right Column: Data + Pengesahan */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <h2 style={{ fontSize: '38px', color: textColor, fontWeight: 900, fontStyle: 'italic', letterSpacing: '2px', margin: '0 0 18px 0' }}>
-                KARTU PELAJAR
-              </h2>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '120px 15px 1fr', gap: '12px', fontSize: '18px', color: textColor, fontWeight: 700 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 15px 1fr', gap: '12px', fontSize: '18px', color: textColor, fontWeight: 700, marginTop: '8px' }}>
                 <div>NAMA</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.name}</div>
                 <div>NIS/NISN</div><div>:</div><div style={{ fontWeight: 500 }}>{student.nisn}</div>
                 <div>T.T.L</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.birthPlace}, {formatDate(student.birthDate)}</div>
@@ -230,24 +233,24 @@ export const PrintableStudentCard = ({
               </div>
 
               {/* Pengesahan - Kepala Madrasah */}
-              <div style={{ marginTop: 'auto', textAlign: 'center', alignSelf: 'flex-end', width: '220px', position: 'relative' }}>
+              <div style={{ marginTop: '12px', textAlign: 'center', alignSelf: 'flex-end', width: '220px', position: 'relative', zIndex: 5 }}>
                 {settings.schoolStampUrl && (
-                  <img src={settings.schoolStampUrl} alt="Stempel Sekolah" style={{ position: 'absolute', top: '-10px', left: '-15px', width: '100px', height: '100px', objectFit: 'contain', opacity: 0.85, zIndex: 0 }} />
+                  <img src={settings.schoolStampUrl} alt="Stempel Sekolah" style={{ position: 'absolute', top: '-10px', left: '-15px', width: '90px', height: '90px', objectFit: 'contain', opacity: 0.85, zIndex: 0 }} />
                 )}
-                <div style={{ fontSize: '12px', fontWeight: 800, marginBottom: '2px', position: 'relative', zIndex: 1, color: textColor }}>KEPALA MADRASAH</div>
-                <div style={{ height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2 }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, marginBottom: '1px', position: 'relative', zIndex: 1, color: textColor }}>KEPALA MADRASAH</div>
+                <div style={{ height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2 }}>
                    {settings.headmasterSignatureUrl ? (
-                     <img src={settings.headmasterSignatureUrl} alt="Tanda Tangan" style={{ maxHeight: '60px', maxWidth: '100%', objectFit: 'contain', transform: 'scale(1.2)' }} />
+                     <img src={settings.headmasterSignatureUrl} alt="Tanda Tangan" style={{ maxHeight: '50px', maxWidth: '100%', objectFit: 'contain', transform: 'scale(1.1)' }} />
                    ) : (
-                     <svg width="120" height="40" viewBox="0 0 200 60" fill="none">
+                     <svg width="100" height="35" viewBox="0 0 200 60" fill="none">
                        <path d="M20 50 C40 30, 60 10, 80 40 S 120 70, 160 30" stroke={textColor} strokeWidth="3" fill="none" strokeLinecap="round" />
                      </svg>
                    )}
                 </div>
-                <div style={{ fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', color: textColor, textDecoration: 'underline' }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', color: textColor, textDecoration: 'underline' }}>
                    {settings.headmasterName || 'NAMA KEPALA SEKOLAH'}
                 </div>
-                <div style={{ fontSize: '11px', fontWeight: 500, color: textColor }}>
+                <div style={{ fontSize: '10px', fontWeight: 500, color: textColor }}>
                    NIP. {settings.headmasterNip || '-'}
                 </div>
               </div>
@@ -311,9 +314,9 @@ export const PrintableStudentCard = ({
           </div>
 
           {/* BOTTOM AREA (QR Code - Centered) */}
-          <div style={{ position: 'absolute', bottom: '45px', left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10 }}>
+          <div style={{ position: 'absolute', bottom: '75px', left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10 }}>
              {/* QR Section - Centered */}
-             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', paddingTop: '15px' }}>
+             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                 <LocalQRCode data={qrPayload} size={105} style={{ border: '4px solid #ffffff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
                 <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#111827', backgroundColor: 'rgba(255,255,255,0.7)', padding: '2px 6px', borderRadius: '4px' }}>MASA BERLAKU</div>
              </div>
