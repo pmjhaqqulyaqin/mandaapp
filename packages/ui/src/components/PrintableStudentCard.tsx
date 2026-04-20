@@ -233,7 +233,7 @@ export const PrintableStudentCard = ({
               </div>
 
               {/* Pengesahan - Kepala Madrasah */}
-              <div style={{ marginTop: '12px', textAlign: 'center', alignSelf: 'flex-end', width: '220px', position: 'relative', zIndex: 5 }}>
+              <div style={{ marginTop: '25px', textAlign: 'center', alignSelf: 'flex-end', width: '220px', position: 'relative', zIndex: 5 }}>
                 {settings.schoolStampUrl && (
                   <img src={settings.schoolStampUrl} alt="Stempel Sekolah" style={{ position: 'absolute', top: '-10px', left: '-15px', width: '90px', height: '90px', objectFit: 'contain', opacity: 0.85, zIndex: 0 }} />
                 )}
