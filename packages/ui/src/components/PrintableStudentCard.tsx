@@ -197,34 +197,59 @@ export const PrintableStudentCard = ({
           </div>
 
           {/* BODY */}
-          <div style={{ display: 'flex', padding: '25px 40px', gap: '40px', flex: 1 }}>
-            {/* Foto */}
-            <div style={{ width: '160px', height: '220px', backgroundColor: bgUrl ? 'rgba(226,232,240,0.5)' : '#e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
-              {student.photoUrl ? (
-                <img src={student.photoUrl} alt="Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '48px', color: '#94a3b8' }}>
-                  {student.name.charAt(0)}
-                </div>
-              )}
+          <div style={{ display: 'flex', padding: '20px 30px', gap: '30px', flex: 1 }}>
+            {/* Left Column: Photo + Barcode */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              {/* Foto */}
+              <div style={{ width: '160px', height: '200px', backgroundColor: bgUrl ? 'rgba(226,232,240,0.5)' : '#e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
+                {student.photoUrl ? (
+                  <img src={student.photoUrl} alt="Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '48px', color: '#94a3b8' }}>
+                    {student.name.charAt(0)}
+                  </div>
+                )}
+              </div>
+              {/* Barcode 1D - below photo */}
+              <div style={{ height: '40px', width: '160px' }}>
+                <LocalBarcode data={barcodeText} style={{ height: '100%', width: '100%', objectFit: 'fill' }} />
+              </div>
             </div>
 
-            {/* Data */}
+            {/* Right Column: Data + Pengesahan */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <h2 style={{ fontSize: '32px', color: textColor, fontWeight: 900, fontStyle: 'italic', letterSpacing: '2px', margin: '0 0 25px 0' }}>
-                KARTU PELAJAR SISWA
+              <h2 style={{ fontSize: '38px', color: textColor, fontWeight: 900, fontStyle: 'italic', letterSpacing: '2px', margin: '0 0 18px 0' }}>
+                KARTU PELAJAR
               </h2>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '120px 15px 1fr', gap: '14px', fontSize: '18px', color: textColor, fontWeight: 700 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 15px 1fr', gap: '12px', fontSize: '18px', color: textColor, fontWeight: 700 }}>
                 <div>NAMA</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.name}</div>
                 <div>NIS/NISN</div><div>:</div><div style={{ fontWeight: 500 }}>{student.nisn}</div>
                 <div>T.T.L</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.birthPlace}, {formatDate(student.birthDate)}</div>
                 <div>ALAMAT</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase', lineHeight: 1.3 }}>{student.address || '-'}</div>
               </div>
 
-              {/* Barcode 1D */}
-              <div style={{ marginTop: 'auto', marginBottom: '5px', height: '50px', width: '100%' }}>
-                <LocalBarcode data={barcodeText} style={{ height: '100%', width: '250px', objectFit: 'fill' }} />
+              {/* Pengesahan - Kepala Madrasah */}
+              <div style={{ marginTop: 'auto', textAlign: 'center', alignSelf: 'flex-end', width: '220px', position: 'relative' }}>
+                {settings.schoolStampUrl && (
+                  <img src={settings.schoolStampUrl} alt="Stempel Sekolah" style={{ position: 'absolute', top: '-10px', left: '-15px', width: '100px', height: '100px', objectFit: 'contain', opacity: 0.85, zIndex: 0 }} />
+                )}
+                <div style={{ fontSize: '12px', fontWeight: 800, marginBottom: '2px', position: 'relative', zIndex: 1, color: textColor }}>KEPALA MADRASAH</div>
+                <div style={{ height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2 }}>
+                   {settings.headmasterSignatureUrl ? (
+                     <img src={settings.headmasterSignatureUrl} alt="Tanda Tangan" style={{ maxHeight: '60px', maxWidth: '100%', objectFit: 'contain', transform: 'scale(1.2)' }} />
+                   ) : (
+                     <svg width="120" height="40" viewBox="0 0 200 60" fill="none">
+                       <path d="M20 50 C40 30, 60 10, 80 40 S 120 70, 160 30" stroke={textColor} strokeWidth="3" fill="none" strokeLinecap="round" />
+                     </svg>
+                   )}
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', color: textColor, textDecoration: 'underline' }}>
+                   {settings.headmasterName || 'NAMA KEPALA SEKOLAH'}
+                </div>
+                <div style={{ fontSize: '11px', fontWeight: 500, color: textColor }}>
+                   NIP. {settings.headmasterNip || '-'}
+                </div>
               </div>
             </div>
           </div>
@@ -275,7 +300,7 @@ export const PrintableStudentCard = ({
 
           {/* BODY (Terms and Conditions) */}
           <div style={{ padding: '20px 60px' }}>
-             <h3 style={{ fontSize: '24px', fontWeight: 800, fontStyle: 'italic', letterSpacing: '1px', textAlign: 'center', marginBottom: '15px', color: textColor }}>
+             <h3 style={{ fontSize: '30px', fontWeight: 800, fontStyle: 'italic', letterSpacing: '1px', textAlign: 'center', marginBottom: '15px', color: textColor }}>
                SYARAT & KETENTUAN:
              </h3>
              <ul style={{ fontSize: '17px', lineHeight: 1.5, color: textColor, margin: 0, paddingLeft: '20px', fontWeight: 500 }}>
@@ -285,35 +310,12 @@ export const PrintableStudentCard = ({
              </ul>
           </div>
 
-          {/* BOTTOM AREA (QR & Signature) */}
-          <div style={{ position: 'absolute', bottom: '45px', left: '90px', right: '60px', display: 'flex', justifyContent: 'space-between', zIndex: 10 }}>
-             {/* QR Section */}
+          {/* BOTTOM AREA (QR Code - Centered) */}
+          <div style={{ position: 'absolute', bottom: '45px', left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10 }}>
+             {/* QR Section - Centered */}
              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', paddingTop: '15px' }}>
                 <LocalQRCode data={qrPayload} size={105} style={{ border: '4px solid #ffffff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
                 <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#111827', backgroundColor: 'rgba(255,255,255,0.7)', padding: '2px 6px', borderRadius: '4px' }}>MASA BERLAKU</div>
-             </div>
-
-             {/* Signature Section */}
-             <div style={{ textAlign: 'center', width: '250px', position: 'relative' }}>
-                {settings.schoolStampUrl && (
-                  <img src={settings.schoolStampUrl} alt="Stempel Sekolah" style={{ position: 'absolute', top: '-10px', left: '-15px', width: '140px', height: '140px', objectFit: 'contain', opacity: 0.85, zIndex: 0 }} />
-                )}
-                <div style={{ fontSize: '20px', fontWeight: 800, marginBottom: '5px', position: 'relative', zIndex: 1, color: textColor }}>KEPALA MADRASAH</div>
-                <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2 }}>
-                   {settings.headmasterSignatureUrl ? (
-                     <img src={settings.headmasterSignatureUrl} alt="Tanda Tangan" style={{ maxHeight: '100px', maxWidth: '100%', objectFit: 'contain', transform: 'scale(1.3)' }} />
-                   ) : (
-                     <svg width="150" height="50" viewBox="0 0 200 60" fill="none">
-                       <path d="M20 50 C40 30, 60 10, 80 40 S 120 70, 160 30" stroke={textColor} strokeWidth="3" fill="none" strokeLinecap="round" />
-                     </svg>
-                   )}
-                </div>
-                <div style={{ fontSize: '18px', fontWeight: 600, textTransform: 'uppercase', color: textColor }}>
-                   {settings.headmasterName || 'NAMA KEPALA SEKOLAH'}
-                </div>
-                <div style={{ fontSize: '16px', fontWeight: 500, color: textColor }}>
-                   NIP. {settings.headmasterNip || '-'}
-                </div>
              </div>
           </div>
         </div>
