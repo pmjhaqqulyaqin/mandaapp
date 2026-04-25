@@ -51,17 +51,29 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
 
-    <!-- PWA: Service Worker Registration -->
+    <!-- PWA: Early capture of install prompt + Service Worker -->
     <script>
+      // ⚡ CRITICAL: Capture beforeinstallprompt BEFORE React loads.
+      // This event can fire before React mounts, so we store it globally.
+      window.__pwaInstallEvent = null;
+      window.__pwaInstallCallbacks = [];
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.__pwaInstallEvent = e;
+        console.log('[PWA] beforeinstallprompt captured early');
+        // Notify any React listeners that are already registered
+        window.__pwaInstallCallbacks.forEach(function(cb) { cb(e); });
+      });
+
+      // Service Worker Registration
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+        window.addEventListener('load', function() {
           navigator.serviceWorker.register('/sw.js')
-            .then((reg) => {
+            .then(function(reg) {
               console.log('[PWA] Service Worker registered, scope:', reg.scope);
-              // Check for updates periodically
-              setInterval(() => reg.update(), 60 * 60 * 1000); // every hour
+              setInterval(function() { reg.update(); }, 60 * 60 * 1000);
             })
-            .catch((err) => {
+            .catch(function(err) {
               console.warn('[PWA] Service Worker registration failed:', err);
             });
         });

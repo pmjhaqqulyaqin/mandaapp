@@ -1,16 +1,25 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 /**
- * PWA Install Prompt — shows a sleek bottom banner when:
- * - Android/Chrome: intercepts beforeinstallprompt → native install
- * - iOS Safari: shows manual instruction to "Add to Home Screen"
- * - Auto-hides if already running as standalone (installed)
- * - Remembers dismissal for 7 days
+ * PWA Install Prompt — reads from window.__pwaInstallEvent
+ * which is captured early in index.html BEFORE React loads.
+ *
+ * Android Chrome: triggers native install via beforeinstallprompt
+ * iOS Safari: shows manual "Add to Home Screen" instruction
+ * Already installed: banner never shows
+ * Dismissed: hidden for 7 days
  */
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+declare global {
+  interface Window {
+    __pwaInstallEvent: BeforeInstallPromptEvent | null;
+    __pwaInstallCallbacks: Array<(e: BeforeInstallPromptEvent) => void>;
+  }
 }
 
 const DISMISS_KEY = 'pwa-install-dismissed';
@@ -21,8 +30,7 @@ function isDismissed(): boolean {
     const val = localStorage.getItem(DISMISS_KEY);
     if (!val) return false;
     const dismissedAt = parseInt(val, 10);
-    const daysPassed = (Date.now() - dismissedAt) / (1000 * 60 * 60 * 24);
-    return daysPassed < DISMISS_DAYS;
+    return (Date.now() - dismissedAt) / (1000 * 60 * 60 * 24) < DISMISS_DAYS;
   } catch { return false; }
 }
 
@@ -55,7 +63,6 @@ export function PwaInstallPrompt() {
     // --- iOS / Safari path ---
     if (isIOS() || isSafari()) {
       setIsIosDevice(true);
-      // Show after 2s delay on iOS
       const timer = setTimeout(() => {
         setShow(true);
         setTimeout(() => setAnimateIn(true), 100);
@@ -64,38 +71,67 @@ export function PwaInstallPrompt() {
     }
 
     // --- Chrome / Android path ---
-    const handler = (e: Event) => {
+    // 1. Check if event was already captured globally (before React mounted)
+    if (window.__pwaInstallEvent) {
+      console.log('[PWA Banner] Found early-captured install event');
+      deferredPrompt.current = window.__pwaInstallEvent;
+      setShow(true);
+      setTimeout(() => setAnimateIn(true), 100);
+      return;
+    }
+
+    // 2. Register callback for late events (if event hasn't fired yet)
+    const callback = (e: BeforeInstallPromptEvent) => {
+      console.log('[PWA Banner] Received install event via callback');
+      deferredPrompt.current = e;
+      setShow(true);
+      setTimeout(() => setAnimateIn(true), 100);
+    };
+    window.__pwaInstallCallbacks = window.__pwaInstallCallbacks || [];
+    window.__pwaInstallCallbacks.push(callback);
+
+    // 3. Also listen directly (belt-and-suspenders)
+    const directHandler = (e: Event) => {
       e.preventDefault();
       deferredPrompt.current = e as BeforeInstallPromptEvent;
       setShow(true);
       setTimeout(() => setAnimateIn(true), 100);
     };
-
-    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('beforeinstallprompt', directHandler);
 
     // Listen for successful install
     const installedHandler = () => {
       setAnimateIn(false);
       setTimeout(() => setShow(false), 400);
       deferredPrompt.current = null;
+      window.__pwaInstallEvent = null;
     };
     window.addEventListener('appinstalled', installedHandler);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('beforeinstallprompt', directHandler);
       window.removeEventListener('appinstalled', installedHandler);
+      // Remove our callback
+      const idx = window.__pwaInstallCallbacks?.indexOf(callback);
+      if (idx !== undefined && idx >= 0) window.__pwaInstallCallbacks.splice(idx, 1);
     };
   }, []);
 
   const handleInstall = useCallback(async () => {
-    if (!deferredPrompt.current) return;
-    await deferredPrompt.current.prompt();
-    const { outcome } = await deferredPrompt.current.userChoice;
-    if (outcome === 'accepted') {
-      setAnimateIn(false);
-      setTimeout(() => setShow(false), 400);
+    const prompt = deferredPrompt.current || window.__pwaInstallEvent;
+    if (!prompt) return;
+    try {
+      await prompt.prompt();
+      const { outcome } = await prompt.userChoice;
+      if (outcome === 'accepted') {
+        setAnimateIn(false);
+        setTimeout(() => setShow(false), 400);
+      }
+    } catch (err) {
+      console.warn('[PWA] Install prompt error:', err);
     }
     deferredPrompt.current = null;
+    window.__pwaInstallEvent = null;
   }, []);
 
   const handleDismiss = useCallback(() => {
@@ -187,8 +223,8 @@ export function PwaInstallPrompt() {
               {isIosDevice ? (
                 <>
                   Ketuk{' '}
-                  <span style={{ 
-                    display: 'inline-flex', 
+                  <span style={{
+                    display: 'inline-flex',
                     alignItems: 'center',
                     verticalAlign: 'middle',
                     background: 'rgba(0,200,212,0.15)',
