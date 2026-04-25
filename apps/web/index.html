@@ -9,17 +9,29 @@
     <meta charset="UTF-8" />
     <meta name="google-site-verification" content="ykLXriebnA_2yI3dkOz32yQFRFDeWMAK25IWNT5WPgk" />
     <meta name="msvalidate.01" content="027216FE8930B5980FA11A218F1E1F99" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
     <!-- Favicon — served from database via API (readable by Google crawler) -->
     <link rel="icon" type="image/png" href="/api/settings/serve-favicon" />
     <link rel="icon" type="image/png" sizes="32x32" href="/api/settings/serve-favicon" />
     <link rel="icon" type="image/png" sizes="16x16" href="/api/settings/serve-favicon" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/api/settings/serve-favicon" />
     <link rel="shortcut icon" href="/api/settings/serve-favicon" />
 
-    <!-- Web App Manifest -->
+    <!-- PWA: Apple Touch Icon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/pwa-icon-180x180.png" />
+
+    <!-- PWA: Web App Manifest -->
     <link rel="manifest" href="/manifest.json" />
+
+    <!-- PWA: Theme & Status Bar -->
+    <meta name="theme-color" content="#1a2332" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="MAN 2 Lotim" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="MAN 2 Lotim" />
+    <meta name="msapplication-TileColor" content="#1a2332" />
+    <meta name="msapplication-TileImage" content="/pwa-icon-192x192.png" />
 
     <!-- LCP Preload Strategies -->
     <link rel="preload" as="image" href="/hero-building.webp" fetchpriority="high" />
@@ -27,7 +39,6 @@
 
     <!-- SEO Meta Tags -->
     <meta name="description" content="Website resmi MAN 2 Lombok Timur, madrasah berprestasi di bawah naungan Kementerian Agama Kabupaten Lombok Timur. Berlokasi strategis di kecamatan Wanasaba." />
-    <meta name="theme-color" content="#16a34a" />
     <link rel="canonical" href="https://mandualotim.sch.id" />
 
     <!-- Fonts -->
@@ -39,5 +50,22 @@
   <body class="bg-background-light text-text-primary dark:bg-background-dark dark:text-text-darkPrimary antialiased selection:bg-primary selection:text-white transition-colors duration-300">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- PWA: Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((reg) => {
+              console.log('[PWA] Service Worker registered, scope:', reg.scope);
+              // Check for updates periodically
+              setInterval(() => reg.update(), 60 * 60 * 1000); // every hour
+            })
+            .catch((err) => {
+              console.warn('[PWA] Service Worker registration failed:', err);
+            });
+        });
+      }
+    </script>
   </body>
 </html>
