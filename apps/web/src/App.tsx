@@ -10,6 +10,7 @@ import { useFavicon } from './hooks/useFavicon';
 import { FloatingActionButton } from '@mandaapp/ui/src/components/FloatingActionButton';
 import { ScrollToTopButton } from '@mandaapp/ui/src/components/ScrollToTopButton';
 import { Toaster } from 'sonner';
+import { PwaInstallPrompt } from './components/PwaInstallPrompt';
 
 // Lazy loading all pages
 const LandingPage = React.lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
@@ -169,6 +170,7 @@ function App() {
         <FloatingActionButton />
         <ScrollToTopButton />
         <Toaster richColors position="top-right" />
+        <PwaInstallPrompt />
       </Router>
     </AuthProvider>
     </ErrorBoundary>
