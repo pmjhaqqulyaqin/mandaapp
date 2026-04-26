@@ -330,6 +330,9 @@ export const DashboardLayout = () => {
     if (idx > -1) finalAllowedMenusForRender.splice(idx, 1);
   }
 
+  const siswaMenuKeys = ['students', 'nis', 'student-card', 'ppdb', 'penilaian-pmb'];
+  const topMobileNavKeys = ['news', 'gallery', 'students', 'ptsp'];
+
   const mainMenuItems = ALL_MENU_ITEMS.filter((item) => 
     item.group === 'main' && 
     finalAllowedMenusForRender.includes(item.key) &&
@@ -338,7 +341,6 @@ export const DashboardLayout = () => {
   );
   const systemMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'system' && finalAllowedMenusForRender.includes(item.key));
 
-  const siswaMenuKeys = ['students', 'nis', 'student-card', 'ppdb', 'penilaian-pmb'];
   const SISWA_MENUS = ALL_MENU_ITEMS.filter(item => siswaMenuKeys.includes(item.key) && finalAllowedMenusForRender.includes(item.key));
 
   const LAYANAN_MENUS = [
@@ -353,7 +355,6 @@ export const DashboardLayout = () => {
     { label: 'Survey', icon: <ClipboardCheck />, href: '/dashboard/services' },
   ];
 
-  const topMobileNavKeys = ['news', 'gallery', 'students', 'ptsp'];
   const mobileNavItemsMap = new Map(
     ALL_MENU_ITEMS
       .filter(item => topMobileNavKeys.includes(item.key) && finalAllowedMenusForRender.includes(item.key))
