@@ -24,6 +24,12 @@ import {
   GraduationCap,
   Star,
   LayoutGrid,
+  Globe,
+  BookOpen,
+  Search,
+  Briefcase,
+  BookUser,
+  MessageSquareWarning,
 } from 'lucide-react';
 import { ProfileModal } from '../components/modals/ProfileModal';
 
@@ -196,7 +202,7 @@ export const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeBottomSheet, setActiveBottomSheet] = useState<'menu' | 'layanan' | 'siswa' | null>(null);
   
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -327,6 +333,21 @@ export const DashboardLayout = () => {
   const mainMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'main' && finalAllowedMenusForRender.includes(item.key));
   const systemMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'system' && finalAllowedMenusForRender.includes(item.key));
 
+  const siswaMenuKeys = ['students', 'nis', 'student-card', 'ppdb', 'penilaian-pmb'];
+  const SISWA_MENUS = ALL_MENU_ITEMS.filter(item => siswaMenuKeys.includes(item.key) && finalAllowedMenusForRender.includes(item.key));
+
+  const LAYANAN_MENUS = [
+    { label: 'Suket', icon: <FileText />, href: '/dashboard/services' },
+    { label: 'Legalisir', icon: <Globe />, href: '/dashboard/services' },
+    { label: 'Izin Siswa', icon: <BookOpen />, href: '/dashboard/services' },
+    { label: 'Izin Pen.', icon: <Search />, href: '/dashboard/services' },
+    { label: 'Sosialisasi', icon: <Users />, href: '/dashboard/services' },
+    { label: 'Izin Magang', icon: <Briefcase />, href: '/dashboard/services' },
+    { label: 'Buku Tamu', icon: <BookUser />, href: '/dashboard/services' },
+    { label: 'Pengaduan', icon: <MessageSquareWarning />, href: '/dashboard/services' },
+    { label: 'Survey', icon: <ClipboardCheck />, href: '/dashboard/services' },
+  ];
+
   const topMobileNavKeys = ['news', 'gallery', 'students', 'ptsp'];
   const mobileNavItemsMap = new Map(
     ALL_MENU_ITEMS
@@ -399,7 +420,7 @@ export const DashboardLayout = () => {
       </aside>
       
       <main className="flex-1 flex flex-col min-w-0 w-full overflow-hidden print:overflow-visible print:block">
-        <header className="h-14 md:h-12 border-b border-border-light dark:border-border-dark bg-white/90 dark:bg-background-dark/90 backdrop-blur-md md:bg-white md:dark:bg-background-dark flex items-center justify-between px-4 sm:px-5 shrink-0 z-30 print:hidden relative md:sticky top-0">
+        <header className="h-14 md:h-12 border-b border-border-light dark:border-border-dark bg-white/90 dark:bg-background-dark/90 backdrop-blur-md md:bg-white md:dark:bg-background-dark flex items-center justify-between px-4 sm:px-5 shrink-0 z-50 print:hidden relative md:sticky top-0">
           <div className="flex items-center gap-3">
             <div className="md:hidden flex items-center gap-2.5">
               {logoUrl ? (
@@ -432,7 +453,7 @@ export const DashboardLayout = () => {
               </button>
               
               {isProfileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#111111] border border-border-light dark:border-border-dark rounded-lg shadow-lg py-1 z-50 overflow-hidden">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#111111] border border-border-light dark:border-border-dark rounded-lg shadow-lg py-1 z-[100] overflow-hidden">
                   <button 
                     onClick={() => {
                       setIsProfileDropdownOpen(false);
@@ -466,122 +487,184 @@ export const DashboardLayout = () => {
         
         {/* Left Items */}
         {leftNavItems.map(item => item && (
-          <NavLink
+          <button
             key={item.key}
-            to={item.href}
-            end={item.exact}
-            onClick={() => setIsMobileMenuOpen(false)}
-            className={({ isActive }) => `flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all duration-200 ${isActive ? 'text-primary' : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'}`}
+            onClick={() => { setActiveBottomSheet(null); navigate(item.href); }}
+            className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all duration-200 ${location.pathname.startsWith(item.href) && activeBottomSheet === null ? 'text-primary' : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'}`}
           >
             <div className="[&>svg]:w-6 [&>svg]:h-6 flex items-center justify-center mb-0.5">
               {item.icon}
             </div>
             <span className="text-[10px] font-semibold leading-none">{getMobileLabel(item.key, item.label)}</span>
-          </NavLink>
+          </button>
         ))}
 
         {/* Center Special Menu Button (FAB style) */}
         <div className="relative flex-1 flex justify-center items-end h-full max-w-[80px]">
           <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            onClick={() => setActiveBottomSheet(activeBottomSheet === 'menu' ? null : 'menu')}
             className={`absolute -top-5 flex flex-col items-center justify-center w-[60px] h-[60px] rounded-full transition-all duration-300 border-[5px] border-white dark:border-[#050505] shadow-lg ${
-              isMobileMenuOpen 
+              activeBottomSheet === 'menu' 
                 ? 'bg-primary text-white scale-95 shadow-inner' 
                 : 'bg-primary text-white hover:bg-primary/90 hover:scale-105 shadow-primary/30'
             }`}
           >
-            <div className={`[&>svg]:w-7 [&>svg]:h-7 transition-transform duration-300 ${isMobileMenuOpen ? 'rotate-90 scale-110' : 'rotate-0'}`}>
+            <div className={`[&>svg]:w-7 [&>svg]:h-7 transition-transform duration-300 ${activeBottomSheet === 'menu' ? 'rotate-90 scale-110' : 'rotate-0'}`}>
               <LayoutGrid />
             </div>
           </button>
-          <span className={`text-[10px] font-semibold leading-none mb-1.5 transition-colors ${isMobileMenuOpen ? 'text-primary' : 'text-text-secondary'}`}>Menu</span>
+          <span className={`text-[10px] font-semibold leading-none mb-1.5 transition-colors ${activeBottomSheet === 'menu' ? 'text-primary' : 'text-text-secondary'}`}>Menu</span>
         </div>
 
         {/* Right Items */}
         {rightNavItems.map(item => item && (
-          <NavLink
+          <button
             key={item.key}
-            to={item.href}
-            end={item.exact}
-            onClick={() => setIsMobileMenuOpen(false)}
-            className={({ isActive }) => `flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all duration-200 ${isActive ? 'text-primary' : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'}`}
+            onClick={() => {
+              if (item.key === 'students') {
+                setActiveBottomSheet(activeBottomSheet === 'siswa' ? null : 'siswa');
+              } else if (item.key === 'ptsp') {
+                setActiveBottomSheet(activeBottomSheet === 'layanan' ? null : 'layanan');
+              } else {
+                setActiveBottomSheet(null);
+                navigate(item.href);
+              }
+            }}
+            className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all duration-200 ${
+              (item.key === 'students' && activeBottomSheet === 'siswa') ||
+              (item.key === 'ptsp' && activeBottomSheet === 'layanan') ||
+              (activeBottomSheet === null && location.pathname.startsWith(item.href))
+                ? 'text-primary' : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'
+            }`}
           >
             <div className="[&>svg]:w-6 [&>svg]:h-6 flex items-center justify-center mb-0.5">
               {item.icon}
             </div>
             <span className="text-[10px] font-semibold leading-none">{getMobileLabel(item.key, item.label)}</span>
-          </NavLink>
+          </button>
         ))}
         
       </nav>
 
       <div 
         className={`md:hidden fixed inset-x-0 bottom-16 top-14 z-40 bg-gray-50/98 dark:bg-[#050505]/98 backdrop-blur-xl transform transition-all duration-300 ease-out flex flex-col overflow-hidden ${
-          isMobileMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
+          activeBottomSheet ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
         }`}
       >
         <div className="flex-1 overflow-y-auto p-5 custom-scrollbar pb-10">
-          <div className="mb-6">
-            <h2 className="text-lg font-bold text-text-primary dark:text-text-darkPrimary mb-1">Eksplorasi Menu</h2>
-            <p className="text-xs text-text-secondary">Pilih menu untuk mengakses fitur aplikasi</p>
-          </div>
           
-          <div className="mb-8">
-            <h3 className="text-[11px] font-bold text-text-secondary/70 uppercase tracking-widest mb-4">Main Menu</h3>
-            <div className="grid grid-cols-4 gap-x-3 gap-y-5">
-              {mainMenuItems.map(item => (
-                 <NavLink
-                   key={item.href}
-                   to={item.href}
-                   end={item.exact}
-                   onClick={() => setIsMobileMenuOpen(false)}
-                   className="flex flex-col items-center gap-2.5 text-center group"
-                 >
-                   {({ isActive }) => (
-                     <>
-                       <div className={`w-[64px] h-[64px] rounded-2xl flex items-center justify-center transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105' : 'bg-white dark:bg-[#111111] shadow-sm border border-black/5 dark:border-white/5 text-text-secondary group-active:scale-95'}`}>
+          {/* MENU SAKTI SHEET */}
+          {activeBottomSheet === 'menu' && (
+            <div className="animate-in fade-in zoom-in-95 duration-200">
+              <div className="mb-6">
+                <h2 className="text-lg font-bold text-text-primary dark:text-text-darkPrimary mb-1">Eksplorasi Menu</h2>
+                <p className="text-xs text-text-secondary">Pilih menu untuk mengakses fitur aplikasi</p>
+              </div>
+              
+              <div className="mb-8">
+                <h3 className="text-[11px] font-bold text-text-secondary/70 uppercase tracking-widest mb-4">Main Menu</h3>
+                <div className="grid grid-cols-4 gap-x-3 gap-y-5">
+                  {mainMenuItems.map(item => (
+                     <button
+                       key={item.href}
+                       onClick={() => { setActiveBottomSheet(null); navigate(item.href); }}
+                       className="flex flex-col items-center gap-2.5 text-center group"
+                     >
+                       <div className="w-[64px] h-[64px] rounded-2xl flex items-center justify-center transition-all duration-200 bg-white dark:bg-[#111111] shadow-sm border border-black/5 dark:border-white/5 text-text-secondary group-active:scale-95 group-hover:text-primary group-hover:border-primary/50">
                          <div className="[&>svg]:w-[26px] [&>svg]:h-[26px]">
                            {item.icon}
                          </div>
                        </div>
-                       <span className={`text-[10px] font-semibold leading-tight line-clamp-2 px-1 ${isActive ? 'text-primary' : 'text-text-secondary'}`}>
+                       <span className="text-[10px] font-semibold leading-tight line-clamp-2 px-1 text-text-secondary group-hover:text-primary">
                          {item.label}
                        </span>
-                     </>
-                   )}
-                 </NavLink>
-              ))}
-            </div>
-          </div>
+                     </button>
+                  ))}
+                </div>
+              </div>
 
-          {systemMenuItems.length > 0 && (
-            <div>
-              <h3 className="text-[11px] font-bold text-text-secondary/70 uppercase tracking-widest mb-4">System</h3>
-              <div className="grid grid-cols-4 gap-x-3 gap-y-5">
-                {systemMenuItems.map(item => (
-                   <NavLink
-                     key={item.href}
-                     to={item.href}
-                     onClick={() => setIsMobileMenuOpen(false)}
-                     className="flex flex-col items-center gap-2.5 text-center group"
-                   >
-                     {({ isActive }) => (
-                       <>
-                         <div className={`w-[64px] h-[64px] rounded-2xl flex items-center justify-center transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105' : 'bg-white dark:bg-[#111111] shadow-sm border border-black/5 dark:border-white/5 text-text-secondary group-active:scale-95'}`}>
+              {systemMenuItems.length > 0 && (
+                <div>
+                  <h3 className="text-[11px] font-bold text-text-secondary/70 uppercase tracking-widest mb-4">System</h3>
+                  <div className="grid grid-cols-4 gap-x-3 gap-y-5">
+                    {systemMenuItems.map(item => (
+                       <button
+                         key={item.href}
+                         onClick={() => { setActiveBottomSheet(null); navigate(item.href); }}
+                         className="flex flex-col items-center gap-2.5 text-center group"
+                       >
+                         <div className="w-[64px] h-[64px] rounded-2xl flex items-center justify-center transition-all duration-200 bg-white dark:bg-[#111111] shadow-sm border border-black/5 dark:border-white/5 text-text-secondary group-active:scale-95 group-hover:text-primary group-hover:border-primary/50">
                            <div className="[&>svg]:w-[26px] [&>svg]:h-[26px]">
                              {item.icon}
                            </div>
                          </div>
-                         <span className={`text-[10px] font-semibold leading-tight line-clamp-2 px-1 ${isActive ? 'text-primary' : 'text-text-secondary'}`}>
+                         <span className="text-[10px] font-semibold leading-tight line-clamp-2 px-1 text-text-secondary group-hover:text-primary">
                            {item.label}
                          </span>
-                       </>
-                     )}
-                   </NavLink>
-                ))}
+                       </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* LAYANAN SHEET */}
+          {activeBottomSheet === 'layanan' && (
+            <div className="animate-in fade-in zoom-in-95 duration-200">
+              <div className="mb-6">
+                <h2 className="text-lg font-bold text-text-primary dark:text-text-darkPrimary mb-1">Pusat Layanan</h2>
+                <p className="text-xs text-text-secondary">Pilih kategori layanan E-PTSP</p>
+              </div>
+              <div className="grid grid-cols-3 gap-x-3 gap-y-5">
+                 {LAYANAN_MENUS.map(menu => (
+                   <button
+                     key={menu.label}
+                     onClick={() => { setActiveBottomSheet(null); navigate(menu.href); }}
+                     className="flex flex-col items-center gap-2.5 text-center group"
+                   >
+                     <div className="w-[80px] h-[80px] sm:w-[90px] sm:h-[90px] rounded-2xl flex items-center justify-center transition-all duration-200 bg-white dark:bg-[#111111] shadow-sm border border-black/5 dark:border-white/5 text-text-secondary group-active:scale-95 group-hover:text-primary group-hover:border-primary/50">
+                       <div className="[&>svg]:w-8 [&>svg]:h-8">
+                         {menu.icon}
+                       </div>
+                     </div>
+                     <span className="text-[11px] font-semibold leading-tight line-clamp-2 px-1 text-text-secondary group-hover:text-primary">
+                       {menu.label}
+                     </span>
+                   </button>
+                 ))}
               </div>
             </div>
           )}
+
+          {/* SISWA SHEET */}
+          {activeBottomSheet === 'siswa' && (
+            <div className="animate-in fade-in zoom-in-95 duration-200">
+              <div className="mb-6">
+                <h2 className="text-lg font-bold text-text-primary dark:text-text-darkPrimary mb-1">Manajemen Siswa</h2>
+                <p className="text-xs text-text-secondary">Akses fitur kesiswaan dan PMB</p>
+              </div>
+              <div className="grid grid-cols-3 gap-x-3 gap-y-5">
+                 {SISWA_MENUS.map(menu => (
+                   <button
+                     key={menu.label}
+                     onClick={() => { setActiveBottomSheet(null); navigate(menu.href); }}
+                     className="flex flex-col items-center gap-2.5 text-center group"
+                   >
+                     <div className="w-[80px] h-[80px] sm:w-[90px] sm:h-[90px] rounded-2xl flex items-center justify-center transition-all duration-200 bg-white dark:bg-[#111111] shadow-sm border border-black/5 dark:border-white/5 text-text-secondary group-active:scale-95 group-hover:text-primary group-hover:border-primary/50">
+                       <div className="[&>svg]:w-8 [&>svg]:h-8">
+                         {menu.icon}
+                       </div>
+                     </div>
+                     <span className="text-[11px] font-semibold leading-tight line-clamp-2 px-1 text-text-secondary group-hover:text-primary">
+                       {menu.label}
+                     </span>
+                   </button>
+                 ))}
+              </div>
+            </div>
+          )}
+          
         </div>
       </div>
 
