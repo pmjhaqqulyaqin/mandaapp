@@ -23,6 +23,7 @@ import {
   ClipboardCheck,
   GraduationCap,
   Star,
+  LayoutGrid,
 } from 'lucide-react';
 import { ProfileModal } from '../components/modals/ProfileModal';
 
@@ -195,6 +196,7 @@ export const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -325,22 +327,29 @@ export const DashboardLayout = () => {
   const mainMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'main' && finalAllowedMenusForRender.includes(item.key));
   const systemMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'system' && finalAllowedMenusForRender.includes(item.key));
 
+  const topMobileNavKeys = ['news', 'gallery', 'students', 'ptsp'];
+  const mobileNavItemsMap = new Map(
+    ALL_MENU_ITEMS
+      .filter(item => topMobileNavKeys.includes(item.key) && finalAllowedMenusForRender.includes(item.key))
+      .map(item => [item.key, item])
+  );
+  
+  const leftNavItems = [mobileNavItemsMap.get('news'), mobileNavItemsMap.get('gallery')].filter(Boolean);
+  const rightNavItems = [mobileNavItemsMap.get('students'), mobileNavItemsMap.get('ptsp')].filter(Boolean);
+
+  const getMobileLabel = (key: string, originalLabel: string) => {
+    if (key === 'news') return 'Berita';
+    if (key === 'gallery') return 'Galeri';
+    if (key === 'students') return 'Siswa';
+    if (key === 'ptsp') return 'Layanan';
+    return originalLabel.split(' ')[0];
+  };
+
   return (
     <div className="flex h-[100dvh] print:h-auto print:min-h-0 w-screen print:w-full overflow-hidden print:overflow-visible print:block bg-gray-50 dark:bg-[#050505] relative">
       
-      {/* Mobile Sidebar Overlay */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden transition-opacity"
-          onClick={() => setIsSidebarOpen(false)}
-          aria-hidden="true"
-        />
-      )}
-
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 w-56 border-r border-border-light dark:border-border-dark bg-white dark:bg-background-dark flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 print:hidden ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className="hidden md:flex fixed inset-y-0 left-0 z-50 w-56 border-r border-border-light dark:border-border-dark bg-white dark:bg-background-dark flex-col md:relative print:hidden"
       >
         <div className="px-3 py-3 border-b border-border-light dark:border-border-dark flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -349,12 +358,6 @@ export const DashboardLayout = () => {
             )}
             <h1 className="text-base font-heading font-bold text-primary">MANDALOTIM</h1>
           </div>
-          <button 
-            onClick={() => setIsSidebarOpen(false)}
-            className="md:hidden p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-          </button>
         </div>
         
 
@@ -396,15 +399,17 @@ export const DashboardLayout = () => {
       </aside>
       
       <main className="flex-1 flex flex-col min-w-0 w-full overflow-hidden print:overflow-visible print:block">
-        <header className="h-12 border-b border-border-light dark:border-border-dark bg-white dark:bg-background-dark flex items-center justify-between px-4 sm:px-5 shrink-0 z-30 print:hidden relative">
+        <header className="h-14 md:h-12 border-b border-border-light dark:border-border-dark bg-white/90 dark:bg-background-dark/90 backdrop-blur-md md:bg-white md:dark:bg-background-dark flex items-center justify-between px-4 sm:px-5 shrink-0 z-30 print:hidden relative md:sticky top-0">
           <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setIsSidebarOpen(true)}
-              className="md:hidden p-2 -ml-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
-            </button>
-            <div className="hidden sm:flex items-center gap-3">
+            <div className="md:hidden flex items-center gap-2.5">
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="w-8 h-8 object-contain" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">M</div>
+              )}
+              <h1 className="text-base font-heading font-bold text-primary tracking-tight">MANDALOTIM</h1>
+            </div>
+            <div className="hidden md:flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold uppercase shrink-0">
                 {user?.name?.charAt(0) || '?'}
               </div>
@@ -451,10 +456,134 @@ export const DashboardLayout = () => {
             </div>
           </div>
         </header>
-        <div className="flex-1 p-4 sm:p-5 print:p-0 overflow-auto print:overflow-visible print:block custom-scrollbar">
+        <div className="flex-1 p-4 sm:p-5 print:p-0 overflow-auto print:overflow-visible print:block custom-scrollbar pb-24 md:pb-5">
           <Outlet />
         </div>
       </main>
+
+      {/* --- MOBILE UI COMPONENTS --- */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-border-light dark:border-border-dark z-50 flex items-center justify-evenly px-1 pb-safe shadow-[0_-8px_30px_rgba(0,0,0,0.08)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.4)]">
+        
+        {/* Left Items */}
+        {leftNavItems.map(item => item && (
+          <NavLink
+            key={item.key}
+            to={item.href}
+            end={item.exact}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={({ isActive }) => `flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all duration-200 ${isActive ? 'text-primary' : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'}`}
+          >
+            <div className="[&>svg]:w-6 [&>svg]:h-6 flex items-center justify-center mb-0.5">
+              {item.icon}
+            </div>
+            <span className="text-[10px] font-semibold leading-none">{getMobileLabel(item.key, item.label)}</span>
+          </NavLink>
+        ))}
+
+        {/* Center Special Menu Button (FAB style) */}
+        <div className="relative flex-1 flex justify-center items-end h-full max-w-[80px]">
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className={`absolute -top-5 flex flex-col items-center justify-center w-[60px] h-[60px] rounded-full transition-all duration-300 border-[5px] border-white dark:border-[#050505] shadow-lg ${
+              isMobileMenuOpen 
+                ? 'bg-primary text-white scale-95 shadow-inner' 
+                : 'bg-primary text-white hover:bg-primary/90 hover:scale-105 shadow-primary/30'
+            }`}
+          >
+            <div className={`[&>svg]:w-7 [&>svg]:h-7 transition-transform duration-300 ${isMobileMenuOpen ? 'rotate-90 scale-110' : 'rotate-0'}`}>
+              <LayoutGrid />
+            </div>
+          </button>
+          <span className={`text-[10px] font-semibold leading-none mb-1.5 transition-colors ${isMobileMenuOpen ? 'text-primary' : 'text-text-secondary'}`}>Menu</span>
+        </div>
+
+        {/* Right Items */}
+        {rightNavItems.map(item => item && (
+          <NavLink
+            key={item.key}
+            to={item.href}
+            end={item.exact}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={({ isActive }) => `flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all duration-200 ${isActive ? 'text-primary' : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'}`}
+          >
+            <div className="[&>svg]:w-6 [&>svg]:h-6 flex items-center justify-center mb-0.5">
+              {item.icon}
+            </div>
+            <span className="text-[10px] font-semibold leading-none">{getMobileLabel(item.key, item.label)}</span>
+          </NavLink>
+        ))}
+        
+      </nav>
+
+      <div 
+        className={`md:hidden fixed inset-x-0 bottom-16 top-14 z-40 bg-gray-50/98 dark:bg-[#050505]/98 backdrop-blur-xl transform transition-all duration-300 ease-out flex flex-col overflow-hidden ${
+          isMobileMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="flex-1 overflow-y-auto p-5 custom-scrollbar pb-10">
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-text-primary dark:text-text-darkPrimary mb-1">Eksplorasi Menu</h2>
+            <p className="text-xs text-text-secondary">Pilih menu untuk mengakses fitur aplikasi</p>
+          </div>
+          
+          <div className="mb-8">
+            <h3 className="text-[11px] font-bold text-text-secondary/70 uppercase tracking-widest mb-4">Main Menu</h3>
+            <div className="grid grid-cols-4 gap-x-3 gap-y-5">
+              {mainMenuItems.map(item => (
+                 <NavLink
+                   key={item.href}
+                   to={item.href}
+                   end={item.exact}
+                   onClick={() => setIsMobileMenuOpen(false)}
+                   className="flex flex-col items-center gap-2.5 text-center group"
+                 >
+                   {({ isActive }) => (
+                     <>
+                       <div className={`w-[64px] h-[64px] rounded-2xl flex items-center justify-center transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105' : 'bg-white dark:bg-[#111111] shadow-sm border border-black/5 dark:border-white/5 text-text-secondary group-active:scale-95'}`}>
+                         <div className="[&>svg]:w-[26px] [&>svg]:h-[26px]">
+                           {item.icon}
+                         </div>
+                       </div>
+                       <span className={`text-[10px] font-semibold leading-tight line-clamp-2 px-1 ${isActive ? 'text-primary' : 'text-text-secondary'}`}>
+                         {item.label}
+                       </span>
+                     </>
+                   )}
+                 </NavLink>
+              ))}
+            </div>
+          </div>
+
+          {systemMenuItems.length > 0 && (
+            <div>
+              <h3 className="text-[11px] font-bold text-text-secondary/70 uppercase tracking-widest mb-4">System</h3>
+              <div className="grid grid-cols-4 gap-x-3 gap-y-5">
+                {systemMenuItems.map(item => (
+                   <NavLink
+                     key={item.href}
+                     to={item.href}
+                     onClick={() => setIsMobileMenuOpen(false)}
+                     className="flex flex-col items-center gap-2.5 text-center group"
+                   >
+                     {({ isActive }) => (
+                       <>
+                         <div className={`w-[64px] h-[64px] rounded-2xl flex items-center justify-center transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105' : 'bg-white dark:bg-[#111111] shadow-sm border border-black/5 dark:border-white/5 text-text-secondary group-active:scale-95'}`}>
+                           <div className="[&>svg]:w-[26px] [&>svg]:h-[26px]">
+                             {item.icon}
+                           </div>
+                         </div>
+                         <span className={`text-[10px] font-semibold leading-tight line-clamp-2 px-1 ${isActive ? 'text-primary' : 'text-text-secondary'}`}>
+                           {item.label}
+                         </span>
+                       </>
+                     )}
+                   </NavLink>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       <ProfileModal 
         isOpen={isProfileModalOpen} 
