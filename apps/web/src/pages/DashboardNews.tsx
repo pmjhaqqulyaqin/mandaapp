@@ -443,9 +443,9 @@ export const DashboardNews = () => {
               <div className="flex items-center justify-between mt-1 pt-3 border-t border-gray-50 dark:border-[#222]">
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary to-blue-600 text-white text-[9px] flex items-center justify-center font-bold shrink-0">
-                    {news.author.charAt(0).toUpperCase()}
+                    {(news.author || 'Admin').charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-[10px] font-semibold text-text-secondary truncate max-w-[80px]">{news.author}</span>
+                  <span className="text-[10px] font-semibold text-text-secondary truncate max-w-[80px]">{news.author || 'Admin'}</span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-[10px] text-gray-400 font-medium">{news.publishDate}</span>
