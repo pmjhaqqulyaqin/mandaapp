@@ -330,7 +330,12 @@ export const DashboardLayout = () => {
     if (idx > -1) finalAllowedMenusForRender.splice(idx, 1);
   }
 
-  const mainMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'main' && finalAllowedMenusForRender.includes(item.key));
+  const mainMenuItems = ALL_MENU_ITEMS.filter((item) => 
+    item.group === 'main' && 
+    finalAllowedMenusForRender.includes(item.key) &&
+    !siswaMenuKeys.includes(item.key) &&
+    !topMobileNavKeys.includes(item.key)
+  );
   const systemMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'system' && finalAllowedMenusForRender.includes(item.key));
 
   const siswaMenuKeys = ['students', 'nis', 'student-card', 'ppdb', 'penilaian-pmb'];

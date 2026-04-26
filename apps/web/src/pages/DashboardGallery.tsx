@@ -200,10 +200,12 @@ export const DashboardGallery = () => {
           <p className="text-sm text-text-secondary mt-1">Kelola foto dan gambar yang ditampilkan di halaman galeri website.</p>
         </div>
         {canManageGallery && (
-          <Button onClick={() => { setEditingId(null); setFormData({ url: '', title: '', description: '' }); setIsModalOpen(true); }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-            Tambah Gambar
-          </Button>
+          <div className="hidden md:block">
+            <Button onClick={() => { setEditingId(null); setFormData({ url: '', title: '', description: '' }); setIsModalOpen(true); }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+              Tambah Gambar
+            </Button>
+          </div>
         )}
       </div>
 
@@ -220,23 +222,83 @@ export const DashboardGallery = () => {
         <span className="text-sm text-text-secondary hidden sm:block">{filteredImages.length} gambar</span>
       </div>
 
-      {/* Table */}
-      {isLoading ? (
-        <div className="bg-white dark:bg-[#0a0a0a] rounded-xl border border-border-light dark:border-border-dark p-4 space-y-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex items-center gap-4 py-3">
-              <Skeleton className="w-16 h-12 rounded-lg" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-1/3" />
-                <Skeleton className="h-3 w-1/2" />
+      {/* Desktop Table */}
+      <div className="hidden md:block">
+        {isLoading ? (
+          <div className="bg-white dark:bg-[#0a0a0a] rounded-xl border border-border-light dark:border-border-dark p-4 space-y-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-4 py-3">
+                <Skeleton className="w-16 h-12 rounded-lg" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-8 w-14 rounded-md" />
               </div>
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-8 w-14 rounded-md" />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <DataTable data={filteredImages} columns={columns} keyExtractor={(item) => item.id} />
+            ))}
+          </div>
+        ) : (
+          <DataTable data={filteredImages} columns={columns} keyExtractor={(item) => item.id} />
+        )}
+      </div>
+
+      {/* Mobile Grid */}
+      <div className="md:hidden pb-10">
+        {isLoading ? (
+          <div className="grid grid-cols-2 gap-3">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <Skeleton key={i} className="aspect-[4/5] w-full rounded-xl" />
+            ))}
+          </div>
+        ) : filteredImages.length === 0 ? (
+          <div className="text-center py-10 text-gray-500 text-sm">Tidak ada gambar.</div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {filteredImages.map(img => (
+              <div key={img.id} className="relative group rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 aspect-[4/5] border border-gray-200 dark:border-gray-800 shadow-sm" onClick={() => setPreviewImage(img)}>
+                <img src={resolveUrl(img.url)} alt={img.title} className="w-full h-full object-cover" />
+                
+                {/* Overlay Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+                
+                {/* Text Content */}
+                <div className="absolute bottom-0 left-0 right-0 p-3 pointer-events-none">
+                  <h3 className="text-white font-semibold text-xs leading-tight line-clamp-2 shadow-sm">{img.title}</h3>
+                  <p className="text-white/70 text-[9px] mt-1">{formatDate(img.uploadedAt)}</p>
+                </div>
+                
+                {/* Action Buttons */}
+                {canManageGallery && (
+                  <div className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-90">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleEdit(img); }}
+                      className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/40 transition-colors"
+                    >
+                      <Edit2 size={12} />
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleDelete(img.id); }}
+                      className="w-7 h-7 rounded-full bg-red-500/80 backdrop-blur-md flex items-center justify-center text-white hover:bg-red-500 transition-colors"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Mobile FAB for Add Image */}
+      {canManageGallery && (
+        <button 
+          className="md:hidden fixed bottom-20 right-5 z-40 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-primary/30"
+          onClick={() => { setEditingId(null); setFormData({ url: '', title: '', description: '' }); setIsModalOpen(true); }}
+        >
+          <Camera className="w-6 h-6" />
+        </button>
       )}
 
       {/* Add Image Modal */}

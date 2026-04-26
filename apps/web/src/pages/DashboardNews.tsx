@@ -328,14 +328,16 @@ export const DashboardNews = () => {
           <p className="text-sm text-text-secondary mt-1">Manage school-wide broadcast messages and information.</p>
         </div>
         {canManageNews && (
-          <Button onClick={() => {
-            setEditingNewsId(null);
-            setFormData({ title: '', content: '', category: 'General', status: 'Draft' });
-            setIsModalOpen(true);
-          }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-            Add News
-          </Button>
+          <div className="hidden md:block">
+            <Button onClick={() => {
+              setEditingNewsId(null);
+              setFormData({ title: '', content: '', category: 'General', status: 'Draft' });
+              setIsModalOpen(true);
+            }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+              Add News
+            </Button>
+          </div>
         )}
       </div>
 
@@ -351,41 +353,124 @@ export const DashboardNews = () => {
         </div>
       </div>
 
-      {/* Data Table */}
-      {isLoading ? (
-        <div className="bg-white dark:bg-[#0a0a0a] rounded-xl border border-border-light dark:border-border-dark p-4 space-y-4 flex flex-col">
-           {/* Skeleton Header */}
-           <div className="flex justify-between border-b border-border-light dark:border-border-dark pb-4 px-2">
-             <Skeleton className="h-4 w-24" />
-             <Skeleton className="h-4 w-24" />
-             <Skeleton className="h-4 w-24" />
-             <Skeleton className="h-4 w-24" />
-             <Skeleton className="h-4 w-12" />
-           </div>
-           {/* Skeleton Rows */}
-           {[1, 2, 3, 4, 5].map((i) => (
-             <div key={i} className="flex justify-between items-center py-3 px-2">
-               <div className="flex flex-col gap-2 w-1/4">
-                 <Skeleton className="h-5 w-3/4" />
-                 <Skeleton className="h-3 w-1/2" />
-               </div>
-               <Skeleton className="h-6 w-16 rounded-full" />
-               <Skeleton className="h-4 w-20" />
+      {/* Desktop Data Table */}
+      <div className="hidden md:block">
+        {isLoading ? (
+          <div className="bg-white dark:bg-[#0a0a0a] rounded-xl border border-border-light dark:border-border-dark p-4 space-y-4 flex flex-col">
+             {/* Skeleton Header */}
+             <div className="flex justify-between border-b border-border-light dark:border-border-dark pb-4 px-2">
                <Skeleton className="h-4 w-24" />
-               <Skeleton className="h-6 w-16 rounded-full" />
-               <div className="flex gap-2">
-                 <Skeleton className="h-8 w-12 rounded-md" />
-                 <Skeleton className="h-8 w-16 rounded-md" />
-               </div>
+               <Skeleton className="h-4 w-24" />
+               <Skeleton className="h-4 w-24" />
+               <Skeleton className="h-4 w-24" />
+               <Skeleton className="h-4 w-12" />
              </div>
-           ))}
-        </div>
-      ) : (
-        <DataTable 
-          data={filteredNews}
-          columns={columns}
-          keyExtractor={(item) => item.id}
-        />
+             {/* Skeleton Rows */}
+             {[1, 2, 3, 4, 5].map((i) => (
+               <div key={i} className="flex justify-between items-center py-3 px-2">
+                 <div className="flex flex-col gap-2 w-1/4">
+                   <Skeleton className="h-5 w-3/4" />
+                   <Skeleton className="h-3 w-1/2" />
+                 </div>
+                 <Skeleton className="h-6 w-16 rounded-full" />
+                 <Skeleton className="h-4 w-20" />
+                 <Skeleton className="h-4 w-24" />
+                 <Skeleton className="h-6 w-16 rounded-full" />
+                 <div className="flex gap-2">
+                   <Skeleton className="h-8 w-12 rounded-md" />
+                   <Skeleton className="h-8 w-16 rounded-md" />
+                 </div>
+               </div>
+             ))}
+          </div>
+        ) : (
+          <DataTable 
+            data={filteredNews}
+            columns={columns}
+            keyExtractor={(item) => item.id}
+          />
+        )}
+      </div>
+
+      {/* Mobile News Cards */}
+      <div className="md:hidden space-y-4 pb-10">
+        {isLoading ? (
+          [1,2,3].map(i => (
+             <Skeleton key={i} className="h-36 w-full rounded-2xl" />
+          ))
+        ) : filteredNews.length === 0 ? (
+          <div className="text-center py-10 text-gray-500 text-sm">Tidak ada berita.</div>
+        ) : (
+          filteredNews.map(news => (
+            <div key={news.id} className="bg-white dark:bg-[#111] p-4 rounded-2xl border border-gray-100 dark:border-[#222] shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col gap-3">
+              <div className="flex justify-between items-start">
+                <Badge variant={getCategoryBadgeVariant(news.category) as any}>{news.category}</Badge>
+                {canManageNews && (
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => {
+                        setEditingNewsId(news.id);
+                        setFormData({
+                          title: news.title,
+                          content: news.content,
+                          category: news.category,
+                          status: news.status
+                        });
+                        setIsModalOpen(true);
+                      }}
+                      className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center hover:bg-blue-100 transition-colors"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                    <button 
+                      onClick={() => deleteMutation.mutate(news.id)}
+                      className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center justify-center hover:bg-red-100 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="mt-1">
+                <h3 className="font-bold text-text-primary dark:text-text-darkPrimary leading-tight mb-1.5 text-base">{news.title}</h3>
+                <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">
+                  {(() => {
+                    const doc = new DOMParser().parseFromString(news.content, 'text/html');
+                    return doc.body.textContent || "";
+                  })()}
+                </p>
+              </div>
+              <div className="flex items-center justify-between mt-1 pt-3 border-t border-gray-50 dark:border-[#222]">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary to-blue-600 text-white text-[9px] flex items-center justify-center font-bold shrink-0">
+                    {news.author.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-[10px] font-semibold text-text-secondary truncate max-w-[80px]">{news.author}</span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[10px] text-gray-400 font-medium">{news.publishDate}</span>
+                  <Badge variant={news.status === 'Published' ? 'success' : 'outline'} className="text-[9px] px-1.5 py-0 border-0 h-4">
+                    {news.status}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Mobile FAB for Add News */}
+      {canManageNews && (
+        <button 
+          className="md:hidden fixed bottom-20 right-5 z-40 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-primary/30"
+          onClick={() => {
+            setEditingNewsId(null);
+            setFormData({ title: '', content: '', category: 'General', status: 'Draft' });
+            setIsModalOpen(true);
+          }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+        </button>
       )}
 
       {/* Side Drawer for Add / Edit News */}
