@@ -335,7 +335,10 @@ export const DashboardLayout = () => {
 
   const mainMenuItems = ALL_MENU_ITEMS.filter((item) => 
     item.group === 'main' && 
-    finalAllowedMenusForRender.includes(item.key) &&
+    finalAllowedMenusForRender.includes(item.key)
+  );
+
+  const tombolSaktiMenuItems = mainMenuItems.filter((item) => 
     !siswaMenuKeys.includes(item.key) &&
     !topMobileNavKeys.includes(item.key)
   );
@@ -570,7 +573,7 @@ export const DashboardLayout = () => {
               <div className="mb-8">
                 <h3 className="text-[11px] font-bold text-text-secondary/70 uppercase tracking-widest mb-4">Main Menu</h3>
                 <div className="grid grid-cols-4 gap-x-3 gap-y-5">
-                  {mainMenuItems.map(item => (
+                  {tombolSaktiMenuItems.map(item => (
                      <button
                        key={item.href}
                        onClick={() => { setActiveBottomSheet(null); navigate(item.href); }}
