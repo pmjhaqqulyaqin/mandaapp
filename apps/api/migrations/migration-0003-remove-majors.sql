@@ -1,0 +1,4 @@
+ALTER TABLE "majors" DISABLE ROW LEVEL SECURITY;
+DROP TABLE "majors" CASCADE;
+ALTER TABLE "classes" DROP CONSTRAINT IF EXISTS "classes_major_id_majors_id_fk";
+ALTER TABLE "classes" DROP COLUMN IF EXISTS "major_id";
