@@ -9,9 +9,7 @@ interface Props {
 
 // Helper to format class display name
 const formatClassName = (c: any) => {
-  const major = c.majorName || c.majorCode;
-  if (!major) return c.name;
-  return /^\d+$/.test(major) ? `${c.name}-${major}` : `${c.name} ${major}`;
+  return c.name;
 };
 
 export const RuangPesertaTab = ({ ujianId }: Props) => {

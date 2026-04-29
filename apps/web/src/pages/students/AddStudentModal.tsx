@@ -3,13 +3,12 @@ import { Button } from '@mandaapp/ui/src/components/Button';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { Input } from '@mandaapp/ui/src/components/Input';
 import { User, GraduationCap, MapPin, Info, Loader2 } from 'lucide-react';
-import type { ClassItem, Major } from './types';
+import type { ClassItem } from './types';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   classes: ClassItem[];
-  majors: Major[];
   apiClient: any;
   onSuccess: () => void;
   editStudent?: any;
@@ -19,7 +18,7 @@ const INITIAL_FORM = {
   fullName: '', nisn: '', nis: '', gender: '', birthPlace: '', birthDate: '', classId: '', className: '', address: ''
 };
 
-export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, majors, apiClient, onSuccess, editStudent }) => {
+export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, apiClient, onSuccess, editStudent }) => {
   const [form, setForm] = useState(INITIAL_FORM);
   const [saving, setSaving] = useState(false);
 
@@ -60,8 +59,7 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, maj
   };
 
   const classOptions = classes.map(c => {
-    const major = majors.find(m => m.id === c.majorId);
-    return { ...c, label: major ? `${c.name} ${major.name}` : c.name };
+    return { ...c, label: c.name };
   });
 
   const SectionHeader = ({ icon, title, subtitle, color }: { icon: React.ReactNode; title: string; subtitle: string; color: string }) => (

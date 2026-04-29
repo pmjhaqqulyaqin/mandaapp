@@ -224,13 +224,12 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
               <input className={inputClass} placeholder="Matematika" value={form.mataPelajaran} onChange={e => setForm({...form, mataPelajaran: e.target.value})} />
             </div>
             <div>
-              <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Kelas (Gunakan format: Nama - Jurusan)</label>
+              <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Kelas</label>
               <div className="flex flex-col gap-1">
                 <input className={inputClass} placeholder="X-IPA-1 - IPA, X-IPA-2 - IPA" value={form.kelas} onChange={e => setForm({...form, kelas: e.target.value})} />
                 <div className="flex flex-wrap gap-1 mt-1">
                   {classList.filter(c => (ujianData?.pengaturan?.kelasPeserta || []).includes(c.id)).map(c => {
-                    const major = c.majorName || c.majorCode;
-                    const label = major ? (/^\d+$/.test(major) ? `${c.name}-${major}` : `${c.name} ${major}`) : c.name;
+                    const label = c.name;
                     const isSelected = form.kelas.includes(label);
                     return (
                       <button key={c.id} onClick={(e) => {

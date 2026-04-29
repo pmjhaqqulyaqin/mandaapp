@@ -23,7 +23,7 @@ import { usersRoutes } from './modules/users/routes';
 import pagesRoutes from './modules/pages';
 import menusRoutes from './modules/menus';
 import { systemRoutes } from './modules/system/routes';
-import majorsRoutes from './modules/majors/routes';
+
 import classesRoutes from './modules/classes/routes';
 import employeesRoutes from './modules/employees/routes';
 import { ptspRoutes } from './modules/ptsp/routes';
@@ -170,7 +170,7 @@ app.use("/api/users", usersRoutes);
 app.use("/api/pages", pagesRoutes);
 app.use("/api/menus", menusRoutes);
 app.use("/api/system", systemRoutes);
-app.use("/api/majors", majorsRoutes);
+
 app.use("/api/classes", classesRoutes);
 app.use("/api/employees", employeesRoutes);
 app.use("/api/ptsp", ptspRoutes);

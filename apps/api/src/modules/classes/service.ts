@@ -1,5 +1,5 @@
 import { db } from "../../db";
-import { classes, employees, majors } from "../../db/schema";
+import { classes, employees } from "../../db/schema";
 import { eq } from "drizzle-orm";
 
 export class ClassService {
@@ -8,17 +8,13 @@ export class ClassService {
       .select({
         id: classes.id,
         name: classes.name,
-        majorId: classes.majorId,
-        majorName: majors.name,
-        majorCode: majors.code,
         homeroomTeacherId: classes.homeroomTeacherId,
         homeroomTeacherName: employees.name,
         createdAt: classes.createdAt,
         updatedAt: classes.updatedAt
       })
       .from(classes)
-      .leftJoin(employees, eq(classes.homeroomTeacherId, employees.id))
-      .leftJoin(majors, eq(classes.majorId, majors.id));
+      .leftJoin(employees, eq(classes.homeroomTeacherId, employees.id));
     return results;
   }
 
@@ -27,12 +23,12 @@ export class ClassService {
     return results[0] || null;
   }
 
-  static async createClass(data: { name: string; majorId: string; homeroomTeacherId?: string }) {
+  static async createClass(data: { name: string; homeroomTeacherId?: string }) {
     const results = await db.insert(classes).values(data).returning();
     return results[0];
   }
 
-  static async updateClass(id: string, data: Partial<{ name: string; majorId: string; homeroomTeacherId: string | null }>) {
+  static async updateClass(id: string, data: Partial<{ name: string; homeroomTeacherId: string | null }>) {
     const results = await db.update(classes).set(data).where(eq(classes.id, id)).returning();
     return results[0];
   }

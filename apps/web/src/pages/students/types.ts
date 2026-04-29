@@ -18,15 +18,8 @@ export interface Student {
 export interface ClassItem {
   id: string;
   name: string;
-  majorId: string;
   homeroomTeacherId?: string;
   homeroomTeacherName?: string;
-  studentCount?: number;
-}
-
-export interface Major {
-  id: string;
-  name: string;
   studentCount?: number;
 }
 

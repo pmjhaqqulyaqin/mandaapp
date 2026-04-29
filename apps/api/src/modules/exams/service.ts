@@ -2,7 +2,7 @@ import { db } from '../../db';
 import {
   ujian, panitiaUjian, jadwalUjian, ruangUjian,
   penugasanPengawas, distribusiPeserta, employees,
-  studentProfiles, classes, majors, schoolEvents,
+  studentProfiles, classes, schoolEvents,
   cardSettings, siteSettings
 } from '../../db/schema';
 import { eq, desc, asc, and, inArray, gte, lte, or } from 'drizzle-orm';
@@ -269,21 +269,17 @@ export class ExamService {
     const peng = ujianData.pengaturan as any || {};
     const selectFields = {
       id: classes.id,
-      name: classes.name,
-      majorCode: majors.code,
-      majorName: majors.name
+      name: classes.name
     };
 
     if (peng.kelasPeserta && peng.kelasPeserta.length > 0) {
       classList = await db.select(selectFields)
         .from(classes)
-        .leftJoin(majors, eq(classes.majorId, majors.id))
         .where(inArray(classes.id, peng.kelasPeserta))
         .orderBy(asc(classes.name));
     } else {
       classList = await db.select(selectFields)
         .from(classes)
-        .leftJoin(majors, eq(classes.majorId, majors.id))
         .orderBy(asc(classes.name));
     }
 
@@ -293,9 +289,7 @@ export class ExamService {
       { header: 'Waktu', key: 'waktu', width: 20 },
     ];
     classList.forEach((c: any) => {
-      const major = c.majorName || c.majorCode;
-      const display = major ? (/^\d+$/.test(major) ? `${c.name}-${major}` : `${c.name} ${major}`) : c.name;
-      cols.push({ header: display, key: display, width: 20 });
+      cols.push({ header: c.name, key: c.name, width: 20 });
     });
     sheet.columns = cols;
     sheet.getRow(1).font = { bold: true };
@@ -461,27 +455,20 @@ export class ExamService {
     let classList;
     const selectFields = {
       id: classes.id,
-      name: classes.name,
-      majorCode: majors.code,
-      majorName: majors.name
+      name: classes.name
     };
 
     if (peng.kelasPeserta && peng.kelasPeserta.length > 0) {
       classList = await db.select(selectFields)
         .from(classes)
-        .leftJoin(majors, eq(classes.majorId, majors.id))
         .where(inArray(classes.id, peng.kelasPeserta))
         .orderBy(asc(classes.name));
     } else {
       classList = await db.select(selectFields)
         .from(classes)
-        .leftJoin(majors, eq(classes.majorId, majors.id))
         .orderBy(asc(classes.name));
     }
-    const classNames = classList.map((c: any) => {
-      const major = c.majorName || c.majorCode;
-      return major ? (/^\d+$/.test(major) ? `${c.name}-${major}` : `${c.name} ${major}`) : c.name;
-    });
+    const classNames = classList.map((c: any) => c.name);
     const totalCols = 3 + classNames.length;
 
     // Kop Surat
@@ -1044,26 +1031,19 @@ export class ExamService {
       distribusi: distribusiPeserta,
       ruang: ruangUjian,
       siswa: studentProfiles,
-      kelasName: classes.name,
-      majorName: majors.name,
-      majorCode: majors.code,
+      className: classes.name
     })
       .from(distribusiPeserta)
       .leftJoin(ruangUjian, eq(distribusiPeserta.ruangId, ruangUjian.id))
       .leftJoin(studentProfiles, eq(distribusiPeserta.siswaId, studentProfiles.id))
       .leftJoin(classes, eq(studentProfiles.classId, classes.id))
-      .leftJoin(majors, eq(classes.majorId, majors.id))
+
       .where(eq(distribusiPeserta.ujianId, ujianId))
       .orderBy(asc(ruangUjian.namaRuang), asc(distribusiPeserta.nomorMeja));
 
     return list.map(item => {
-      // Build full class display name (e.g. "XII IPA" or "XI-1")
-      const cName = item.kelasName || item.siswa?.className || '';
-      const major = item.majorName || item.majorCode || '';
+      const cName = item.className || item.siswa?.className || '';
       let fullClassName = cName;
-      if (major) {
-        fullClassName = /^\d+$/.test(major) ? `${cName}-${major}` : `${cName} ${major}`;
-      }
 
       return {
         ...item.distribusi,

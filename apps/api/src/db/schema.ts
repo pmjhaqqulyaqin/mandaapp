@@ -53,13 +53,6 @@ export const verification = pgTable("verification", {
 				});
 
 // Core Entities
-export const majors = pgTable("majors", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: varchar("name", { length: 150 }).notNull(),
-  code: varchar("code", { length: 50 }).unique().notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow()
-});
 
 export const employees = pgTable("employees", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -83,7 +76,6 @@ export const employees = pgTable("employees", {
 export const classes = pgTable("classes", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 50 }).notNull(),
-  majorId: uuid("major_id").references(() => majors.id).notNull(),
   homeroomTeacherId: uuid("homeroom_teacher_id").references(() => employees.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()

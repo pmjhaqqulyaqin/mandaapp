@@ -25,8 +25,8 @@ export class ClassController {
 
   static async create(req: Request, res: Response) {
     try {
-      const { name, majorId, homeroomTeacherId } = req.body;
-      const classData = await ClassService.createClass({ name, majorId, homeroomTeacherId });
+      const { name, homeroomTeacherId } = req.body;
+      const classData = await ClassService.createClass({ name, homeroomTeacherId });
       res.status(201).json(classData);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -35,8 +35,8 @@ export class ClassController {
 
   static async update(req: Request, res: Response) {
     try {
-      const { name, majorId, homeroomTeacherId } = req.body;
-      const classData = await ClassService.updateClass(req.params.id, { name, majorId, homeroomTeacherId });
+      const { name, homeroomTeacherId } = req.body;
+      const classData = await ClassService.updateClass(req.params.id, { name, homeroomTeacherId });
       if (!classData) return res.status(404).json({ error: "Class not found" });
       res.json(classData);
     } catch (error: any) {

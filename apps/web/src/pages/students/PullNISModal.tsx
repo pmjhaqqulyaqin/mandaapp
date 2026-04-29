@@ -3,18 +3,17 @@ import { Button } from '@mandaapp/ui/src/components/Button';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { Info, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import type { NISStudent, ClassItem, Major } from './types';
+import type { NISStudent, ClassItem } from './types';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   classes: ClassItem[];
-  majors: Major[];
   apiClient: any;
   onSuccess: () => void;
 }
 
-export const PullNISModal: React.FC<Props> = ({ isOpen, onClose, classes, majors, apiClient, onSuccess }) => {
+export const PullNISModal: React.FC<Props> = ({ isOpen, onClose, classes, apiClient, onSuccess }) => {
   const [nisStudents, setNisStudents] = useState<NISStudent[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedClassId, setSelectedClassId] = useState('');
@@ -72,10 +71,9 @@ export const PullNISModal: React.FC<Props> = ({ isOpen, onClose, classes, majors
     } finally { setSubmitting(false); }
   };
 
-  // Group classes by major for display
+  // Build class options for display
   const classOptions = classes.map(c => {
-    const major = majors.find(m => m.id === c.majorId);
-    return { ...c, label: major ? `${c.name} - ${major.name}` : c.name };
+    return { ...c, label: c.name };
   });
 
   return (

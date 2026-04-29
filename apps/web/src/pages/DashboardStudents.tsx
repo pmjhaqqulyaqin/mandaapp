@@ -63,14 +63,12 @@ export const DashboardStudents = () => {
   const [activeTab, setActiveTab] = useState<Tab>('students');
   const [students, setStudents] = useState<any[]>([]);
   const [classesList, setClassesList] = useState<any[]>([]);
-  const [majorsList, setMajorsList] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState(() => sessionStorage.getItem('sm_search') || '');
   const [filterClass, setFilterClass] = useState(() => sessionStorage.getItem('sm_class') || '');
-  const [filterMajor, setFilterMajor] = useState(() => sessionStorage.getItem('sm_major') || '');
   const [filterStatus, setFilterStatus] = useState(() => sessionStorage.getItem('sm_status') || 'Aktif');
   const [page, setPage] = useState(1);
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
@@ -88,20 +86,18 @@ export const DashboardStudents = () => {
   // Persist filters
   useEffect(() => { sessionStorage.setItem('sm_search', searchQuery); }, [searchQuery]);
   useEffect(() => { sessionStorage.setItem('sm_class', filterClass); }, [filterClass]);
-  useEffect(() => { sessionStorage.setItem('sm_major', filterMajor); }, [filterMajor]);
   useEffect(() => { sessionStorage.setItem('sm_status', filterStatus); }, [filterStatus]);
 
   // Data fetching
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [s, c, m, t] = await Promise.all([
+      const [s, c, t] = await Promise.all([
         apiClient<any[]>('/students'),
         apiClient<any[]>('/classes'),
-        apiClient<any[]>('/majors'),
         apiClient<any[]>('/employees?type=Guru').catch(() => []),
       ]);
-      setStudents(s); setClassesList(c); setMajorsList(m); setTeachers(t);
+      setStudents(s); setClassesList(c); setTeachers(t);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -116,24 +112,20 @@ export const DashboardStudents = () => {
       const matchClass = !filterClass || (() => {
         const cls = classesList.find(c => c.id === s.classId);
         const name = cls?.name || s.className || '';
-        return getGradeLevel(name) === filterClass;
-      })();
-      const matchMajor = !filterMajor || (() => {
-        const cls = classesList.find(c => c.id === s.classId);
-        return cls?.majorId === filterMajor;
+        return name === filterClass;
       })();
       const matchStatus = filterStatus === 'Semua' || (() => {
         const status = (s.status || 'Aktif').toLowerCase();
         if (filterStatus === 'Aktif') return status === 'aktif' || status === 'active';
         return status === filterStatus.toLowerCase();
       })();
-      return matchSearch && matchClass && matchMajor && matchStatus;
+      return matchSearch && matchClass && matchStatus;
     });
-  }, [students, searchQuery, filterClass, filterMajor, filterStatus, classesList]);
+  }, [students, searchQuery, filterClass, filterStatus, classesList]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
-  useEffect(() => { setPage(1); }, [searchQuery, filterClass, filterMajor]);
+  useEffect(() => { setPage(1); }, [searchQuery, filterClass]);
 
   // Stats
   const stats = useMemo(() => ({
@@ -159,15 +151,13 @@ export const DashboardStudents = () => {
   const handleExportExcel = () => {
     const data = filtered.map((s, idx) => {
       const cls = classesList.find(c => c.id === s.classId);
-      const mjr = cls ? majorsList.find(m => m.id === cls.majorId)?.name : '';
-      const kelasLabel = cls ? (mjr ? `${cls.name} - ${mjr}` : cls.name) : (s.className || '-');
+      const kelasLabel = cls ? cls.name : (s.className || '-');
       return {
         'No': idx + 1,
         'Nama Lengkap': s.fullName || '-',
         'NISN': s.nisn || '-',
         'NIS': s.nis || '-',
         'Kelas': kelasLabel,
-        'Jurusan': mjr || '-',
         'Jenis Kelamin': s.gender || '-',
         'Tempat Lahir': s.birthPlace || '-',
         'Tanggal Lahir': s.birthDate ? new Date(s.birthDate).toLocaleDateString('id-ID') : '-',
@@ -181,47 +171,18 @@ export const DashboardStudents = () => {
     ws['!cols'] = colWidths;
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Data Siswa');
-    const filterLabel = [filterClass && 'kelas', filterMajor && 'jurusan', searchQuery && 'search'].filter(Boolean).join('_');
+    const filterLabel = [filterClass && 'kelas', searchQuery && 'search'].filter(Boolean).join('_');
     XLSX.writeFile(wb, `Data_Siswa${filterLabel ? '_' + filterLabel : ''}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  // Get class label
   const getClassLabel = (s: any) => {
     const cls = classesList.find(c => c.id === s.classId);
     return cls?.name || s.className || '-';
   };
-  const getMajorLabel = (s: any) => {
-    const cls = classesList.find(c => c.id === s.classId);
-    if (!cls) return '-';
-    return majorsList.find(m => m.id === cls.majorId)?.name || '-';
-  };
 
-  // Unique majors and grades for filter
-  const uniqueMajorsForFilter = majorsList;
-  const uniqueGradesForFilter = useMemo(() => {
-    const grades = new Set<string>();
-    classesList.forEach(c => {
-      const grade = getGradeLevel(c.name);
-      if (grade) grades.add(grade);
-    });
-    // Add grades from students if they don't have a matching class in classesList
-    students.forEach(s => {
-      if (s.className) {
-        const grade = getGradeLevel(s.className);
-        if (grade) grades.add(grade);
-      }
-    });
-
-    const gradeOrder = ['X', 'XI', 'XII'];
-    return Array.from(grades).sort((a, b) => {
-      const idxA = gradeOrder.indexOf(a);
-      const idxB = gradeOrder.indexOf(b);
-      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-      if (idxA !== -1) return -1;
-      if (idxB !== -1) return 1;
-      return a.localeCompare(b);
-    });
-  }, [classesList, students]);
+  const uniqueClassesForFilter = useMemo(() => {
+    return classesList.map(c => c.name).sort((a, b) => a.localeCompare(b));
+  }, [classesList]);
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -236,14 +197,14 @@ export const DashboardStudents = () => {
         <div>
           <Breadcrumbs items={[
             { label: 'Database', href: '/dashboard' },
-            { label: activeTab === 'students' ? 'Data Siswa' : 'Kelas & Jurusan' },
+            { label: activeTab === 'students' ? 'Data Siswa' : 'Kelas' },
           ]} />
           <h1 className="text-xl font-bold text-text-primary dark:text-text-darkPrimary mt-1">Manajemen Data Siswa</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
             onClick={() => setActiveTab(activeTab === 'students' ? 'classes' : 'students')}>
-            <Settings2 size={14} /> {activeTab === 'students' ? 'Kelas & Jurusan' : 'Data Siswa'}
+            <Settings2 size={14} /> {activeTab === 'students' ? 'Kelas' : 'Data Siswa'}
           </Button>
           <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
             onClick={() => setPullNISOpen(true)}>
@@ -276,21 +237,13 @@ export const DashboardStudents = () => {
                 </div>
               </div>
               <div className="flex-[2] min-w-0">
-                <label className="text-[9px] font-semibold uppercase tracking-wider text-text-secondary mb-0.5 block">Filter Tingkat Kelas</label>
+                <label className="text-[9px] font-semibold uppercase tracking-wider text-text-secondary mb-0.5 block">Filter Kelas</label>
                 <select className="w-full h-8 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] px-2.5 text-xs outline-none focus:ring-2 focus:ring-primary/30"
                   value={filterClass} onChange={e => setFilterClass(e.target.value)}>
-                  <option value="">Semua Tingkat</option>
-                  {uniqueGradesForFilter.map(g => (
-                    <option key={g} value={g}>{g}</option>
+                  <option value="">Semua Kelas</option>
+                  {uniqueClassesForFilter.map(name => (
+                    <option key={name} value={name}>{name}</option>
                   ))}
-                </select>
-              </div>
-              <div className="flex-[2] min-w-0">
-                <label className="text-[9px] font-semibold uppercase tracking-wider text-text-secondary mb-0.5 block">Filter Jurusan</label>
-                <select className="w-full h-8 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] px-2.5 text-xs outline-none focus:ring-2 focus:ring-primary/30"
-                  value={filterMajor} onChange={e => setFilterMajor(e.target.value)}>
-                  <option value="">Semua Jurusan</option>
-                  {uniqueMajorsForFilter.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
               </div>
               <div className="flex-[1.5] min-w-0">
@@ -331,7 +284,6 @@ export const DashboardStudents = () => {
                     <th className="py-2.5 px-3 font-semibold">NIS</th>
                     <th className="py-2.5 px-3 font-semibold">Nama Siswa</th>
                     <th className="py-2.5 px-3 font-semibold">Kelas</th>
-                    <th className="py-2.5 px-3 font-semibold">Jurusan</th>
                     <th className="py-2.5 px-3 font-semibold">Status</th>
                     <th className="py-2.5 px-3 font-semibold text-center">Actions</th>
                   </tr>
@@ -358,7 +310,6 @@ export const DashboardStudents = () => {
                         </div>
                       </td>
                       <td className="py-2 px-3 text-[11px] text-text-primary dark:text-text-darkPrimary">{getClassLabel(s)}</td>
-                      <td className="py-2 px-3 text-[11px]"><span className="text-primary font-medium">{getMajorLabel(s)}</span></td>
                       <td className="py-2 px-3"><StatusBadge status={s.status} /></td>
                       <td className="py-2 px-3 text-center">
                         <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -370,8 +321,8 @@ export const DashboardStudents = () => {
                     </tr>
                   ))}
                   {paginated.length === 0 && (
-                    <tr><td colSpan={7} className="py-12 text-center text-gray-400 text-sm">
-                      {searchQuery || filterClass || filterMajor ? 'Tidak ada siswa yang sesuai filter.' : 'Belum ada data siswa.'}
+                    <tr><td colSpan={6} className="py-12 text-center text-gray-400 text-sm">
+                      {searchQuery || filterClass ? 'Tidak ada siswa yang sesuai filter.' : 'Belum ada data siswa.'}
                     </td></tr>
                   )}
                 </tbody>
@@ -431,7 +382,6 @@ export const DashboardStudents = () => {
       ) : (
         <ClassMajorView
           classes={classesList}
-          majors={majorsList}
           teachers={teachers}
           students={students}
           loading={loading}
@@ -446,15 +396,15 @@ export const DashboardStudents = () => {
 
       {/* Modals */}
       <PullNISModal isOpen={pullNISOpen} onClose={() => setPullNISOpen(false)}
-        classes={classesList} majors={majorsList} apiClient={apiClient} onSuccess={fetchAll} />
+        classes={classesList} apiClient={apiClient} onSuccess={fetchAll} />
       <ImportExcelModal isOpen={importExcelOpen} onClose={() => setImportExcelOpen(false)}
         apiClient={apiClient} onSuccess={fetchAll} />
       <AddStudentModal isOpen={addStudentOpen} onClose={() => { setAddStudentOpen(false); setEditStudent(null); }}
-        classes={classesList} majors={majorsList} apiClient={apiClient} onSuccess={fetchAll} editStudent={editStudent} />
+        classes={classesList} apiClient={apiClient} onSuccess={fetchAll} editStudent={editStudent} />
       <UpdateStatusModal isOpen={updateStatusOpen} onClose={() => { setUpdateStatusOpen(false); setStatusStudent(null); }}
         student={statusStudent} apiClient={apiClient} onSuccess={fetchAll} />
       <BulkPromotionModal isOpen={bulkPromotionOpen} onClose={() => { setBulkPromotionOpen(false); setSelectedStudentIds([]); }}
-        selectedStudents={filtered.filter(s => selectedStudentIds.includes(s.id))} classes={classesList} majors={majorsList}
+        selectedStudents={filtered.filter(s => selectedStudentIds.includes(s.id))} classes={classesList}
         apiClient={apiClient} onSuccess={() => { fetchAll(); setSelectedStudentIds([]); }} />
 
       {/* Floating Action Bar */}

@@ -99,25 +99,15 @@ export const DashboardStudentCard = () => {
   }, [cardSettingsQuery.data, cardSettingsQuery.isLoading]);
 
   const [classesList, setClassesList] = useState<any[]>([]);
-  const [majorsList, setMajorsList] = useState<any[]>([]);
 
   useEffect(() => {
     apiClient<any[]>('/classes').then(setClassesList).catch(() => {});
-    apiClient<any[]>('/majors').then(setMajorsList).catch(() => {});
   }, [user]);
 
   const getStudentDisplayClass = (student: StudentProfile) => {
     if (student.classId) {
       const classObj = classesList.find(c => c.id === student.classId);
-      if (classObj) {
-        const majorName = majorsList.find(m => m.id === classObj.majorId)?.name || '';
-        return majorName ? `${classObj.name} - ${majorName}` : classObj.name;
-      }
-    }
-    const classObj = classesList.find(c => c.name === student.className);
-    if (classObj) {
-      const majorName = majorsList.find(m => m.id === classObj.majorId)?.name || '';
-      return majorName ? `${student.className} - ${majorName}` : student.className;
+      if (classObj) return classObj.name;
     }
     return student.className || '-';
   };

@@ -2,14 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { GraduationCap, ArrowUpRight, Loader2, Info } from 'lucide-react';
-import type { ClassItem, Major } from './types';
+import type { ClassItem } from './types';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   selectedStudents: any[];
   classes: ClassItem[];
-  majors: Major[];
   apiClient: any;
   onSuccess: () => void;
 }
@@ -22,7 +21,7 @@ const getGradeLevel = (name: string): string => {
   return name;
 };
 
-export const BulkPromotionModal: React.FC<Props> = ({ isOpen, onClose, selectedStudents, classes, majors, apiClient, onSuccess }) => {
+export const BulkPromotionModal: React.FC<Props> = ({ isOpen, onClose, selectedStudents, classes, apiClient, onSuccess }) => {
   const [targetClassId, setTargetClassId] = useState('');
   const [targetStatus, setTargetStatus] = useState('Lulus');
   const [saving, setSaving] = useState(false);
@@ -40,10 +39,9 @@ export const BulkPromotionModal: React.FC<Props> = ({ isOpen, onClose, selectedS
 
   const classOptions = useMemo(() => {
     return classes.map(c => {
-      const major = majors.find(m => m.id === c.majorId);
-      return { ...c, label: major ? `${c.name} ${major.name}` : c.name };
+      return { ...c, label: c.name };
     }).sort((a, b) => a.label.localeCompare(b.label));
-  }, [classes, majors]);
+  }, [classes]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
