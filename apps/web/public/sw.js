@@ -3,7 +3,7 @@
  * Provides offline caching, install capability, and faster repeat loads.
  */
 
-const CACHE_NAME = 'man2lotim-pwa-v1';
+const CACHE_NAME = 'man2lotim-pwa-v2';
 
 // Core shell assets to pre-cache on install
 const PRECACHE_URLS = [
