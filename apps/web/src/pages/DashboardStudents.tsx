@@ -150,6 +150,19 @@ export const DashboardStudents = () => {
     catch (err: any) { alert('Gagal: ' + err.message); }
   };
 
+  const handleClearAllData = async () => {
+    if (!window.confirm("PERINGATAN: Apakah Anda yakin ingin mengosongkan SEMUA data siswa beserta data terkaitnya? Tindakan ini tidak dapat dibatalkan!")) return;
+    setLoading(true);
+    try {
+      await apiClient('/students/clear-all-data', { method: 'GET' });
+      alert("Semua data siswa berhasil dikosongkan!");
+      fetchAll();
+    } catch (err: any) {
+      alert("Gagal mengosongkan data: " + err.message);
+      setLoading(false);
+    }
+  };
+
   const handleEdit = (student: any) => {
     setEditStudent(student);
     setAddStudentOpen(true);
@@ -252,6 +265,10 @@ export const DashboardStudents = () => {
           <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
             onClick={() => setImportExcelOpen(true)}>
             <FileSpreadsheet size={14} /> Import Excel
+          </Button>
+          <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20"
+            onClick={handleClearAllData}>
+            <Trash2 size={14} /> Kosongkan Data
           </Button>
           <Button size="sm" className="flex items-center gap-1.5 text-xs"
             onClick={() => { setEditStudent(null); setAddStudentOpen(true); }}>
