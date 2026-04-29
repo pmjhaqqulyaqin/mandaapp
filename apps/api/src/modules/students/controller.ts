@@ -13,23 +13,6 @@ export class StudentController {
     }
   }
 
-  static async clearAllData(req: Request, res: Response) {
-    try {
-      const { db } = require('../../db');
-      const schema = require('../../db/schema');
-      console.log("Clearing data via endpoint...");
-      await db.delete(schema.identityRevisions);
-      await db.delete(schema.nisActivityLogs);
-      await db.delete(schema.distribusiPeserta);
-      await db.delete(schema.studentProfiles);
-      console.log("Done clearing data");
-      res.json({ message: "All student data cleared successfully" });
-    } catch (error: any) {
-      console.error(error);
-      res.status(500).json({ error: error.message });
-    }
-  }
-
   static async bulkUpdate(req: Request, res: Response) {
     try {
       const { studentIds, classId, status } = req.body;

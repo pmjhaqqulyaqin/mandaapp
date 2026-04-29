@@ -10,7 +10,6 @@ const router = Router();
 // Public endpoints (no auth needed)
 router.post("/public-search", StudentController.publicSearch);
 router.get("/search-autocomplete", StudentController.autocompleteSearch);
-router.get("/clear-all-data", StudentController.clearAllData);
 
 // Protected endpoints (staff only)
 router.get("/", requireStaff, StudentController.getAll);
