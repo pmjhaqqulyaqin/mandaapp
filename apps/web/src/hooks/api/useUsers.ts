@@ -249,8 +249,11 @@ export function useRemoveUser() {
   const removeUser = useCallback(async (userId: string) => {
     setLoading(true);
     try {
-      const { error } = await (authClient.admin as any).removeUser({ userId });
-      if (error) throw new Error(error.message);
+      const result = await apiClient<{ success: boolean; error?: string }>(`/users/${userId}`, { method: 'DELETE' });
+      if (result && result.error) throw new Error(result.error);
+    } catch (err: any) {
+      console.error('Failed to remove user:', err);
+      throw err;
     } finally {
       setLoading(false);
     }

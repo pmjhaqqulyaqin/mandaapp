@@ -281,25 +281,37 @@ export const DashboardPages = () => {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {queryAll.isLoading ? (
-          <div className="p-8 text-center text-gray-500">Memuat halaman...</div>
-        ) : pages.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            Belum ada halaman. Klik tombol Tambah Halaman untuk membuat halaman baru.
-          </div>
-        ) : (
-          <div className="w-full overflow-x-auto pb-2 custom-scrollbar">
-            <table className="w-full text-left min-w-[800px]">
-              <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+        <div className="w-full overflow-x-auto pb-2 custom-scrollbar">
+          <table className="w-full text-left min-w-[800px]">
+            <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+              <tr>
+                <th className="font-semibold text-gray-900 dark:text-gray-100 p-4 whitespace-nowrap">Judul Halaman</th>
+                <th className="font-semibold text-gray-900 dark:text-gray-100 p-4 whitespace-nowrap">Slug (URL)</th>
+                <th className="font-semibold text-gray-900 dark:text-gray-100 p-4 whitespace-nowrap">Status</th>
+                <th className="font-semibold text-gray-900 dark:text-gray-100 text-right p-4 whitespace-nowrap">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {queryAll.isLoading ? (
                 <tr>
-                  <th className="font-semibold text-gray-900 dark:text-gray-100 p-4 whitespace-nowrap">Judul Halaman</th>
-                  <th className="font-semibold text-gray-900 dark:text-gray-100 p-4 whitespace-nowrap">Slug (URL)</th>
-                  <th className="font-semibold text-gray-900 dark:text-gray-100 p-4 whitespace-nowrap">Status</th>
-                  <th className="font-semibold text-gray-900 dark:text-gray-100 text-right p-4 whitespace-nowrap">Aksi</th>
+                  <td colSpan={4} className="p-8 text-center text-gray-500">
+                    <div className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Memuat halaman...
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {pages.map((p) => (
+              ) : pages.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="p-8 text-center text-gray-500">
+                    Belum ada halaman. Klik tombol Tambah Halaman untuk membuat halaman baru.
+                  </td>
+                </tr>
+              ) : (
+                pages.map((p) => (
                   <tr key={p.id} className="border-b last:border-0 hover:bg-gray-50 dark:hover:bg-[#151515] transition-colors group">
                     <td className="p-4 text-gray-900 dark:text-gray-100 font-medium whitespace-nowrap">
                       {p.title}
@@ -308,35 +320,35 @@ export const DashboardPages = () => {
                       /page/{p.slug}
                     </td>
                     <td className="p-4 whitespace-nowrap">
-              <Badge variant={p.status === 'Published' ? 'success' as any : 'warning' as any}>
-                {p.status}
-              </Badge>
-            </td>
-            <td className="p-4 text-right whitespace-nowrap">
-            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
-              <button 
-                onClick={() => openEditModal(p)} 
-                className="text-blue-500 hover:text-blue-700" 
-                title="Edit Halaman"
-              >
-                <Edit2 size={16} />
-              </button>
-              <button 
-                onClick={() => handleDelete(p.id)} 
-                className="text-red-500 hover:text-red-700 disabled:opacity-50"
-                title="Hapus Halaman"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-)}
-</div>
+                      <Badge variant={p.status === 'Published' ? 'success' as any : 'warning' as any}>
+                        {p.status}
+                      </Badge>
+                    </td>
+                    <td className="p-4 text-right whitespace-nowrap">
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                        <button 
+                          onClick={() => openEditModal(p)} 
+                          className="text-blue-500 hover:text-blue-700" 
+                          title="Edit Halaman"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(p.id)} 
+                          className="text-red-500 hover:text-red-700 disabled:opacity-50"
+                          title="Hapus Halaman"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
 <Modal
 isOpen={isModalOpen}

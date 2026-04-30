@@ -12,6 +12,7 @@ interface Props {
   loading: boolean;
   onRefresh: () => void;
   apiClient: any;
+  isAdmin?: boolean;
   onViewDetails?: (grade: string) => void;
 }
 
@@ -30,7 +31,7 @@ const GRADE_COLORS: Record<string, string> = {
   'XII': 'from-amber-500 to-amber-600',
 };
 
-export const ClassMajorView: React.FC<Props> = ({ classes, teachers, students, onRefresh, apiClient, onViewDetails }) => {
+export const ClassMajorView: React.FC<Props> = ({ classes, teachers, students, onRefresh, apiClient, isAdmin, onViewDetails }) => {
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [classForm, setClassForm] = useState({ id: '', name: '', homeroomTeacherId: '' });
   const [isEditingClass, setIsEditingClass] = useState(false);
@@ -75,6 +76,10 @@ export const ClassMajorView: React.FC<Props> = ({ classes, teachers, students, o
   };
 
   const deleteClass = async (id: string, name: string) => {
+    if (!isAdmin) {
+      alert('Fitur hapus dinonaktifkan untuk role Anda.');
+      return;
+    }
     const count = studentCountByClass(id);
     if (count > 0) { alert(`Tidak bisa hapus "${name}" karena masih memiliki ${count} siswa aktif.`); return; }
     if (!window.confirm(`Hapus kelas "${name}"?`)) return;
@@ -163,8 +168,8 @@ export const ClassMajorView: React.FC<Props> = ({ classes, teachers, students, o
                     </td>
                     <td className="py-2 px-3 text-right">
                       <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openClassModal(cls)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-500 hover:text-blue-500 transition-colors"><Edit2 size={13} /></button>
-                        <button onClick={() => deleteClass(cls.id, cls.name)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-500 hover:text-red-500 transition-colors"><Trash2 size={13} /></button>
+                        <button onClick={() => openClassModal(cls)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-500 hover:text-blue-500 transition-colors" title="Edit"><Edit2 size={13} /></button>
+                        <button onClick={() => deleteClass(cls.id, cls.name)} disabled={!isAdmin} className={`p-1 rounded-md transition-colors ${isAdmin ? 'hover:bg-gray-100 dark:hover:bg-[#222] text-gray-500 hover:text-red-500' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50'}`} title={isAdmin ? "Hapus" : "Akses Ditolak"}><Trash2 size={13} /></button>
                       </div>
                     </td>
                   </tr>

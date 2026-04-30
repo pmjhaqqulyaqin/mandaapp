@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { getAuditLogs, logAuditEvent } from "./service";
 import { auth } from "../auth";
 import { db } from "../../db";
-import { user } from "../../db/schema";
+import { user, employees, studentProfiles, auditLogs, pages, suratKeluars, suratMasuks, schoolEvents, nisActivityLogs, nisBatches, ppdbTesConfig, classSchedules, session, account } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import { SettingsService } from "../settings/service";
 
@@ -213,3 +213,40 @@ export async function updateRoleMenuPermissionsHandler(req: Request, res: Respon
     res.status(500).json({ error: "Gagal menyimpan konfigurasi hak akses menu" });
   }
 }
+
+export async function deleteUserHandler(req: Request, res: Response) {
+  const targetId = req.params.id;
+  if (!targetId) return res.status(400).json({ error: "Missing user ID" });
+
+  try {
+    // 1. Set NULL on nullable foreign keys
+    await db.update(employees).set({ userId: null }).where(eq(employees.userId, targetId));
+    await db.update(studentProfiles).set({ userId: null }).where(eq(studentProfiles.userId, targetId));
+    await db.update(auditLogs).set({ userId: null }).where(eq(auditLogs.userId, targetId));
+    await db.update(pages).set({ authorId: null }).where(eq(pages.authorId, targetId));
+    await db.update(suratKeluars).set({ userIdPengambil: null }).where(eq(suratKeluars.userIdPengambil, targetId));
+    await db.update(suratMasuks).set({ userIdPenerima: null }).where(eq(suratMasuks.userIdPenerima, targetId));
+    await db.update(schoolEvents).set({ createdBy: null }).where(eq(schoolEvents.createdBy, targetId));
+    await db.update(nisActivityLogs).set({ userId: null }).where(eq(nisActivityLogs.userId, targetId));
+    await db.update(nisBatches).set({ operator: null }).where(eq(nisBatches.operator, targetId));
+    await db.update(ppdbTesConfig).set({ pengujiId: null }).where(eq(ppdbTesConfig.pengujiId, targetId));
+
+    // 2. Cascade delete on NOT NULL foreign keys
+    await db.delete(classSchedules).where(eq(classSchedules.teacherId, targetId));
+
+    // 3. Delete from BetterAuth explicitly to avoid leaving orphaned records 
+    // if BetterAuth admin plugin is not hooked up to this endpoint.
+    await db.delete(session).where(eq(session.userId, targetId));
+    await db.delete(account).where(eq(account.userId, targetId));
+    await db.delete(user).where(eq(user.id, targetId));
+
+    // Or optionally use auth.api.removeUser if we can pass headers correctly
+    // await auth.api.removeUser({ headers: req.headers as any, body: { userId: targetId } });
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({ error: "Gagal menghapus pengguna karena masalah database. Detail: " + error.message });
+  }
+}
+

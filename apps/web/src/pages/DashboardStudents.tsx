@@ -59,7 +59,7 @@ const StatusBadge = ({ status }: { status: string }) => {
 const ITEMS_PER_PAGE = 10;
 
 export const DashboardStudents = () => {
-  useAuth();
+  const { user, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('students');
   const [students, setStudents] = useState<any[]>([]);
   const [classesList, setClassesList] = useState<any[]>([]);
@@ -137,6 +137,10 @@ export const DashboardStudents = () => {
 
   // Handlers
   const handleDelete = async (id: string, name: string) => {
+    if (!isAdmin) {
+      alert('Fitur hapus dinonaktifkan untuk role Anda.');
+      return;
+    }
     if (!window.confirm(`Yakin hapus data siswa "${name}"?`)) return;
     try { await apiClient(`/students/${id}`, { method: 'DELETE' }); fetchAll(); }
     catch (err: any) { alert('Gagal: ' + err.message); }
@@ -313,9 +317,9 @@ export const DashboardStudents = () => {
                       <td className="py-2 px-3"><StatusBadge status={s.status} /></td>
                       <td className="py-2 px-3 text-center">
                         <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => { setStatusStudent(s); setUpdateStatusOpen(true); }} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-amber-500 transition-colors" title="Ubah Status"><UserCog size={13} /></button>
+                          <button onClick={() => setStatusStudent(s); setUpdateStatusOpen(true); } className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-amber-500 transition-colors" title="Ubah Status"><UserCog size={13} /></button>
                           <button onClick={() => handleEdit(s)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-blue-500 transition-colors" title="Edit"><Edit2 size={13} /></button>
-                          <button onClick={() => handleDelete(s.id, s.fullName)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-red-500 transition-colors" title="Hapus"><Trash2 size={13} /></button>
+                          <button onClick={() => handleDelete(s.id, s.fullName)} disabled={!isAdmin} className={`p-1 rounded-md transition-colors ${isAdmin ? 'hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-red-500' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50'}`} title={isAdmin ? "Hapus" : "Akses Ditolak"}><Trash2 size={13} /></button>
                         </div>
                       </td>
                     </tr>
@@ -387,6 +391,7 @@ export const DashboardStudents = () => {
           loading={loading}
           onRefresh={fetchAll}
           apiClient={apiClient}
+          isAdmin={isAdmin}
           onViewDetails={(grade) => {
             setFilterClass(grade);
             setActiveTab('students');
