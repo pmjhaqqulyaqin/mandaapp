@@ -317,7 +317,7 @@ export const DashboardStudents = () => {
                       <td className="py-2 px-3"><StatusBadge status={s.status} /></td>
                       <td className="py-2 px-3 text-center">
                         <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => setStatusStudent(s); setUpdateStatusOpen(true); } className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-amber-500 transition-colors" title="Ubah Status"><UserCog size={13} /></button>
+                          <button onClick={() => { setStatusStudent(s); setUpdateStatusOpen(true); }} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-amber-500 transition-colors" title="Ubah Status"><UserCog size={13} /></button>
                           <button onClick={() => handleEdit(s)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-blue-500 transition-colors" title="Edit"><Edit2 size={13} /></button>
                           <button onClick={() => handleDelete(s.id, s.fullName)} disabled={!isAdmin} className={`p-1 rounded-md transition-colors ${isAdmin ? 'hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-red-500' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50'}`} title={isAdmin ? "Hapus" : "Akses Ditolak"}><Trash2 size={13} /></button>
                         </div>
