@@ -624,21 +624,28 @@ export class IjazahController {
 
   static async gradesPreview(req: Request, res: Response) {
     try {
-      const { type, classId } = req.query; // type: 'global' | 'rombel'
+      const { type, classId, semester } = req.query; // type: 'global' | 'rombel'
 
       // 1. Get subjects and filter by mapping
       const activeSubjects = await db.select().from(ijazahSubjects).where(eq(ijazahSubjects.isActive, true)).orderBy(asc(ijazahSubjects.orderNum));
       let mappings: any[] = [];
       try { mappings = await db.select().from(ijazahSubjectMappings); } catch (e) { /* table may not exist yet */ }
       
+      const semKey = semester as string;
+      const mappingSemKey = semKey === 'examScore' ? 'um' : semKey === 'semester1' ? 'sem1' : semKey === 'semester2' ? 'sem2' : semKey === 'semester3' ? 'sem3' : semKey === 'semester4' ? 'sem4' : semKey === 'semester5' ? 'sem5' : null;
+
       const subjects = activeSubjects.filter(subj => {
         const map = mappings.find((m: any) => m.subjectId === subj.id);
         if (!map) return mappings.length === 0; // Hide unmapped if mappings exist
         
+        if (mappingSemKey && !(map as any)[mappingSemKey]) return false; // Semester not active
+        
         const isGlobal = !map.classIds || (map.classIds as string[]).length === 0;
         if (isGlobal) return true;
-        // For global mode, show all subjects
+        
+        // For global mode (semester 1/2), show all subjects regardless of classIds
         if (type === 'global') return true;
+        
         if (type === 'rombel' && classId && typeof classId === 'string') {
           return (map.classIds as string[]).includes(classId);
         }
