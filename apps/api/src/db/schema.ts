@@ -567,6 +567,7 @@ export const ijazahSubjects = pgTable("ijazah_subjects", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 150 }).notNull(),
   group: varchar("group", { length: 50 }).notNull(), // Kelompok A, Kelompok B, Peminatan, Lintas Minat
+  semester: varchar("semester", { length: 20 }).default("sem1").notNull(), // sem1, sem2, sem3, sem4, sem5, um
   orderNum: integer("order_num").default(0),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),

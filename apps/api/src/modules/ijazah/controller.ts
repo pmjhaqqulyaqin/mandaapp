@@ -148,10 +148,15 @@ export class IjazahController {
 
   static async getSubjects(req: Request, res: Response) {
     try {
+      const { semester } = req.query;
+      const conditions = [eq(ijazahSubjects.isActive, true)];
+      if (semester && typeof semester === 'string') {
+        conditions.push(eq(ijazahSubjects.semester, semester));
+      }
       const subjects = await db
         .select()
         .from(ijazahSubjects)
-        .where(eq(ijazahSubjects.isActive, true))
+        .where(and(...conditions))
         .orderBy(asc(ijazahSubjects.orderNum));
         
       res.json(subjects);
@@ -163,21 +168,24 @@ export class IjazahController {
 
   static async saveSubject(req: Request, res: Response) {
     try {
-      const { id, name, group, orderNum } = req.body;
+      const { id, name, group, orderNum, semester } = req.body;
       
       if (!name || !group) {
         return res.status(400).json({ error: "Nama mapel dan kelompok wajib diisi" });
       }
 
+      const semVal = semester || 'sem1';
+
       if (id) {
         await db.update(ijazahSubjects)
-          .set({ name, group, orderNum: orderNum || 0, updatedAt: new Date() })
+          .set({ name, group, orderNum: orderNum || 0, semester: semVal, updatedAt: new Date() })
           .where(eq(ijazahSubjects.id, id));
       } else {
         await db.insert(ijazahSubjects).values({
           name,
           group,
-          orderNum: orderNum || 0
+          orderNum: orderNum || 0,
+          semester: semVal
         });
       }
 
@@ -341,20 +349,117 @@ export class IjazahController {
     }
   }
 
+  // --- UM SUBJECTS: Set dari checklist mapel yang sudah ada (sem1-sem5) ---
+
+  static async saveUmSubjects(req: Request, res: Response) {
+    try {
+      const { subjectIds } = req.body; // Array of existing subject IDs to copy as UM
+      if (!Array.isArray(subjectIds)) {
+        return res.status(400).json({ error: "subjectIds harus berupa array" });
+      }
+
+      // 1. Soft-delete semua UM subjects yang lama
+      await db.update(ijazahSubjects)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(and(eq(ijazahSubjects.semester, 'um'), eq(ijazahSubjects.isActive, true)));
+
+      // 2. Ambil detail mapel yang dipilih
+      if (subjectIds.length === 0) {
+        return res.json({ success: true, message: "Mapel UM dikosongkan" });
+      }
+
+      const sourceSubjects = await db.select().from(ijazahSubjects)
+        .where(sql`${ijazahSubjects.id} IN (${sql.join(subjectIds.map((id: string) => sql`${id}`), sql`, `)})`);
+
+      // 3. Insert sebagai UM subjects
+      let inserted = 0;
+      for (const subj of sourceSubjects) {
+        await db.insert(ijazahSubjects).values({
+          name: subj.name,
+          group: subj.group,
+          semester: 'um',
+          orderNum: subj.orderNum,
+          isActive: true,
+        });
+        inserted++;
+      }
+
+      res.json({ success: true, message: `${inserted} mata pelajaran UM berhasil disimpan` });
+    } catch (error: any) {
+      logger.error({ err: error }, "Failed to save UM subjects");
+      res.status(500).json({ error: "Gagal menyimpan mapel UM" });
+    }
+  }
+
+  // --- INLINE EDIT: Update single grade cell (untuk siswa mutasi) ---
+
+  static async updateSingleGrade(req: Request, res: Response) {
+    try {
+      const { studentId, subjectId, semester, value } = req.body;
+
+      if (!studentId || !subjectId || !semester) {
+        return res.status(400).json({ error: "studentId, subjectId, dan semester wajib diisi" });
+      }
+
+      const allowedSemesters = ['semester1', 'semester2', 'semester3', 'semester4', 'semester5', 'examScore'];
+      if (!allowedSemesters.includes(semester)) {
+        return res.status(400).json({ error: "Semester tidak valid" });
+      }
+
+      const score = value === null || value === '' ? null : parseInt(value, 10);
+      if (score !== null && isNaN(score)) {
+        return res.status(400).json({ error: "Nilai harus berupa angka" });
+      }
+
+      // Check existing record
+      const existing = await db.select().from(ijazahGrades)
+        .where(and(eq(ijazahGrades.studentId, studentId), eq(ijazahGrades.subjectId, subjectId)))
+        .limit(1);
+
+      if (existing.length > 0) {
+        await db.update(ijazahGrades)
+          .set({ [semester]: score, updatedAt: new Date() })
+          .where(eq(ijazahGrades.id, existing[0].id));
+      } else {
+        await db.insert(ijazahGrades).values({
+          studentId,
+          subjectId,
+          [semester]: score,
+        });
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      logger.error({ err: error }, "Failed to update single grade");
+      res.status(500).json({ error: "Gagal menyimpan nilai" });
+    }
+  }
+
   // --- FASE 3: UPLOAD NILAI (TEMPLATE & PROCESS) ---
 
   static async downloadTemplate(req: Request, res: Response) {
     try {
-      const { type, classId } = req.query; // type: 'sem12' | 'rombel'
+      const { type, classId, semester } = req.query; // type: 'sem12' | 'rombel', semester: 'semester1'...'examScore'
       const ExcelJS = require('exceljs');
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Template Nilai');
 
-      // 1. Fetch active subjects
+      // Map semester field to subject semester filter
+      const semToSubjectSem: Record<string, string> = {
+        semester1: 'sem1', semester2: 'sem2', semester3: 'sem3',
+        semester4: 'sem4', semester5: 'sem5', examScore: 'um'
+      };
+      const subjectSemFilter = semester && typeof semester === 'string' ? semToSubjectSem[semester] : null;
+
+      // 1. Fetch active subjects (filtered by semester if provided)
+      const subjectConditions = [eq(ijazahSubjects.isActive, true)];
+      if (subjectSemFilter) {
+        subjectConditions.push(eq(ijazahSubjects.semester, subjectSemFilter));
+      }
       const subjects = await db
         .select()
         .from(ijazahSubjects)
-        .where(eq(ijazahSubjects.isActive, true))
+        .where(and(...subjectConditions))
         .orderBy(asc(ijazahSubjects.orderNum));
 
       // 2. Define Columns
@@ -466,49 +571,64 @@ export class IjazahController {
         return res.status(400).json({ error: "Format Excel tidak valid" });
       }
 
-      // 1. Dapatkan pemetaan kolom (Subject mapping)
-      const headers = worksheet.getRow(1).values as string[];
-      // values array index dimulai dari 1 di exceljs (index 1 = col A)
+      // 1. Scan header row to find NISN column and subject columns dynamically
+      const headers = worksheet.getRow(1).values as any[];
       const activeSubjects = await db.select().from(ijazahSubjects).where(eq(ijazahSubjects.isActive, true));
       
+      let nisnColIdx = -1;
       const subjectMap = new Map<number, string>(); // colIndex -> subject.id
       
-      // Template: No(1) | NIS(2) | NISN(3) | Nama(4) | JK(5) | Mapel...(6+)
-      for (let i = 6; i < headers.length; i++) {
-        const headerName = headers[i];
-        if (headerName) {
-          const matchedSubject = activeSubjects.find(s => s.name === headerName);
-          if (matchedSubject) {
-            subjectMap.set(i, matchedSubject.id);
-          }
+      // Scan all headers: find NISN column and match subject names
+      for (let i = 1; i < headers.length; i++) {
+        const headerVal = headers[i] ? String(headers[i]).trim() : '';
+        if (!headerVal) continue;
+        
+        // Check if this is the NISN column
+        if (headerVal.toUpperCase() === 'NISN') {
+          nisnColIdx = i;
+          continue;
+        }
+        
+        // Try to match as subject name (case-insensitive, trimmed)
+        const matchedSubject = activeSubjects.find(s => 
+          s.name.trim().toLowerCase() === headerVal.toLowerCase()
+        );
+        if (matchedSubject) {
+          subjectMap.set(i, matchedSubject.id);
         }
       }
 
+      if (nisnColIdx === -1) {
+        return res.status(400).json({ error: "Kolom NISN tidak ditemukan di header Excel. Pastikan ada kolom dengan header 'NISN'." });
+      }
+
       if (subjectMap.size === 0) {
-        return res.status(400).json({ error: "Tidak ditemukan kolom mata pelajaran yang cocok dengan sistem. Pastikan Anda menggunakan template terbaru." });
+        return res.status(400).json({ error: "Tidak ditemukan kolom mata pelajaran yang cocok dengan sistem. Pastikan nama header kolom sesuai dengan nama mapel yang sudah diset." });
       }
 
       // 2. Persiapkan data referensi siswa untuk mencari ID
       const students = await db.select({ id: studentProfiles.id, nisn: studentProfiles.nisn }).from(studentProfiles);
       
       let successCount = 0;
+      let skippedCount = 0;
       
       // 3. Looping baris data (Mulai dari baris ke-2)
       for (let rowIdx = 2; rowIdx <= worksheet.rowCount; rowIdx++) {
         const row = worksheet.getRow(rowIdx);
-        // NISN ada di kolom 3 (C)
-        const nisnVal = row.getCell(3).value;
+        const nisnVal = row.getCell(nisnColIdx).value;
         const nisnStr = nisnVal ? nisnVal.toString().trim() : '';
         
         if (!nisnStr) continue;
 
         const student = students.find(s => s.nisn === nisnStr);
-        if (!student) continue; // Skip jika NISN tidak ada di database
+        if (!student) {
+          skippedCount++;
+          continue;
+        }
 
-        // Iterasi kolom nilai (mapel)
+        // Iterasi kolom nilai (mapel) berdasarkan header match
         for (const [colIdx, subjectId] of subjectMap.entries()) {
           const scoreRaw = row.getCell(colIdx).value;
-          // Validasi jika nilai berupa angka atau text yang bisa di-parse
           let score: number | null = null;
           if (typeof scoreRaw === 'number') {
             score = scoreRaw;
@@ -518,7 +638,6 @@ export class IjazahController {
           }
 
           if (score !== null) {
-            // Cek apakah nilai sudah pernah ada di db
             const existingGrades = await db
               .select()
               .from(ijazahGrades)
@@ -529,7 +648,6 @@ export class IjazahController {
               .limit(1);
 
             if (existingGrades.length > 0) {
-              // Update nilai semester spesifik
               await db.update(ijazahGrades)
                 .set({ 
                   [semester]: score, 
@@ -537,7 +655,6 @@ export class IjazahController {
                 })
                 .where(eq(ijazahGrades.id, existingGrades[0].id));
             } else {
-              // Insert record nilai baru
               await db.insert(ijazahGrades).values({
                 studentId: student.id,
                 subjectId: subjectId,
@@ -551,7 +668,7 @@ export class IjazahController {
 
       res.json({ 
         success: true, 
-        message: `Upload berhasil. ${successCount} rekor nilai tersimpan.` 
+        message: `Upload berhasil. ${successCount} nilai tersimpan.${skippedCount > 0 ? ` ${skippedCount} NISN tidak ditemukan.` : ''}` 
       });
 
     } catch (error: any) {
