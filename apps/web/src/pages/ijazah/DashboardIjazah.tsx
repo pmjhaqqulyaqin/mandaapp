@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
-import { Settings, FileSpreadsheet, Download, BookOpen } from 'lucide-react';
+import { Settings, FileSpreadsheet, Download, BookOpen, Users } from 'lucide-react';
+import { StudentDataTab } from './tabs/StudentDataTab';
 import { SettingsTab } from './tabs/SettingsTab';
 import { InputGlobalTab } from './tabs/InputGlobalTab';
 import { InputRombelTab } from './tabs/InputRombelTab';
 import { ExportTab } from './tabs/ExportTab';
 
-type TabKey = 'settings' | 'global' | 'rombel' | 'export';
+type TabKey = 'students' | 'settings' | 'global' | 'rombel' | 'export';
 
 const TABS: { key: TabKey; label: string; icon: any; shortLabel: string }[] = [
+  { key: 'students', label: 'Data Siswa Kelas XII', icon: Users, shortLabel: 'Data Siswa' },
   { key: 'settings', label: 'Pengaturan & Mapel', icon: Settings, shortLabel: 'Pengaturan' },
   { key: 'global', label: 'Semester 1-2 (Global)', icon: BookOpen, shortLabel: 'Sem 1-2' },
   { key: 'rombel', label: 'Semester 3-5 & UM', icon: FileSpreadsheet, shortLabel: 'Per Rombel' },
@@ -16,7 +18,7 @@ const TABS: { key: TabKey; label: string; icon: any; shortLabel: string }[] = [
 ];
 
 export const DashboardIjazah = () => {
-  const [activeTab, setActiveTab] = useState<TabKey>('settings');
+  const [activeTab, setActiveTab] = useState<TabKey>('students');
 
   return (
     <div className="space-y-4">
@@ -69,6 +71,7 @@ export const DashboardIjazah = () => {
 
         {/* Tab Content Area */}
         <div className="p-4 sm:p-5 min-h-[500px]">
+          {activeTab === 'students' && <StudentDataTab />}
           {activeTab === 'settings' && <SettingsTab />}
           {activeTab === 'global' && <InputGlobalTab />}
           {activeTab === 'rombel' && <InputRombelTab />}
