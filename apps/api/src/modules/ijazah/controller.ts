@@ -512,9 +512,10 @@ export class IjazahController {
           continue;
         }
         
-        // Try to match as subject name (case-insensitive, trimmed)
+        // Try to match as subject name or shortName (case-insensitive, trimmed)
         const matchedSubject = activeSubjects.find(s => 
-          s.name.trim().toLowerCase() === headerVal.toLowerCase()
+          s.name.trim().toLowerCase() === headerVal.toLowerCase() ||
+          (s.shortName && s.shortName.trim().toLowerCase() === headerVal.toLowerCase())
         );
         if (matchedSubject) {
           subjectMap.set(i, matchedSubject.id);
@@ -535,7 +536,26 @@ export class IjazahController {
       let successCount = 0;
       let skippedCount = 0;
       
-      // 3. Looping baris data (Mulai dari baris ke-2)
+      // 3. Collect students present in Excel and nullify their current semester grades
+      // This ensures that removed columns or blank cells correctly clear the grade
+      const studentsInExcel = new Set<string>();
+      for (let rowIdx = 2; rowIdx <= worksheet.rowCount; rowIdx++) {
+        const nisnVal = worksheet.getRow(rowIdx).getCell(nisnColIdx).value;
+        const nisnStr = nisnVal ? nisnVal.toString().trim() : '';
+        if (nisnStr) {
+          const student = students.find(s => s.nisn === nisnStr);
+          if (student) studentsInExcel.add(student.id);
+        }
+      }
+
+      if (studentsInExcel.size > 0) {
+        const { inArray } = require('drizzle-orm');
+        await db.update(ijazahGrades)
+          .set({ [semester]: null, updatedAt: new Date() })
+          .where(inArray(ijazahGrades.studentId, Array.from(studentsInExcel)));
+      }
+      
+      // 4. Looping baris data (Mulai dari baris ke-2) untuk memasukkan nilai baru
       for (let rowIdx = 2; rowIdx <= worksheet.rowCount; rowIdx++) {
         const row = worksheet.getRow(rowIdx);
         const nisnVal = row.getCell(nisnColIdx).value;
