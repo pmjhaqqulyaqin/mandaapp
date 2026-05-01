@@ -34,7 +34,15 @@ export class IjazahController {
     try {
       const { classId } = req.query;
       
-      let query = db
+      // Build dynamic conditions
+      const conditions = [like(classes.name, 'XII %')];
+      
+      // Jika difilter berdasarkan rombel tertentu
+      if (classId && typeof classId === 'string' && classId !== 'global') {
+        conditions.push(eq(studentProfiles.classId, classId));
+      }
+
+      const students = await db
         .select({
           id: studentProfiles.id,
           nis: studentProfiles.nis,
@@ -46,17 +54,9 @@ export class IjazahController {
         })
         .from(studentProfiles)
         .leftJoin(classes, eq(studentProfiles.classId, classes.id))
-        .where(like(classes.name, 'XII %')); // Filter hanya kelas XII
+        .where(and(...conditions))
+        .orderBy(asc(classes.name), asc(studentProfiles.fullName));
 
-      // Jika difilter berdasarkan rombel tertentu
-      if (classId && typeof classId === 'string' && classId !== 'global') {
-        query = query.where(and(
-          like(classes.name, 'XII %'),
-          eq(studentProfiles.classId, classId)
-        ));
-      }
-
-      const students = await query.orderBy(asc(classes.name), asc(studentProfiles.fullName));
       
       res.json(students);
     } catch (error: any) {
@@ -233,7 +233,12 @@ export class IjazahController {
       worksheet.columns = columns;
 
       // 3. Fetch Students based on type
-      let query = db
+      const conditions = [like(classes.name, 'XII %')];
+      if (type === 'rombel' && classId && typeof classId === 'string') {
+        conditions.push(eq(studentProfiles.classId, classId));
+      }
+
+      const students = await db
         .select({
           id: studentProfiles.id,
           nisn: studentProfiles.nisn,
@@ -241,16 +246,8 @@ export class IjazahController {
         })
         .from(studentProfiles)
         .leftJoin(classes, eq(studentProfiles.classId, classes.id))
-        .where(like(classes.name, 'XII %'));
-
-      if (type === 'rombel' && classId && typeof classId === 'string') {
-        query = query.where(and(
-          like(classes.name, 'XII %'),
-          eq(studentProfiles.classId, classId)
-        ));
-      }
-
-      const students = await query.orderBy(asc(studentProfiles.fullName));
+        .where(and(...conditions))
+        .orderBy(asc(studentProfiles.fullName));
 
       // 4. Populate rows
       students.forEach((student, index) => {
@@ -267,7 +264,7 @@ export class IjazahController {
       headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
       
       // Color header based on columns
-      headerRow.eachCell((cell, colNumber) => {
+      headerRow.eachCell((cell: any, colNumber: number) => {
         cell.fill = {
           type: 'pattern',
           pattern: 'solid',
@@ -279,9 +276,9 @@ export class IjazahController {
       });
 
       // Data borders
-      worksheet.eachRow((row, rowNumber) => {
+      worksheet.eachRow((row: any, rowNumber: number) => {
         if (rowNumber > 1) {
-          row.eachCell((cell) => {
+          row.eachCell((cell: any) => {
             cell.border = {
               top: {style:'thin', color: {argb:'FFE2E8F0'}},
               left: {style:'thin', color: {argb:'FFE2E8F0'}},
@@ -431,8 +428,8 @@ export class IjazahController {
 
       // 1. Get Settings
       const settingsResult = await db.select().from(ijazahSettings).limit(1);
-      const reportWeight = settingsResult.length > 0 ? settingsResult[0].reportWeight : 60;
-      const examWeight = settingsResult.length > 0 ? settingsResult[0].examWeight : 40;
+      const reportWeight = (settingsResult.length > 0 ? settingsResult[0].reportWeight : 60) ?? 60;
+      const examWeight = (settingsResult.length > 0 ? settingsResult[0].examWeight : 40) ?? 40;
 
       // 2. Get Subjects
       const subjects = await db.select().from(ijazahSubjects).where(eq(ijazahSubjects.isActive, true)).orderBy(asc(ijazahSubjects.orderNum));
@@ -520,8 +517,8 @@ export class IjazahController {
 
       // Re-use logic from preview
       const settingsResult = await db.select().from(ijazahSettings).limit(1);
-      const reportWeight = settingsResult.length > 0 ? settingsResult[0].reportWeight : 60;
-      const examWeight = settingsResult.length > 0 ? settingsResult[0].examWeight : 40;
+      const reportWeight = (settingsResult.length > 0 ? settingsResult[0].reportWeight : 60) ?? 60;
+      const examWeight = (settingsResult.length > 0 ? settingsResult[0].examWeight : 40) ?? 40;
 
       const subjects = await db.select().from(ijazahSubjects).where(eq(ijazahSubjects.isActive, true)).orderBy(asc(ijazahSubjects.orderNum));
       const students = await db.select({
@@ -583,7 +580,7 @@ export class IjazahController {
         [row1, row2].forEach(r => {
           r.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
           r.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-          r.eachCell(cell => {
+          r.eachCell((cell: any) => {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
             cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
           });
@@ -598,7 +595,7 @@ export class IjazahController {
         const r1 = worksheet.addRow(headerRow);
         r1.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
         r1.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-        r1.eachCell(cell => {
+        r1.eachCell((cell: any) => {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10B981' } };
           cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
         });
@@ -637,7 +634,7 @@ export class IjazahController {
 
         const dataRow = worksheet.addRow(rowData);
         // Border and alignment
-        dataRow.eachCell((cell, colNumber) => {
+        dataRow.eachCell((cell: any, colNumber: number) => {
           cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
           if (colNumber > 4) cell.alignment = { horizontal: 'center' };
         });
