@@ -266,19 +266,43 @@ export class IjazahController {
         { header: 'Nama Mata Pelajaran', key: 'name', width: 40 },
       ];
 
-      // Add example rows
-      const examples = [
-        { orderNum: 1, group: 'Kelompok A (Wajib)', name: 'Pendidikan Agama Islam' },
-        { orderNum: 2, group: 'Kelompok A (Wajib)', name: 'PKn' },
-        { orderNum: 3, group: 'Kelompok A (Wajib)', name: 'Bahasa Indonesia' },
-        { orderNum: 4, group: 'Kelompok A (Wajib)', name: 'Bahasa Arab' },
-        { orderNum: 5, group: 'Kelompok A (Wajib)', name: 'Matematika' },
-        { orderNum: 6, group: 'KLP B (Wajib)', name: 'Seni Budaya' },
-        { orderNum: 7, group: 'KLP B (Wajib)', name: 'Penjas' },
-        { orderNum: 8, group: 'IPA (Peminatan)', name: 'Fisika' },
-        { orderNum: 9, group: 'IPA (Peminatan)', name: 'Kimia' },
-        { orderNum: 10, group: 'IPA (Peminatan)', name: 'Biologi' },
-      ];
+      // Fetch Grade XII classes to build dynamic peminatan groups
+      const grade12Classes = await db
+        .select({ name: classes.name })
+        .from(classes)
+        .where(like(classes.name, 'XII %'));
+
+      const peminatanNames = grade12Classes
+        .map(c => c.name.replace(/^XII\s*/i, '').replace(/[-\s]*\d+$/, '').trim())
+        .filter((v, i, a) => v && a.indexOf(v) === i); // unique
+
+      // Build example rows: fixed wajib + dynamic peminatan + extras
+      const examples: { orderNum: number; group: string; name: string }[] = [];
+      let order = 1;
+
+      // Kelompok A (Wajib) - always present
+      const wajibA = ['Pendidikan Agama Islam', 'PKn', 'Bahasa Indonesia', 'Bahasa Arab', 'Matematika'];
+      wajibA.forEach(name => examples.push({ orderNum: order++, group: 'Kelompok A (Wajib)', name }));
+
+      // Kelompok B (Wajib)
+      const wajibB = ['Seni Budaya', 'Penjas'];
+      wajibB.forEach(name => examples.push({ orderNum: order++, group: 'Kelompok B (Wajib)', name }));
+
+      // Dynamic peminatan based on actual rombel names
+      if (peminatanNames.length > 0) {
+        for (const peminatan of peminatanNames) {
+          examples.push({ orderNum: order++, group: `${peminatan} (Peminatan)`, name: `Contoh Mapel ${peminatan} 1` });
+          examples.push({ orderNum: order++, group: `${peminatan} (Peminatan)`, name: `Contoh Mapel ${peminatan} 2` });
+        }
+      } else {
+        // Fallback if no classes found
+        examples.push({ orderNum: order++, group: 'Peminatan', name: 'Contoh Mapel Peminatan 1' });
+        examples.push({ orderNum: order++, group: 'Peminatan', name: 'Contoh Mapel Peminatan 2' });
+      }
+
+      // Lintas Minat & Muatan Lokal
+      examples.push({ orderNum: order++, group: 'Lintas Minat', name: 'Contoh Mapel Lintas Minat' });
+      examples.push({ orderNum: order++, group: 'Muatan Lokal', name: 'Contoh Muatan Lokal' });
 
       examples.forEach(ex => worksheet.addRow(ex));
 
