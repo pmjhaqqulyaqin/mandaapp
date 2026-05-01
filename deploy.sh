@@ -25,7 +25,7 @@ echo ""
 
 # 2. Run pending SQL migrations against the database
 echo "🗄️  [2/6] Menjalankan migrasi database..."
-MIGRATION_DIR="apps/api/migrations"
+MIGRATION_DIR="apps/api/src/db/migrations"
 if [ -d "$MIGRATION_DIR" ]; then
   for migration_file in "$MIGRATION_DIR"/*.sql; do
     if [ -f "$migration_file" ]; then
