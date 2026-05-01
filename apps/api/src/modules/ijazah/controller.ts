@@ -973,42 +973,125 @@ export class IjazahController {
 
       // Build Headers
       if (isLeger) {
-        // LEGER: 2 header rows because we have 3 columns per subject (Rata, UM, Ijazah)
-        const headerRow1 = ['No', 'NIS', 'NISN', 'Nama Siswa'];
-        const headerRow2 = ['', '', '', ''];
+        // LEGER: 1 header row with vertical text for subjects
+        const headerRow = ['No', 'NIS', 'NISN', 'Nama Siswa', 'Sem/UM'];
+        subjects.forEach(subj => headerRow.push(subj.name));
+        headerRow.push('Rata-rata Nilai');
+
+        const row1 = worksheet.addRow(headerRow);
         
-        subjects.forEach(subj => {
-          headerRow1.push(subj.name, '', ''); // Spanning 3 cols
-          headerRow2.push('Rata Rapor', 'Nilai UM', 'Nilai Ijazah');
+        row1.font = { bold: true, size: 10, color: { argb: 'FF000000' } };
+        row1.height = 120; // make it tall for vertical text
+        row1.eachCell((cell: any, colNumber: number) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9EAD3' } };
+          cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+          
+          if (colNumber > 5 && colNumber < headerRow.length) {
+            cell.alignment = { vertical: 'bottom', horizontal: 'center', wrapText: true, textRotation: 90 };
+          } else {
+            cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+          }
         });
-        
-        headerRow1.push('Rata-rata Total');
-        headerRow2.push('');
 
-        const row1 = worksheet.addRow(headerRow1);
-        const row2 = worksheet.addRow(headerRow2);
+        // Populate Data (7 rows per student)
+        const rowLabels = ['1', '2', '3', '4', '5', 'UM', 'Ijazah'];
+        let startRowIndex = 2; // after header
 
-        // Merge headers for identitas & subjects
-        worksheet.mergeCells('A1:A2');
-        worksheet.mergeCells('B1:B2');
-        worksheet.mergeCells('C1:C2');
-        worksheet.mergeCells('D1:D2');
-
-        let colIndex = 5; // E
-        subjects.forEach(() => {
-          worksheet.mergeCells(1, colIndex, 1, colIndex + 2);
-          colIndex += 3;
-        });
-        worksheet.mergeCells(1, colIndex, 2, colIndex); // Total Rata
-
-        // Styling headers
-        [row1, row2].forEach(r => {
-          r.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
-          r.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-          r.eachCell((cell: any) => {
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
-            cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+        students.forEach((student, index) => {
+          const studentGrades = grades.filter(g => g.studentId === student.id);
+          
+          const studentDataBySubject = subjects.map(subj => {
+             const gArray = studentGrades.filter(sg => subj.ids.includes(sg.subjectId));
+             let s1=null, s2=null, s3=null, s4=null, s5=null, um=null;
+             
+             ['semester1', 'semester2', 'semester3', 'semester4', 'semester5'].forEach((sem, idx) => {
+                 let val: number | null = null;
+                 for(const g of gArray) {
+                   if((g as any)[sem] !== null && (g as any)[sem] !== undefined) {
+                     val = (g as any)[sem];
+                     break;
+                   }
+                 }
+                 if(idx===0) s1=val;
+                 if(idx===1) s2=val;
+                 if(idx===2) s3=val;
+                 if(idx===3) s4=val;
+                 if(idx===4) s5=val;
+             });
+             
+             for(const g of gArray) {
+                 if(g.examScore) {
+                   um = g.examScore;
+                   break;
+                 }
+             }
+             
+             let semTotal = (s1||0) + (s2||0) + (s3||0) + (s4||0) + (s5||0);
+             let avgRapor = Math.round((semTotal / 5) * 100) / 100;
+             let finalScoreRaw = subj.hasUm ? (avgRapor * (reportWeight / 100)) + ((um||0) * (examWeight / 100)) : avgRapor;
+             let ijazah = Math.round(finalScoreRaw);
+             
+             return { s1, s2, s3, s4, s5, um, ijazah };
           });
+
+          for (let i = 0; i < 7; i++) {
+            const label = rowLabels[i];
+            const rowData: any[] = [];
+            
+            rowData.push(index + 1, student.nis, student.nisn, student.fullName, label);
+
+            let rowTotal = 0;
+            let validSubjCount = 0;
+
+            studentDataBySubject.forEach(data => {
+               let val: any = '';
+               if(label === '1') val = data.s1;
+               else if(label === '2') val = data.s2;
+               else if(label === '3') val = data.s3;
+               else if(label === '4') val = data.s4;
+               else if(label === '5') val = data.s5;
+               else if(label === 'UM') val = data.um;
+               else if(label === 'Ijazah') val = data.ijazah;
+
+               rowData.push(val !== null && val !== undefined ? val : '');
+               if (typeof val === 'number') {
+                 rowTotal += val;
+                 validSubjCount++;
+               }
+            });
+
+            // Rata-rata Nilai for this row
+            const avgRow = validSubjCount > 0 ? Math.round((rowTotal / validSubjCount) * 100) / 100 : '';
+            rowData.push(avgRow);
+
+            const r = worksheet.addRow(rowData);
+            
+            // Styling
+            r.eachCell((cell: any, colNum: number) => {
+              cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+              if (colNum > 4) {
+                 cell.alignment = { vertical: 'middle', horizontal: 'center' };
+              } else {
+                 cell.alignment = { vertical: 'middle', horizontal: 'left' };
+              }
+              
+              if (colNum === 5) {
+                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9EAD3' } }; 
+              }
+              
+              if (label === 'Ijazah') {
+                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF4CCCC' } }; 
+              }
+            });
+          }
+
+          // Merge student info cells
+          worksheet.mergeCells(`A${startRowIndex}:A${startRowIndex + 6}`);
+          worksheet.mergeCells(`B${startRowIndex}:B${startRowIndex + 6}`);
+          worksheet.mergeCells(`C${startRowIndex}:C${startRowIndex + 6}`);
+          worksheet.mergeCells(`D${startRowIndex}:D${startRowIndex + 6}`);
+          
+          startRowIndex += 7;
         });
 
       } else {
@@ -1024,84 +1107,79 @@ export class IjazahController {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10B981' } };
           cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
         });
-      }
 
-      // Populate Data
-      students.forEach((student, index) => {
-        const studentGrades = grades.filter(g => g.studentId === student.id);
-        const rowData: any[] = [index + 1, student.nis, student.nisn, student.fullName];
-        
-        let totalFinal = 0;
-
-        subjects.forEach(subj => {
-          const gArray = studentGrades.filter(sg => subj.ids.includes(sg.subjectId));
-          let semTotal = 0;
-          let semCount = 0;
-          let examScore = 0;
+        // Populate Data for Nilai Ijazah
+        students.forEach((student, index) => {
+          const studentGrades = grades.filter(g => g.studentId === student.id);
+          const rowData: any[] = [index + 1, student.nis, student.nisn, student.fullName];
           
-          ['semester1', 'semester2', 'semester3', 'semester4', 'semester5'].forEach(sem => {
-             let val: number | null = null;
-             for(const g of gArray) {
-               if((g as any)[sem] !== null && (g as any)[sem] !== undefined) {
-                 val = (g as any)[sem];
+          let totalFinal = 0;
+
+          subjects.forEach(subj => {
+            const gArray = studentGrades.filter(sg => subj.ids.includes(sg.subjectId));
+            let semTotal = 0;
+            let semCount = 0;
+            let examScore = 0;
+            
+            ['semester1', 'semester2', 'semester3', 'semester4', 'semester5'].forEach(sem => {
+               let val: number | null = null;
+               for(const g of gArray) {
+                 if((g as any)[sem] !== null && (g as any)[sem] !== undefined) {
+                   val = (g as any)[sem];
+                   break;
+                 }
+               }
+              if (val !== null && val !== undefined) {
+                semTotal += val;
+                semCount++;
+              }
+            });
+            
+            for(const g of gArray) {
+               if(g.examScore) {
+                 examScore = g.examScore;
                  break;
                }
-             }
-            if (val !== null && val !== undefined) {
-              semTotal += val;
-              semCount++;
             }
-          });
-          
-          for(const g of gArray) {
-             if(g.examScore) {
-               examScore = g.examScore;
-               break;
-             }
-          }
-          
-          const avgRaporRaw = semTotal / 5;
-          const avgRapor = Math.round(avgRaporRaw * 100) / 100;
-          
-          let finalScoreRaw = 0;
-          if (subj.hasUm) {
-             finalScoreRaw = (avgRapor * (reportWeight / 100)) + (examScore * (examWeight / 100));
-          } else {
-             finalScoreRaw = avgRapor;
-          }
-          const finalScore = Math.round(finalScoreRaw);
-          
-          totalFinal += finalScore;
-
-          if (isLeger) {
-            rowData.push(avgRapor, examScore, finalScore);
-          } else {
+            
+            const avgRaporRaw = semTotal / 5;
+            const avgRapor = Math.round(avgRaporRaw * 100) / 100;
+            
+            let finalScoreRaw = 0;
+            if (subj.hasUm) {
+               finalScoreRaw = (avgRapor * (reportWeight / 100)) + (examScore * (examWeight / 100));
+            } else {
+               finalScoreRaw = avgRapor;
+            }
+            const finalScore = Math.round(finalScoreRaw);
+            
+            totalFinal += finalScore;
             rowData.push(finalScore);
-          }
-        });
+          });
 
-        const avgFinal = subjects.length > 0 ? Math.round((totalFinal / subjects.length) * 100) / 100 : 0;
-        rowData.push(avgFinal);
+          const avgFinal = subjects.length > 0 ? Math.round((totalFinal / subjects.length) * 100) / 100 : 0;
+          rowData.push(avgFinal);
 
-        const dataRow = worksheet.addRow(rowData);
-        // Border and alignment
-        dataRow.eachCell((cell: any, colNumber: number) => {
-          cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
-          if (colNumber > 4) cell.alignment = { horizontal: 'center' };
+          const dataRow = worksheet.addRow(rowData);
+          dataRow.eachCell((cell: any, colNumber: number) => {
+            cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+            if (colNumber > 4) cell.alignment = { horizontal: 'center' };
+          });
         });
-      });
+      }
 
       // Set Column Widths
       worksheet.getColumn(1).width = 5;
       worksheet.getColumn(2).width = 15;
       worksheet.getColumn(3).width = 15;
       worksheet.getColumn(4).width = 35;
+      worksheet.getColumn(5).width = 8; // Sem/UM
       
-      const subjectStartCol = 5;
-      const totalCols = isLeger ? 4 + (subjects.length * 3) + 1 : 4 + subjects.length + 1;
+      const subjectStartCol = 6;
+      const totalCols = 5 + subjects.length + 1; // Col 6..N for subjects + 1 for avg
       
       for (let i = subjectStartCol; i <= totalCols; i++) {
-        worksheet.getColumn(i).width = 12;
+        worksheet.getColumn(i).width = isLeger ? 6 : 12; // narrow for Leger since vertical text
       }
 
       const safeClassName = className.replace(/[^a-zA-Z0-9_-]/g, '_');
