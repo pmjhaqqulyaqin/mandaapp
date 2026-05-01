@@ -252,7 +252,8 @@ export class IjazahController {
       const mappings = await db.select().from(ijazahSubjectMappings);
       res.json(mappings);
     } catch (error) {
-      res.status(500).json({ error: "Gagal memuat pemetaan mapel" });
+      // Table may not exist yet - return empty array gracefully
+      res.json([]);
     }
   }
 
@@ -341,23 +342,27 @@ export class IjazahController {
 
       // 1. Fetch active subjects and mappings
       const activeSubjects = await db.select().from(ijazahSubjects).where(eq(ijazahSubjects.isActive, true)).orderBy(asc(ijazahSubjects.orderNum));
-      const mappings = await db.select().from(ijazahSubjectMappings);
+      let mappings: any[] = [];
+      try { mappings = await db.select().from(ijazahSubjectMappings); } catch (e) { /* table may not exist yet */ }
 
       const semKey = semester as string;
       const mappingSemKey = semKey === 'examScore' ? 'um' : semKey === 'semester1' ? 'sem1' : semKey === 'semester2' ? 'sem2' : semKey === 'semester3' ? 'sem3' : semKey === 'semester4' ? 'sem4' : 'sem5';
 
       const subjects = activeSubjects.filter(subj => {
         const map = mappings.find(m => m.subjectId === subj.id);
-        if (!map) return true; // Default to global if mapping not set
-        if (map && !(map as any)[mappingSemKey]) return false;
+        if (!map) return true; // No mapping = global (show everywhere)
+        if (!(map as any)[mappingSemKey]) return false; // Semester not active for this subject
         
         const isGlobal = !map.classIds || (map.classIds as string[]).length === 0;
         if (isGlobal) return true;
         
+        // For global (sem12) mode, show all subjects regardless of classIds
+        if (type === 'sem12' || type === 'global') return true;
+        
         if (type === 'rombel' && classId && typeof classId === 'string') {
           return (map.classIds as string[]).includes(classId);
         }
-        return false;
+        return true;
       });
 
       // 2. Define Columns
@@ -583,17 +588,20 @@ export class IjazahController {
 
       // 1. Get subjects and filter by mapping
       const activeSubjects = await db.select().from(ijazahSubjects).where(eq(ijazahSubjects.isActive, true)).orderBy(asc(ijazahSubjects.orderNum));
-      const mappings = await db.select().from(ijazahSubjectMappings);
+      let mappings: any[] = [];
+      try { mappings = await db.select().from(ijazahSubjectMappings); } catch (e) { /* table may not exist yet */ }
       
       const subjects = activeSubjects.filter(subj => {
-        const map = mappings.find(m => m.subjectId === subj.id);
-        if (!map) return true; // Default to global if mapping not set
+        const map = mappings.find((m: any) => m.subjectId === subj.id);
+        if (!map) return true; // No mapping = global (show everywhere)
         const isGlobal = !map.classIds || (map.classIds as string[]).length === 0;
         if (isGlobal) return true;
+        // For global mode, show all subjects
+        if (type === 'global') return true;
         if (type === 'rombel' && classId && typeof classId === 'string') {
           return (map.classIds as string[]).includes(classId);
         }
-        return false;
+        return true;
       });
 
       // 2. Get students
@@ -675,7 +683,8 @@ export class IjazahController {
         : [];
 
       // Map mappings to subjects
-      const mappings = await db.select().from(ijazahSubjectMappings);
+      let mappings: any[] = [];
+      try { mappings = await db.select().from(ijazahSubjectMappings); } catch (e) { /* table may not exist yet */ }
       const subjectMap = new Map<string, any>();
       
       for (const subj of allActiveSubjects) {
