@@ -65,7 +65,7 @@ export const InputRombelTab = () => {
     try {
       const res = await apiClient<{message: string}>('/ijazah/upload-grades', {
         method: 'POST',
-        body: formData
+        data: formData
       });
       toast.success(res.message || 'Upload berhasil');
       setSelectedFile(null);

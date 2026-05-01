@@ -46,8 +46,7 @@ export const InputGlobalTab = () => {
     try {
       const res = await apiClient<{message: string}>('/ijazah/upload-grades', {
         method: 'POST',
-        body: formData,
-        // Content-Type is intentionally omitted so the browser sets the boundary automatically
+        data: formData,
       });
       toast.success(res.message || 'Upload berhasil');
       setSelectedFile(null);

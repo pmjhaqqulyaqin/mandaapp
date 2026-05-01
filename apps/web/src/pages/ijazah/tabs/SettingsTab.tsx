@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
-import { Save, Plus, Trash2, Edit2, Check, X, Loader2 } from 'lucide-react';
+import { Save, Plus, Trash2, Edit2, Check, X, Loader2, Settings } from 'lucide-react';
 
 type SubjectGroup = 'Kelompok A (Wajib)' | 'KLP B (Wajib)' | 'IPA (Peminatan)' | 'IPS (Peminatan)' | 'BAHASA (Peminatan)' | 'AGAMA (Peminatan)' | 'LM';
 
@@ -60,11 +60,11 @@ export const SettingsTab = () => {
     try {
       await apiClient('/ijazah/settings', {
         method: 'POST',
-        body: JSON.stringify({
+        data: {
           academicYearId: activeYearId,
           reportWeight,
           examWeight
-        })
+        }
       });
       toast.success('Pengaturan bobot berhasil disimpan');
     } catch (err) {
@@ -100,7 +100,7 @@ export const SettingsTab = () => {
 
       await apiClient('/ijazah/subjects', {
         method: 'POST',
-        body: JSON.stringify(payload)
+        data: payload
       });
       
       toast.success('Mata pelajaran disimpan');
