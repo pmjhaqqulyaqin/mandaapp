@@ -365,7 +365,10 @@ export class IjazahController {
 
       const subjects = activeSubjects.filter(subj => {
         const map = mappings.find(m => m.subjectId === subj.id);
-        if (!map) return true; // No mapping = global (show everywhere)
+        if (!map) {
+          // If user hasn't mapped anything yet, show all. If they have, hide unmapped.
+          return mappings.length === 0;
+        }
         if (!(map as any)[mappingSemKey]) return false; // Semester not active for this subject
         
         const isGlobal = !map.classIds || (map.classIds as string[]).length === 0;
@@ -610,7 +613,8 @@ export class IjazahController {
       
       const subjects = activeSubjects.filter(subj => {
         const map = mappings.find((m: any) => m.subjectId === subj.id);
-        if (!map) return true; // No mapping = global (show everywhere)
+        if (!map) return mappings.length === 0; // Hide unmapped if mappings exist
+        
         const isGlobal = !map.classIds || (map.classIds as string[]).length === 0;
         if (isGlobal) return true;
         // For global mode, show all subjects
@@ -707,8 +711,13 @@ export class IjazahController {
       for (const subj of allActiveSubjects) {
         if (selectedNames.length > 0 && !selectedNames.includes(subj.name)) continue;
         const map = mappings.find(m => m.subjectId === subj.id);
-        const isGlobal = !map || !map.classIds || (map.classIds as string[]).length === 0;
-        if (!isGlobal && map && !(map.classIds as string[]).includes(classId)) continue;
+        
+        if (!map) {
+          if (mappings.length > 0) continue; // hide unmapped
+        } else {
+          const isGlobal = !map.classIds || (map.classIds as string[]).length === 0;
+          if (!isGlobal && !(map.classIds as string[]).includes(classId)) continue;
+        }
 
         if (!subjectMap.has(subj.name)) {
           subjectMap.set(subj.name, {
@@ -842,13 +851,25 @@ export class IjazahController {
       let subjectsQuery = db.select().from(ijazahSubjects).where(eq(ijazahSubjects.isActive, true));
       let allActiveSubjects = await subjectsQuery;
 
+      let mappings: any[] = [];
+      try { mappings = await db.select().from(ijazahSubjectMappings); } catch (e) { /* table may not exist yet */ }
+
       const subjectMap = new Map<string, any>();
       for (const subj of allActiveSubjects) {
         if (selectedNames.length > 0 && !selectedNames.includes(subj.name)) continue;
         
+        const map = mappings.find(m => m.subjectId === subj.id);
+        if (!map) {
+          if (mappings.length > 0) continue; // hide unmapped
+        } else {
+          const isGlobal = !map.classIds || (map.classIds as string[]).length === 0;
+          if (!isGlobal && !(map.classIds as string[]).includes(classId)) continue;
+        }
+
         if (!subjectMap.has(subj.name)) {
           subjectMap.set(subj.name, {
             name: subj.name,
+            shortName: subj.shortName,
             group: subj.group,
             orderNum: subj.orderNum,
             hasUm: false,
@@ -858,7 +879,9 @@ export class IjazahController {
         
         const mapEntry = subjectMap.get(subj.name);
         mapEntry.ids.push(subj.id);
-        if (subj.semester === 'um') {
+        if (map && map.um) {
+          mapEntry.hasUm = true;
+        } else if (!map && subj.semester === 'um') { // legacy fallback
           mapEntry.hasUm = true;
         }
       }
