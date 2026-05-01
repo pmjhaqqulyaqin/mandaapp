@@ -27,9 +27,9 @@ router.post("/upload-grades", requireStaff, upload.single("file"), IjazahControl
 router.get("/grades-preview", requireStaff, IjazahController.gradesPreview);
 router.patch("/grades", requireStaff, IjazahController.updateSingleGrade);
 
-// Endpoint: UM Subjects (Checklist)
-router.post("/subjects/um", requireStaff, IjazahController.saveUmSubjects);
-router.get("/subjects/unique", requireStaff, IjazahController.getUniqueSubjects);
+// Endpoint Phase 2: Mappings
+router.get("/mappings", requireStaff, IjazahController.getMappings);
+router.post("/mappings", requireStaff, IjazahController.saveMapping);
 
 // Endpoint Phase 4: Preview & Export
 router.get("/preview", requireStaff, IjazahController.getPreview);

@@ -6,6 +6,7 @@ import {
   classes, 
   ijazahSettings, 
   ijazahSubjects, 
+  ijazahSubjectMappings,
   ijazahGrades,
   academicYears
 } from "../../db/schema";
@@ -146,19 +147,13 @@ export class IjazahController {
 
   // --- FASE 2: MATA PELAJARAN ---
 
-  static async getSubjects(req: Request, res: Response) {
+  static async getSubjects(_req: Request, res: Response) {
     try {
-      const { semester } = req.query;
-      const conditions = [eq(ijazahSubjects.isActive, true)];
-      if (semester && typeof semester === 'string') {
-        conditions.push(eq(ijazahSubjects.semester, semester));
-      }
       const subjects = await db
         .select()
         .from(ijazahSubjects)
-        .where(and(...conditions))
+        .where(eq(ijazahSubjects.isActive, true))
         .orderBy(asc(ijazahSubjects.orderNum));
-        
       res.json(subjects);
     } catch (error: any) {
       logger.error({ err: error }, "Failed to fetch Ijazah subjects");
@@ -168,30 +163,17 @@ export class IjazahController {
 
   static async saveSubject(req: Request, res: Response) {
     try {
-      const { id, name, group, orderNum, semester } = req.body;
-      
-      if (!name || !group) {
-        return res.status(400).json({ error: "Nama mapel dan kelompok wajib diisi" });
-      }
-
-      const semVal = semester || 'sem1';
-
+      const { id, name, group, orderNum } = req.body;
+      if (!name || !group) return res.status(400).json({ error: "Nama mapel dan kelompok wajib diisi" });
       if (id) {
         await db.update(ijazahSubjects)
-          .set({ name, group, orderNum: orderNum || 0, semester: semVal, updatedAt: new Date() })
+          .set({ name, group, orderNum: orderNum || 0, updatedAt: new Date() })
           .where(eq(ijazahSubjects.id, id));
       } else {
-        await db.insert(ijazahSubjects).values({
-          name,
-          group,
-          orderNum: orderNum || 0,
-          semester: semVal
-        });
+        await db.insert(ijazahSubjects).values({ name, group, orderNum: orderNum || 0 });
       }
-
       res.json({ success: true, message: "Mata pelajaran berhasil disimpan" });
     } catch (error: any) {
-      logger.error({ err: error }, "Failed to save Ijazah subject");
       res.status(500).json({ error: "Gagal menyimpan mata pelajaran" });
     }
   }
@@ -199,69 +181,35 @@ export class IjazahController {
   static async deleteSubject(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      // Soft delete
-      await db.update(ijazahSubjects)
-        .set({ isActive: false, updatedAt: new Date() })
-        .where(eq(ijazahSubjects.id, id));
-        
+      await db.update(ijazahSubjects).set({ isActive: false, updatedAt: new Date() }).where(eq(ijazahSubjects.id, id));
       res.json({ success: true, message: "Mata pelajaran berhasil dihapus" });
     } catch (error: any) {
-      logger.error({ err: error }, "Failed to delete Ijazah subject");
       res.status(500).json({ error: "Gagal menghapus mata pelajaran" });
     }
   }
 
   static async uploadSubjects(req: Request, res: Response) {
     try {
-      if (!req.file) {
-        return res.status(400).json({ error: "File Excel tidak ditemukan" });
-      }
-
+      if (!req.file) return res.status(400).json({ error: "File Excel tidak ditemukan" });
       const ExcelJS = require('exceljs');
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(req.file.buffer);
       const worksheet = workbook.getWorksheet(1);
+      if (!worksheet) return res.status(400).json({ error: "Worksheet tidak ditemukan di file Excel" });
 
-      if (!worksheet) {
-        return res.status(400).json({ error: "Worksheet tidak ditemukan di file Excel" });
-      }
-
-      // Template format: Urut(1) | Kelompok(2) | Nama Mapel(3) | Sem1(4) | Sem2(5) | Sem3(6) | Sem4(7) | Sem5(8)
-      const semCols = ['sem1', 'sem2', 'sem3', 'sem4', 'sem5'];
       let inserted = 0;
-      
-      worksheet.eachRow((row: any, rowNumber: number) => {
-        if (rowNumber === 1) return;
-
+      for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
+        const row = worksheet.getRow(rowNumber);
         const orderNum = row.getCell(1).value;
         const group = String(row.getCell(2).value || '').trim();
         const name = String(row.getCell(3).value || '').trim();
-
-        if (!name || !group) return;
-
+        if (!name || !group) continue;
         const ord = typeof orderNum === 'number' ? orderNum : rowNumber - 1;
-
-        // Check each semester column (4-8)
-        for (let i = 0; i < semCols.length; i++) {
-          const cellVal = row.getCell(4 + i).value;
-          const isChecked = cellVal && (cellVal === 1 || cellVal === '1' || cellVal === '✓' || 
-            String(cellVal).toLowerCase() === 'ya' || String(cellVal).toLowerCase() === 'y' || cellVal === true);
-          if (isChecked) {
-            // Use async insert below
-            (async () => {
-              await db.insert(ijazahSubjects).values({ name, group, orderNum: ord, semester: semCols[i] });
-            })();
-            inserted++;
-          }
-        }
-      });
-
-      // Wait a bit for async inserts to complete
-      await new Promise(resolve => setTimeout(resolve, 500));
-
+        await db.insert(ijazahSubjects).values({ name, group, orderNum: ord });
+        inserted++;
+      }
       res.json({ success: true, message: `${inserted} entri mata pelajaran berhasil diimpor` });
     } catch (error: any) {
-      logger.error({ err: error }, "Failed to upload Ijazah subjects");
       res.status(500).json({ error: "Gagal memproses file Excel" });
     }
   }
@@ -271,137 +219,63 @@ export class IjazahController {
       const ExcelJS = require('exceljs');
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Template Mata Pelajaran');
-
       worksheet.columns = [
         { header: 'Urut', key: 'orderNum', width: 8 },
         { header: 'Kelompok', key: 'group', width: 30 },
         { header: 'Nama Mata Pelajaran', key: 'name', width: 40 },
-        { header: 'Sem 1', key: 'sem1', width: 8 },
-        { header: 'Sem 2', key: 'sem2', width: 8 },
-        { header: 'Sem 3', key: 'sem3', width: 8 },
-        { header: 'Sem 4', key: 'sem4', width: 8 },
-        { header: 'Sem 5', key: 'sem5', width: 8 },
       ];
-
-      // Example rows
       const examples = [
-        { orderNum: 1, group: 'Kelompok A (Wajib)', name: 'Pendidikan Agama Islam', sem1: 1, sem2: 1, sem3: 1, sem4: 1, sem5: 1 },
-        { orderNum: 2, group: 'Kelompok A (Wajib)', name: 'PKn', sem1: 1, sem2: 1, sem3: 1, sem4: 1, sem5: 1 },
-        { orderNum: 3, group: 'Kelompok A (Wajib)', name: 'Bahasa Indonesia', sem1: 1, sem2: 1, sem3: 1, sem4: 1, sem5: 1 },
-        { orderNum: 4, group: 'Kelompok B (Wajib)', name: 'Seni Budaya', sem1: 1, sem2: 1, sem3: '', sem4: '', sem5: '' },
-        { orderNum: 5, group: 'Peminatan', name: 'Contoh Mapel Peminatan', sem1: '', sem2: '', sem3: 1, sem4: 1, sem5: 1 },
+        { orderNum: 1, group: 'Kelompok A', name: 'Pendidikan Agama Islam' },
+        { orderNum: 2, group: 'Kelompok B', name: 'Seni Budaya' },
+        { orderNum: 3, group: 'Mapel Pilihan', name: 'Biologi' },
       ];
-
       examples.forEach(ex => worksheet.addRow(ex));
-
-      // Style header
       const headerRow = worksheet.getRow(1);
       headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-      headerRow.eachCell((cell: any, colNumber: number) => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colNumber <= 3 ? 'FF4F46E5' : 'FF10B981' } };
+      headerRow.eachCell((cell: any) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
         cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
       });
-
-      for (let i = 2; i <= examples.length + 1; i++) {
-        const row = worksheet.getRow(i);
-        row.eachCell((cell: any) => {
-          cell.font = { italic: true, color: { argb: 'FF9CA3AF' } };
-          cell.border = { top:{style:'thin', color:{argb:'FFE5E7EB'}}, left:{style:'thin', color:{argb:'FFE5E7EB'}}, bottom:{style:'thin', color:{argb:'FFE5E7EB'}}, right:{style:'thin', color:{argb:'FFE5E7EB'}} };
-        });
-      }
-
-      const instrRow = worksheet.addRow(['', 'PETUNJUK:', 'Isi 1 pada kolom Sem jika mapel aktif di semester tersebut. Kosongkan jika tidak.']);
-      instrRow.getCell(2).font = { bold: true, color: { argb: 'FFDC2626' } };
-      instrRow.getCell(3).font = { italic: true, color: { argb: 'FF6B7280' } };
-
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=Template_Mata_Pelajaran_Ijazah.xlsx');
-
+      res.setHeader('Content-Disposition', 'attachment; filename=Template_Master_Mapel.xlsx');
       await workbook.xlsx.write(res);
       res.end();
     } catch (error: any) {
-      logger.error({ err: error }, "Failed to generate subject template");
       res.status(500).json({ error: "Gagal membuat template" });
     }
   }
 
-  // --- UM SUBJECTS: Set dari checklist mapel yang sudah ada (sem1-sem5) ---
-
-  static async saveUmSubjects(req: Request, res: Response) {
+  // --- MAPPINGS ---
+  static async getMappings(_req: Request, res: Response) {
     try {
-      const { subjectIds } = req.body; // Array of existing subject IDs to copy as UM
-      if (!Array.isArray(subjectIds)) {
-        return res.status(400).json({ error: "subjectIds harus berupa array" });
-      }
-
-      // 1. Soft-delete semua UM subjects yang lama
-      await db.update(ijazahSubjects)
-        .set({ isActive: false, updatedAt: new Date() })
-        .where(and(eq(ijazahSubjects.semester, 'um'), eq(ijazahSubjects.isActive, true)));
-
-      // 2. Ambil detail mapel yang dipilih
-      if (subjectIds.length === 0) {
-        return res.json({ success: true, message: "Mapel UM dikosongkan" });
-      }
-
-      const sourceSubjects = await db.select().from(ijazahSubjects)
-        .where(sql`${ijazahSubjects.id} IN (${sql.join(subjectIds.map((id: string) => sql`${id}`), sql`, `)})`);
-
-      // 3. Insert sebagai UM subjects
-      let inserted = 0;
-      for (const subj of sourceSubjects) {
-        await db.insert(ijazahSubjects).values({
-          name: subj.name,
-          group: subj.group,
-          semester: 'um',
-          orderNum: subj.orderNum,
-          isActive: true,
-        });
-        inserted++;
-      }
-
-      res.json({ success: true, message: `${inserted} mata pelajaran UM berhasil disimpan` });
-    } catch (error: any) {
-      logger.error({ err: error }, "Failed to save UM subjects");
-      res.status(500).json({ error: "Gagal menyimpan mapel UM" });
+      const mappings = await db.select().from(ijazahSubjectMappings);
+      res.json(mappings);
+    } catch (error) {
+      res.status(500).json({ error: "Gagal memuat pemetaan mapel" });
     }
   }
 
-  // --- GET UNIQUE SUBJECTS: Deduplicated by name with semester info ---
-
-  static async getUniqueSubjects(_req: Request, res: Response) {
+  static async saveMapping(req: Request, res: Response) {
     try {
-      const allSubjects = await db.select().from(ijazahSubjects)
-        .where(eq(ijazahSubjects.isActive, true))
-        .orderBy(asc(ijazahSubjects.orderNum));
+      const { subjectId, classIds, sem1, sem2, sem3, sem4, sem5, um } = req.body;
+      if (!subjectId) return res.status(400).json({ error: "subjectId wajib diisi" });
 
-      // Deduplicate by name, collect semesters
-      const map = new Map<string, { name: string; group: string; orderNum: number; semesters: string[]; ids: string[] }>();
-      for (const s of allSubjects) {
-        if (s.semester === 'um') continue; // Skip UM entries
-        const existing = map.get(s.name);
-        if (existing) {
-          existing.semesters.push(s.semester);
-          existing.ids.push(s.id);
-        } else {
-          map.set(s.name, { name: s.name, group: s.group, orderNum: s.orderNum ?? 999, semesters: [s.semester], ids: [s.id] });
-        }
+      const existing = await db.select().from(ijazahSubjectMappings).where(eq(ijazahSubjectMappings.subjectId, subjectId)).limit(1);
+      
+      const cIds = Array.isArray(classIds) ? classIds : [];
+      if (existing.length > 0) {
+        await db.update(ijazahSubjectMappings)
+          .set({ classIds: cIds, sem1: !!sem1, sem2: !!sem2, sem3: !!sem3, sem4: !!sem4, sem5: !!sem5, um: !!um, updatedAt: new Date() })
+          .where(eq(ijazahSubjectMappings.id, existing[0].id));
+      } else {
+        await db.insert(ijazahSubjectMappings).values({
+          subjectId, classIds: cIds, sem1: !!sem1, sem2: !!sem2, sem3: !!sem3, sem4: !!sem4, sem5: !!sem5, um: !!um
+        });
       }
-
-      // Also check which are in UM
-      const umSubjects = allSubjects.filter(s => s.semester === 'um');
-      const umNames = new Set(umSubjects.map(s => s.name));
-
-      const result = Array.from(map.values()).map(s => ({
-        ...s,
-        hasUm: umNames.has(s.name),
-      }));
-
-      res.json(result);
-    } catch (error: any) {
-      logger.error({ err: error }, "Failed to fetch unique subjects");
-      res.status(500).json({ error: "Gagal mengambil daftar mapel unik" });
+      res.json({ success: true, message: "Pemetaan disimpan" });
+    } catch (error) {
+      res.status(500).json({ error: "Gagal menyimpan pemetaan" });
     }
   }
 
@@ -465,16 +339,26 @@ export class IjazahController {
       };
       const subjectSemFilter = semester && typeof semester === 'string' ? semToSubjectSem[semester] : null;
 
-      // 1. Fetch active subjects (filtered by semester if provided)
-      const subjectConditions = [eq(ijazahSubjects.isActive, true)];
-      if (subjectSemFilter) {
-        subjectConditions.push(eq(ijazahSubjects.semester, subjectSemFilter));
-      }
-      const subjects = await db
-        .select()
-        .from(ijazahSubjects)
-        .where(and(...subjectConditions))
-        .orderBy(asc(ijazahSubjects.orderNum));
+      // 1. Fetch active subjects and mappings
+      const activeSubjects = await db.select().from(ijazahSubjects).where(eq(ijazahSubjects.isActive, true)).orderBy(asc(ijazahSubjects.orderNum));
+      const mappings = await db.select().from(ijazahSubjectMappings);
+
+      const semKey = semester as string;
+      const mappingSemKey = semKey === 'examScore' ? 'um' : semKey === 'semester1' ? 'sem1' : semKey === 'semester2' ? 'sem2' : semKey === 'semester3' ? 'sem3' : semKey === 'semester4' ? 'sem4' : 'sem5';
+
+      const subjects = activeSubjects.filter(subj => {
+        const map = mappings.find(m => m.subjectId === subj.id);
+        if (!map) return false;
+        if (!(map as any)[mappingSemKey]) return false;
+        
+        const isGlobal = !map.classIds || (map.classIds as string[]).length === 0;
+        if (isGlobal) return true;
+        
+        if (type === 'rombel' && classId && typeof classId === 'string') {
+          return (map.classIds as string[]).includes(classId);
+        }
+        return false;
+      });
 
       // 2. Define Columns
       const columns: any[] = [
@@ -697,10 +581,20 @@ export class IjazahController {
     try {
       const { type, classId } = req.query; // type: 'global' | 'rombel'
 
-      // 1. Get subjects
-      const subjects = await db.select().from(ijazahSubjects)
-        .where(eq(ijazahSubjects.isActive, true))
-        .orderBy(asc(ijazahSubjects.orderNum));
+      // 1. Get subjects and filter by mapping
+      const activeSubjects = await db.select().from(ijazahSubjects).where(eq(ijazahSubjects.isActive, true)).orderBy(asc(ijazahSubjects.orderNum));
+      const mappings = await db.select().from(ijazahSubjectMappings);
+      
+      const subjects = activeSubjects.filter(subj => {
+        const map = mappings.find(m => m.subjectId === subj.id);
+        if (!map) return false;
+        const isGlobal = !map.classIds || (map.classIds as string[]).length === 0;
+        if (isGlobal) return true;
+        if (type === 'rombel' && classId && typeof classId === 'string') {
+          return (map.classIds as string[]).includes(classId);
+        }
+        return false;
+      });
 
       // 2. Get students
       const conditions = [like(classes.name, 'XII %')];
@@ -780,29 +674,30 @@ export class IjazahController {
         ? subjectIds.split(',').map(s => s.trim()) 
         : [];
 
-      // We need to group subjects by name to combine semesters for the same subject
+      // Map mappings to subjects
+      const mappings = await db.select().from(ijazahSubjectMappings);
       const subjectMap = new Map<string, any>();
+      
       for (const subj of allActiveSubjects) {
         if (selectedNames.length > 0 && !selectedNames.includes(subj.name)) continue;
+        const map = mappings.find(m => m.subjectId === subj.id);
+        if (!map) continue;
         
+        const isGlobal = !map.classIds || (map.classIds as string[]).length === 0;
+        if (!isGlobal && !(map.classIds as string[]).includes(classId)) continue; // skip if not applicable to this class
+
         if (!subjectMap.has(subj.name)) {
           subjectMap.set(subj.name, {
             name: subj.name,
             group: subj.group,
-            orderNum: subj.orderNum, // We'll use this for default sorting
-            hasUm: false,
-            ids: []
+            orderNum: subj.orderNum,
+            hasUm: map.um,
+            ids: [subj.id]
           });
-        }
-        
-        const mapEntry = subjectMap.get(subj.name);
-        mapEntry.ids.push(subj.id);
-        if (subj.semester === 'um') {
-          mapEntry.hasUm = true;
         }
       }
 
-      const subjects = Array.from(subjectMap.values()).sort((a, b) => a.orderNum - b.orderNum);
+      const uniqueSubjects = Array.from(subjectMap.values()).sort((a, b) => a.orderNum - b.orderNum);
 
       // 3. Get Students
       const students = await db.select({
@@ -817,7 +712,7 @@ export class IjazahController {
         .orderBy(asc(studentProfiles.fullName));
 
       if (students.length === 0) {
-        return res.json({ students: [], subjects, reportWeight, examWeight });
+        return res.json({ students: [], subjects: uniqueSubjects, reportWeight, examWeight });
       }
 
       // 4. Get Grades
@@ -828,7 +723,7 @@ export class IjazahController {
       // 5. Calculate
       const calculatedStudents = students.map(student => {
         const studentGrades = grades.filter(g => g.studentId === student.id);
-        const subjectScores = subjects.map(subj => {
+        const subjectScores = uniqueSubjects.map((subj: any) => {
           // Get grades for all IDs associated with this subject name
           const gArray = studentGrades.filter(sg => subj.ids.includes(sg.subjectId));
           
@@ -886,7 +781,7 @@ export class IjazahController {
           };
         });
 
-        const totalFinal = subjectScores.reduce((acc, curr) => acc + curr.finalScore, 0);
+        const totalFinal = subjectScores.reduce((acc: number, curr: any) => acc + curr.finalScore, 0);
         const avgFinal = subjectScores.length > 0 ? Math.round((totalFinal / subjectScores.length) * 100) / 100 : 0;
 
         return {
@@ -896,7 +791,7 @@ export class IjazahController {
         };
       });
 
-      res.json({ students: calculatedStudents, subjects, reportWeight, examWeight });
+      res.json({ students: calculatedStudents, subjects: uniqueSubjects, reportWeight, examWeight });
     } catch (error: any) {
       logger.error({ err: error }, "Failed to fetch Ijazah preview");
       res.status(500).json({ error: "Gagal memuat preview data" });

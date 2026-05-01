@@ -36,6 +36,13 @@
       "when": 1777596356064,
       "tag": "0004_serious_rattler",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1777629111918,
+      "tag": "0005_special_bulldozer",
+      "breakpoints": true
     }
   ]
 }

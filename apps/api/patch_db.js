@@ -1,35 +1,59 @@
 const { Client } = require('pg');
 
-const client = new Client({
-  connectionString: 'postgresql://postgres:jkSBarLOLBlakBEdabwVWkUUSlVjxeOe@autorack.proxy.rlwy.net:17861/railway'
-});
-
 async function run() {
-  try {
-    await client.connect();
-    console.log("Connected to DB.");
+  let success = false;
+  let attempts = 0;
+  while (!success && attempts < 5) {
+    attempts++;
+    console.log("Attempt", attempts);
+    const client = new Client({
+      connectionString: 'postgresql://postgres:jkSBarLOLBlakBEdabwVWkUUSlVjxeOe@autorack.proxy.rlwy.net:17861/railway',
+      ssl: { rejectUnauthorized: false }
+    });
+    
+    try {
+      await client.connect();
+      console.log("Connected to DB.");
 
-    const cols = [
-      'custom_template_horizontal_front_url',
-      'custom_template_horizontal_back_url',
-      'custom_template_vertical_front_url',
-      'custom_template_vertical_back_url'
-    ];
-
-    for (const col of cols) {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS "ijazah_subject_mappings" (
+          "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+          "subject_id" uuid NOT NULL,
+          "class_ids" jsonb DEFAULT '[]'::jsonb,
+          "sem1" boolean DEFAULT false,
+          "sem2" boolean DEFAULT false,
+          "sem3" boolean DEFAULT false,
+          "sem4" boolean DEFAULT false,
+          "sem5" boolean DEFAULT false,
+          "um" boolean DEFAULT false,
+          "created_at" timestamp DEFAULT now(),
+          "updated_at" timestamp DEFAULT now()
+        );
+      `);
+      console.log("Created ijazah_subject_mappings.");
+      
       try {
-        await client.query(`ALTER TABLE "card_settings" ADD COLUMN "${col}" text;`);
-        console.log(`Added ${col} column.`);
+        await client.query(`ALTER TABLE "ijazah_subject_mappings" ADD CONSTRAINT "ijazah_subject_mappings_subject_id_ijazah_subjects_id_fk" FOREIGN KEY ("subject_id") REFERENCES "ijazah_subjects"("id") ON DELETE cascade ON UPDATE no action;`);
+        console.log("Added foreign key");
       } catch (e) {
-        console.log(`${col} might already exist:`, e.message);
+        console.log("FK already exists or error:", e.message);
       }
-    }
 
-    console.log("Finished patching db.");
-  } catch (error) {
-    console.error("Connection error", error);
-  } finally {
-    await client.end();
+      try {
+        await client.query(`ALTER TABLE "ijazah_subjects" ALTER COLUMN "semester" DROP NOT NULL;`);
+        await client.query(`ALTER TABLE "ijazah_subjects" ALTER COLUMN "semester" SET DEFAULT 'global';`);
+        console.log("Modified ijazah_subjects.");
+      } catch (e) {
+        console.log("Col modification error:", e.message);
+      }
+
+      console.log("Finished patching db.");
+      success = true;
+    } catch (error) {
+      console.error("Error:", error.message);
+    } finally {
+      await client.end().catch(e => {});
+    }
   }
 }
 

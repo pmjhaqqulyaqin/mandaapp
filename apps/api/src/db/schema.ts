@@ -566,10 +566,24 @@ export const ijazahSettings = pgTable("ijazah_settings", {
 export const ijazahSubjects = pgTable("ijazah_subjects", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 150 }).notNull(),
-  group: varchar("group", { length: 50 }).notNull(), // Kelompok A, Kelompok B, Peminatan, Lintas Minat
-  semester: varchar("semester", { length: 20 }).default("sem1").notNull(), // sem1, sem2, sem3, sem4, sem5, um
+  group: varchar("group", { length: 50 }).notNull(), // Kelompok A, Kelompok B, Muatan Lokal, Mapel Pilihan
+  semester: varchar("semester", { length: 20 }).default("global"), // Deprecated, kept for backward compat temporarily
   orderNum: integer("order_num").default(0),
   isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const ijazahSubjectMappings = pgTable("ijazah_subject_mappings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  subjectId: uuid("subject_id").references(() => ijazahSubjects.id, { onDelete: "cascade" }).notNull(),
+  classIds: jsonb("class_ids").default([]), // array of strings (class UUIDs). Empty means applies to all classes.
+  sem1: boolean("sem1").default(false),
+  sem2: boolean("sem2").default(false),
+  sem3: boolean("sem3").default(false),
+  sem4: boolean("sem4").default(false),
+  sem5: boolean("sem5").default(false),
+  um: boolean("um").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
