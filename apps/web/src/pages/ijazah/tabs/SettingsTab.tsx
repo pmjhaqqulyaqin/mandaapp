@@ -3,7 +3,7 @@ import { apiClient, API_BASE_URL } from '../../../lib/api';
 import { toast } from 'sonner';
 import { Save, Plus, Trash2, Edit2, Check, X, Loader2, Settings, Download, Upload } from 'lucide-react';
 
-type SubjectGroup = 'Kelompok A (Wajib)' | 'KLP B (Wajib)' | 'IPA (Peminatan)' | 'IPS (Peminatan)' | 'BAHASA (Peminatan)' | 'AGAMA (Peminatan)' | 'LM';
+type SubjectGroup = string;
 
 interface Subject {
   id?: string;
@@ -24,6 +24,7 @@ export const SettingsTab = () => {
   const [isUploadingSubjects, setIsUploadingSubjects] = useState(false);
   const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
   const [subjectFile, setSubjectFile] = useState<File | null>(null);
+  const [classNames, setClassNames] = useState<string[]>([]);
 
 
   useEffect(() => {
@@ -43,6 +44,10 @@ export const SettingsTab = () => {
       // 2. Fetch subjects
       const subjectsResult = await apiClient<Subject[]>('/ijazah/subjects').catch(() => []);
       setSubjects(subjectsResult);
+
+      // 3. Fetch classes for dynamic group names
+      const classesResult = await apiClient<{id: string; name: string}[]>('/ijazah/classes').catch(() => []);
+      setClassNames(classesResult.map(c => c.name));
     } catch (err) {
       toast.error('Gagal memuat data pengaturan');
     } finally {
@@ -126,7 +131,23 @@ export const SettingsTab = () => {
     }
   };
 
-  const GROUPS = ['Kelompok A (Wajib)', 'KLP B (Wajib)', 'IPA (Peminatan)', 'IPS (Peminatan)', 'BAHASA (Peminatan)', 'AGAMA (Peminatan)', 'LM'];
+  // Build dynamic groups from class names
+  // Fixed groups + dynamic peminatan extracted from rombel names like "XII PAI" → "PAI (Peminatan)"
+  const dynamicPeminatan = classNames
+    .map(name => {
+      // Extract peminatan from class name, e.g. "XII PAI" → "PAI", "XII SAINTEK" → "SAINTEK", "XII SOSHUM-1" → "SOSHUM"
+      const match = name.replace(/^XII\s*/i, '').replace(/[-\s]*\d+$/, '').trim();
+      return match || null;
+    })
+    .filter((v, i, a) => v && a.indexOf(v) === i) as string[]; // unique
+
+  const GROUPS = [
+    'Kelompok A (Wajib)',
+    'Kelompok B (Wajib)',
+    ...dynamicPeminatan.map(p => `${p} (Peminatan)`),
+    'Lintas Minat',
+    'Muatan Lokal',
+  ];
 
   if (loading) {
     return (
