@@ -151,7 +151,7 @@ export const SettingsTab = () => {
   const handleDownloadTemplate = async () => {
     setIsDownloadingTemplate(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/ijazah/download-template`, {
+      const response = await fetch(`${API_BASE_URL}/ijazah/subjects/template`, {
         credentials: 'include',
       });
       if (!response.ok) throw new Error('Download failed');
@@ -180,7 +180,7 @@ export const SettingsTab = () => {
 
     setIsUploadingSubjects(true);
     try {
-      await apiClient('/ijazah/upload-subjects', {
+      await apiClient('/ijazah/subjects/upload', {
         method: 'POST',
         data: formData,
         isFormData: true,
