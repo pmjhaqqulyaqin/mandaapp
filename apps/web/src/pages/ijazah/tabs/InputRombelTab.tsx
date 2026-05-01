@@ -109,11 +109,15 @@ export const InputRombelTab = () => {
     if (!selectedClassId) return;
     setPreviewLoading(true);
     try {
-      const res = await apiClient<any>(`/ijazah/grades-preview?type=rombel&classId=${selectedClassId}`);
+      const res = await apiClient<any>(`/ijazah/grades-preview?type=rombel&classId=${selectedClassId}&semester=${semester}`);
       setPreviewData(res);
     } catch { toast.error('Gagal memuat preview'); }
     finally { setPreviewLoading(false); }
   };
+
+  useEffect(() => {
+    if (showPreview) loadPreview();
+  }, [semester]);
 
   const togglePreview = () => {
     if (!showPreview && !previewData) loadPreview();
@@ -222,8 +226,8 @@ export const InputRombelTab = () => {
                       <th key={subj.id} className="px-2 py-2.5 font-semibold text-gray-500 text-center border-r border-gray-200 dark:border-[#333]">
                         <div className="max-w-[80px] truncate mx-auto" title={subj.name}>{subj.name}</div>
                         <div className="flex gap-1 justify-center mt-1">
-                          {['semester3','semester4','semester5','examScore'].map(s => (
-                            <span key={s} className="text-[9px] font-bold text-gray-400">{s === 'examScore' ? 'UM' : s.replace('semester','S')}</span>
+                          {semCols.map(s => (
+                            <span key={s.key} className="text-[9px] font-bold text-gray-400">{s.label}</span>
                           ))}
                         </div>
                       </th>
@@ -243,10 +247,10 @@ export const InputRombelTab = () => {
                         return (
                           <td key={subj.id} className="px-1 py-2 border-r border-gray-100 dark:border-[#222]">
                             <div className="flex gap-1 justify-center">
-                              {(['semester3','semester4','semester5','examScore'] as const).map(s => (
-                                <div key={s} className="w-10 text-center">
-                                  <EditableCell value={grade?.[s] ?? null} studentId={student.id}
-                                    subjectId={subj.id} semester={s} onSaved={loadPreview} />
+                              {semCols.map(s => (
+                                <div key={s.key} className="w-10 text-center">
+                                  <EditableCell value={grade?.[s.key] ?? null} studentId={student.id}
+                                    subjectId={subj.id} semester={s.key} onSaved={loadPreview} />
                                 </div>
                               ))}
                             </div>

@@ -95,11 +95,15 @@ export const InputGlobalTab = () => {
   const loadPreview = async () => {
     setPreviewLoading(true);
     try {
-      const res = await apiClient<any>('/ijazah/grades-preview?type=global');
+      const res = await apiClient<any>(`/ijazah/grades-preview?type=global&semester=${semester}`);
       setPreviewData(res);
     } catch { toast.error('Gagal memuat preview nilai'); }
     finally { setPreviewLoading(false); }
   };
+
+  useEffect(() => {
+    if (showPreview) loadPreview();
+  }, [semester]);
 
   const togglePreview = () => {
     if (!showPreview && !previewData) loadPreview();
@@ -112,6 +116,8 @@ export const InputGlobalTab = () => {
     previewData.students.forEach(s => { s.grades.forEach((g: any) => { if (g[semKey] != null) count++; }); });
     return count;
   };
+
+  const semCols = [{ key: semester, label: semester.replace('semester', 'S') }];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -203,19 +209,14 @@ export const InputGlobalTab = () => {
                     <th className="px-3 py-2.5 font-semibold text-gray-500 sticky left-0 bg-gray-50 dark:bg-[#151515] z-10 w-8 text-center border-r border-gray-200 dark:border-[#333]">No</th>
                     <th className="px-3 py-2.5 font-semibold text-gray-500 sticky left-[40px] bg-gray-50 dark:bg-[#151515] z-10 w-40 border-r border-gray-200 dark:border-[#333]">Nama Siswa</th>
                     {previewData.subjects.map((subj: any) => (
-                      <th key={subj.id} colSpan={2} className="px-2 py-2.5 font-semibold text-gray-500 text-center border-r border-gray-200 dark:border-[#333]">
-                        <div className="max-w-[100px] truncate mx-auto" title={subj.name}>{subj.name}</div>
+                      <th key={subj.id} className="px-2 py-2.5 font-semibold text-gray-500 text-center border-r border-gray-200 dark:border-[#333]">
+                        <div className="max-w-[80px] truncate mx-auto" title={subj.name}>{subj.name}</div>
+                        <div className="flex gap-1 justify-center mt-1">
+                          {semCols.map(s => (
+                            <span key={s.key} className="text-[9px] font-bold text-gray-400">{s.label}</span>
+                          ))}
+                        </div>
                       </th>
-                    ))}
-                  </tr>
-                  <tr className="bg-gray-100/50 dark:bg-[#0a0a0a]">
-                    <th className="sticky left-0 bg-gray-100/50 dark:bg-[#0a0a0a] z-10 border-r border-gray-200 dark:border-[#333]"></th>
-                    <th className="sticky left-[40px] bg-gray-100/50 dark:bg-[#0a0a0a] z-10 border-r border-gray-200 dark:border-[#333]"></th>
-                    {previewData.subjects.map((subj: any) => (
-                      <React.Fragment key={`sub-${subj.id}`}>
-                        <th className="px-2 py-1.5 text-center text-[10px] font-bold text-blue-500 border-r border-gray-100 dark:border-[#222]">S1</th>
-                        <th className="px-2 py-1.5 text-center text-[10px] font-bold text-emerald-500 border-r border-gray-200 dark:border-[#333]">S2</th>
-                      </React.Fragment>
                     ))}
                   </tr>
                 </thead>
@@ -230,16 +231,16 @@ export const InputGlobalTab = () => {
                       {previewData.subjects.map((subj: any) => {
                         const grade = student.grades.find((g: any) => g.subjectId === subj.id);
                         return (
-                          <React.Fragment key={subj.id}>
-                            <td className="px-2 py-2 text-center border-r border-gray-50 dark:border-[#1a1a1a]">
-                              <EditableCell value={grade?.semester1 ?? null} studentId={student.id}
-                                subjectId={subj.id} semester="semester1" onSaved={loadPreview} />
-                            </td>
-                            <td className="px-2 py-2 text-center border-r border-gray-100 dark:border-[#222]">
-                              <EditableCell value={grade?.semester2 ?? null} studentId={student.id}
-                                subjectId={subj.id} semester="semester2" onSaved={loadPreview} />
-                            </td>
-                          </React.Fragment>
+                          <td key={subj.id} className="px-2 py-2 border-r border-gray-100 dark:border-[#222]">
+                            <div className="flex gap-1 justify-center">
+                              {semCols.map(s => (
+                                <div key={s.key} className="w-10 text-center">
+                                  <EditableCell value={grade?.[s.key] ?? null} studentId={student.id}
+                                    subjectId={subj.id} semester={s.key} onSaved={loadPreview} />
+                                </div>
+                              ))}
+                            </div>
+                          </td>
                         );
                       })}
                     </tr>
