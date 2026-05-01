@@ -146,6 +146,55 @@ export const SettingsTab = () => {
     finally { setIsSavingUm(false); }
   };
 
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleDownloadTemplate = async () => {
+    setIsDownloadingTemplate(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/ijazah/download-template`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Template_Mata_Pelajaran_Ijazah.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (error) {
+      toast.error('Gagal mengunduh template');
+    } finally {
+      setIsDownloadingTemplate(false);
+    }
+  };
+
+  const handleUploadSubjects = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setIsUploadingSubjects(true);
+    try {
+      await apiClient('/ijazah/upload-subjects', {
+        method: 'POST',
+        data: formData,
+        isFormData: true,
+      });
+      toast.success('Mata pelajaran berhasil diimpor');
+      fetchSubjectsForSemester(activeSemTab);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Gagal mengimpor mata pelajaran');
+    } finally {
+      setIsUploadingSubjects(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const dynamicPeminatan = classNames
     .map(name => name.replace(/^XII\s*/i, '').replace(/[-\s]*\d+$/, '').trim())
     .filter((v, i, a) => v && a.indexOf(v) === i) as string[];
@@ -211,6 +260,27 @@ export const SettingsTab = () => {
           </div>
           {activeSemTab !== 'um' && (
             <div className="flex items-center gap-2 flex-wrap">
+              <button onClick={handleDownloadTemplate} disabled={isDownloadingTemplate}
+                className="px-3 py-1.5 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#222] text-gray-700 dark:text-gray-300 text-xs font-semibold rounded flex items-center gap-1.5 transition-colors disabled:opacity-50">
+                {isDownloadingTemplate ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} 
+                Template
+              </button>
+              
+              <div className="relative">
+                <input 
+                  type="file" 
+                  accept=".xlsx, .xls" 
+                  className="hidden" 
+                  ref={fileInputRef}
+                  onChange={handleUploadSubjects}
+                />
+                <button onClick={() => fileInputRef.current?.click()} disabled={isUploadingSubjects}
+                  className="px-3 py-1.5 bg-violet-50 dark:bg-violet-900/10 text-violet-600 dark:text-violet-400 text-xs font-semibold rounded flex items-center gap-1.5 hover:bg-violet-100 dark:hover:bg-violet-900/20 transition-colors disabled:opacity-50 border border-violet-100 dark:border-violet-900/30">
+                  {isUploadingSubjects ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} 
+                  Import Excel
+                </button>
+              </div>
+
               <button onClick={handleAddSubject}
                 className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold rounded flex items-center gap-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors">
                 <Plus size={14} /> Tambah Manual
