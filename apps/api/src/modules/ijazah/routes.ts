@@ -18,6 +18,7 @@ router.post("/settings", requireStaff, IjazahController.saveSettings);
 router.get("/subjects", requireStaff, IjazahController.getSubjects);
 router.post("/subjects", requireStaff, IjazahController.saveSubject);
 router.delete("/subjects/:id", requireStaff, IjazahController.deleteSubject);
+router.get("/subjects/template", requireStaff, IjazahController.downloadSubjectTemplate);
 router.post("/subjects/upload", requireStaff, upload.single("file"), IjazahController.uploadSubjects);
 
 // Endpoint Phase 3: Grades Upload & Template

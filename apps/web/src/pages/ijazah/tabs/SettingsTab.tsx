@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient } from '../../../lib/api';
+import { apiClient, API_BASE_URL } from '../../../lib/api';
 import { toast } from 'sonner';
-import { Save, Plus, Trash2, Edit2, Check, X, Loader2, Settings } from 'lucide-react';
+import { Save, Plus, Trash2, Edit2, Check, X, Loader2, Settings, Download, Upload } from 'lucide-react';
 
 type SubjectGroup = 'Kelompok A (Wajib)' | 'KLP B (Wajib)' | 'IPA (Peminatan)' | 'IPS (Peminatan)' | 'BAHASA (Peminatan)' | 'AGAMA (Peminatan)' | 'LM';
 
@@ -21,6 +21,9 @@ export const SettingsTab = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Subject | null>(null);
+  const [isUploadingSubjects, setIsUploadingSubjects] = useState(false);
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
+  const [subjectFile, setSubjectFile] = useState<File | null>(null);
 
 
   useEffect(() => {
@@ -198,17 +201,74 @@ export const SettingsTab = () => {
 
       {/* Section 2: Manajemen Mata Pelajaran */}
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
             <h3 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary">Struktur Mata Pelajaran</h3>
             <p className="text-xs text-gray-500">Susun mata pelajaran sesuai dengan urutan pada format rapor ijazah (Permendikbud/KMA terbaru).</p>
           </div>
-          <button 
-            onClick={handleAddSubject}
-            className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold rounded flex items-center gap-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors"
-          >
-            <Plus size={14} /> Tambah Mapel
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button 
+              onClick={async () => {
+                setIsDownloadingTemplate(true);
+                try {
+                  const response = await fetch(`${API_BASE_URL}/ijazah/subjects/template`, { credentials: 'include' });
+                  if (!response.ok) throw new Error('Download failed');
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'Template_Mata_Pelajaran_Ijazah.xlsx';
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  a.remove();
+                } catch (err) {
+                  toast.error('Gagal mengunduh template');
+                } finally {
+                  setIsDownloadingTemplate(false);
+                }
+              }}
+              disabled={isDownloadingTemplate}
+              className="px-3 py-1.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-semibold rounded flex items-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors"
+            >
+              {isDownloadingTemplate ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Template
+            </button>
+            <label className="px-3 py-1.5 bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 text-xs font-semibold rounded flex items-center gap-1.5 hover:bg-violet-100 dark:hover:bg-violet-500/20 transition-colors cursor-pointer">
+              <Upload size={14} /> Import Excel
+              <input 
+                type="file" 
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setIsUploadingSubjects(true);
+                  try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const res = await apiClient<{message: string}>('/ijazah/subjects/upload', {
+                      method: 'POST',
+                      data: formData,
+                    });
+                    toast.success(res.message || 'Import berhasil');
+                    fetchData();
+                  } catch (err: any) {
+                    toast.error(err.message || 'Gagal mengimpor mata pelajaran');
+                  } finally {
+                    setIsUploadingSubjects(false);
+                    e.target.value = '';
+                  }
+                }}
+              />
+              {isUploadingSubjects && <Loader2 size={14} className="animate-spin" />}
+            </label>
+            <button 
+              onClick={handleAddSubject}
+              className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold rounded flex items-center gap-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors"
+            >
+              <Plus size={14} /> Tambah Manual
+            </button>
+          </div>
         </div>
 
         <div className="border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden bg-white dark:bg-[#111]">

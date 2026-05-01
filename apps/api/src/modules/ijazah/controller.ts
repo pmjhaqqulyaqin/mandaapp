@@ -209,14 +209,111 @@ export class IjazahController {
         return res.status(400).json({ error: "File Excel tidak ditemukan" });
       }
 
-      // Here we will use xlsx or exceljs to parse the uploaded file.
-      // For now we implement the dummy response before we write the parser logic.
-      // Usually, it maps array of objects to batch insert into ijazahSubjects.
+      const ExcelJS = require('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(req.file.buffer);
+      const worksheet = workbook.getWorksheet(1);
 
-      res.json({ success: true, message: "Upload mata pelajaran berhasil (Logic parsing akan segera ditambahkan)" });
+      if (!worksheet) {
+        return res.status(400).json({ error: "Worksheet tidak ditemukan di file Excel" });
+      }
+
+      const subjects: { name: string; group: string; orderNum: number }[] = [];
+      
+      worksheet.eachRow((row: any, rowNumber: number) => {
+        if (rowNumber === 1) return; // Skip header
+
+        const orderNum = row.getCell(1).value;
+        const group = String(row.getCell(2).value || '').trim();
+        const name = String(row.getCell(3).value || '').trim();
+
+        if (name && group) {
+          subjects.push({
+            name,
+            group,
+            orderNum: typeof orderNum === 'number' ? orderNum : rowNumber - 1,
+          });
+        }
+      });
+
+      if (subjects.length === 0) {
+        return res.status(400).json({ error: "Tidak ada data mapel yang valid di file. Pastikan kolom Urut, Kelompok, dan Nama Mapel terisi." });
+      }
+
+      // Batch insert
+      let inserted = 0;
+      for (const subj of subjects) {
+        await db.insert(ijazahSubjects).values(subj);
+        inserted++;
+      }
+
+      res.json({ success: true, message: `${inserted} mata pelajaran berhasil diimpor` });
     } catch (error: any) {
       logger.error({ err: error }, "Failed to upload Ijazah subjects");
       res.status(500).json({ error: "Gagal memproses file Excel" });
+    }
+  }
+
+  static async downloadSubjectTemplate(_req: Request, res: Response) {
+    try {
+      const ExcelJS = require('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Template Mata Pelajaran');
+
+      worksheet.columns = [
+        { header: 'Urut', key: 'orderNum', width: 8 },
+        { header: 'Kelompok', key: 'group', width: 30 },
+        { header: 'Nama Mata Pelajaran', key: 'name', width: 40 },
+      ];
+
+      // Add example rows
+      const examples = [
+        { orderNum: 1, group: 'Kelompok A (Wajib)', name: 'Pendidikan Agama Islam' },
+        { orderNum: 2, group: 'Kelompok A (Wajib)', name: 'PKn' },
+        { orderNum: 3, group: 'Kelompok A (Wajib)', name: 'Bahasa Indonesia' },
+        { orderNum: 4, group: 'Kelompok A (Wajib)', name: 'Bahasa Arab' },
+        { orderNum: 5, group: 'Kelompok A (Wajib)', name: 'Matematika' },
+        { orderNum: 6, group: 'KLP B (Wajib)', name: 'Seni Budaya' },
+        { orderNum: 7, group: 'KLP B (Wajib)', name: 'Penjas' },
+        { orderNum: 8, group: 'IPA (Peminatan)', name: 'Fisika' },
+        { orderNum: 9, group: 'IPA (Peminatan)', name: 'Kimia' },
+        { orderNum: 10, group: 'IPA (Peminatan)', name: 'Biologi' },
+      ];
+
+      examples.forEach(ex => worksheet.addRow(ex));
+
+      // Style header
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      headerRow.eachCell((cell: any) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
+        cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+      });
+
+      // Style example rows (light bg to indicate they are examples)
+      for (let i = 2; i <= examples.length + 1; i++) {
+        const row = worksheet.getRow(i);
+        row.eachCell((cell: any) => {
+          cell.font = { italic: true, color: { argb: 'FF9CA3AF' } };
+          cell.border = { top:{style:'thin', color:{argb:'FFE5E7EB'}}, left:{style:'thin', color:{argb:'FFE5E7EB'}}, bottom:{style:'thin', color:{argb:'FFE5E7EB'}}, right:{style:'thin', color:{argb:'FFE5E7EB'}} };
+        });
+      }
+
+      // Add instruction note
+      const noteRow = worksheet.addRow([]);
+      const instrRow = worksheet.addRow(['', 'PETUNJUK:', 'Hapus contoh di atas, lalu isi data mapel Anda. Kolom Kelompok diisi sesuai kategori.']);
+      instrRow.getCell(2).font = { bold: true, color: { argb: 'FFDC2626' } };
+      instrRow.getCell(3).font = { italic: true, color: { argb: 'FF6B7280' } };
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=Template_Mata_Pelajaran_Ijazah.xlsx');
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error: any) {
+      logger.error({ err: error }, "Failed to generate subject template");
+      res.status(500).json({ error: "Gagal membuat template" });
     }
   }
 
