@@ -121,6 +121,13 @@ const ALL_MENU_ITEMS = [
     group: 'main',
   },
   {
+    key: 'ijazah',
+    label: 'Pengolahan Ijazah',
+    href: '/dashboard/ijazah',
+    icon: <BookOpen size={16} />,
+    group: 'main',
+  },
+  {
     key: 'ptsp',
     label: 'Pusat Layanan',
     href: '/dashboard/services',
@@ -189,6 +196,7 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'users': 'users',
   'updates': 'updates',
   'students': 'students',
+  'ijazah': 'ijazah',
   'nis': 'nis',
   'employees': 'employees',
   'exams': 'exams',
@@ -330,7 +338,7 @@ export const DashboardLayout = () => {
     if (idx > -1) finalAllowedMenusForRender.splice(idx, 1);
   }
 
-  const siswaMenuKeys = ['students', 'nis', 'student-card', 'ppdb', 'penilaian-pmb'];
+  const siswaMenuKeys = ['students', 'nis', 'ijazah', 'student-card', 'ppdb', 'penilaian-pmb'];
   const topMobileNavKeys = ['news', 'gallery', 'students', 'ptsp'];
 
   const mainMenuItems = ALL_MENU_ITEMS.filter((item) => 

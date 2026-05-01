@@ -1,0 +1,211 @@
+import React, { useState, useEffect } from 'react';
+import { Download, FileSpreadsheet, Loader2, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
+import { apiClient, API_BASE_URL } from '../../../lib/api';
+
+export const ExportTab = () => {
+  const [classes, setClasses] = useState<any[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>('');
+  
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [isExportingLeger, setIsExportingLeger] = useState(false);
+  const [isExportingIjazah, setIsExportingIjazah] = useState(false);
+  
+  const [previewData, setPreviewData] = useState<{
+    students: any[];
+    subjects: any[];
+    reportWeight: number;
+    examWeight: number;
+  } | null>(null);
+
+  useEffect(() => {
+    fetchClasses();
+  }, []);
+
+  useEffect(() => {
+    if (selectedClassId) {
+      loadPreview();
+    } else {
+      setPreviewData(null);
+    }
+  }, [selectedClassId]);
+
+  const fetchClasses = async () => {
+    try {
+      const res = await apiClient<any[]>('/ijazah/classes');
+      setClasses(res);
+      if (res.length > 0) setSelectedClassId(res[0].id);
+    } catch (err) {
+      toast.error('Gagal mengambil daftar rombel');
+    }
+  };
+
+  const loadPreview = async () => {
+    if (!selectedClassId) return;
+    setIsPreviewLoading(true);
+    try {
+      const res = await apiClient<any>(`/ijazah/preview?classId=${selectedClassId}`);
+      setPreviewData(res);
+    } catch (err) {
+      toast.error('Gagal memuat preview nilai');
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
+
+  const handleExport = async (type: 'leger' | 'ijazah') => {
+    if (!selectedClassId) return toast.error('Pilih rombel terlebih dahulu');
+    
+    if (type === 'leger') setIsExportingLeger(true);
+    else setIsExportingIjazah(true);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/ijazah/export?classId=${selectedClassId}&type=${type}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (!response.ok) throw new Error('Export failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${type === 'leger' ? 'Leger' : 'Nilai'}_Ijazah.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      toast.error(`Gagal mengekspor ${type}`);
+    } finally {
+      if (type === 'leger') setIsExportingLeger(false);
+      else setIsExportingIjazah(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-300">
+      
+      {/* Header Filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-violet-50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/30 p-5 rounded-xl">
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-white dark:bg-[#111] rounded-lg shadow-sm text-violet-500 shrink-0">
+            <Download size={24} />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-violet-800 dark:text-violet-400">Rekapitulasi & Ekspor Laporan</h3>
+            <p className="text-xs text-violet-600/80 dark:text-violet-400/80 mt-1">
+              Preview perhitungan nilai Ijazah berdasarkan bobot yang ditentukan. Ekspor hasilnya ke format Excel resmi.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0 bg-white dark:bg-[#111] p-2 rounded-lg border border-violet-100 dark:border-violet-900/30">
+          <label className="text-xs font-semibold text-violet-800 dark:text-violet-400 whitespace-nowrap px-2">Pilih Rombel:</label>
+          <select 
+            value={selectedClassId}
+            onChange={(e) => setSelectedClassId(e.target.value)}
+            className="px-3 py-1.5 text-sm border border-violet-200 dark:border-violet-800/50 rounded-lg bg-white dark:bg-[#1a1a1a] outline-none min-w-[200px]"
+          >
+            {classes.length === 0 && <option value="">Memuat...</option>}
+            <option value="">-- Pilih Rombel --</option>
+            {classes.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-end">
+        <button 
+          onClick={() => handleExport('leger')}
+          disabled={!selectedClassId || isExportingLeger}
+          className="px-5 py-2.5 bg-white dark:bg-[#111] border border-violet-200 dark:border-[#333] hover:bg-violet-50 dark:hover:bg-[#222] disabled:opacity-50 text-violet-700 dark:text-violet-400 text-sm font-semibold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
+        >
+          {isExportingLeger ? <Loader2 size={18} className="animate-spin" /> : <FileSpreadsheet size={18} />}
+          Cetak Leger Ijazah
+        </button>
+        <button 
+          onClick={() => handleExport('ijazah')}
+          disabled={!selectedClassId || isExportingIjazah}
+          className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl shadow-sm shadow-violet-500/25 transition-all flex items-center justify-center gap-2"
+        >
+          {isExportingIjazah ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+          Cetak Nilai Ijazah (Final)
+        </button>
+      </div>
+
+      {/* Live Preview Table */}
+      <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-gray-100 dark:border-[#222] flex items-center justify-between bg-gray-50/50 dark:bg-[#1a1a1a]">
+          <div>
+            <h4 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary">Live Preview Data</h4>
+            <p className="text-[11px] text-gray-500 mt-0.5">
+              Menampilkan {previewData?.students.length || 0} siswa. Bobot: {previewData?.reportWeight}% Rapor + {previewData?.examWeight}% Ujian.
+            </p>
+          </div>
+          <button 
+            onClick={loadPreview}
+            disabled={isPreviewLoading || !selectedClassId}
+            className="p-2 text-gray-500 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+          >
+            <RefreshCw size={16} className={isPreviewLoading ? "animate-spin" : ""} />
+          </button>
+        </div>
+
+        <div className="overflow-x-auto custom-scrollbar">
+          {isPreviewLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-500">
+              <Loader2 size={32} className="animate-spin text-violet-500" />
+              <p className="text-sm font-medium">Mengkalkulasi Nilai Gabungan...</p>
+            </div>
+          ) : !previewData || previewData.students.length === 0 ? (
+            <div className="py-20 text-center text-gray-500 text-sm">
+              Tidak ada data nilai untuk ditampilkan. Silakan pilih rombel lain.
+            </div>
+          ) : (
+            <table className="w-full text-left text-xs whitespace-nowrap">
+              <thead className="bg-gray-50 dark:bg-black/40 border-b border-gray-200 dark:border-[#333]">
+                <tr>
+                  <th className="px-4 py-3 font-semibold text-gray-500 sticky left-0 bg-gray-50 dark:bg-[#151515] z-10 w-10 text-center border-r border-gray-200 dark:border-[#333]">No</th>
+                  <th className="px-4 py-3 font-semibold text-gray-500 sticky left-[52px] bg-gray-50 dark:bg-[#151515] z-10 w-48 border-r border-gray-200 dark:border-[#333]">Nama Siswa</th>
+                  {previewData.subjects.map(subj => (
+                    <th key={subj.id} className="px-4 py-3 font-semibold text-gray-500 text-center border-r border-gray-200 dark:border-[#333]">
+                      <div className="max-w-[120px] truncate" title={subj.name}>{subj.name}</div>
+                      <div className="text-[10px] font-normal opacity-70 mt-0.5">Nilai Ijazah</div>
+                    </th>
+                  ))}
+                  <th className="px-4 py-3 font-bold text-violet-600 dark:text-violet-400 text-center bg-violet-50/50 dark:bg-violet-900/10">Rata-Rata Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
+                {previewData.students.map((student, idx) => (
+                  <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors group">
+                    <td className="px-4 py-2.5 text-center text-gray-500 sticky left-0 bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#1a1a1a] z-10 border-r border-gray-100 dark:border-[#222]">{idx + 1}</td>
+                    <td className="px-4 py-2.5 font-medium text-text-primary dark:text-text-darkPrimary sticky left-[52px] bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#1a1a1a] z-10 border-r border-gray-100 dark:border-[#222]">
+                      <div className="truncate w-48">{student.fullName}</div>
+                      <div className="text-[10px] text-gray-400 font-normal">{student.nisn}</div>
+                    </td>
+                    {previewData.subjects.map(subj => {
+                      const scoreData = student.subjectScores.find((s: any) => s.subjectId === subj.id);
+                      return (
+                        <td key={subj.id} className="px-4 py-2.5 text-center border-r border-gray-100 dark:border-[#222]">
+                          <span className="font-semibold text-text-primary dark:text-text-darkPrimary">{scoreData?.finalScore || '-'}</span>
+                        </td>
+                      );
+                    })}
+                    <td className="px-4 py-2.5 text-center font-bold text-violet-600 dark:text-violet-400 bg-violet-50/30 dark:bg-violet-900/10">
+                      {student.avgFinal || '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+    </div>
+  );
+};

@@ -551,3 +551,38 @@ export const ppdbDaftarUlang = pgTable("ppdb_daftar_ulang", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
+
+// Pengolahan Nilai Ijazah Kelas XII
+export const ijazahSettings = pgTable("ijazah_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  academicYearId: uuid("academic_year_id").references(() => academicYears.id).notNull(),
+  reportWeight: integer("report_weight").default(60), // Persentase
+  examWeight: integer("exam_weight").default(40), // Persentase
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const ijazahSubjects = pgTable("ijazah_subjects", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 150 }).notNull(),
+  group: varchar("group", { length: 50 }).notNull(), // Kelompok A, Kelompok B, Peminatan, Lintas Minat
+  orderNum: integer("order_num").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const ijazahGrades = pgTable("ijazah_grades", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  studentId: uuid("student_id").references(() => studentProfiles.id, { onDelete: "cascade" }).notNull(),
+  subjectId: uuid("subject_id").references(() => ijazahSubjects.id, { onDelete: "cascade" }).notNull(),
+  semester1: integer("semester_1"), 
+  semester2: integer("semester_2"),
+  semester3: integer("semester_3"),
+  semester4: integer("semester_4"),
+  semester5: integer("semester_5"),
+  examScore: integer("exam_score"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});

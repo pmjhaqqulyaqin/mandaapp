@@ -171,6 +171,8 @@ app.use("/api/pages", pagesRoutes);
 app.use("/api/menus", menusRoutes);
 app.use("/api/system", systemRoutes);
 
+import { ijazahRoutes } from './modules/ijazah/routes';
+
 app.use("/api/classes", classesRoutes);
 app.use("/api/employees", employeesRoutes);
 app.use("/api/ptsp", ptspRoutes);
@@ -178,6 +180,7 @@ app.use("/api/events", eventsRoutes);
 app.use("/api/nis", nisRoutes);
 app.use("/api/exams", examRoutes);
 app.use("/api/ppdb", ppdbRoutes);
+app.use("/api/ijazah", ijazahRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
