@@ -682,17 +682,14 @@ export class IjazahController {
         if (selectedNames.length > 0 && !selectedNames.includes(subj.name)) continue;
         const map = mappings.find(m => m.subjectId === subj.id);
         const isGlobal = !map || !map.classIds || (map.classIds as string[]).length === 0;
-        if (!isGlobal && !(map!.classIds as string[]).includes(classId)) continue;
-        
-        const isGlobal = !map.classIds || (map.classIds as string[]).length === 0;
-        if (!isGlobal && !(map.classIds as string[]).includes(classId)) continue; // skip if not applicable to this class
+        if (!isGlobal && map && !(map.classIds as string[]).includes(classId)) continue;
 
         if (!subjectMap.has(subj.name)) {
           subjectMap.set(subj.name, {
             name: subj.name,
             group: subj.group,
             orderNum: subj.orderNum,
-            hasUm: map.um,
+            hasUm: map?.um || false,
             ids: [subj.id]
           });
         }
