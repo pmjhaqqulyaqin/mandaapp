@@ -348,8 +348,8 @@ export class IjazahController {
 
       const subjects = activeSubjects.filter(subj => {
         const map = mappings.find(m => m.subjectId === subj.id);
-        if (!map) return false;
-        if (!(map as any)[mappingSemKey]) return false;
+        if (!map) return true; // Default to global if mapping not set
+        if (map && !(map as any)[mappingSemKey]) return false;
         
         const isGlobal = !map.classIds || (map.classIds as string[]).length === 0;
         if (isGlobal) return true;
@@ -587,7 +587,7 @@ export class IjazahController {
       
       const subjects = activeSubjects.filter(subj => {
         const map = mappings.find(m => m.subjectId === subj.id);
-        if (!map) return false;
+        if (!map) return true; // Default to global if mapping not set
         const isGlobal = !map.classIds || (map.classIds as string[]).length === 0;
         if (isGlobal) return true;
         if (type === 'rombel' && classId && typeof classId === 'string') {
@@ -681,7 +681,8 @@ export class IjazahController {
       for (const subj of allActiveSubjects) {
         if (selectedNames.length > 0 && !selectedNames.includes(subj.name)) continue;
         const map = mappings.find(m => m.subjectId === subj.id);
-        if (!map) continue;
+        const isGlobal = !map || !map.classIds || (map.classIds as string[]).length === 0;
+        if (!isGlobal && !(map!.classIds as string[]).includes(classId)) continue;
         
         const isGlobal = !map.classIds || (map.classIds as string[]).length === 0;
         if (!isGlobal && !(map.classIds as string[]).includes(classId)) continue; // skip if not applicable to this class

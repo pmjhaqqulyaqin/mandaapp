@@ -30,33 +30,59 @@ export const ExportTab = () => {
     }
   }, [selectedClassId]);
 
-      const [allSubjects, setAllSubjects] = useState<any[]>([]);
+  const [masterSubjects, setMasterSubjects] = useState<any[]>([]);
+  const [masterMappings, setMasterMappings] = useState<any[]>([]);
+  const [allSubjects, setAllSubjects] = useState<any[]>([]);
   const [selectedSubjects, setSelectedSubjects] = useState<{name: string, order: number}[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   
   useEffect(() => {
     fetchClasses();
-    fetchSubjects();
+    fetchMasterData();
   }, []);
 
-  const fetchSubjects = async () => {
+  const fetchMasterData = async () => {
     try {
-      const unique = await apiClient<any[]>('/ijazah/subjects/unique').catch(() => []);
-      
-      // Initialize all with order based on their index + 1
-      const initialized = unique.map((s, idx) => ({
-         name: s.name,
-         order: s.orderNum || idx + 1,
-         hasUm: s.hasUm,
-         group: s.group,
-         semesters: s.semesters
-      }));
-      setAllSubjects(initialized);
-      setSelectedSubjects(initialized.map(s => ({ name: s.name, order: s.order })));
+      const [subjects, mappings] = await Promise.all([
+        apiClient<any[]>('/ijazah/subjects').catch(() => []),
+        apiClient<any[]>('/ijazah/mappings').catch(() => [])
+      ]);
+      setMasterSubjects(subjects);
+      setMasterMappings(mappings);
     } catch (err) {
       toast.error('Gagal memuat mata pelajaran');
     }
   };
+
+  useEffect(() => {
+    if (selectedClassId && masterSubjects.length > 0) {
+      // Automatically filter subjects applicable to the selected class
+      const applicable = masterSubjects.filter(subj => {
+        const map = masterMappings.find(m => m.subjectId === subj.id);
+        const isGlobal = !map || !map.classIds || map.classIds.length === 0;
+        if (isGlobal) return true;
+        return map.classIds.includes(selectedClassId);
+      });
+
+      const initialized = applicable.map((s, idx) => {
+         const map = masterMappings.find(m => m.subjectId === s.id);
+         return {
+           name: s.name,
+           order: s.orderNum || idx + 1,
+           hasUm: map?.um || false,
+           group: s.group,
+         };
+      });
+
+      setAllSubjects(initialized);
+      setSelectedSubjects(initialized.map(s => ({ name: s.name, order: s.order })));
+      loadPreview(initialized.map(s => ({ name: s.name, order: s.order })));
+    } else {
+      setAllSubjects([]);
+      setSelectedSubjects([]);
+      setPreviewData(null);
+    }
+  }, [selectedClassId, masterSubjects, masterMappings]);
 
   const fetchClasses = async () => {
     try {
@@ -68,16 +94,16 @@ export const ExportTab = () => {
     }
   };
 
-  const loadPreview = async () => {
+  const loadPreview = async (subjectsToLoad = selectedSubjects) => {
     if (!selectedClassId) return;
     setIsPreviewLoading(true);
     try {
-      const subjectNames = selectedSubjects.map(s => s.name).join(',');
+      const subjectNames = subjectsToLoad.map(s => s.name).join(',');
       const res = await apiClient<any>(`/ijazah/preview?classId=${selectedClassId}&subjectIds=${encodeURIComponent(subjectNames)}`);
       
       // Sort the subjects returned from backend according to the user's selected order
       if (res && res.subjects) {
-          const orderMap = new Map(selectedSubjects.map(s => [s.name, s.order]));
+          const orderMap = new Map(subjectsToLoad.map(s => [s.name, s.order]));
           res.subjects.sort((a: any, b: any) => {
               const orderA = orderMap.get(a.name) || 999;
               const orderB = orderMap.get(b.name) || 999;
@@ -263,7 +289,7 @@ export const ExportTab = () => {
             </p>
           </div>
           <button 
-            onClick={loadPreview}
+            onClick={() => loadPreview()}
             disabled={isPreviewLoading || !selectedClassId}
             className="p-2 text-gray-500 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
           >
