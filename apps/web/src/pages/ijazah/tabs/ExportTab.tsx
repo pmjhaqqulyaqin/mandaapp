@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, FileSpreadsheet, Loader2, RefreshCw } from 'lucide-react';
+import { Download, FileSpreadsheet, Loader2, RefreshCw, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient, API_BASE_URL } from '../../../lib/api';
 
@@ -35,6 +35,7 @@ export const ExportTab = () => {
   const [allSubjects, setAllSubjects] = useState<any[]>([]);
   const [selectedSubjects, setSelectedSubjects] = useState<{name: string, order: number}[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showChecklist, setShowChecklist] = useState(false);
   
   useEffect(() => {
     fetchClasses();
@@ -205,15 +206,26 @@ export const ExportTab = () => {
         </div>
       </div>
       
-      {/* Subject Checklist Panel */}
+      {/* Subject Checklist Panel - Collapsible */}
       <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-gray-100 dark:border-[#222] bg-gray-50/50 dark:bg-[#1a1a1a]">
-            <h4 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary">Mata Pelajaran Ijazah & Leger</h4>
-            <p className="text-[11px] text-gray-500 mt-0.5">
-              Centang mata pelajaran yang akan dicetak dan sesuaikan urutannya. Urutan ini akan dipakai di preview dan file Excel.
-            </p>
-        </div>
-        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto custom-scrollbar">
+        <button 
+          type="button"
+          onClick={() => setShowChecklist(!showChecklist)}
+          className="w-full p-4 flex items-center justify-between bg-gray-50/50 dark:bg-[#1a1a1a] hover:bg-gray-100/50 dark:hover:bg-[#222] transition-colors text-left"
+        >
+            <div>
+              <h4 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
+                Mata Pelajaran Ijazah & Leger
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400 rounded-full">{selectedSubjects.length}/{allSubjects.length}</span>
+              </h4>
+              <p className="text-[11px] text-gray-500 mt-0.5">
+                Centang mata pelajaran yang akan dicetak dan sesuaikan urutannya.
+              </p>
+            </div>
+            <ChevronDown size={18} className={`text-gray-400 transition-transform duration-200 ${showChecklist ? 'rotate-180' : ''}`} />
+        </button>
+        {showChecklist && (
+        <div className="p-4 border-t border-gray-100 dark:border-[#222] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-200">
             {allSubjects.length === 0 ? (
                 <div className="col-span-full py-8 text-center text-sm text-gray-500">Memuat mata pelajaran...</div>
             ) : (
@@ -249,6 +261,7 @@ export const ExportTab = () => {
                 })
             )}
         </div>
+        )}
       </div>
 
       {/* Action Buttons */}
