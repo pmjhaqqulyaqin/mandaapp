@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { db } from "../../db";
-import { eq, like, and, asc } from "drizzle-orm";
+import { eq, like, and, asc, sql } from "drizzle-orm";
 import { 
   studentProfiles, 
   classes, 
@@ -557,6 +557,72 @@ export class IjazahController {
     } catch (error: any) {
       logger.error({ err: error }, "Failed to process Ijazah grades upload");
       res.status(500).json({ error: "Gagal memproses file upload. Pastikan format sesuai template." });
+    }
+  }
+
+  // --- FASE 3.5: PREVIEW NILAI MENTAH ---
+
+  static async gradesPreview(req: Request, res: Response) {
+    try {
+      const { type, classId } = req.query; // type: 'global' | 'rombel'
+
+      // 1. Get subjects
+      const subjects = await db.select().from(ijazahSubjects)
+        .where(eq(ijazahSubjects.isActive, true))
+        .orderBy(asc(ijazahSubjects.orderNum));
+
+      // 2. Get students
+      const conditions = [like(classes.name, 'XII %')];
+      if (type === 'rombel' && classId && typeof classId === 'string') {
+        conditions.push(eq(studentProfiles.classId, classId));
+      }
+
+      const students = await db.select({
+        id: studentProfiles.id,
+        nis: studentProfiles.nis,
+        nisn: studentProfiles.nisn,
+        fullName: studentProfiles.fullName,
+        className: classes.name,
+      })
+      .from(studentProfiles)
+      .leftJoin(classes, eq(studentProfiles.classId, classes.id))
+      .where(and(...conditions))
+      .orderBy(asc(classes.name), asc(studentProfiles.fullName));
+
+      // 3. Get all grades for these students
+      const studentIds = students.map(s => s.id);
+      let allGrades: any[] = [];
+      if (studentIds.length > 0) {
+        allGrades = await db.select().from(ijazahGrades)
+          .where(
+            studentIds.length === 1
+              ? eq(ijazahGrades.studentId, studentIds[0])
+              : sql`${ijazahGrades.studentId} IN (${sql.join(studentIds.map(id => sql`${id}`), sql`, `)})`
+          );
+      }
+
+      // 4. Build response
+      const result = students.map(student => {
+        const grades = allGrades.filter(g => g.studentId === student.id);
+        const subjectGrades = subjects.map(subj => {
+          const grade = grades.find(g => g.subjectId === subj.id);
+          return {
+            subjectId: subj.id,
+            semester1: grade?.semester1 ?? null,
+            semester2: grade?.semester2 ?? null,
+            semester3: grade?.semester3 ?? null,
+            semester4: grade?.semester4 ?? null,
+            semester5: grade?.semester5 ?? null,
+            examScore: grade?.examScore ?? null,
+          };
+        });
+        return { ...student, grades: subjectGrades };
+      });
+
+      res.json({ students: result, subjects });
+    } catch (error: any) {
+      logger.error({ err: error }, "Failed to get grades preview");
+      res.status(500).json({ error: "Gagal memuat preview nilai" });
     }
   }
 

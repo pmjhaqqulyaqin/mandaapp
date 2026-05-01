@@ -24,6 +24,7 @@ router.post("/subjects/upload", requireStaff, upload.single("file"), IjazahContr
 // Endpoint Phase 3: Grades Upload & Template
 router.get("/download-template", requireStaff, IjazahController.downloadTemplate);
 router.post("/upload-grades", requireStaff, upload.single("file"), IjazahController.uploadGrades);
+router.get("/grades-preview", requireStaff, IjazahController.gradesPreview);
 
 // Endpoint Phase 4: Preview & Export
 router.get("/preview", requireStaff, IjazahController.getPreview);

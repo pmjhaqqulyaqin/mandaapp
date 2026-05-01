@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Download, Upload, Loader2, BookOpen } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Download, Upload, Loader2, BookOpen, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient, API_BASE_URL } from '../../../lib/api';
 
@@ -8,6 +8,14 @@ export const InputGlobalTab = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [semester, setSemester] = useState('semester1');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Preview state
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    students: any[];
+    subjects: any[];
+  } | null>(null);
 
   const handleDownload = async () => {
     setIsDownloading(true);
@@ -48,11 +56,46 @@ export const InputGlobalTab = () => {
       });
       toast.success(res.message || 'Upload berhasil');
       setSelectedFile(null);
+      // Auto-refresh preview after upload
+      if (showPreview) {
+        loadPreview();
+      }
     } catch (err: any) {
       toast.error(err.message || 'Gagal mengunggah nilai');
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const loadPreview = async () => {
+    setPreviewLoading(true);
+    try {
+      const res = await apiClient<any>('/ijazah/grades-preview?type=global');
+      setPreviewData(res);
+    } catch (err) {
+      toast.error('Gagal memuat preview nilai');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const togglePreview = () => {
+    if (!showPreview && !previewData) {
+      loadPreview();
+    }
+    setShowPreview(!showPreview);
+  };
+
+  // Count how many values are filled for sem1/sem2
+  const getFilledCount = (semKey: 'semester1' | 'semester2') => {
+    if (!previewData) return 0;
+    let count = 0;
+    previewData.students.forEach(s => {
+      s.grades.forEach((g: any) => {
+        if (g[semKey] !== null && g[semKey] !== undefined) count++;
+      });
+    });
+    return count;
   };
 
   return (
@@ -129,6 +172,111 @@ export const InputGlobalTab = () => {
           </div>
         </div>
 
+      </div>
+
+      {/* Live Preview Section */}
+      <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden">
+        <div className="p-4 border-b border-gray-100 dark:border-[#222] flex items-center justify-between bg-gray-50/50 dark:bg-[#0a0a0a]">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={togglePreview}
+              className={`p-2 rounded-lg transition-colors ${showPreview ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-[#222] dark:text-gray-400'}`}
+            >
+              {showPreview ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+            <div>
+              <h4 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary">
+                Live Preview Nilai Semester 1 & 2
+              </h4>
+              <p className="text-[11px] text-gray-500 mt-0.5">
+                {showPreview
+                  ? `${previewData?.students.length || 0} siswa • Sem 1: ${getFilledCount('semester1')} nilai • Sem 2: ${getFilledCount('semester2')} nilai`
+                  : 'Klik ikon mata untuk menampilkan preview'}
+              </p>
+            </div>
+          </div>
+          {showPreview && (
+            <button 
+              onClick={loadPreview}
+              disabled={previewLoading}
+              className="p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
+            >
+              <RefreshCw size={16} className={previewLoading ? "animate-spin" : ""} />
+            </button>
+          )}
+        </div>
+
+        {showPreview && (
+          <div className="overflow-x-auto custom-scrollbar">
+            {previewLoading ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-500">
+                <Loader2 size={28} className="animate-spin text-emerald-500" />
+                <p className="text-sm font-medium">Memuat nilai...</p>
+              </div>
+            ) : !previewData || previewData.students.length === 0 ? (
+              <div className="py-16 text-center text-gray-500 text-sm">
+                Tidak ada data siswa kelas XII.
+              </div>
+            ) : (
+              <table className="w-full text-left text-xs whitespace-nowrap">
+                <thead className="bg-gray-50 dark:bg-black/40 border-b border-gray-200 dark:border-[#333]">
+                  <tr>
+                    <th className="px-3 py-2.5 font-semibold text-gray-500 sticky left-0 bg-gray-50 dark:bg-[#151515] z-10 w-8 text-center border-r border-gray-200 dark:border-[#333]">No</th>
+                    <th className="px-3 py-2.5 font-semibold text-gray-500 sticky left-[40px] bg-gray-50 dark:bg-[#151515] z-10 w-40 border-r border-gray-200 dark:border-[#333]">Nama Siswa</th>
+                    {previewData.subjects.map((subj: any) => (
+                      <th key={subj.id} colSpan={2} className="px-2 py-2.5 font-semibold text-gray-500 text-center border-r border-gray-200 dark:border-[#333]">
+                        <div className="max-w-[100px] truncate mx-auto" title={subj.name}>{subj.name}</div>
+                      </th>
+                    ))}
+                  </tr>
+                  {/* Sub-header row: Sem1 | Sem2 for each subject */}
+                  <tr className="bg-gray-100/50 dark:bg-[#0a0a0a]">
+                    <th className="sticky left-0 bg-gray-100/50 dark:bg-[#0a0a0a] z-10 border-r border-gray-200 dark:border-[#333]"></th>
+                    <th className="sticky left-[40px] bg-gray-100/50 dark:bg-[#0a0a0a] z-10 border-r border-gray-200 dark:border-[#333]"></th>
+                    {previewData.subjects.map((subj: any) => (
+                      <React.Fragment key={`sub-${subj.id}`}>
+                        <th className="px-2 py-1.5 text-center text-[10px] font-bold text-blue-500 border-r border-gray-100 dark:border-[#222]">S1</th>
+                        <th className="px-2 py-1.5 text-center text-[10px] font-bold text-emerald-500 border-r border-gray-200 dark:border-[#333]">S2</th>
+                      </React.Fragment>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
+                  {previewData.students.map((student: any, idx: number) => (
+                    <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors group">
+                      <td className="px-3 py-2 text-center text-gray-400 sticky left-0 bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#1a1a1a] z-10 border-r border-gray-100 dark:border-[#222]">{idx + 1}</td>
+                      <td className="px-3 py-2 font-medium text-text-primary dark:text-text-darkPrimary sticky left-[40px] bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#1a1a1a] z-10 border-r border-gray-100 dark:border-[#222]">
+                        <div className="truncate w-40">{student.fullName}</div>
+                        <div className="text-[10px] text-gray-400 font-normal">{student.nisn}</div>
+                      </td>
+                      {previewData.subjects.map((subj: any) => {
+                        const grade = student.grades.find((g: any) => g.subjectId === subj.id);
+                        return (
+                          <React.Fragment key={subj.id}>
+                            <td className="px-2 py-2 text-center border-r border-gray-50 dark:border-[#1a1a1a]">
+                              {grade?.semester1 != null ? (
+                                <span className="font-semibold text-text-primary dark:text-text-darkPrimary">{grade.semester1}</span>
+                              ) : (
+                                <span className="text-gray-300 dark:text-gray-600">-</span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2 text-center border-r border-gray-100 dark:border-[#222]">
+                              {grade?.semester2 != null ? (
+                                <span className="font-semibold text-text-primary dark:text-text-darkPrimary">{grade.semester2}</span>
+                              ) : (
+                                <span className="text-gray-300 dark:text-gray-600">-</span>
+                              )}
+                            </td>
+                          </React.Fragment>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
