@@ -32,9 +32,7 @@ export const InputRombelTab = () => {
     
     try {
       const response = await fetch(`${API_BASE_URL}/ijazah/download-template?type=rombel&classId=${selectedClassId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        credentials: 'include'
       });
       if (!response.ok) throw new Error('Download failed');
       

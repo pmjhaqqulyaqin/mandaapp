@@ -61,9 +61,7 @@ export const ExportTab = () => {
     
     try {
       const response = await fetch(`${API_BASE_URL}/ijazah/export?classId=${selectedClassId}&type=${type}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        credentials: 'include'
       });
       if (!response.ok) throw new Error('Export failed');
       

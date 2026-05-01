@@ -6,7 +6,8 @@ import {
   classes, 
   ijazahSettings, 
   ijazahSubjects, 
-  ijazahGrades 
+  ijazahGrades,
+  academicYears
 } from "../../db/schema";
 import logger from "../../lib/logger";
 
@@ -67,22 +68,34 @@ export class IjazahController {
 
   // --- FASE 2: SETTINGS BOBOT ---
 
-  static async getSettings(req: Request, res: Response) {
-    try {
-      const { academicYearId } = req.query;
-      
-      if (!academicYearId || typeof academicYearId !== 'string') {
-        return res.status(400).json({ error: "academicYearId diperlukan" });
-      }
+  // Helper: get or create the active academic year ID
+  private static async getActiveAcademicYearId(): Promise<string | null> {
+    const activeYear = await db
+      .select({ id: academicYears.id })
+      .from(academicYears)
+      .where(eq(academicYears.isActive, true))
+      .limit(1);
+    if (activeYear.length > 0) return activeYear[0].id;
+    
+    // Fallback: get any academic year (latest)
+    const { desc } = require('drizzle-orm');
+    const anyYear = await db
+      .select({ id: academicYears.id })
+      .from(academicYears)
+      .orderBy(desc(academicYears.createdAt))
+      .limit(1);
+    return anyYear.length > 0 ? anyYear[0].id : null;
+  }
 
+  static async getSettings(_req: Request, res: Response) {
+    try {
+      // Simply get the first (and usually only) settings row
       const settings = await db
         .select()
         .from(ijazahSettings)
-        .where(eq(ijazahSettings.academicYearId, academicYearId))
         .limit(1);
 
       if (settings.length === 0) {
-        // Return default values jika belum ada
         return res.json({ reportWeight: 60, examWeight: 40 });
       }
 
@@ -95,17 +108,16 @@ export class IjazahController {
 
   static async saveSettings(req: Request, res: Response) {
     try {
-      const { academicYearId, reportWeight, examWeight } = req.body;
+      const { reportWeight, examWeight } = req.body;
       
-      if (!academicYearId || typeof reportWeight !== 'number' || typeof examWeight !== 'number') {
+      if (typeof reportWeight !== 'number' || typeof examWeight !== 'number') {
         return res.status(400).json({ error: "Data pengaturan tidak valid" });
       }
 
-      // Check existing
+      // Check existing settings (any row)
       const existing = await db
         .select()
         .from(ijazahSettings)
-        .where(eq(ijazahSettings.academicYearId, academicYearId))
         .limit(1);
 
       if (existing.length > 0) {
@@ -113,8 +125,13 @@ export class IjazahController {
           .set({ reportWeight, examWeight, updatedAt: new Date() })
           .where(eq(ijazahSettings.id, existing[0].id));
       } else {
+        // Need a valid academic year ID for FK
+        const yearId = await IjazahController.getActiveAcademicYearId();
+        if (!yearId) {
+          return res.status(400).json({ error: "Tidak ada data tahun ajaran. Silakan buat tahun ajaran terlebih dahulu di Manajemen NIS." });
+        }
         await db.insert(ijazahSettings).values({
-          academicYearId,
+          academicYearId: yearId,
           reportWeight,
           examWeight
         });

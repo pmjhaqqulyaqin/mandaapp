@@ -13,9 +13,7 @@ export const InputGlobalTab = () => {
     setIsDownloading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/ijazah/download-template?type=sem12`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        credentials: 'include'
       });
       if (!response.ok) throw new Error('Download failed');
       

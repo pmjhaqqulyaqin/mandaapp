@@ -22,9 +22,6 @@ export const SettingsTab = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Subject | null>(null);
 
-  // We should ideally fetch the current active academic year ID from context/API
-  // For demo, we use a placeholder or the first active year
-  const activeYearId = "dummy-year-id"; 
 
   useEffect(() => {
     fetchData();
@@ -34,8 +31,7 @@ export const SettingsTab = () => {
     setLoading(true);
     try {
       // 1. Fetch settings
-      // We pass a dummy academicYearId for now, but in reality it should be the active one
-      const settingsResult = await apiClient<any>(`/ijazah/settings?academicYearId=${activeYearId}`).catch(() => null);
+      const settingsResult = await apiClient<any>('/ijazah/settings').catch(() => null);
       if (settingsResult) {
         setReportWeight(settingsResult.reportWeight || 60);
         setExamWeight(settingsResult.examWeight || 40);
@@ -61,7 +57,6 @@ export const SettingsTab = () => {
       await apiClient('/ijazah/settings', {
         method: 'POST',
         data: {
-          academicYearId: activeYearId,
           reportWeight,
           examWeight
         }
