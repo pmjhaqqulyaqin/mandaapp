@@ -473,8 +473,8 @@ export class IjazahController {
       
       const subjectMap = new Map<number, string>(); // colIndex -> subject.id
       
-      // Dimulai dari kolom D (index 4) karena A=No, B=NISN, C=Nama
-      for (let i = 4; i < headers.length; i++) {
+      // Template: No(1) | NIS(2) | NISN(3) | Nama(4) | JK(5) | Mapel...(6+)
+      for (let i = 6; i < headers.length; i++) {
         const headerName = headers[i];
         if (headerName) {
           const matchedSubject = activeSubjects.find(s => s.name === headerName);
@@ -494,11 +494,10 @@ export class IjazahController {
       let successCount = 0;
       
       // 3. Looping baris data (Mulai dari baris ke-2)
-      // Catatan: Proses iteratif update/insert ini aman untuk skala < 1000 siswa. 
-      // Jika ribuan disarankan menggunakan raw SQL ON CONFLICT DO UPDATE.
       for (let rowIdx = 2; rowIdx <= worksheet.rowCount; rowIdx++) {
         const row = worksheet.getRow(rowIdx);
-        const nisnVal = row.getCell(2).value;
+        // NISN ada di kolom 3 (C)
+        const nisnVal = row.getCell(3).value;
         const nisnStr = nisnVal ? nisnVal.toString().trim() : '';
         
         if (!nisnStr) continue;
