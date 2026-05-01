@@ -75,25 +75,13 @@ export const SettingsTab = () => {
     } catch { setSubjects([]); }
   };
 
-  const fetchAllForUm = async () => {
+      const fetchAllForUm = async () => {
     try {
-      // Fetch all non-UM subjects (sem1-5) for checklist
-      const all = await apiClient<Subject[]>('/ijazah/subjects').catch(() => []);
-      const nonUm = all.filter(s => s.semester !== 'um');
-      // Deduplicate by name
-      const unique: Subject[] = [];
-      const seen = new Set<string>();
-      for (const s of nonUm) {
-        if (!seen.has(s.name)) { seen.add(s.name); unique.push(s); }
-      }
+      const unique = await apiClient<any[]>('/ijazah/subjects/unique').catch(() => []);
       setAllSubjects(unique);
 
-      // Fetch current UM subjects to pre-check
-      const umSubjects = await apiClient<Subject[]>('/ijazah/subjects?semester=um').catch(() => []);
-      setSubjects(umSubjects);
-      const umNames = new Set(umSubjects.map(s => s.name));
       const selectedIds = new Set<string>();
-      unique.forEach(s => { if (umNames.has(s.name)) selectedIds.add(s.id!); });
+      unique.forEach(s => { if (s.hasUm) selectedIds.add(s.ids[0]); });
       setUmSelectedIds(selectedIds);
     } catch { setAllSubjects([]); }
   };
@@ -262,19 +250,25 @@ export const SettingsTab = () => {
             <div className="p-4 space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
               {allSubjects.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-8">Belum ada mata pelajaran di semester 1-5. Tambahkan mapel terlebih dahulu.</p>
-              ) : allSubjects.map(subj => (
-                <label key={subj.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                  umSelectedIds.has(subj.id!)
+              ) : allSubjects.map((subj: any) => (
+                <label key={subj.ids[0]} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                  umSelectedIds.has(subj.ids[0])
                     ? 'bg-orange-50 dark:bg-orange-900/10 border-orange-300 dark:border-orange-700'
                     : 'bg-white dark:bg-[#111] border-gray-200 dark:border-[#333] hover:border-orange-200'
                 }`}>
-                  <input type="checkbox" checked={umSelectedIds.has(subj.id!)} onChange={() => toggleUmSubject(subj.id!)}
+                  <input type="checkbox" checked={umSelectedIds.has(subj.ids[0])} onChange={() => toggleUmSubject(subj.ids[0])}
                     className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500/20" />
                   <div className="flex-1">
                     <span className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary">{subj.name}</span>
                     <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-[#222] text-gray-500">{subj.group}</span>
                   </div>
-                  <span className="text-[10px] text-gray-400">{subj.semester}</span>
+                  <div className="flex gap-1">
+                    {subj.semesters.map((sem: string) => (
+                       <span key={sem} className="text-[10px] bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded font-medium border border-emerald-100 dark:border-emerald-800">
+                         {sem.replace('sem', 'S')}
+                       </span>
+                    ))}
+                  </div>
                 </label>
               ))}
             </div>

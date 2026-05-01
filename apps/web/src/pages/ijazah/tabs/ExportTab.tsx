@@ -30,6 +30,34 @@ export const ExportTab = () => {
     }
   }, [selectedClassId]);
 
+      const [allSubjects, setAllSubjects] = useState<any[]>([]);
+  const [selectedSubjects, setSelectedSubjects] = useState<{name: string, order: number}[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  useEffect(() => {
+    fetchClasses();
+    fetchSubjects();
+  }, []);
+
+  const fetchSubjects = async () => {
+    try {
+      const unique = await apiClient<any[]>('/ijazah/subjects/unique').catch(() => []);
+      
+      // Initialize all with order based on their index + 1
+      const initialized = unique.map((s, idx) => ({
+         name: s.name,
+         order: s.orderNum || idx + 1,
+         hasUm: s.hasUm,
+         group: s.group,
+         semesters: s.semesters
+      }));
+      setAllSubjects(initialized);
+      setSelectedSubjects(initialized.map(s => ({ name: s.name, order: s.order })));
+    } catch (err) {
+      toast.error('Gagal memuat mata pelajaran');
+    }
+  };
+
   const fetchClasses = async () => {
     try {
       const res = await apiClient<any[]>('/ijazah/classes');
@@ -44,7 +72,19 @@ export const ExportTab = () => {
     if (!selectedClassId) return;
     setIsPreviewLoading(true);
     try {
-      const res = await apiClient<any>(`/ijazah/preview?classId=${selectedClassId}`);
+      const subjectNames = selectedSubjects.map(s => s.name).join(',');
+      const res = await apiClient<any>(`/ijazah/preview?classId=${selectedClassId}&subjectIds=${encodeURIComponent(subjectNames)}`);
+      
+      // Sort the subjects returned from backend according to the user's selected order
+      if (res && res.subjects) {
+          const orderMap = new Map(selectedSubjects.map(s => [s.name, s.order]));
+          res.subjects.sort((a: any, b: any) => {
+              const orderA = orderMap.get(a.name) || 999;
+              const orderB = orderMap.get(b.name) || 999;
+              return orderA - orderB;
+          });
+      }
+      
       setPreviewData(res);
     } catch (err) {
       toast.error('Gagal memuat preview nilai');
@@ -55,12 +95,14 @@ export const ExportTab = () => {
 
   const handleExport = async (type: 'leger' | 'ijazah') => {
     if (!selectedClassId) return toast.error('Pilih rombel terlebih dahulu');
+    if (selectedSubjects.length === 0) return toast.error('Pilih minimal 1 mata pelajaran');
     
     if (type === 'leger') setIsExportingLeger(true);
     else setIsExportingIjazah(true);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/ijazah/export?classId=${selectedClassId}&type=${type}`, {
+      const subjectNames = selectedSubjects.map(s => s.name).join(',');
+      const response = await fetch(`${API_BASE_URL}/ijazah/export?classId=${selectedClassId}&type=${type}&subjectIds=${encodeURIComponent(subjectNames)}`, {
         credentials: 'include'
       });
       if (!response.ok) throw new Error('Export failed');
@@ -81,6 +123,29 @@ export const ExportTab = () => {
       else setIsExportingIjazah(false);
     }
   };
+  
+  const toggleSubject = (name: string) => {
+      const isSelected = selectedSubjects.some(s => s.name === name);
+      if (isSelected) {
+          setSelectedSubjects(selectedSubjects.filter(s => s.name !== name));
+      } else {
+          const subj = allSubjects.find(s => s.name === name);
+          setSelectedSubjects([...selectedSubjects, { name, order: subj?.order || 999 }]);
+      }
+  };
+
+  const handleOrderChange = (name: string, value: string) => {
+      const numValue = parseInt(value) || 0;
+      setSelectedSubjects(selectedSubjects.map(s => s.name === name ? { ...s, order: numValue } : s));
+  };
+  
+  const handleProcess = async () => {
+      if(!selectedClassId) return toast.error("Pilih rombel terlebih dahulu");
+      setIsProcessing(true);
+      await loadPreview();
+      setIsProcessing(false);
+      toast.success("Nilai berhasil diproses dan disinkronisasi");
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -94,7 +159,7 @@ export const ExportTab = () => {
           <div>
             <h3 className="text-sm font-bold text-violet-800 dark:text-violet-400">Rekapitulasi & Ekspor Laporan</h3>
             <p className="text-xs text-violet-600/80 dark:text-violet-400/80 mt-1">
-              Preview perhitungan nilai Ijazah berdasarkan bobot yang ditentukan. Ekspor hasilnya ke format Excel resmi.
+              Pilih mapel yang akan dimasukkan ke ijazah, urutkan, lalu proses nilai sebelum diekspor. Mapel yang tidak ada UM-nya akan menggunakan nilai rata-rata rapot murni.
             </p>
           </div>
         </div>
@@ -113,12 +178,66 @@ export const ExportTab = () => {
           </select>
         </div>
       </div>
+      
+      {/* Subject Checklist Panel */}
+      <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden">
+        <div className="p-4 border-b border-gray-100 dark:border-[#222] bg-gray-50/50 dark:bg-[#1a1a1a]">
+            <h4 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary">Mata Pelajaran Ijazah & Leger</h4>
+            <p className="text-[11px] text-gray-500 mt-0.5">
+              Centang mata pelajaran yang akan dicetak dan sesuaikan urutannya. Urutan ini akan dipakai di preview dan file Excel.
+            </p>
+        </div>
+        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto custom-scrollbar">
+            {allSubjects.length === 0 ? (
+                <div className="col-span-full py-8 text-center text-sm text-gray-500">Memuat mata pelajaran...</div>
+            ) : (
+                allSubjects.map(subj => {
+                    const isSelected = selectedSubjects.some(s => s.name === subj.name);
+                    const selectedObj = selectedSubjects.find(s => s.name === subj.name);
+                    
+                    return (
+                        <div key={subj.name} className={`flex items-center gap-3 p-2 rounded-lg border transition-all ${isSelected ? 'border-violet-300 bg-violet-50/50 dark:border-violet-700/50 dark:bg-violet-900/10' : 'border-gray-200 bg-white dark:border-[#333] dark:bg-[#111]'}`}>
+                            <input 
+                                type="checkbox" 
+                                checked={isSelected}
+                                onChange={() => toggleSubject(subj.name)}
+                                className="w-4 h-4 text-violet-600 rounded border-gray-300 focus:ring-violet-500"
+                            />
+                            <input 
+                                type="number" 
+                                disabled={!isSelected}
+                                value={selectedObj?.order || ''}
+                                onChange={(e) => handleOrderChange(subj.name, e.target.value)}
+                                className="w-12 px-1.5 py-1 text-center text-xs border border-gray-300 dark:border-[#444] rounded bg-white dark:bg-[#1a1a1a] disabled:opacity-50"
+                                placeholder="Urut"
+                            />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate" title={subj.name}>{subj.name}</p>
+                                <div className="flex gap-1 mt-0.5">
+                                    <span className="text-[9px] px-1 bg-gray-100 dark:bg-[#222] rounded text-gray-500">{subj.group}</span>
+                                    {subj.hasUm && <span className="text-[9px] px-1 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded">Ada UM</span>}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })
+            )}
+        </div>
+      </div>
 
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-4 justify-end">
         <button 
+          onClick={handleProcess}
+          disabled={!selectedClassId || isProcessing || selectedSubjects.length === 0}
+          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
+        >
+          {isProcessing ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
+          Proses Nilai Ijazah
+        </button>
+        <button 
           onClick={() => handleExport('leger')}
-          disabled={!selectedClassId || isExportingLeger}
+          disabled={!selectedClassId || isExportingLeger || selectedSubjects.length === 0}
           className="px-5 py-2.5 bg-white dark:bg-[#111] border border-violet-200 dark:border-[#333] hover:bg-violet-50 dark:hover:bg-[#222] disabled:opacity-50 text-violet-700 dark:text-violet-400 text-sm font-semibold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
         >
           {isExportingLeger ? <Loader2 size={18} className="animate-spin" /> : <FileSpreadsheet size={18} />}
@@ -126,7 +245,7 @@ export const ExportTab = () => {
         </button>
         <button 
           onClick={() => handleExport('ijazah')}
-          disabled={!selectedClassId || isExportingIjazah}
+          disabled={!selectedClassId || isExportingIjazah || selectedSubjects.length === 0}
           className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl shadow-sm shadow-violet-500/25 transition-all flex items-center justify-center gap-2"
         >
           {isExportingIjazah ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
