@@ -566,6 +566,7 @@ export const ijazahSettings = pgTable("ijazah_settings", {
 export const ijazahSubjects = pgTable("ijazah_subjects", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 150 }).notNull(),
+  shortName: varchar("short_name", { length: 20 }), // Singkatan mapel untuk header Excel (e.g. "QH" for "Al-Qur'an Hadits")
   group: varchar("group", { length: 50 }).notNull(), // Kelompok A, Kelompok B, Muatan Lokal, Mapel Pilihan
   semester: varchar("semester", { length: 20 }).default("global"), // Deprecated, kept for backward compat temporarily
   orderNum: integer("order_num").default(0),

@@ -163,18 +163,33 @@ export class IjazahController {
 
   static async saveSubject(req: Request, res: Response) {
     try {
-      const { id, name, group, orderNum } = req.body;
+      const { id, name, shortName, group, orderNum } = req.body;
       if (!name || !group) return res.status(400).json({ error: "Nama mapel dan kelompok wajib diisi" });
       if (id) {
         await db.update(ijazahSubjects)
-          .set({ name, group, orderNum: orderNum || 0, updatedAt: new Date() })
+          .set({ name, shortName: shortName || null, group, orderNum: orderNum || 0, updatedAt: new Date() })
           .where(eq(ijazahSubjects.id, id));
       } else {
-        await db.insert(ijazahSubjects).values({ name, group, orderNum: orderNum || 0 });
+        await db.insert(ijazahSubjects).values({ name, shortName: shortName || null, group, orderNum: orderNum || 0 });
       }
       res.json({ success: true, message: "Mata pelajaran berhasil disimpan" });
     } catch (error: any) {
       res.status(500).json({ error: "Gagal menyimpan mata pelajaran" });
+    }
+  }
+
+  // Auto-save shortName (singkatan) inline
+  static async updateSubjectShortName(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { shortName } = req.body;
+      if (!id) return res.status(400).json({ error: "ID wajib diisi" });
+      await db.update(ijazahSubjects)
+        .set({ shortName: shortName || null, updatedAt: new Date() })
+        .where(eq(ijazahSubjects.id, id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: "Gagal menyimpan singkatan" });
     }
   }
 
@@ -375,7 +390,9 @@ export class IjazahController {
       ];
 
       subjects.forEach((subj) => {
-        columns.push({ header: subj.name, key: `subj_${subj.id}`, width: 15 });
+        const headerLabel = subj.shortName || subj.name;
+        const colWidth = subj.shortName ? Math.max(6, subj.shortName.length + 2) : 15;
+        columns.push({ header: headerLabel, key: `subj_${subj.id}`, width: colWidth });
       });
 
       worksheet.columns = columns;
@@ -877,7 +894,7 @@ export class IjazahController {
       if (isLeger) {
         // LEGER: 1 header row with vertical text for subjects
         const headerRow = ['No', 'NIS', 'NISN', 'Nama Siswa', 'Sem/UM'];
-        subjects.forEach(subj => headerRow.push(subj.name));
+        subjects.forEach(subj => headerRow.push(subj.shortName || subj.name));
         headerRow.push('Rata-rata Nilai');
 
         const row1 = worksheet.addRow(headerRow);
@@ -999,7 +1016,7 @@ export class IjazahController {
       } else {
         // NILAI IJAZAH: 1 header row (Final score only)
         const headerRow = ['No', 'NIS', 'NISN', 'Nama Siswa'];
-        subjects.forEach(subj => headerRow.push(subj.name));
+        subjects.forEach(subj => headerRow.push(subj.shortName || subj.name));
         headerRow.push('Rata-rata Total');
 
         const r1 = worksheet.addRow(headerRow);

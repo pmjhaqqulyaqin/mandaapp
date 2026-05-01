@@ -6,6 +6,7 @@ import { Save, Plus, Trash2, Edit2, Check, X, Loader2, Settings, Download, Uploa
 interface Subject {
   id?: string;
   name: string;
+  shortName?: string | null;
   group: string;
   orderNum: number;
 }
@@ -138,6 +139,18 @@ export const SettingsTab = () => {
         reloadMapelData();
       } catch { toast.error('Gagal menghapus mata pelajaran'); }
     }
+  };
+
+  const handleUpdateShortName = async (id: string, shortName: string) => {
+    if (id.startsWith('new-')) {
+      setSubjects(subjects.map(s => s.id === id ? { ...s, shortName } : s));
+      return;
+    }
+    try {
+      await apiClient(`/ijazah/subjects/${id}/short-name`, { method: 'PATCH', data: { shortName } });
+      toast.success('Singkatan berhasil disimpan');
+      reloadMapelData();
+    } catch { toast.error('Gagal menyimpan singkatan'); }
   };
 
   const handleDownloadTemplate = async () => {
@@ -308,8 +321,9 @@ export const SettingsTab = () => {
                 <thead className="bg-gray-50 dark:bg-black/40 border-b border-gray-200 dark:border-[#333]">
                   <tr>
                     <th className="px-4 py-3 font-semibold text-xs text-gray-500 w-16 text-center">Urut</th>
-                    <th className="px-4 py-3 font-semibold text-xs text-gray-500 w-1/3">Kelompok</th>
+                    <th className="px-4 py-3 font-semibold text-xs text-gray-500 w-1/4">Kelompok</th>
                     <th className="px-4 py-3 font-semibold text-xs text-gray-500">Nama Mapel</th>
+                    <th className="px-4 py-3 font-semibold text-xs text-gray-500 w-32">Singkatan</th>
                     <th className="px-4 py-3 font-semibold text-xs text-gray-500 w-24 text-right">Aksi</th>
                   </tr>
                 </thead>
@@ -327,6 +341,7 @@ export const SettingsTab = () => {
                               </select>
                             </td>
                             <td className="px-4 py-2"><input type="text" placeholder="Nama Mata Pelajaran" className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-[#444] rounded bg-white dark:bg-black" value={editForm?.name || ''} onChange={(e) => setEditForm({...editForm!, name: e.target.value})} autoFocus /></td>
+                            <td className="px-4 py-2"><input type="text" placeholder="Singkatan" className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-[#444] rounded bg-white dark:bg-black" value={editForm?.shortName || ''} onChange={(e) => setEditForm({...editForm!, shortName: e.target.value})} /></td>
                             <td className="px-4 py-2 text-right">
                               <div className="flex items-center justify-end gap-1">
                                 <button onClick={handleSaveSubject} className="p-1.5 text-emerald-600 hover:bg-emerald-100 rounded"><Check size={16} /></button>
@@ -339,6 +354,24 @@ export const SettingsTab = () => {
                             <td className="px-4 py-3 text-center text-gray-500">{subj.orderNum}</td>
                             <td className="px-4 py-3 font-medium"><span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600 dark:bg-[#222] dark:text-gray-300">{subj.group}</span></td>
                             <td className="px-4 py-3 font-semibold text-text-primary dark:text-text-darkPrimary">{subj.name}</td>
+                            <td className="px-4 py-2">
+                              <input 
+                                type="text" 
+                                placeholder="Singkatan" 
+                                className="w-full px-2 py-1.5 text-sm border border-transparent hover:border-gray-300 focus:border-emerald-500 dark:hover:border-[#444] rounded bg-transparent focus:bg-white dark:focus:bg-black outline-none transition-colors"
+                                defaultValue={subj.shortName || ''} 
+                                onBlur={(e) => {
+                                  if (e.target.value !== (subj.shortName || '')) {
+                                    handleUpdateShortName(subj.id!, e.target.value);
+                                  }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.currentTarget.blur();
+                                  }
+                                }}
+                              />
+                            </td>
                             <td className="px-4 py-3 text-right">
                               <div className="flex justify-end gap-1 opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity">
                                 <button onClick={() => { setEditingId(subj.id!); setEditForm(subj); }} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><Edit2 size={14} /></button>

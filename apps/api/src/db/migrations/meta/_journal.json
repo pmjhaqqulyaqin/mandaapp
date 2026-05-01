@@ -43,6 +43,13 @@
       "when": 1777629111918,
       "tag": "0005_special_bulldozer",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1777639429301,
+      "tag": "0006_light_marvex",
+      "breakpoints": true
     }
   ]
 }

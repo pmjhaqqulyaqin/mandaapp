@@ -1,0 +1,1 @@
+ALTER TABLE "ijazah_subjects" ADD COLUMN "short_name" varchar(20);
