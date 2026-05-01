@@ -237,10 +237,12 @@ export class IjazahController {
         .orderBy(asc(ijazahSubjects.orderNum));
 
       // 2. Define Columns
-      const columns = [
+      const columns: any[] = [
         { header: 'No', key: 'no', width: 5 },
+        { header: 'NIS', key: 'nis', width: 15 },
         { header: 'NISN', key: 'nisn', width: 15 },
         { header: 'Nama Siswa', key: 'name', width: 35 },
+        { header: 'JK', key: 'jk', width: 6 },
       ];
 
       subjects.forEach((subj) => {
@@ -258,8 +260,10 @@ export class IjazahController {
       const students = await db
         .select({
           id: studentProfiles.id,
+          nis: studentProfiles.nis,
           nisn: studentProfiles.nisn,
           fullName: studentProfiles.fullName,
+          gender: studentProfiles.gender,
         })
         .from(studentProfiles)
         .leftJoin(classes, eq(studentProfiles.classId, classes.id))
@@ -270,8 +274,10 @@ export class IjazahController {
       students.forEach((student, index) => {
         worksheet.addRow({
           no: index + 1,
+          nis: student.nis,
           nisn: student.nisn,
           name: student.fullName,
+          jk: student.gender === 'Laki-laki' ? 'L' : student.gender === 'Perempuan' ? 'P' : student.gender || '-',
         });
       });
 
@@ -285,7 +291,7 @@ export class IjazahController {
         cell.fill = {
           type: 'pattern',
           pattern: 'solid',
-          fgColor: { argb: colNumber <= 3 ? 'FF4F46E5' : 'FF10B981' } // Blue for identity, Green for subjects
+          fgColor: { argb: colNumber <= 5 ? 'FF4F46E5' : 'FF10B981' } // Blue for identity, Green for subjects
         };
         cell.border = {
           top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}
