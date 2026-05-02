@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Download, FileSpreadsheet, Loader2, RefreshCw, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Download, FileSpreadsheet, Loader2, RefreshCw, ChevronDown, Save, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient, API_BASE_URL } from '../../../lib/api';
 
@@ -18,17 +18,9 @@ export const ExportTab = () => {
     examWeight: number;
   } | null>(null);
 
-  useEffect(() => {
-    fetchClasses();
-  }, []);
-
-  useEffect(() => {
-    if (selectedClassId) {
-      loadPreview();
-    } else {
-      setPreviewData(null);
-    }
-  }, [selectedClassId]);
+  // Preview mode: 'leger' or 'ijazah'
+  const [previewMode, setPreviewMode] = useState<'leger' | 'ijazah'>('ijazah');
+  const [checklistDirty, setChecklistDirty] = useState(false);
 
   const [masterSubjects, setMasterSubjects] = useState<any[]>([]);
   const [masterMappings, setMasterMappings] = useState<any[]>([]);
@@ -159,11 +151,21 @@ export const ExportTab = () => {
           const subj = allSubjects.find(s => s.name === name);
           setSelectedSubjects([...selectedSubjects, { name, order: subj?.order || 999 }]);
       }
+      setChecklistDirty(true);
   };
 
   const handleOrderChange = (name: string, value: string) => {
       const numValue = parseInt(value) || 0;
       setSelectedSubjects(selectedSubjects.map(s => s.name === name ? { ...s, order: numValue } : s));
+      setChecklistDirty(true);
+  };
+
+  const handleSaveChecklist = async () => {
+      if (!selectedClassId) return toast.error('Pilih rombel terlebih dahulu');
+      if (selectedSubjects.length === 0) return toast.error('Pilih minimal 1 mata pelajaran');
+      setChecklistDirty(false);
+      await loadPreview();
+      toast.success('Checklist disimpan & preview diperbarui');
   };
   
   const handleProcess = async () => {
@@ -261,6 +263,19 @@ export const ExportTab = () => {
                 })
             )}
         </div>
+        {checklistDirty && (
+        <div className="px-4 pb-4 border-t border-gray-100 dark:border-[#222] pt-3 flex items-center justify-between animate-in fade-in duration-200">
+            <p className="text-xs text-amber-600 dark:text-amber-400">⚠ Ada perubahan yang belum disimpan</p>
+            <button
+              onClick={handleSaveChecklist}
+              disabled={isPreviewLoading}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg shadow-sm transition-all flex items-center gap-2"
+            >
+              {isPreviewLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              Simpan & Terapkan
+            </button>
+        </div>
+        )}
         )}
       </div>
 
@@ -294,20 +309,42 @@ export const ExportTab = () => {
 
       {/* Live Preview Table */}
       <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-gray-100 dark:border-[#222] flex items-center justify-between bg-gray-50/50 dark:bg-[#1a1a1a]">
+        <div className="p-4 border-b border-gray-100 dark:border-[#222] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/50 dark:bg-[#1a1a1a]">
           <div>
-            <h4 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary">Live Preview Data</h4>
+            <h4 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
+              <Eye size={16} /> Live Preview Data
+            </h4>
             <p className="text-[11px] text-gray-500 mt-0.5">
-              Menampilkan {previewData?.students.length || 0} siswa. Bobot: {previewData?.reportWeight}% Rapor + {previewData?.examWeight}% Ujian.
+              Menampilkan {previewData?.students.length || 0} siswa &bull; {selectedSubjects.length} mapel terpilih &bull; Mode: {previewMode === 'leger' ? 'Leger Ijazah' : 'Nilai Ijazah Final'}
             </p>
           </div>
-          <button 
-            onClick={() => loadPreview()}
-            disabled={isPreviewLoading || !selectedClassId}
-            className="p-2 text-gray-500 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
-          >
-            <RefreshCw size={16} className={isPreviewLoading ? "animate-spin" : ""} />
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex bg-gray-100 dark:bg-[#222] rounded-lg p-0.5">
+              <button
+                onClick={() => setPreviewMode('ijazah')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                  previewMode === 'ijazah' ? 'bg-violet-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Nilai Ijazah
+              </button>
+              <button
+                onClick={() => setPreviewMode('leger')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                  previewMode === 'leger' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Leger
+              </button>
+            </div>
+            <button 
+              onClick={() => loadPreview()}
+              disabled={isPreviewLoading || !selectedClassId}
+              className="p-2 text-gray-500 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+            >
+              <RefreshCw size={16} className={isPreviewLoading ? "animate-spin" : ""} />
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto custom-scrollbar">
@@ -320,45 +357,114 @@ export const ExportTab = () => {
             <div className="py-20 text-center text-gray-500 text-sm">
               Tidak ada data nilai untuk ditampilkan. Silakan pilih rombel lain.
             </div>
-          ) : (
-            <table className="w-full text-left text-xs whitespace-nowrap">
-              <thead className="bg-gray-50 dark:bg-black/40 border-b border-gray-200 dark:border-[#333]">
-                <tr>
-                  <th className="px-4 py-3 font-semibold text-gray-500 sticky left-0 bg-gray-50 dark:bg-[#151515] z-10 w-10 text-center border-r border-gray-200 dark:border-[#333]">No</th>
-                  <th className="px-4 py-3 font-semibold text-gray-500 sticky left-[52px] bg-gray-50 dark:bg-[#151515] z-10 w-48 border-r border-gray-200 dark:border-[#333]">Nama Siswa</th>
-                  {previewData.subjects.map(subj => (
-                    <th key={subj.id} className="px-4 py-3 font-semibold text-gray-500 text-center border-r border-gray-200 dark:border-[#333]">
-                      <div className="max-w-[120px] truncate" title={subj.name}>{subj.name}</div>
-                      <div className="text-[10px] font-normal opacity-70 mt-0.5">Nilai Ijazah</div>
-                    </th>
-                  ))}
-                  <th className="px-4 py-3 font-bold text-violet-600 dark:text-violet-400 text-center bg-violet-50/50 dark:bg-violet-900/10">Rata-Rata Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
-                {previewData.students.map((student, idx) => (
-                  <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors group">
-                    <td className="px-4 py-2.5 text-center text-gray-500 sticky left-0 bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#1a1a1a] z-10 border-r border-gray-100 dark:border-[#222]">{idx + 1}</td>
-                    <td className="px-4 py-2.5 font-medium text-text-primary dark:text-text-darkPrimary sticky left-[52px] bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#1a1a1a] z-10 border-r border-gray-100 dark:border-[#222]">
-                      <div className="truncate w-48">{student.fullName}</div>
-                      <div className="text-[10px] text-gray-400 font-normal">{student.nisn}</div>
-                    </td>
-                    {previewData.subjects.map(subj => {
-                      const scoreData = student.subjectScores.find((s: any) => s.subjectId === subj.id);
-                      return (
-                        <td key={subj.id} className="px-4 py-2.5 text-center border-r border-gray-100 dark:border-[#222]">
-                          <span className="font-semibold text-text-primary dark:text-text-darkPrimary">{scoreData?.finalScore || '-'}</span>
-                        </td>
-                      );
+          ) : (() => {
+            // Filter subjects: only show subjects that are in the selectedSubjects checklist
+            const selectedNames = new Set(selectedSubjects.map(s => s.name));
+            const orderMap = new Map(selectedSubjects.map(s => [s.name, s.order]));
+            const filteredSubjects = previewData.subjects
+              .filter((subj: any) => selectedNames.has(subj.name))
+              .sort((a: any, b: any) => (orderMap.get(a.name) || 999) - (orderMap.get(b.name) || 999));
+
+            if (previewMode === 'leger') {
+              // LEGER MODE: show semester breakdown per subject
+              return (
+                <table className="w-full text-left text-xs whitespace-nowrap">
+                  <thead className="bg-emerald-50 dark:bg-emerald-900/10 border-b border-gray-200 dark:border-[#333]">
+                    <tr>
+                      <th className="px-3 py-3 font-semibold text-gray-500 sticky left-0 bg-emerald-50 dark:bg-[#151515] z-10 w-10 text-center border-r border-gray-200 dark:border-[#333]">No</th>
+                      <th className="px-3 py-3 font-semibold text-gray-500 sticky left-[40px] bg-emerald-50 dark:bg-[#151515] z-10 w-44 border-r border-gray-200 dark:border-[#333]">Nama Siswa</th>
+                      <th className="px-2 py-3 font-semibold text-gray-500 text-center border-r border-gray-200 dark:border-[#333] w-12 bg-emerald-50 dark:bg-[#151515]">Sem</th>
+                      {filteredSubjects.map((subj: any) => (
+                        <th key={subj.name} className="px-2 py-3 font-semibold text-gray-500 text-center border-r border-gray-200 dark:border-[#333]">
+                          <div className="max-w-[80px] truncate text-[10px]" title={subj.name}>{subj.name}</div>
+                        </th>
+                      ))}
+                      <th className="px-3 py-3 font-bold text-emerald-600 dark:text-emerald-400 text-center bg-emerald-100/50 dark:bg-emerald-900/20">Rata²</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
+                    {previewData.students.map((student: any, idx: number) => {
+                      const semLabels = ['S1','S2','S3','S4','S5','UM','Ijazah'];
+                      return semLabels.map((label, semIdx) => (
+                        <tr key={`${student.id}-${label}`} className={`hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors group ${label === 'Ijazah' ? 'bg-rose-50/50 dark:bg-rose-900/5' : ''}`}>
+                          {semIdx === 0 && (
+                            <>
+                              <td rowSpan={7} className="px-3 py-2 text-center text-gray-500 sticky left-0 bg-white dark:bg-[#111] z-10 border-r border-gray-100 dark:border-[#222] align-top font-medium">{idx + 1}</td>
+                              <td rowSpan={7} className="px-3 py-2 font-medium text-text-primary dark:text-text-darkPrimary sticky left-[40px] bg-white dark:bg-[#111] z-10 border-r border-gray-100 dark:border-[#222] align-top">
+                                <div className="truncate w-40">{student.fullName}</div>
+                                <div className="text-[10px] text-gray-400 font-normal">{student.nisn}</div>
+                              </td>
+                            </>
+                          )}
+                          <td className={`px-2 py-1.5 text-center text-[10px] font-bold border-r border-gray-100 dark:border-[#222] ${label === 'Ijazah' ? 'text-rose-600 bg-rose-50 dark:bg-rose-900/10' : label === 'UM' ? 'text-orange-600 bg-orange-50/50 dark:bg-orange-900/10' : 'text-gray-500 bg-gray-50/50 dark:bg-[#151515]'}`}>{label}</td>
+                          {filteredSubjects.map((subj: any) => {
+                            const scoreData = student.subjectScores?.find((s: any) => s.subjectName === subj.name);
+                            let val: any = '-';
+                            if (scoreData) {
+                              const avgRapor = scoreData.avgRapor || 0;
+                              const sems = [scoreData.avgRapor]; // We only have final computed values from preview
+                              if (label === 'Ijazah') val = scoreData.finalScore || '-';
+                              else if (label === 'UM') val = scoreData.examScore || '-';
+                              else val = '-'; // Individual semester data not available in preview endpoint
+                            }
+                            return (
+                              <td key={subj.name} className={`px-2 py-1.5 text-center border-r border-gray-100 dark:border-[#222] ${label === 'Ijazah' ? 'font-bold text-rose-700 dark:text-rose-400' : ''}`}>
+                                <span className="text-text-primary dark:text-text-darkPrimary">{val}</span>
+                              </td>
+                            );
+                          })}
+                          <td className={`px-3 py-1.5 text-center font-bold ${label === 'Ijazah' ? 'text-rose-600 bg-rose-100/50 dark:bg-rose-900/10' : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/30 dark:bg-emerald-900/10'}`}>
+                            {label === 'Ijazah' ? (student.avgFinal || '-') : '-'}
+                          </td>
+                        </tr>
+                      ));
                     })}
-                    <td className="px-4 py-2.5 text-center font-bold text-violet-600 dark:text-violet-400 bg-violet-50/30 dark:bg-violet-900/10">
-                      {student.avgFinal || '-'}
-                    </td>
+                  </tbody>
+                </table>
+              );
+            }
+
+            // IJAZAH MODE: simple final score view
+            return (
+              <table className="w-full text-left text-xs whitespace-nowrap">
+                <thead className="bg-gray-50 dark:bg-black/40 border-b border-gray-200 dark:border-[#333]">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold text-gray-500 sticky left-0 bg-gray-50 dark:bg-[#151515] z-10 w-10 text-center border-r border-gray-200 dark:border-[#333]">No</th>
+                    <th className="px-4 py-3 font-semibold text-gray-500 sticky left-[52px] bg-gray-50 dark:bg-[#151515] z-10 w-48 border-r border-gray-200 dark:border-[#333]">Nama Siswa</th>
+                    {filteredSubjects.map((subj: any) => (
+                      <th key={subj.name} className="px-4 py-3 font-semibold text-gray-500 text-center border-r border-gray-200 dark:border-[#333]">
+                        <div className="max-w-[120px] truncate" title={subj.name}>{subj.name}</div>
+                        <div className="text-[10px] font-normal opacity-70 mt-0.5">Nilai Ijazah</div>
+                      </th>
+                    ))}
+                    <th className="px-4 py-3 font-bold text-violet-600 dark:text-violet-400 text-center bg-violet-50/50 dark:bg-violet-900/10">Rata-Rata Total</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
+                  {previewData.students.map((student: any, idx: number) => (
+                    <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors group">
+                      <td className="px-4 py-2.5 text-center text-gray-500 sticky left-0 bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#1a1a1a] z-10 border-r border-gray-100 dark:border-[#222]">{idx + 1}</td>
+                      <td className="px-4 py-2.5 font-medium text-text-primary dark:text-text-darkPrimary sticky left-[52px] bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#1a1a1a] z-10 border-r border-gray-100 dark:border-[#222]">
+                        <div className="truncate w-48">{student.fullName}</div>
+                        <div className="text-[10px] text-gray-400 font-normal">{student.nisn}</div>
+                      </td>
+                      {filteredSubjects.map((subj: any) => {
+                        const scoreData = student.subjectScores?.find((s: any) => s.subjectName === subj.name);
+                        return (
+                          <td key={subj.name} className="px-4 py-2.5 text-center border-r border-gray-100 dark:border-[#222]">
+                            <span className="font-semibold text-text-primary dark:text-text-darkPrimary">{scoreData?.finalScore || '-'}</span>
+                          </td>
+                        );
+                      })}
+                      <td className="px-4 py-2.5 text-center font-bold text-violet-600 dark:text-violet-400 bg-violet-50/30 dark:bg-violet-900/10">
+                        {student.avgFinal || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            );
+          })()}
         </div>
       </div>
 
