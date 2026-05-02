@@ -403,11 +403,13 @@ export const ExportTab = () => {
                             const scoreData = student.subjectScores?.find((s: any) => s.subjectName === subj.name);
                             let val: any = '-';
                             if (scoreData) {
-                              const avgRapor = scoreData.avgRapor || 0;
-                              const sems = [scoreData.avgRapor]; // We only have final computed values from preview
-                              if (label === 'Ijazah') val = scoreData.finalScore || '-';
+                              if (label === 'S1') val = scoreData.semester1 || '-';
+                              else if (label === 'S2') val = scoreData.semester2 || '-';
+                              else if (label === 'S3') val = scoreData.semester3 || '-';
+                              else if (label === 'S4') val = scoreData.semester4 || '-';
+                              else if (label === 'S5') val = scoreData.semester5 || '-';
                               else if (label === 'UM') val = scoreData.examScore || '-';
-                              else val = '-'; // Individual semester data not available in preview endpoint
+                              else if (label === 'Ijazah') val = scoreData.finalScore || '-';
                             }
                             return (
                               <td key={subj.name} className={`px-2 py-1.5 text-center border-r border-gray-100 dark:border-[#222] ${label === 'Ijazah' ? 'font-bold text-rose-700 dark:text-rose-400' : ''}`}>

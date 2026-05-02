@@ -747,11 +747,19 @@ export class IjazahController {
         }
 
         if (!subjectMap.has(subj.name)) {
+          // Count active semesters from mapping flags
+          let activeSemCount = 5; // default
+          if (map) {
+            activeSemCount = [map.sem1, map.sem2, map.sem3, map.sem4, map.sem5].filter(Boolean).length;
+            if (activeSemCount === 0) activeSemCount = 5; // fallback if none configured
+          }
           subjectMap.set(subj.name, {
             name: subj.name,
             group: subj.group,
             orderNum: subj.orderNum,
             hasUm: map?.um || false,
+            activeSemCount,
+            activeSems: map ? { sem1: !!map.sem1, sem2: !!map.sem2, sem3: !!map.sem3, sem4: !!map.sem4, sem5: !!map.sem5 } : { sem1: true, sem2: true, sem3: true, sem4: true, sem5: true },
             ids: [subj.id]
           });
         }
@@ -788,12 +796,13 @@ export class IjazahController {
           const gArray = studentGrades.filter(sg => subj.ids.includes(sg.subjectId));
           
           let semTotal = 0;
-          let semCount = 0;
           let examScore = 0;
           
-          // Combine grades from different semesters into one
-          ['semester1', 'semester2', 'semester3', 'semester4', 'semester5'].forEach(sem => {
-             // Find a grade for this semester across all IDs for this subject name
+          // Extract individual semester values
+          const semValues: Record<string, number | null> = {};
+          const semKeys = ['semester1', 'semester2', 'semester3', 'semester4', 'semester5'];
+          
+          semKeys.forEach(sem => {
              let val: number | null = null;
              for(const g of gArray) {
                if((g as any)[sem] !== null && (g as any)[sem] !== undefined) {
@@ -801,11 +810,10 @@ export class IjazahController {
                  break;
                }
              }
-             
-            if (val !== null && val !== undefined) {
-              semTotal += val;
-              semCount++;
-            }
+             semValues[sem] = val;
+             if (val !== null && val !== undefined) {
+               semTotal += val;
+             }
           });
           
           for(const g of gArray) {
@@ -815,13 +823,14 @@ export class IjazahController {
              }
           }
           
-          // Pembagi 5 (sesuai standar rapor 5 semester untuk ijazah)
-          const avgRaporRaw = semTotal / 5;
+          // Pembagi dinamis: gunakan jumlah semester aktif dari mapping, bukan selalu 5
+          const divisor = subj.activeSemCount || 5;
+          const avgRaporRaw = semTotal / divisor;
           const avgRapor = Math.round(avgRaporRaw * 100) / 100; // 2 desimal
           
           // Rumus Nilai Ijazah: 
           // Jika ada UM: (RataRapor * BobotRapor) + (Ujian * BobotUjian)
-          // Jika TIDAK ada UM: RataRapor murni
+          // Jika TIDAK ada UM: RataRapor murni (rata-rata semester aktif)
           let finalScoreRaw = 0;
           if (subj.hasUm) {
              finalScoreRaw = (avgRapor * (reportWeight / 100)) + (examScore * (examWeight / 100));
@@ -829,15 +838,21 @@ export class IjazahController {
              finalScoreRaw = avgRapor;
           }
           
-          const finalScore = Math.round(finalScoreRaw); // Biasanya nilai ijazah dibulatkan ke satuan terdekat
+          const finalScore = Math.round(finalScoreRaw);
 
           return {
-            subjectId: subj.ids[0], // just use first ID as key
+            subjectId: subj.ids[0],
             subjectName: subj.name,
+            semester1: semValues.semester1,
+            semester2: semValues.semester2,
+            semester3: semValues.semester3,
+            semester4: semValues.semester4,
+            semester5: semValues.semester5,
             avgRapor,
             examScore,
             finalScore,
-            hasUm: subj.hasUm
+            hasUm: subj.hasUm,
+            activeSemCount: divisor
           };
         });
 
@@ -894,12 +909,19 @@ export class IjazahController {
         }
 
         if (!subjectMap.has(subj.name)) {
+          // Count active semesters from mapping
+          let activeSemCount = 5;
+          if (map) {
+            activeSemCount = [map.sem1, map.sem2, map.sem3, map.sem4, map.sem5].filter(Boolean).length;
+            if (activeSemCount === 0) activeSemCount = 5;
+          }
           subjectMap.set(subj.name, {
             name: subj.name,
             shortName: subj.shortName,
             group: subj.group,
             orderNum: subj.orderNum,
             hasUm: false,
+            activeSemCount,
             ids: []
           });
         }
@@ -907,8 +929,6 @@ export class IjazahController {
         const mapEntry = subjectMap.get(subj.name);
         mapEntry.ids.push(subj.id);
         if (map && map.um) {
-          mapEntry.hasUm = true;
-        } else if (!map && subj.semester === 'um') { // legacy fallback
           mapEntry.hasUm = true;
         }
       }
@@ -996,7 +1016,8 @@ export class IjazahController {
              }
              
              let semTotal = (s1||0) + (s2||0) + (s3||0) + (s4||0) + (s5||0);
-             let avgRapor = Math.round((semTotal / 5) * 100) / 100;
+             let divisor = subj.activeSemCount || 5;
+             let avgRapor = Math.round((semTotal / divisor) * 100) / 100;
              let finalScoreRaw = subj.hasUm ? (avgRapor * (reportWeight / 100)) + ((um||0) * (examWeight / 100)) : avgRapor;
              let ijazah = Math.round(finalScoreRaw);
              
@@ -1111,7 +1132,8 @@ export class IjazahController {
                }
             }
             
-            const avgRaporRaw = semTotal / 5;
+            const divisor = subj.activeSemCount || 5;
+            const avgRaporRaw = semTotal / divisor;
             const avgRapor = Math.round(avgRaporRaw * 100) / 100;
             
             let finalScoreRaw = 0;
