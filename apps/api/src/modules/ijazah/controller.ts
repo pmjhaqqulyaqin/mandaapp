@@ -811,7 +811,10 @@ export class IjazahController {
                }
              }
              semValues[sem] = val;
-             if (val !== null && val !== undefined) {
+             
+             // Extract 'sem1' from 'semester1'
+             const mapKey = sem.replace('ester', '');
+             if (subj.activeSems[mapKey] && val !== null && val !== undefined) {
                semTotal += val;
              }
           });
@@ -922,6 +925,7 @@ export class IjazahController {
             orderNum: subj.orderNum,
             hasUm: false,
             activeSemCount,
+            activeSems: map ? { sem1: !!map.sem1, sem2: !!map.sem2, sem3: !!map.sem3, sem4: !!map.sem4, sem5: !!map.sem5 } : { sem1: true, sem2: true, sem3: true, sem4: true, sem5: true },
             ids: []
           });
         }
@@ -1015,7 +1019,13 @@ export class IjazahController {
                  }
              }
              
-             let semTotal = (s1||0) + (s2||0) + (s3||0) + (s4||0) + (s5||0);
+             let semTotal = 0;
+             if (subj.activeSems.sem1 && s1) semTotal += s1;
+             if (subj.activeSems.sem2 && s2) semTotal += s2;
+             if (subj.activeSems.sem3 && s3) semTotal += s3;
+             if (subj.activeSems.sem4 && s4) semTotal += s4;
+             if (subj.activeSems.sem5 && s5) semTotal += s5;
+             
              let divisor = subj.activeSemCount || 5;
              let avgRapor = Math.round((semTotal / divisor) * 100) / 100;
              let finalScoreRaw = subj.hasUm ? (avgRapor * (reportWeight / 100)) + ((um||0) * (examWeight / 100)) : avgRapor;
@@ -1119,10 +1129,12 @@ export class IjazahController {
                    break;
                  }
                }
-              if (val !== null && val !== undefined) {
-                semTotal += val;
-                semCount++;
-              }
+               
+               const mapKey = sem.replace('ester', '');
+               if (subj.activeSems[mapKey] && val !== null && val !== undefined) {
+                 semTotal += val;
+                 semCount++;
+               }
             });
             
             for(const g of gArray) {
