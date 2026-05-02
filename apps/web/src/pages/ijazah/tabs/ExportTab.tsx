@@ -227,6 +227,7 @@ export const ExportTab = () => {
             <ChevronDown size={18} className={`text-gray-400 transition-transform duration-200 ${showChecklist ? 'rotate-180' : ''}`} />
         </button>
         {showChecklist && (
+        <>
         <div className="p-4 border-t border-gray-100 dark:border-[#222] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-200">
             {allSubjects.length === 0 ? (
                 <div className="col-span-full py-8 text-center text-sm text-gray-500">Memuat mata pelajaran...</div>
@@ -276,6 +277,7 @@ export const ExportTab = () => {
             </button>
         </div>
         )}
+        </>
         )}
       </div>
 
