@@ -197,6 +197,9 @@ export const InputRombelTab = () => {
               <p className="text-[11px] text-gray-500 mt-0.5">
                 {showPreview ? `${previewData?.students.length || 0} siswa • Klik sel kosong untuk isi langsung` : 'Klik ikon mata untuk preview'}
               </p>
+              {showPreview && <p className="sm:hidden text-[10px] text-amber-600 dark:text-amber-500 mt-1">
+                💡 Geser tabel ke kiri/kanan untuk melihat nilai
+              </p>}
             </div>
           </div>
           {showPreview && (
@@ -220,8 +223,8 @@ export const InputRombelTab = () => {
               <table className="w-full text-left text-xs whitespace-nowrap">
                 <thead className="bg-gray-50 dark:bg-black/40 border-b border-gray-200 dark:border-[#333]">
                   <tr>
-                    <th className="px-3 py-2.5 font-semibold text-gray-500 sticky left-0 bg-gray-50 dark:bg-[#151515] z-10 w-8 text-center border-r border-gray-200 dark:border-[#333]">No</th>
-                    <th className="px-3 py-2.5 font-semibold text-gray-500 sticky left-[40px] bg-gray-50 dark:bg-[#151515] z-10 w-40 border-r border-gray-200 dark:border-[#333]">Nama Siswa</th>
+                    <th className="hidden sm:table-cell px-3 py-2.5 font-semibold text-gray-500 sticky left-0 bg-gray-50 dark:bg-[#151515] z-10 w-8 text-center border-r border-gray-200 dark:border-[#333]">No</th>
+                    <th className="px-2 sm:px-3 py-2.5 font-semibold text-gray-500 sticky left-0 sm:left-[40px] bg-gray-50 dark:bg-[#151515] z-10 w-28 sm:w-40 border-r border-gray-200 dark:border-[#333]">Nama Siswa</th>
                     {previewData.subjects.map((subj: any) => (
                       <th key={subj.id} className="px-2 py-2.5 font-semibold text-gray-500 text-center border-r border-gray-200 dark:border-[#333]">
                         <div className="max-w-[80px] truncate mx-auto" title={subj.name}>{subj.name}</div>
@@ -237,9 +240,9 @@ export const InputRombelTab = () => {
                 <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
                   {previewData.students.map((student: any, idx: number) => (
                     <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors group">
-                      <td className="px-3 py-2 text-center text-gray-400 sticky left-0 bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#1a1a1a] z-10 border-r border-gray-100 dark:border-[#222]">{idx + 1}</td>
-                      <td className="px-3 py-2 font-medium text-text-primary dark:text-text-darkPrimary sticky left-[40px] bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#1a1a1a] z-10 border-r border-gray-100 dark:border-[#222]">
-                        <div className="truncate w-40">{student.fullName}</div>
+                      <td className="hidden sm:table-cell px-3 py-2 text-center text-gray-400 sticky left-0 bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#1a1a1a] z-10 border-r border-gray-100 dark:border-[#222]">{idx + 1}</td>
+                      <td className="px-2 sm:px-3 py-2 font-medium text-text-primary dark:text-text-darkPrimary sticky left-0 sm:left-[40px] bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#1a1a1a] z-10 border-r border-gray-100 dark:border-[#222]">
+                        <div className="truncate w-24 sm:w-40">{student.fullName}</div>
                         <div className="text-[10px] text-gray-400">{student.nisn}</div>
                       </td>
                       {previewData.subjects.map((subj: any) => {

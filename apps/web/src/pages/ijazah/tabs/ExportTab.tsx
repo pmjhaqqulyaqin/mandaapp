@@ -319,6 +319,9 @@ export const ExportTab = () => {
             <p className="text-[11px] text-gray-500 mt-0.5">
               Menampilkan {previewData?.students.length || 0} siswa &bull; {selectedSubjects.length} mapel terpilih &bull; Mode: {previewMode === 'leger' ? 'Leger Ijazah' : 'Nilai Ijazah Final'}
             </p>
+            <p className="sm:hidden text-[10px] text-amber-600 dark:text-amber-500 mt-1">
+              💡 Geser tabel ke kiri/kanan untuk melihat nilai
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex bg-gray-100 dark:bg-[#222] rounded-lg p-0.5">
@@ -373,8 +376,8 @@ export const ExportTab = () => {
                 <table className="w-full text-left text-xs whitespace-nowrap">
                   <thead className="bg-emerald-50 dark:bg-emerald-900/10 border-b border-gray-200 dark:border-[#333]">
                     <tr>
-                      <th className="px-3 py-3 font-semibold text-gray-500 sticky left-0 bg-emerald-50 dark:bg-[#151515] z-10 w-10 text-center border-r border-gray-200 dark:border-[#333]">No</th>
-                      <th className="px-3 py-3 font-semibold text-gray-500 sticky left-[40px] bg-emerald-50 dark:bg-[#151515] z-10 w-44 border-r border-gray-200 dark:border-[#333]">Nama Siswa</th>
+                      <th className="hidden sm:table-cell px-3 py-3 font-semibold text-gray-500 sticky left-0 bg-emerald-50 dark:bg-[#151515] z-10 w-10 text-center border-r border-gray-200 dark:border-[#333]">No</th>
+                      <th className="px-2 sm:px-3 py-3 font-semibold text-gray-500 sticky left-0 sm:left-[40px] bg-emerald-50 dark:bg-[#151515] z-10 w-28 sm:w-44 border-r border-gray-200 dark:border-[#333]">Nama Siswa</th>
                       <th className="px-2 py-3 font-semibold text-gray-500 text-center border-r border-gray-200 dark:border-[#333] w-12 bg-emerald-50 dark:bg-[#151515]">Sem</th>
                       {filteredSubjects.map((subj: any) => (
                         <th key={subj.name} className="px-2 py-3 font-semibold text-gray-500 text-center border-r border-gray-200 dark:border-[#333]">
@@ -391,9 +394,9 @@ export const ExportTab = () => {
                         <tr key={`${student.id}-${label}`} className={`hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors group ${label === 'Ijazah' ? 'bg-rose-50/50 dark:bg-rose-900/5' : ''}`}>
                           {semIdx === 0 && (
                             <>
-                              <td rowSpan={7} className="px-3 py-2 text-center text-gray-500 sticky left-0 bg-white dark:bg-[#111] z-10 border-r border-gray-100 dark:border-[#222] align-top font-medium">{idx + 1}</td>
-                              <td rowSpan={7} className="px-3 py-2 font-medium text-text-primary dark:text-text-darkPrimary sticky left-[40px] bg-white dark:bg-[#111] z-10 border-r border-gray-100 dark:border-[#222] align-top">
-                                <div className="truncate w-40">{student.fullName}</div>
+                              <td rowSpan={7} className="hidden sm:table-cell px-3 py-2 text-center text-gray-500 sticky left-0 bg-white dark:bg-[#111] z-10 border-r border-gray-100 dark:border-[#222] align-top font-medium">{idx + 1}</td>
+                              <td rowSpan={7} className="px-2 sm:px-3 py-2 font-medium text-text-primary dark:text-text-darkPrimary sticky left-0 sm:left-[40px] bg-white dark:bg-[#111] z-10 border-r border-gray-100 dark:border-[#222] align-top">
+                                <div className="truncate w-24 sm:w-40">{student.fullName}</div>
                                 <div className="text-[10px] text-gray-400 font-normal">{student.nisn}</div>
                               </td>
                             </>
@@ -433,8 +436,8 @@ export const ExportTab = () => {
               <table className="w-full text-left text-xs whitespace-nowrap">
                 <thead className="bg-gray-50 dark:bg-black/40 border-b border-gray-200 dark:border-[#333]">
                   <tr>
-                    <th className="px-4 py-3 font-semibold text-gray-500 sticky left-0 bg-gray-50 dark:bg-[#151515] z-10 w-10 text-center border-r border-gray-200 dark:border-[#333]">No</th>
-                    <th className="px-4 py-3 font-semibold text-gray-500 sticky left-[52px] bg-gray-50 dark:bg-[#151515] z-10 w-48 border-r border-gray-200 dark:border-[#333]">Nama Siswa</th>
+                    <th className="hidden sm:table-cell px-4 py-3 font-semibold text-gray-500 sticky left-0 bg-gray-50 dark:bg-[#151515] z-10 w-10 text-center border-r border-gray-200 dark:border-[#333]">No</th>
+                    <th className="px-2 sm:px-4 py-3 font-semibold text-gray-500 sticky left-0 sm:left-[52px] bg-gray-50 dark:bg-[#151515] z-10 w-28 sm:w-48 border-r border-gray-200 dark:border-[#333]">Nama Siswa</th>
                     {filteredSubjects.map((subj: any) => (
                       <th key={subj.name} className="px-4 py-3 font-semibold text-gray-500 text-center border-r border-gray-200 dark:border-[#333]">
                         <div className="max-w-[120px] truncate" title={subj.name}>{subj.name}</div>
@@ -447,9 +450,9 @@ export const ExportTab = () => {
                 <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
                   {previewData.students.map((student: any, idx: number) => (
                     <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors group">
-                      <td className="px-4 py-2.5 text-center text-gray-500 sticky left-0 bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#1a1a1a] z-10 border-r border-gray-100 dark:border-[#222]">{idx + 1}</td>
-                      <td className="px-4 py-2.5 font-medium text-text-primary dark:text-text-darkPrimary sticky left-[52px] bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#1a1a1a] z-10 border-r border-gray-100 dark:border-[#222]">
-                        <div className="truncate w-48">{student.fullName}</div>
+                      <td className="hidden sm:table-cell px-4 py-2.5 text-center text-gray-500 sticky left-0 bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#1a1a1a] z-10 border-r border-gray-100 dark:border-[#222]">{idx + 1}</td>
+                      <td className="px-2 sm:px-4 py-2.5 font-medium text-text-primary dark:text-text-darkPrimary sticky left-0 sm:left-[52px] bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#1a1a1a] z-10 border-r border-gray-100 dark:border-[#222]">
+                        <div className="truncate w-24 sm:w-48">{student.fullName}</div>
                         <div className="text-[10px] text-gray-400 font-normal">{student.nisn}</div>
                       </td>
                       {filteredSubjects.map((subj: any) => {
