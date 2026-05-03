@@ -969,7 +969,7 @@ export class IjazahController {
       if (isLeger) {
         // LEGER: 1 header row with vertical text for subjects
         const headerRow = ['No', 'NIS', 'NISN', 'Nama Siswa', 'Sem/UM'];
-        subjects.forEach(subj => headerRow.push(subj.shortName || subj.name));
+        subjects.forEach(subj => headerRow.push(subj.name));
         headerRow.push('Rata-rata Nilai');
 
         const row1 = worksheet.addRow(headerRow);
@@ -1099,15 +1099,21 @@ export class IjazahController {
       } else {
         // NILAI IJAZAH: 1 header row (Final score only)
         const headerRow = ['No', 'NIS', 'NISN', 'Nama Siswa'];
-        subjects.forEach(subj => headerRow.push(subj.shortName || subj.name));
+        subjects.forEach(subj => headerRow.push(subj.name));
         headerRow.push('Rata-rata Total');
 
         const r1 = worksheet.addRow(headerRow);
         r1.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
-        r1.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-        r1.eachCell((cell: any) => {
+        r1.height = 120; // make it tall for vertical text
+        r1.eachCell((cell: any, colNumber: number) => {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10B981' } };
           cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+          
+          if (colNumber > 4 && colNumber < headerRow.length) {
+            cell.alignment = { vertical: 'bottom', horizontal: 'center', wrapText: true, textRotation: 90 };
+          } else {
+            cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+          }
         });
 
         // Populate Data for Nilai Ijazah
@@ -1177,13 +1183,20 @@ export class IjazahController {
       worksheet.getColumn(2).width = 15;
       worksheet.getColumn(3).width = 15;
       worksheet.getColumn(4).width = 35;
-      worksheet.getColumn(5).width = 8; // Sem/UM
       
-      const subjectStartCol = 6;
-      const totalCols = 5 + subjects.length + 1; // Col 6..N for subjects + 1 for avg
-      
-      for (let i = subjectStartCol; i <= totalCols; i++) {
-        worksheet.getColumn(i).width = isLeger ? 6 : 12; // narrow for Leger since vertical text
+      if (isLeger) {
+        worksheet.getColumn(5).width = 8; // Sem/UM
+        const subjectStartCol = 6;
+        const totalCols = 5 + subjects.length + 1; // Col 6..N for subjects + 1 for avg
+        for (let i = subjectStartCol; i <= totalCols; i++) {
+          worksheet.getColumn(i).width = 6; // narrow for Leger since vertical text
+        }
+      } else {
+        const subjectStartCol = 5;
+        const totalCols = 4 + subjects.length + 1; // Col 5..N for subjects + 1 for avg
+        for (let i = subjectStartCol; i <= totalCols; i++) {
+          worksheet.getColumn(i).width = 6; // match leger width
+        }
       }
 
       const safeClassName = className.replace(/[^a-zA-Z0-9_-]/g, '_');
