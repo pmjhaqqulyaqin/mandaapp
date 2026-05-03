@@ -796,7 +796,8 @@ export class IjazahController {
           const gArray = studentGrades.filter(sg => subj.ids.includes(sg.subjectId));
           
           let semTotal = 0;
-          let examScore = 0;
+          let filledSemCount = 0;
+          let examScore: number | null = null;
           
           // Extract individual semester values
           const semValues: Record<string, number | null> = {};
@@ -816,26 +817,27 @@ export class IjazahController {
              const mapKey = sem.replace('ester', '');
              if (subj.activeSems[mapKey] && val !== null && val !== undefined) {
                semTotal += val;
+               filledSemCount++;
              }
           });
           
           for(const g of gArray) {
-             if(g.examScore) {
+             if(g.examScore !== null && g.examScore !== undefined) {
                examScore = g.examScore;
                break;
              }
           }
           
-          // Pembagi dinamis: gunakan jumlah semester aktif dari mapping, bukan selalu 5
-          const divisor = subj.activeSemCount || 5;
+          // Pembagi dinamis: gunakan jumlah semester yang terisi
+          const divisor = filledSemCount > 0 ? filledSemCount : 1;
           const avgRaporRaw = semTotal / divisor;
           const avgRapor = Math.round(avgRaporRaw * 100) / 100; // 2 desimal
           
           // Rumus Nilai Ijazah: 
           // Jika ada UM: (RataRapor * BobotRapor) + (Ujian * BobotUjian)
-          // Jika TIDAK ada UM: RataRapor murni (rata-rata semester aktif)
+          // Jika TIDAK ada UM: RataRapor murni (rata-rata semester yang terisi)
           let finalScoreRaw = 0;
-          if (subj.hasUm) {
+          if (examScore !== null && examScore !== undefined) {
              finalScoreRaw = (avgRapor * (reportWeight / 100)) + (examScore * (examWeight / 100));
           } else {
              finalScoreRaw = avgRapor;
@@ -1020,15 +1022,16 @@ export class IjazahController {
              }
              
              let semTotal = 0;
-             if (subj.activeSems.sem1 && s1) semTotal += s1;
-             if (subj.activeSems.sem2 && s2) semTotal += s2;
-             if (subj.activeSems.sem3 && s3) semTotal += s3;
-             if (subj.activeSems.sem4 && s4) semTotal += s4;
-             if (subj.activeSems.sem5 && s5) semTotal += s5;
+             let filledSemCount = 0;
+             if (subj.activeSems.sem1 && s1 !== null && s1 !== undefined) { semTotal += s1; filledSemCount++; }
+             if (subj.activeSems.sem2 && s2 !== null && s2 !== undefined) { semTotal += s2; filledSemCount++; }
+             if (subj.activeSems.sem3 && s3 !== null && s3 !== undefined) { semTotal += s3; filledSemCount++; }
+             if (subj.activeSems.sem4 && s4 !== null && s4 !== undefined) { semTotal += s4; filledSemCount++; }
+             if (subj.activeSems.sem5 && s5 !== null && s5 !== undefined) { semTotal += s5; filledSemCount++; }
              
-             let divisor = subj.activeSemCount || 5;
+             let divisor = filledSemCount > 0 ? filledSemCount : 1;
              let avgRapor = Math.round((semTotal / divisor) * 100) / 100;
-             let finalScoreRaw = subj.hasUm ? (avgRapor * (reportWeight / 100)) + ((um||0) * (examWeight / 100)) : avgRapor;
+             let finalScoreRaw = (um !== null && um !== undefined) ? (avgRapor * (reportWeight / 100)) + (um * (examWeight / 100)) : avgRapor;
              let ijazah = Math.round(finalScoreRaw);
              
              return { s1, s2, s3, s4, s5, um, ijazah };
@@ -1119,7 +1122,7 @@ export class IjazahController {
             const gArray = studentGrades.filter(sg => subj.ids.includes(sg.subjectId));
             let semTotal = 0;
             let semCount = 0;
-            let examScore = 0;
+            let examScore: number | null = null;
             
             ['semester1', 'semester2', 'semester3', 'semester4', 'semester5'].forEach(sem => {
                let val: number | null = null;
@@ -1138,18 +1141,18 @@ export class IjazahController {
             });
             
             for(const g of gArray) {
-               if(g.examScore) {
+               if(g.examScore !== null && g.examScore !== undefined) {
                  examScore = g.examScore;
                  break;
                }
             }
             
-            const divisor = subj.activeSemCount || 5;
+            const divisor = semCount > 0 ? semCount : 1;
             const avgRaporRaw = semTotal / divisor;
             const avgRapor = Math.round(avgRaporRaw * 100) / 100;
             
             let finalScoreRaw = 0;
-            if (subj.hasUm) {
+            if (examScore !== null && examScore !== undefined) {
                finalScoreRaw = (avgRapor * (reportWeight / 100)) + (examScore * (examWeight / 100));
             } else {
                finalScoreRaw = avgRapor;
