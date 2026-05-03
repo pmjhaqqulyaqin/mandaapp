@@ -814,8 +814,7 @@ export class IjazahController {
              semValues[sem] = val;
              
              // Extract 'sem1' from 'semester1'
-             const mapKey = sem.replace('ester', '');
-             if (subj.activeSems[mapKey] && val !== null && val !== undefined) {
+             if (val !== null && val !== undefined) {
                semTotal += val;
                filledSemCount++;
              }
@@ -1023,11 +1022,11 @@ export class IjazahController {
              
              let semTotal = 0;
              let filledSemCount = 0;
-             if (subj.activeSems.sem1 && s1 !== null && s1 !== undefined) { semTotal += s1; filledSemCount++; }
-             if (subj.activeSems.sem2 && s2 !== null && s2 !== undefined) { semTotal += s2; filledSemCount++; }
-             if (subj.activeSems.sem3 && s3 !== null && s3 !== undefined) { semTotal += s3; filledSemCount++; }
-             if (subj.activeSems.sem4 && s4 !== null && s4 !== undefined) { semTotal += s4; filledSemCount++; }
-             if (subj.activeSems.sem5 && s5 !== null && s5 !== undefined) { semTotal += s5; filledSemCount++; }
+             if (s1 !== null && s1 !== undefined) { semTotal += s1; filledSemCount++; }
+             if (s2 !== null && s2 !== undefined) { semTotal += s2; filledSemCount++; }
+             if (s3 !== null && s3 !== undefined) { semTotal += s3; filledSemCount++; }
+             if (s4 !== null && s4 !== undefined) { semTotal += s4; filledSemCount++; }
+             if (s5 !== null && s5 !== undefined) { semTotal += s5; filledSemCount++; }
              
              let divisor = filledSemCount > 0 ? filledSemCount : 1;
              let avgRapor = Math.round((semTotal / divisor) * 100) / 100;
@@ -1133,8 +1132,7 @@ export class IjazahController {
                  }
                }
                
-               const mapKey = sem.replace('ester', '');
-               if (subj.activeSems[mapKey] && val !== null && val !== undefined) {
+               if (val !== null && val !== undefined) {
                  semTotal += val;
                  semCount++;
                }
