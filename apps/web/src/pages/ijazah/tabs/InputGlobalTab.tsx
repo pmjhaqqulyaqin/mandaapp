@@ -1,56 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Download, Upload, Loader2, BookOpen, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Download, Upload, Loader2, BookOpen, RefreshCw, Eye, EyeOff, Edit3, X, Save, AlertTriangle, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient, API_BASE_URL } from '../../../lib/api';
-
-// Inline editable cell for empty grades (siswa mutasi)
-const EditableCell = ({ value, studentId, subjectId, semester, onSaved }: {
-  value: number | null; studentId: string; subjectId: string; semester: string; onSaved: () => void;
-}) => {
-  const [editing, setEditing] = useState(false);
-  const [localVal, setLocalVal] = useState(value != null ? String(value) : '');
-  const [saving, setSaving] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => { setLocalVal(value != null ? String(value) : ''); }, [value]);
-
-  const handleSave = async () => {
-    if (localVal === '' && value == null) { setEditing(false); return; }
-    if (localVal !== '' && parseInt(localVal) === value) { setEditing(false); return; }
-    setSaving(true);
-    try {
-      await apiClient('/ijazah/grades', {
-        method: 'PATCH',
-        data: { studentId, subjectId, semester, value: localVal === '' ? null : parseInt(localVal) }
-      });
-      onSaved();
-    } catch { toast.error('Gagal menyimpan nilai'); }
-    finally { setSaving(false); setEditing(false); }
-  };
-
-  if (value != null && !editing) {
-    return <span className="font-semibold text-text-primary dark:text-text-darkPrimary">{value}</span>;
-  }
-
-  if (editing) {
-    return (
-      <input ref={inputRef} type="number" min="0" max="100" value={localVal}
-        onChange={e => setLocalVal(e.target.value)}
-        onBlur={handleSave}
-        onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
-        className="w-14 px-1 py-0.5 text-center text-xs border border-emerald-400 rounded bg-emerald-50 dark:bg-emerald-900/20 outline-none focus:ring-1 focus:ring-emerald-500"
-        autoFocus disabled={saving} />
-    );
-  }
-
-  // Empty cell — clickable to edit
-  return (
-    <button onClick={() => setEditing(true)} title="Klik untuk isi nilai (siswa mutasi)"
-      className="text-gray-300 dark:text-gray-600 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors cursor-pointer w-full">
-      <span className="border-b border-dashed border-gray-300 dark:border-gray-600 hover:border-emerald-400">—</span>
-    </button>
-  );
-};
 
 export const InputGlobalTab = () => {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -61,6 +12,16 @@ export const InputGlobalTab = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewData, setPreviewData] = useState<{ students: any[]; subjects: any[]; } | null>(null);
+
+  // --- BULK EDIT STATE ---
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [draftChanges, setDraftChanges] = useState<Record<string, {
+    studentId: string; subjectId: string; semester: string;
+    nilaiLama: number | null; nilaiBaru: string;
+    studentName: string; subjectName: string;
+  }>>({});
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [isSavingBulk, setIsSavingBulk] = useState(false);
 
   const handleDownload = async () => {
     setIsDownloading(true);
@@ -97,6 +58,9 @@ export const InputGlobalTab = () => {
     try {
       const res = await apiClient<any>(`/ijazah/grades-preview?type=global&semester=${semester}`);
       setPreviewData(res);
+      // Reset draft when data changes
+      setDraftChanges({});
+      setIsEditMode(false);
     } catch { toast.error('Gagal memuat preview nilai'); }
     finally { setPreviewLoading(false); }
   };
@@ -119,6 +83,70 @@ export const InputGlobalTab = () => {
 
   const semCols = [{ key: semester, label: semester.replace('semester', 'S') }];
 
+  // --- BULK EDIT HANDLERS ---
+  const handleInputChange = (
+    studentId: string, studentName: string, 
+    subjectId: string, subjectName: string, 
+    semesterKey: string, 
+    nilaiLama: number | null, newValue: string
+  ) => {
+    const key = `${studentId}_${subjectId}_${semesterKey}`;
+    
+    setDraftChanges((prev) => {
+      const newDraft = { ...prev };
+      
+      // Jika dikembalikan ke nilai semula atau kosong
+      if ((newValue === '' && nilaiLama == null) || (newValue !== '' && parseInt(newValue) === nilaiLama)) {
+        delete newDraft[key];
+      } else {
+        newDraft[key] = { 
+          studentId, subjectId, semester: semesterKey, 
+          nilaiLama, nilaiBaru: newValue, 
+          studentName, subjectName 
+        };
+      }
+      return newDraft;
+    });
+  };
+
+  const cancelEdit = () => {
+    setIsEditMode(false);
+    setDraftChanges({});
+  };
+
+  const handleSimpanPermanen = async () => {
+    const changes = Object.values(draftChanges);
+    if (changes.length === 0) return;
+    
+    setIsSavingBulk(true);
+    try {
+      // Execute sequentially to avoid overwhelming the server (or change to Promise.all if backend can handle it)
+      for (const change of changes) {
+        await apiClient('/ijazah/grades', {
+          method: 'PATCH',
+          data: { 
+            studentId: change.studentId, 
+            subjectId: change.subjectId, 
+            semester: change.semester, 
+            value: change.nilaiBaru === '' ? null : parseInt(change.nilaiBaru) 
+          }
+        });
+      }
+      
+      toast.success(`${changes.length} nilai berhasil diperbarui!`);
+      setShowReviewModal(false);
+      setIsEditMode(false);
+      setDraftChanges({});
+      loadPreview(); // Refresh data from backend
+    } catch (error) {
+      toast.error("Gagal menyimpan beberapa perubahan. Silakan coba lagi.");
+    } finally {
+      setIsSavingBulk(false);
+    }
+  };
+
+  const jumlahPerubahan = Object.keys(draftChanges).length;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 p-5 rounded-xl flex items-start gap-4">
@@ -126,7 +154,7 @@ export const InputGlobalTab = () => {
         <div>
           <h3 className="text-sm font-bold text-emerald-800 dark:text-emerald-400">Input Nilai Semester 1 & 2</h3>
           <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-1">
-            Pada semester 1 dan 2, siswa belum dibagi ke dalam rombongan belajar / jurusan. Template akan diisi berdasarkan mapel yang sudah diset per semester. <b>Nilai kosong bisa diedit langsung</b> di preview (untuk siswa mutasi).
+            Pada semester 1 dan 2, siswa belum dibagi ke dalam rombongan belajar / jurusan. Template akan diisi berdasarkan mapel yang sudah diset per semester. <b>Nilai bisa langsung diedit secara masal</b> menggunakan tombol Mode Edit.
           </p>
         </div>
       </div>
@@ -139,7 +167,7 @@ export const InputGlobalTab = () => {
             <h4 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary">Langkah 1: Unduh Template</h4>
             <p className="text-xs text-gray-500 mt-1 max-w-[250px] mx-auto">Pilih semester lalu unduh template. Kolom mapel disesuaikan dengan semester yang dipilih.</p>
           </div>
-          <select value={semester} onChange={e => setSemester(e.target.value)}
+          <select value={semester} onChange={e => {setSemester(e.target.value); setDraftChanges({}); setIsEditMode(false);}}
             className="w-full max-w-[200px] px-3 py-2 text-sm border border-gray-300 dark:border-[#444] rounded-lg bg-white dark:bg-[#1a1a1a] outline-none focus:ring-2 focus:ring-emerald-500/20">
             <option value="semester1">Semester 1</option>
             <option value="semester2">Semester 2</option>
@@ -168,9 +196,9 @@ export const InputGlobalTab = () => {
         </div>
       </div>
 
-      {/* Live Preview with Inline Edit */}
+      {/* Live Preview with Bulk Edit */}
       <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-gray-100 dark:border-[#222] flex items-center justify-between bg-gray-50/50 dark:bg-[#0a0a0a]">
+        <div className="p-4 border-b border-gray-100 dark:border-[#222] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50/50 dark:bg-[#0a0a0a]">
           <div className="flex items-center gap-3">
             <button onClick={togglePreview}
               className={`p-2 rounded-lg transition-colors ${showPreview ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-[#222] dark:text-gray-400'}`}>
@@ -180,19 +208,50 @@ export const InputGlobalTab = () => {
               <h4 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary">Live Preview Nilai Semester 1 & 2</h4>
               <p className="text-[11px] text-gray-500 mt-0.5">
                 {showPreview
-                  ? `${previewData?.students.length || 0} siswa • Sem 1: ${getFilledCount('semester1')} nilai • Sem 2: ${getFilledCount('semester2')} nilai • Klik sel kosong untuk isi langsung`
+                  ? `${previewData?.students.length || 0} siswa • Sem 1: ${getFilledCount('semester1')} nilai • Sem 2: ${getFilledCount('semester2')} nilai`
                   : 'Klik ikon mata untuk menampilkan preview'}
               </p>
-              {showPreview && <p className="sm:hidden text-[10px] text-amber-600 dark:text-amber-500 mt-1">
-                💡 Geser tabel ke kiri/kanan untuk melihat nilai
-              </p>}
             </div>
           </div>
+          
           {showPreview && (
-            <button onClick={loadPreview} disabled={previewLoading}
-              className="p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors">
-              <RefreshCw size={16} className={previewLoading ? "animate-spin" : ""} />
-            </button>
+            <div className="flex items-center gap-2">
+              {isEditMode ? (
+                <>
+                  <button 
+                    onClick={cancelEdit}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-600 bg-white border border-gray-300 dark:bg-[#111] dark:border-[#444] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#222] rounded-lg font-medium transition-colors"
+                  >
+                    <X size={14} /> Batal
+                  </button>
+                  <button 
+                    onClick={() => setShowReviewModal(true)}
+                    disabled={jumlahPerubahan === 0}
+                    className={`flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg font-medium transition-all ${
+                      jumlahPerubahan > 0 
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm' 
+                        : 'bg-emerald-100 text-emerald-400 dark:bg-emerald-900/20 dark:text-emerald-700 cursor-not-allowed'
+                    }`}
+                  >
+                    <Save size={14} /> 
+                    Review & Simpan {jumlahPerubahan > 0 && <span className="bg-white text-emerald-600 text-[10px] px-1.5 py-0.5 rounded-full ml-1">{jumlahPerubahan}</span>}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={loadPreview} disabled={previewLoading}
+                    className="p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors" title="Muat Ulang Data">
+                    <RefreshCw size={16} className={previewLoading ? "animate-spin" : ""} />
+                  </button>
+                  <button 
+                    onClick={() => setIsEditMode(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/40 rounded-lg font-medium transition-colors"
+                  >
+                    <Edit3 size={14} /> Mode Edit
+                  </button>
+                </>
+              )}
+            </div>
           )}
         </div>
 
@@ -236,12 +295,37 @@ export const InputGlobalTab = () => {
                         return (
                           <td key={subj.id} className="px-2 py-2 border-r border-gray-100 dark:border-[#222]">
                             <div className="flex gap-1 justify-center">
-                              {semCols.map(s => (
-                                <div key={s.key} className="w-10 text-center">
-                                  <EditableCell value={grade?.[s.key] ?? null} studentId={student.id}
-                                    subjectId={subj.id} semester={s.key} onSaved={loadPreview} />
-                                </div>
-                              ))}
+                              {semCols.map(s => {
+                                const key = `${student.id}_${subj.id}_${s.key}`;
+                                const isChanged = draftChanges[key] !== undefined;
+                                const originalValue = grade?.[s.key] ?? null;
+                                const displayValue = isChanged ? draftChanges[key].nilaiBaru : (originalValue ?? '');
+
+                                return (
+                                  <div key={s.key} className="w-12 text-center relative">
+                                    {isEditMode ? (
+                                      <input 
+                                        type="number"
+                                        min="0" max="100"
+                                        value={displayValue}
+                                        onChange={(e) => handleInputChange(student.id, student.fullName, subj.id, subj.name, s.key, originalValue, e.target.value)}
+                                        className={`w-10 sm:w-12 text-center py-0.5 px-1 border rounded outline-none transition-colors text-xs ${
+                                          isChanged 
+                                            ? 'bg-amber-50 border-amber-400 text-amber-800 dark:bg-amber-900/30 dark:border-amber-600 dark:text-amber-200 focus:ring-1 focus:ring-amber-500' 
+                                            : 'bg-white border-gray-200 dark:bg-[#111] dark:border-[#444] focus:ring-1 focus:ring-emerald-500'
+                                        }`}
+                                      />
+                                    ) : (
+                                      <span className="font-semibold text-text-primary dark:text-text-darkPrimary inline-block py-0.5 w-10">
+                                        {originalValue ?? <span className="text-gray-300 dark:text-gray-600 font-normal">—</span>}
+                                      </span>
+                                    )}
+                                    {isChanged && !showReviewModal && (
+                                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </td>
                         );
@@ -254,6 +338,80 @@ export const InputGlobalTab = () => {
           </div>
         )}
       </div>
+
+      {/* MODAL REVIEW & KONFIRMASI (LAPISAN KEAMANAN) */}
+      {showReviewModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-[#111] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-gray-200 dark:border-[#333]">
+            
+            {/* Modal Header */}
+            <div className="p-5 sm:p-6 border-b border-gray-100 dark:border-[#222] bg-amber-50/50 dark:bg-amber-900/10 flex items-start gap-4">
+              <div className="p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full shrink-0">
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Konfirmasi Perubahan Nilai</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1">
+                  Anda akan mengubah <strong>{jumlahPerubahan}</strong> data nilai. Harap periksa kembali sebelum menyimpan permanen ke sistem.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Body - Tabel Review */}
+            <div className="p-0 overflow-y-auto max-h-[50vh] bg-gray-50 dark:bg-[#0a0a0a]">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-white dark:bg-[#151515] sticky top-0 shadow-sm z-10">
+                  <tr className="text-gray-500 dark:text-gray-400 text-xs uppercase border-b border-gray-200 dark:border-[#333]">
+                    <th className="px-5 py-3">Siswa & Mata Pelajaran</th>
+                    <th className="px-5 py-3 text-center">Perubahan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
+                  {Object.entries(draftChanges).map(([key, data]) => (
+                    <tr key={key} className="bg-white dark:bg-[#111]">
+                      <td className="px-5 py-3">
+                        <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{data.studentName}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{data.subjectName} <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-[#222] rounded text-[9px] uppercase ml-1">{data.semester.replace('semester', 'S')}</span></p>
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center justify-center gap-3 bg-gray-50 dark:bg-[#1a1a1a] py-1.5 px-3 rounded-lg border border-gray-100 dark:border-[#333]">
+                          <span className="text-gray-500 dark:text-gray-400 line-through font-medium w-8 text-right">
+                            {data.nilaiLama ?? '-'}
+                          </span>
+                          <ArrowRight size={14} className="text-gray-400" />
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold text-base w-8 text-left">
+                            {data.nilaiBaru || '-'}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-5 border-t border-gray-100 dark:border-[#222] bg-white dark:bg-[#111] flex justify-end gap-3">
+              <button 
+                onClick={() => setShowReviewModal(false)}
+                disabled={isSavingBulk}
+                className="px-5 py-2.5 text-gray-700 dark:text-gray-300 bg-white dark:bg-[#111] border border-gray-300 dark:border-[#444] hover:bg-gray-50 dark:hover:bg-[#222] rounded-lg font-medium transition-colors disabled:opacity-50 text-sm"
+              >
+                Kembali Edit
+              </button>
+              <button 
+                onClick={handleSimpanPermanen}
+                disabled={isSavingBulk}
+                className="px-5 py-2.5 bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 rounded-lg font-semibold shadow-sm transition-all flex items-center gap-2 text-sm"
+              >
+                {isSavingBulk ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                {isSavingBulk ? 'Menyimpan...' : 'Ya, Simpan Permanen'}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };
