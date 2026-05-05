@@ -436,6 +436,19 @@ export class ExamService {
       }
     }
 
+    // --- Clear existing jadwal (and linked pengawas) so re-upload replaces old data ---
+    const existingJadwal = await db.select({ id: jadwalUjian.id })
+      .from(jadwalUjian)
+      .where(eq(jadwalUjian.ujianId, ujianId));
+
+    if (existingJadwal.length > 0) {
+      const existingIds = existingJadwal.map(j => j.id);
+      // Remove pengawas assignments that reference the old jadwal entries
+      await db.delete(penugasanPengawas).where(inArray(penugasanPengawas.jadwalId, existingIds));
+      // Remove old jadwal entries
+      await db.delete(jadwalUjian).where(eq(jadwalUjian.ujianId, ujianId));
+    }
+
     await db.insert(jadwalUjian).values(finalRows);
     return { imported: finalRows.length };
   }
