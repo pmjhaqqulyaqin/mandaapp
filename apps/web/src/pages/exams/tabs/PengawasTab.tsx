@@ -58,19 +58,30 @@ export const PengawasTab = ({ ujianId }: Props) => {
   };
 
   // Matrix Processing
-  // Group assignments by Session (Jadwal ID)
+  // Group assignments by actual time slot (tanggal + waktuMulai + waktuSelesai)
+  // so that multiple jadwal entries in the same slot collapse into one row
   const sessionMap = new Map();
   data.forEach(p => {
-    const key = p.jadwalId;
-    if (!sessionMap.has(key)) {
-      sessionMap.set(key, {
-        jadwal: p.jadwal,
-        assignments: {} // ruangId -> codes
+    const slotKey = `${p.jadwal.tanggal}__${p.jadwal.waktuMulai}__${p.jadwal.waktuSelesai}`;
+    if (!sessionMap.has(slotKey)) {
+      sessionMap.set(slotKey, {
+        jadwal: { ...p.jadwal },
+        mapelList: new Set<string>(),
+        assignments: {} // ruangId -> codes (deduplicated)
       });
     }
-    const sess = sessionMap.get(key);
-    if (!sess.assignments[p.ruangId]) sess.assignments[p.ruangId] = [];
-    sess.assignments[p.ruangId].push(p.kodeLabel);
+    const sess = sessionMap.get(slotKey);
+    if (p.jadwal.mataPelajaran) sess.mapelList.add(p.jadwal.mataPelajaran);
+    if (!sess.assignments[p.ruangId]) sess.assignments[p.ruangId] = new Set<string>();
+    if (p.kodeLabel) sess.assignments[p.ruangId].add(p.kodeLabel);
+  });
+
+  // Convert Sets to arrays for rendering
+  sessionMap.forEach(sess => {
+    Object.keys(sess.assignments).forEach(rId => {
+      sess.assignments[rId] = Array.from(sess.assignments[rId]);
+    });
+    sess.mapelList = Array.from(sess.mapelList);
   });
 
   const sortedSessions = Array.from(sessionMap.values()).sort((a,b) => {
@@ -78,10 +89,11 @@ export const PengawasTab = ({ ujianId }: Props) => {
     return a.jadwal.waktuMulai.localeCompare(b.jadwal.waktuMulai);
   });
 
-  const filteredSessions = sortedSessions.filter(s => 
-    s.jadwal.mataPelajaran.toLowerCase().includes(search.toLowerCase()) ||
-    new Date(s.jadwal.tanggal).toLocaleDateString('id-ID').includes(search)
-  );
+  const filteredSessions = sortedSessions.filter(s => {
+    const matchMapel = s.mapelList.some((m: string) => m.toLowerCase().includes(search.toLowerCase()));
+    const matchDate = new Date(s.jadwal.tanggal).toLocaleDateString('id-ID').includes(search);
+    return matchMapel || matchDate;
+  });
 
   const getEmpName = (id: string, group: string) => {
      const ids = ujian?.pengaturan?.pengawasGroups?.[group] || [];
