@@ -725,11 +725,28 @@ export class ExamService {
     if (jadwalList.length === 0) throw new Error('Belum ada jadwal ujian');
     if (ruangList.length === 0) throw new Error('Belum ada ruang ujian');
 
-    if (group1.length < ruangList.length || group2.length < ruangList.length) {
-      throw new Error(`Jumlah pengawas dalam kelompok (${group1.length}/${group2.length}) kurang dari jumlah ruang (${ruangList.length}).`);
-    }
+    // Build a map of ruangId -> Set of class names (from distribusi peserta)
+    // This tells us which classes are seated in which rooms
+    const distribusiList = await db.select({
+      ruangId: distribusiPeserta.ruangId,
+      className: classes.name
+    })
+      .from(distribusiPeserta)
+      .leftJoin(studentProfiles, eq(distribusiPeserta.siswaId, studentProfiles.id))
+      .leftJoin(classes, eq(studentProfiles.classId, classes.id))
+      .where(eq(distribusiPeserta.ujianId, ujianId));
 
-    // Identify unique sessions (Tanggal + Waktu)
+    const roomClassMap = new Map<string, Set<string>>(); // ruangId -> Set<className>
+    distribusiList.forEach(d => {
+      if (d.ruangId && d.className) {
+        if (!roomClassMap.has(d.ruangId)) roomClassMap.set(d.ruangId, new Set());
+        roomClassMap.get(d.ruangId)!.add(d.className);
+      }
+    });
+
+    const hasDistribusi = distribusiList.length > 0;
+
+    // Identify unique sessions (Tanggal + Waktu) and collect participating classes
     const sessionMap = new Map();
     jadwalList.forEach((j: any) => {
       const key = `${j.tanggal}_${j.waktuMulai}_${j.waktuSelesai}`;
@@ -738,10 +755,18 @@ export class ExamService {
           tanggal: j.tanggal,
           waktuMulai: j.waktuMulai,
           waktuSelesai: j.waktuSelesai,
-          ids: []
+          ids: [],
+          kelasList: new Set<string>() // classes participating in this session
         });
       }
-      sessionMap.get(key).ids.push(j.id);
+      const sess = sessionMap.get(key);
+      sess.ids.push(j.id);
+      // Parse kelas from jadwal (comma-separated)
+      if (j.kelas) {
+        j.kelas.split(',').map((k: string) => k.trim()).filter(Boolean).forEach((k: string) => {
+          sess.kelasList.add(k);
+        });
+      }
     });
 
     const sessions = Array.from(sessionMap.values()).sort((a, b) => {
@@ -758,7 +783,26 @@ export class ExamService {
     const L2 = group2.length;
 
     sessions.forEach((sess, sIdx) => {
-      ruangList.forEach((ruang, rIdx) => {
+      // Determine which rooms are active for this session
+      let activeRooms: typeof ruangList;
+
+      if (hasDistribusi && sess.kelasList.size > 0) {
+        // Only include rooms that have students from classes participating in this session
+        activeRooms = ruangList.filter(ruang => {
+          const roomClasses = roomClassMap.get(ruang.id);
+          if (!roomClasses) return false;
+          // Check if any of the room's classes overlap with the session's classes
+          for (const className of roomClasses) {
+            if (sess.kelasList.has(className)) return true;
+          }
+          return false;
+        });
+      } else {
+        // No distribusi yet or no kelas info — fall back to all rooms
+        activeRooms = ruangList;
+      }
+
+      activeRooms.forEach((ruang, rIdx) => {
         // Algorithm: G1 shifts -1, G2 shifts +1
         const idx1 = (((rIdx - sIdx) % L1) + L1) % L1;
         const idx2 = (rIdx + sIdx) % L2;
