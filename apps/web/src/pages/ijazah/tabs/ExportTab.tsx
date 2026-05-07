@@ -68,8 +68,9 @@ export const ExportTab = () => {
       });
 
       setAllSubjects(initialized);
-      setSelectedSubjects(initialized.map(s => ({ name: s.name, order: s.order })));
-      loadPreview(initialized.map(s => ({ name: s.name, order: s.order })));
+      // Default: nothing is checked — user must manually select subjects
+      setSelectedSubjects([]);
+      setPreviewData(null);
     } else {
       setAllSubjects([]);
       setSelectedSubjects([]);
@@ -146,10 +147,16 @@ export const ExportTab = () => {
   const toggleSubject = (name: string) => {
       const isSelected = selectedSubjects.some(s => s.name === name);
       if (isSelected) {
-          setSelectedSubjects(selectedSubjects.filter(s => s.name !== name));
+          // Remove and re-sequence remaining items
+          const remaining = selectedSubjects.filter(s => s.name !== name);
+          const reSequenced = remaining
+            .sort((a, b) => a.order - b.order)
+            .map((s, idx) => ({ ...s, order: idx + 1 }));
+          setSelectedSubjects(reSequenced);
       } else {
-          const subj = allSubjects.find(s => s.name === name);
-          setSelectedSubjects([...selectedSubjects, { name, order: subj?.order || 999 }]);
+          // Auto-assign order = next sequential number based on check order
+          const nextOrder = selectedSubjects.length + 1;
+          setSelectedSubjects([...selectedSubjects, { name, order: nextOrder }]);
       }
       setChecklistDirty(true);
   };
@@ -221,7 +228,7 @@ export const ExportTab = () => {
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400 rounded-full">{selectedSubjects.length}/{allSubjects.length}</span>
               </h4>
               <p className="text-[11px] text-gray-500 mt-0.5">
-                Centang mata pelajaran yang akan dicetak dan sesuaikan urutannya.
+                Centang mata pelajaran yang akan dicetak. Urutan otomatis sesuai urutan centang, atau ubah manual.
               </p>
             </div>
             <ChevronDown size={18} className={`text-gray-400 transition-transform duration-200 ${showChecklist ? 'rotate-180' : ''}`} />
@@ -237,21 +244,32 @@ export const ExportTab = () => {
                     const selectedObj = selectedSubjects.find(s => s.name === subj.name);
                     
                     return (
-                        <div key={subj.name} className={`flex items-center gap-3 p-2 rounded-lg border transition-all ${isSelected ? 'border-violet-300 bg-violet-50/50 dark:border-violet-700/50 dark:bg-violet-900/10' : 'border-gray-200 bg-white dark:border-[#333] dark:bg-[#111]'}`}>
+                        <div key={subj.name} className={`flex items-center gap-3 p-2 rounded-lg border transition-all cursor-pointer select-none ${isSelected ? 'border-violet-300 bg-violet-50/50 dark:border-violet-700/50 dark:bg-violet-900/10 ring-1 ring-violet-200 dark:ring-violet-800/30' : 'border-gray-200 bg-white dark:border-[#333] dark:bg-[#111] hover:border-gray-300 dark:hover:border-[#444]'}`}
+                             onClick={() => toggleSubject(subj.name)}
+                        >
                             <input 
                                 type="checkbox" 
                                 checked={isSelected}
-                                onChange={() => toggleSubject(subj.name)}
-                                className="w-4 h-4 text-violet-600 rounded border-gray-300 focus:ring-violet-500"
+                                onChange={() => {}}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-4 h-4 text-violet-600 rounded border-gray-300 focus:ring-violet-500 pointer-events-none"
                             />
-                            <input 
-                                type="number" 
-                                disabled={!isSelected}
-                                value={selectedObj?.order || ''}
-                                onChange={(e) => handleOrderChange(subj.name, e.target.value)}
-                                className="w-12 px-1.5 py-1 text-center text-xs border border-gray-300 dark:border-[#444] rounded bg-white dark:bg-[#1a1a1a] disabled:opacity-50"
-                                placeholder="Urut"
-                            />
+                            {isSelected ? (
+                              <div className="relative">
+                                <input 
+                                    type="number" 
+                                    value={selectedObj?.order || ''}
+                                    onChange={(e) => { e.stopPropagation(); handleOrderChange(subj.name, e.target.value); }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="w-10 h-7 px-1 text-center text-xs font-bold border border-violet-300 dark:border-violet-700/50 rounded bg-violet-100 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 focus:outline-none focus:ring-1 focus:ring-violet-400"
+                                    min={1}
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-10 h-7 flex items-center justify-center text-xs text-gray-300 dark:text-gray-600 border border-dashed border-gray-200 dark:border-[#444] rounded">
+                                —
+                              </div>
+                            )}
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium truncate" title={subj.name}>{subj.name}</p>
                                 <div className="flex gap-1 mt-0.5">
@@ -264,19 +282,29 @@ export const ExportTab = () => {
                 })
             )}
         </div>
-        {checklistDirty && (
+        {/* Footer: selection summary + save button */}
         <div className="px-4 pb-4 border-t border-gray-100 dark:border-[#222] pt-3 flex items-center justify-between animate-in fade-in duration-200">
-            <p className="text-xs text-amber-600 dark:text-amber-400">⚠ Ada perubahan yang belum disimpan</p>
+            <div className="flex items-center gap-3">
+              {selectedSubjects.length > 0 && (
+                <div className="flex flex-wrap gap-1 max-w-[400px]">
+                  {selectedSubjects.sort((a,b) => a.order - b.order).map(s => (
+                    <span key={s.name} className="text-[10px] px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded font-medium">
+                      {s.order}. {s.name.length > 15 ? s.name.substring(0, 15) + '…' : s.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {checklistDirty && <p className="text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">⚠ Belum disimpan</p>}
+            </div>
             <button
               onClick={handleSaveChecklist}
-              disabled={isPreviewLoading}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg shadow-sm transition-all flex items-center gap-2"
+              disabled={isPreviewLoading || selectedSubjects.length === 0}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg shadow-sm transition-all flex items-center gap-2 shrink-0"
             >
               {isPreviewLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               Simpan & Terapkan
             </button>
         </div>
-        )}
         </>
         )}
       </div>
