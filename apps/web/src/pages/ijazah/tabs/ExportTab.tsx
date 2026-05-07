@@ -62,8 +62,15 @@ export const ExportTab = () => {
          return {
            name: s.name,
            order: s.orderNum || idx + 1,
-           hasUm: map?.um || false,
            group: s.group,
+           semesters: {
+             sem1: map?.sem1 || false,
+             sem2: map?.sem2 || false,
+             sem3: map?.sem3 || false,
+             sem4: map?.sem4 || false,
+             sem5: map?.sem5 || false,
+             um: map?.um || false,
+           },
          };
       });
 
@@ -235,16 +242,21 @@ export const ExportTab = () => {
         </button>
         {showChecklist && (
         <>
-        <div className="p-4 border-t border-gray-100 dark:border-[#222] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="px-3 py-2.5 border-t border-gray-100 dark:border-[#222] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1.5 max-h-[280px] overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-200">
             {allSubjects.length === 0 ? (
-                <div className="col-span-full py-8 text-center text-sm text-gray-500">Memuat mata pelajaran...</div>
+                <div className="col-span-full py-6 text-center text-xs text-gray-500">Memuat mata pelajaran...</div>
             ) : (
                 allSubjects.map(subj => {
                     const isSelected = selectedSubjects.some(s => s.name === subj.name);
                     const selectedObj = selectedSubjects.find(s => s.name === subj.name);
+                    const semLabels: {key: string, label: string}[] = [
+                      { key: 'sem1', label: '1' }, { key: 'sem2', label: '2' }, { key: 'sem3', label: '3' },
+                      { key: 'sem4', label: '4' }, { key: 'sem5', label: '5' }, { key: 'um', label: 'UM' },
+                    ];
+                    const activeSems = semLabels.filter(s => (subj.semesters as any)?.[s.key]);
                     
                     return (
-                        <div key={subj.name} className={`flex items-center gap-3 p-2 rounded-lg border transition-all cursor-pointer select-none ${isSelected ? 'border-violet-300 bg-violet-50/50 dark:border-violet-700/50 dark:bg-violet-900/10 ring-1 ring-violet-200 dark:ring-violet-800/30' : 'border-gray-200 bg-white dark:border-[#333] dark:bg-[#111] hover:border-gray-300 dark:hover:border-[#444]'}`}
+                        <div key={subj.name} className={`flex items-center gap-2 px-2 py-1.5 rounded-md border transition-all cursor-pointer select-none ${isSelected ? 'border-violet-300 bg-violet-50/50 dark:border-violet-700/50 dark:bg-violet-900/10 ring-1 ring-violet-200 dark:ring-violet-800/30' : 'border-gray-200 bg-white dark:border-[#333] dark:bg-[#111] hover:border-gray-300 dark:hover:border-[#444]'}`}
                              onClick={() => toggleSubject(subj.name)}
                         >
                             <input 
@@ -252,29 +264,29 @@ export const ExportTab = () => {
                                 checked={isSelected}
                                 onChange={() => {}}
                                 onClick={(e) => e.stopPropagation()}
-                                className="w-4 h-4 text-violet-600 rounded border-gray-300 focus:ring-violet-500 pointer-events-none"
+                                className="w-3.5 h-3.5 text-violet-600 rounded border-gray-300 focus:ring-violet-500 pointer-events-none shrink-0"
                             />
                             {isSelected ? (
-                              <div className="relative">
                                 <input 
                                     type="number" 
                                     value={selectedObj?.order || ''}
                                     onChange={(e) => { e.stopPropagation(); handleOrderChange(subj.name, e.target.value); }}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="w-10 h-7 px-1 text-center text-xs font-bold border border-violet-300 dark:border-violet-700/50 rounded bg-violet-100 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 focus:outline-none focus:ring-1 focus:ring-violet-400"
+                                    className="w-8 h-5 px-0.5 text-center text-[10px] font-bold border border-violet-300 dark:border-violet-700/50 rounded bg-violet-100 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 focus:outline-none focus:ring-1 focus:ring-violet-400 shrink-0"
                                     min={1}
                                 />
-                              </div>
                             ) : (
-                              <div className="w-10 h-7 flex items-center justify-center text-xs text-gray-300 dark:text-gray-600 border border-dashed border-gray-200 dark:border-[#444] rounded">
+                              <div className="w-8 h-5 flex items-center justify-center text-[10px] text-gray-300 dark:text-gray-600 border border-dashed border-gray-200 dark:border-[#444] rounded shrink-0">
                                 —
                               </div>
                             )}
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate" title={subj.name}>{subj.name}</p>
-                                <div className="flex gap-1 mt-0.5">
-                                    <span className="text-[9px] px-1 bg-gray-100 dark:bg-[#222] rounded text-gray-500">{subj.group}</span>
-                                    {subj.hasUm && <span className="text-[9px] px-1 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded">Ada UM</span>}
+                                <p className="text-xs font-medium truncate leading-tight" title={subj.name}>{subj.name}</p>
+                                <div className="flex items-center gap-0.5 mt-0.5 flex-wrap">
+                                    <span className="text-[8px] px-1 py-px bg-gray-100 dark:bg-[#222] rounded text-gray-400 leading-none">{subj.group}</span>
+                                    {activeSems.length > 0 && activeSems.map(sem => (
+                                      <span key={sem.key} className={`text-[8px] px-1 py-px rounded leading-none font-semibold ${sem.key === 'um' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'}`}>{sem.label}</span>
+                                    ))}
                                 </div>
                             </div>
                         </div>
