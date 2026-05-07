@@ -602,3 +602,12 @@ export const ijazahGrades = pgTable("ijazah_grades", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
+
+// Per-class subject selection persistence for Ekspor Leger & Ijazah
+export const ijazahExportSelections = pgTable("ijazah_export_selections", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  classId: uuid("class_id").references(() => classes.id, { onDelete: "cascade" }).notNull().unique(),
+  selections: jsonb("selections").default([]), // Array of { name: string, order: number }
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});

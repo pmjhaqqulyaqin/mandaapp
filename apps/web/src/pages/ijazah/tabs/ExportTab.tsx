@@ -71,9 +71,28 @@ export const ExportTab = () => {
       }));
 
       setAllSubjects(initialized);
-      // Default: nothing is checked — user must manually select subjects
-      setSelectedSubjects([]);
-      setPreviewData(null);
+
+      // Load saved selections from backend
+      apiClient<{ selections: {name: string, order: number}[] }>(`/ijazah/export-selections?classId=${selectedClassId}`)
+        .then(res => {
+          const saved = res.selections || [];
+          if (saved.length > 0) {
+            // Only keep selections that are still valid (exist in applicable subjects)
+            const validNames = new Set(initialized.map(s => s.name));
+            const validSelections = saved.filter(s => validNames.has(s.name));
+            setSelectedSubjects(validSelections);
+            setChecklistDirty(false);
+            // Auto-load preview with saved selections
+            loadPreview(validSelections);
+          } else {
+            setSelectedSubjects([]);
+            setPreviewData(null);
+          }
+        })
+        .catch(() => {
+          setSelectedSubjects([]);
+          setPreviewData(null);
+        });
     } else {
       setAllSubjects([]);
       setSelectedSubjects([]);
@@ -174,9 +193,18 @@ export const ExportTab = () => {
   const handleSaveChecklist = async () => {
       if (!selectedClassId) return toast.error('Pilih rombel terlebih dahulu');
       if (selectedSubjects.length === 0) return toast.error('Pilih minimal 1 mata pelajaran');
-      setChecklistDirty(false);
-      await loadPreview();
-      toast.success('Checklist disimpan & preview diperbarui');
+      
+      try {
+        // Persist selections to backend
+        await apiClient('/ijazah/export-selections', {
+          data: { classId: selectedClassId, selections: selectedSubjects },
+        });
+        setChecklistDirty(false);
+        await loadPreview();
+        toast.success('Checklist disimpan & preview diperbarui');
+      } catch (err) {
+        toast.error('Gagal menyimpan checklist');
+      }
   };
   
   const handleProcess = async () => {

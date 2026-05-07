@@ -8,6 +8,7 @@ import {
   ijazahSubjects, 
   ijazahSubjectMappings,
   ijazahGrades,
+  ijazahExportSelections,
   academicYears
 } from "../../db/schema";
 import logger from "../../lib/logger";
@@ -1268,6 +1269,76 @@ export class IjazahController {
     } catch (error: any) {
       logger.error({ err: error }, "Failed to get subject fill status");
       res.status(500).json({ error: "Gagal mengambil status pengisian nilai" });
+    }
+  }
+
+  // --- Export selections persistence (per-class checklist) ---
+
+  private static async ensureExportSelectionsTable() {
+    try {
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS ijazah_export_selections (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          class_id UUID NOT NULL UNIQUE REFERENCES classes(id) ON DELETE CASCADE,
+          selections JSONB DEFAULT '[]'::jsonb,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+    } catch (e) { /* ignore if already exists */ }
+  }
+
+  static async getExportSelections(req: Request, res: Response) {
+    try {
+      const { classId } = req.query;
+      if (!classId || typeof classId !== 'string') {
+        return res.status(400).json({ error: "classId required" });
+      }
+
+      await IjazahController.ensureExportSelectionsTable();
+
+      const rows = await db.select().from(ijazahExportSelections)
+        .where(eq(ijazahExportSelections.classId, classId))
+        .limit(1);
+
+      if (rows.length === 0) {
+        return res.json({ selections: [] });
+      }
+
+      res.json({ selections: rows[0].selections || [] });
+    } catch (error: any) {
+      logger.error({ err: error }, "Failed to get export selections");
+      res.status(500).json({ error: "Gagal mengambil data seleksi" });
+    }
+  }
+
+  static async saveExportSelections(req: Request, res: Response) {
+    try {
+      const { classId, selections } = req.body;
+      if (!classId) return res.status(400).json({ error: "classId required" });
+      if (!Array.isArray(selections)) return res.status(400).json({ error: "selections must be an array" });
+
+      await IjazahController.ensureExportSelectionsTable();
+
+      const existing = await db.select().from(ijazahExportSelections)
+        .where(eq(ijazahExportSelections.classId, classId))
+        .limit(1);
+
+      if (existing.length > 0) {
+        await db.update(ijazahExportSelections)
+          .set({ selections, updatedAt: new Date() })
+          .where(eq(ijazahExportSelections.id, existing[0].id));
+      } else {
+        await db.insert(ijazahExportSelections).values({
+          classId,
+          selections,
+        });
+      }
+
+      res.json({ success: true, message: "Seleksi mapel berhasil disimpan" });
+    } catch (error: any) {
+      logger.error({ err: error }, "Failed to save export selections");
+      res.status(500).json({ error: "Gagal menyimpan seleksi" });
     }
   }
 }

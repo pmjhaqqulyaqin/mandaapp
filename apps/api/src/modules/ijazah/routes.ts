@@ -36,5 +36,7 @@ router.post("/mappings", requireStaff, IjazahController.saveMapping);
 router.get("/preview", requireStaff, IjazahController.getPreview);
 router.get("/export", requireStaff, IjazahController.exportData);
 router.get("/subject-fill-status", requireStaff, IjazahController.getSubjectFillStatus);
+router.get("/export-selections", requireStaff, IjazahController.getExportSelections);
+router.post("/export-selections", requireStaff, IjazahController.saveExportSelections);
 
 export const ijazahRoutes = router;
