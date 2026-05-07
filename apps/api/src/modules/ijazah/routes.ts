@@ -35,5 +35,6 @@ router.post("/mappings", requireStaff, IjazahController.saveMapping);
 // Endpoint Phase 4: Preview & Export
 router.get("/preview", requireStaff, IjazahController.getPreview);
 router.get("/export", requireStaff, IjazahController.exportData);
+router.get("/subject-fill-status", requireStaff, IjazahController.getSubjectFillStatus);
 
 export const ijazahRoutes = router;

@@ -24,6 +24,7 @@ export const ExportTab = () => {
 
   const [masterSubjects, setMasterSubjects] = useState<any[]>([]);
   const [masterMappings, setMasterMappings] = useState<any[]>([]);
+  const [fillStatus, setFillStatus] = useState<any[]>([]);
   const [allSubjects, setAllSubjects] = useState<any[]>([]);
   const [selectedSubjects, setSelectedSubjects] = useState<{name: string, order: number}[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -49,6 +50,11 @@ export const ExportTab = () => {
 
   useEffect(() => {
     if (selectedClassId && masterSubjects.length > 0) {
+      // Fetch actual grade fill status for this class
+      apiClient<any[]>(`/ijazah/subject-fill-status?classId=${selectedClassId}`)
+        .then(status => setFillStatus(status))
+        .catch(() => setFillStatus([]));
+
       // Automatically filter subjects applicable to the selected class
       const applicable = masterSubjects.filter(subj => {
         const map = masterMappings.find(m => m.subjectId === subj.id);
@@ -57,22 +63,12 @@ export const ExportTab = () => {
         return map.classIds.includes(selectedClassId);
       });
 
-      const initialized = applicable.map((s, idx) => {
-         const map = masterMappings.find(m => m.subjectId === s.id);
-         return {
-           name: s.name,
-           order: s.orderNum || idx + 1,
-           group: s.group,
-           semesters: {
-             sem1: map?.sem1 || false,
-             sem2: map?.sem2 || false,
-             sem3: map?.sem3 || false,
-             sem4: map?.sem4 || false,
-             sem5: map?.sem5 || false,
-             um: map?.um || false,
-           },
-         };
-      });
+      const initialized = applicable.map((s, idx) => ({
+        name: s.name,
+        id: s.id,
+        order: s.orderNum || idx + 1,
+        group: s.group,
+      }));
 
       setAllSubjects(initialized);
       // Default: nothing is checked — user must manually select subjects
@@ -81,6 +77,7 @@ export const ExportTab = () => {
     } else {
       setAllSubjects([]);
       setSelectedSubjects([]);
+      setFillStatus([]);
       setPreviewData(null);
     }
   }, [selectedClassId, masterSubjects, masterMappings]);
@@ -253,7 +250,8 @@ export const ExportTab = () => {
                       { key: 'sem1', label: '1' }, { key: 'sem2', label: '2' }, { key: 'sem3', label: '3' },
                       { key: 'sem4', label: '4' }, { key: 'sem5', label: '5' }, { key: 'um', label: 'UM' },
                     ];
-                    const activeSems = semLabels.filter(s => (subj.semesters as any)?.[s.key]);
+                    const fill = fillStatus.find((f: any) => f.subjectId === subj.id);
+                    const activeSems = fill ? semLabels.filter(s => (fill as any)[s.key]) : [];
                     
                     return (
                         <div key={subj.name} className={`flex items-center gap-2 px-2 py-1.5 rounded-md border transition-all cursor-pointer select-none ${isSelected ? 'border-violet-300 bg-violet-50/50 dark:border-violet-700/50 dark:bg-violet-900/10 ring-1 ring-violet-200 dark:ring-violet-800/30' : 'border-gray-200 bg-white dark:border-[#333] dark:bg-[#111] hover:border-gray-300 dark:hover:border-[#444]'}`}

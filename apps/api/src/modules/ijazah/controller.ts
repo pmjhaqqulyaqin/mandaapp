@@ -1212,4 +1212,62 @@ export class IjazahController {
       res.status(500).json({ error: "Gagal mengekspor data" });
     }
   }
+
+  // --- Subject fill status: which semesters actually have grade data ---
+  static async getSubjectFillStatus(req: Request, res: Response) {
+    try {
+      const { classId } = req.query;
+      if (!classId || typeof classId !== 'string') {
+        return res.status(400).json({ error: "classId required" });
+      }
+
+      // 1. Get student IDs for this class
+      const students = await db
+        .select({ id: studentProfiles.id })
+        .from(studentProfiles)
+        .leftJoin(classes, eq(studentProfiles.classId, classes.id))
+        .where(and(like(classes.name, 'XII %'), eq(studentProfiles.classId, classId)));
+
+      if (students.length === 0) {
+        return res.json([]);
+      }
+
+      const studentIds = students.map(s => s.id);
+
+      // 2. Get all grades for these students
+      const allGrades = await db.select().from(ijazahGrades)
+        .where(
+          studentIds.length === 1
+            ? eq(ijazahGrades.studentId, studentIds[0])
+            : sql`${ijazahGrades.studentId} IN (${sql.join(studentIds.map(id => sql`${id}`), sql`, `)})`
+        );
+
+      // 3. Aggregate per subject: which semesters have at least one non-null value
+      const subjectFillMap = new Map<string, { sem1: boolean; sem2: boolean; sem3: boolean; sem4: boolean; sem5: boolean; um: boolean }>();
+
+      for (const grade of allGrades) {
+        const sid = grade.subjectId;
+        if (!subjectFillMap.has(sid)) {
+          subjectFillMap.set(sid, { sem1: false, sem2: false, sem3: false, sem4: false, sem5: false, um: false });
+        }
+        const entry = subjectFillMap.get(sid)!;
+        if (grade.semester1 != null) entry.sem1 = true;
+        if (grade.semester2 != null) entry.sem2 = true;
+        if (grade.semester3 != null) entry.sem3 = true;
+        if (grade.semester4 != null) entry.sem4 = true;
+        if (grade.semester5 != null) entry.sem5 = true;
+        if (grade.examScore != null) entry.um = true;
+      }
+
+      const result = Array.from(subjectFillMap.entries()).map(([subjectId, sems]) => ({
+        subjectId,
+        ...sems,
+      }));
+
+      res.json(result);
+    } catch (error: any) {
+      logger.error({ err: error }, "Failed to get subject fill status");
+      res.status(500).json({ error: "Gagal mengambil status pengisian nilai" });
+    }
+  }
 }
