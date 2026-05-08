@@ -92,7 +92,7 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive }
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        // 1. Try jsQR (Fastest for QR)
+        // 1. Try jsQR first (fastest for QR codes)
         // Crop center 70% for jsQR focus
         const cw = Math.floor(canvas.width * 0.7);
         const ch = Math.floor(canvas.height * 0.7);
@@ -105,17 +105,15 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive }
           
           if (qr && qr.data) {
             handleScanSuccess(qr.data);
-          } else {
-            // Try ZXing for Barcodes occasionally (slower)
-            if (Math.random() > 0.7 && zxingReader.current) {
-               try {
-                  const zxingRes = zxingReader.current.decodeFromCanvas(canvas);
-                  if (zxingRes && zxingRes.getText()) {
-                     handleScanSuccess(zxingRes.getText());
-                  }
-               } catch(e) {
-                 // Ignore NotFoundException from ZXing
+          } else if (zxingReader.current) {
+            // 2. Try ZXing for 1D barcodes (CODE128, EAN, etc.) every frame
+            try {
+               const zxingRes = zxingReader.current.decodeFromCanvas(canvas);
+               if (zxingRes && zxingRes.getText()) {
+                  handleScanSuccess(zxingRes.getText());
                }
+            } catch(e) {
+              // Ignore NotFoundException from ZXing (normal when no barcode in frame)
             }
           }
         } catch (e) {
