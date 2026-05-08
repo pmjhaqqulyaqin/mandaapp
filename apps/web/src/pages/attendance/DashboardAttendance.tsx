@@ -14,7 +14,23 @@ export const DashboardAttendance = () => {
   const [scanMode, setScanMode] = useState<'masuk' | 'pulang'>('masuk');
   const [isLoading, setIsLoading] = useState(false);
 
-  const processScan = async (nis: string, method: string) => {
+  // Smart NIS extractor: handles NIS-only QR (new), verbose QR (old cards), and barcode
+  const extractNIS = (raw: string): string => {
+    const trimmed = raw.trim();
+    // Format 1: Pure NIS (digits only) — new QR / barcode
+    if (/^\d{4,20}$/.test(trimmed)) return trimmed;
+    // Format 2: Verbose old QR — extract from pattern "(123456)" in "Siswa: Name (123456)"
+    const parenMatch = trimmed.match(/\((\d{4,20})\)/);
+    if (parenMatch) return parenMatch[1];
+    // Format 3: "NISN: 123456" line
+    const nisnMatch = trimmed.match(/NISN?:\s*(\d{4,20})/i);
+    if (nisnMatch) return nisnMatch[1];
+    // Fallback: return as-is
+    return trimmed;
+  };
+
+  const processScan = async (rawCode: string, method: string) => {
+    const nis = extractNIS(rawCode);
     if (!nis || nis.length < 3 || isLoading) return;
     setIsLoading(true);
     try {

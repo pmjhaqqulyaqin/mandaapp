@@ -278,8 +278,8 @@ export const PrintableStudentCard = ({
     const termsTextRaw = settings.termsText || "Kartu pelajar ini hanya dikeluarkan kepada siswa yang terdaftar di sekolah.\nKartu pelajar bersifat pribadi dan tidak boleh digunakan oleh orang lain.\nPemegang kartu bertanggung jawab untuk menjaga kebersihan dan keutuhan kartu.\nKartu Pelajar ini berlaku selama masa studi aktif di sekolah yang terdaftar.";
     const termsLines = termsTextRaw.split('\n');
 
-    // Advanced payload for QR Code tracking student legitimacy
-    const qrPayload = `Sekolah: ${settings.schoolName}\nNPSN: ${settings.schoolSubtitle || '-'}\nDiterbitkan: ${formatDate(new Date().toISOString())}\nBerlaku: ${settings.academicYear}\nSiswa: ${student.name} (${student.nisn})\nLink: https://mandualotim.sch.id/student/${student.nisn}`;
+    // QR payload: NIS only for fast attendance scanning
+    const qrPayload = student.nisn;
 
     const bgUrl = settings.customTemplateBackUrl;
 
@@ -317,8 +317,8 @@ export const PrintableStudentCard = ({
           <div style={{ position: 'absolute', bottom: '75px', left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10 }}>
              {/* QR Section - Centered */}
              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                <LocalQRCode data={qrPayload} size={105} style={{ border: '4px solid #ffffff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
-                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#111827', backgroundColor: 'rgba(255,255,255,0.7)', padding: '2px 6px', borderRadius: '4px' }}>MASA BERLAKU</div>
+                <LocalQRCode data={qrPayload} size={130} style={{ border: '4px solid #ffffff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
+                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#111827', backgroundColor: 'rgba(255,255,255,0.7)', padding: '2px 6px', borderRadius: '4px' }}>SCAN UNTUK PRESENSI</div>
              </div>
           </div>
         </div>
@@ -445,7 +445,8 @@ export const PrintableStudentCard = ({
     const termsTextRaw = settings.termsText || "Kartu wajib dipakai selama berada di lingkungan sekolah\nTidak boleh dipinjamkan kepada orang lain.\nJika hilang, segera lapor ke wali kelas.\nMenjaga kartu agar tidak rusak atau kotor.";
     const termsLines = termsTextRaw.split('\n');
 
-    const qrPayload = `Sekolah: ${settings.schoolName}\nNPSN: ${settings.schoolSubtitle || '-'}\nDiterbitkan: ${formatDate(new Date().toISOString())}\nBerlaku: ${settings.academicYear}\nSiswa: ${student.name} (${student.nisn})\nLink: https://mandualotim.sch.id/student/${student.nisn}`;
+    // QR payload: NIS only for fast attendance scanning
+    const qrPayload = student.nisn;
 
     const DotsMatrix = ({ color }: { color: string }) => (
       <svg width="40" height="40" viewBox="0 0 40 40" fill={color}>
@@ -508,8 +509,8 @@ export const PrintableStudentCard = ({
 
              {/* Central QR Code */}
              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginTop: 'auto', marginBottom: '8px' }}>
-                <LocalQRCode data={qrPayload} size={110} style={{ borderRadius: '4px' }} />
-                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: textColor }}>MASA BERLAKU</div>
+                <LocalQRCode data={qrPayload} size={130} style={{ borderRadius: '4px' }} />
+                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: textColor }}>SCAN UNTUK PRESENSI</div>
              </div>
 
              {/* Center Text Blob */}
