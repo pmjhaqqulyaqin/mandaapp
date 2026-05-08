@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSettings } from '../hooks/api/useSettings';
 import { settingsService } from '../lib/services/settings';
-import { API_BASE_URL } from '../lib/api';
+import { apiClient, API_BASE_URL } from '../lib/api';
 
 type TabId = 'identity' | 'logo' | 'social' | 'map' | 'links' | 'system';
 
@@ -325,6 +325,12 @@ export const DashboardSettings = () => {
   const kemenagInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
 
+  // Parent portal notification settings
+  const [parentNotifEmail, setParentNotifEmail] = useState(true);
+  const [parentNotifWa, setParentNotifWa] = useState(false);
+  const [parentNotifSaving, setParentNotifSaving] = useState(false);
+  const [parentNotifLoaded, setParentNotifLoaded] = useState(false);
+
   // Load settings into form data
   useEffect(() => {
     if (queryAll.data) {
@@ -343,6 +349,17 @@ export const DashboardSettings = () => {
       }
     }
   }, [queryAll.data]);
+
+  // Load parent notif settings
+  useEffect(() => {
+    if (!parentNotifLoaded) {
+      apiClient<any>('/parent-portal/admin/notif-settings').then(data => {
+        setParentNotifEmail(data.emailEnabled);
+        setParentNotifWa(data.waEnabled);
+        setParentNotifLoaded(true);
+      }).catch(() => {});
+    }
+  }, [parentNotifLoaded]);
 
   const getValue = (key: string) => formData[key] || '';
   const setValue = (key: string, value: string) => {
@@ -1007,6 +1024,65 @@ export const DashboardSettings = () => {
                         )}
                       </div>
                       <p className="text-[10px] text-text-secondary italic">Disarankan format .ico atau .png transparan (Maks 2MB)</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Parent Portal Notification Toggle */}
+                <div className="mb-8 p-5 rounded-xl border border-indigo-200 dark:border-indigo-900/30 bg-indigo-50/30 dark:bg-indigo-900/10">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">👨‍👩‍👧</span>
+                    <h3 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary">Notifikasi Portal Orang Tua</h3>
+                  </div>
+                  <p className="text-[11px] text-text-secondary mb-4">Aktifkan/nonaktifkan notifikasi otomatis ke orang tua saat anak terlambat atau tidak hadir.</p>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-text-primary dark:text-text-darkPrimary">📧 Notifikasi Email</p>
+                        <p className="text-[10px] text-text-secondary">Kirim email ke orang tua saat anak Terlambat / Alpa</p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const newVal = !parentNotifEmail;
+                          setParentNotifEmail(newVal);
+                          setParentNotifSaving(true);
+                          try {
+                            await apiClient('/parent-portal/admin/notif-settings', {
+                              method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ emailEnabled: newVal, waEnabled: parentNotifWa }),
+                            });
+                          } catch { setParentNotifEmail(!newVal); }
+                          setParentNotifSaving(false);
+                        }}
+                        disabled={parentNotifSaving}
+                        className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${parentNotifEmail ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+                      >
+                        <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200 ${parentNotifEmail ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-text-primary dark:text-text-darkPrimary">💬 Notifikasi WhatsApp</p>
+                        <p className="text-[10px] text-text-secondary">Kirim pesan WA ke orang tua (memerlukan integrasi API WA)</p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const newVal = !parentNotifWa;
+                          setParentNotifWa(newVal);
+                          setParentNotifSaving(true);
+                          try {
+                            await apiClient('/parent-portal/admin/notif-settings', {
+                              method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ emailEnabled: parentNotifEmail, waEnabled: newVal }),
+                            });
+                          } catch { setParentNotifWa(!newVal); }
+                          setParentNotifSaving(false);
+                        }}
+                        disabled={parentNotifSaving}
+                        className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${parentNotifWa ? 'bg-emerald-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+                      >
+                        <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200 ${parentNotifWa ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      </button>
                     </div>
                   </div>
                 </div>

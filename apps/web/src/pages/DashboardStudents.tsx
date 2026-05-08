@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import {
   Users, Search, Settings2, RefreshCw, FileSpreadsheet, Download,
   UserPlus, Edit2, Trash2, ChevronLeft, ChevronRight, Loader2,
-  CheckCircle2, GraduationCap, AlertCircle, UserCog, ArrowUpRight, X
+  CheckCircle2, GraduationCap, AlertCircle, UserCog, ArrowUpRight, X, QrCode
 } from 'lucide-react';
 
 // Sub-components
@@ -17,6 +17,7 @@ import { ImportExcelModal } from './students/ImportExcelModal';
 import { AddStudentModal } from './students/AddStudentModal';
 import { UpdateStatusModal } from './students/UpdateStatusModal';
 import { BulkPromotionModal } from './students/BulkPromotionModal';
+import { PrintQRPortal } from './parent/PrintQRPortal';
 
 type Tab = 'students' | 'classes';
 
@@ -82,6 +83,8 @@ export const DashboardStudents = () => {
   const [updateStatusOpen, setUpdateStatusOpen] = useState(false);
   const [statusStudent, setStatusStudent] = useState<any>(null);
   const [bulkPromotionOpen, setBulkPromotionOpen] = useState(false);
+  const [qrPrintOpen, setQrPrintOpen] = useState(false);
+  const [qrPrintStudents, setQrPrintStudents] = useState<any[]>([]);
 
   // Persist filters
   useEffect(() => { sessionStorage.setItem('sm_search', searchQuery); }, [searchQuery]);
@@ -221,6 +224,14 @@ export const DashboardStudents = () => {
           <Button size="sm" className="flex items-center gap-1.5 text-xs"
             onClick={() => { setEditStudent(null); setAddStudentOpen(true); }}>
             <UserPlus size={14} /> Tambah Siswa
+          </Button>
+          <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
+            onClick={() => {
+              const targets = filtered.filter(s => (!s.status || s.status.toLowerCase() === 'aktif' || s.status.toLowerCase() === 'active') && s.nisn);
+              setQrPrintStudents(targets);
+              setQrPrintOpen(true);
+            }}>
+            <QrCode size={14} /> Cetak QR Portal
           </Button>
         </div>
       </div>
@@ -411,6 +422,7 @@ export const DashboardStudents = () => {
       <BulkPromotionModal isOpen={bulkPromotionOpen} onClose={() => { setBulkPromotionOpen(false); setSelectedStudentIds([]); }}
         selectedStudents={filtered.filter(s => selectedStudentIds.includes(s.id))} classes={classesList}
         apiClient={apiClient} onSuccess={() => { fetchAll(); setSelectedStudentIds([]); }} />
+      <PrintQRPortal isOpen={qrPrintOpen} onClose={() => setQrPrintOpen(false)} students={qrPrintStudents} />
 
       {/* Floating Action Bar */}
       {selectedStudentIds.length > 0 && activeTab === 'students' && (
@@ -420,6 +432,13 @@ export const DashboardStudents = () => {
           <div className="w-px h-6 bg-gray-200 dark:bg-[#333]" />
           <Button size="sm" onClick={() => setBulkPromotionOpen(true)} className="flex items-center gap-1.5 whitespace-nowrap">
             <ArrowUpRight size={14} /> Proses Seleksi
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => {
+            const selected = students.filter(s => selectedStudentIds.includes(s.id) && s.nisn);
+            setQrPrintStudents(selected);
+            setQrPrintOpen(true);
+          }} className="flex items-center gap-1.5 whitespace-nowrap">
+            <QrCode size={14} /> QR Portal
           </Button>
           <button onClick={() => setSelectedStudentIds([])} className="ml-1 p-1 hover:bg-gray-100 dark:hover:bg-[#222] rounded-full transition-colors"><X size={16} className="text-text-secondary" /></button>
         </div>
