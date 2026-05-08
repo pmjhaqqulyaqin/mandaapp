@@ -53,7 +53,11 @@ export const LoginPage = () => {
     
     try {
       await login(email, password);
-      const from = location.state?.from?.pathname || "/dashboard";
+      // Role-based redirect
+      const savedUser = localStorage.getItem('mandualotim_user');
+      const parsedRole = savedUser ? JSON.parse(savedUser)?.role : null;
+      const defaultDest = parsedRole === 'orang_tua' ? '/portal-ortu' : '/dashboard';
+      const from = location.state?.from?.pathname || defaultDest;
       navigate(from, { replace: true });
     } catch (err: any) {
       setError(err?.message || 'Login gagal. Periksa email dan password Anda.');

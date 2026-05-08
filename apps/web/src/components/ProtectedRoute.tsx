@@ -34,8 +34,9 @@ export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) 
   // Role-based access check
   if (allowedRoles && allowedRoles.length > 0 && user) {
     if (!allowedRoles.includes(user.role)) {
-      // User is authenticated but doesn't have the required role
-      return <Navigate to="/dashboard" replace />;
+      // orang_tua goes to portal, others go to dashboard
+      const fallback = user.role === 'orang_tua' ? '/portal-ortu' : '/dashboard';
+      return <Navigate to={fallback} replace />;
     }
   }
 
