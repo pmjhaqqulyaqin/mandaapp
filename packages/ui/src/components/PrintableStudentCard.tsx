@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import QRCode from 'qrcode';
-import JsBarcode from 'jsbarcode';
 
 const LocalQRCode = ({ data, size = 150, style }: { data: string, size?: number, style?: React.CSSProperties }) => {
   const [url, setUrl] = useState('');
@@ -14,21 +13,7 @@ const LocalQRCode = ({ data, size = 150, style }: { data: string, size?: number,
   return url ? <img src={url} alt="QR Code" style={{ width: size, height: size, ...style }} /> : <div style={{ width: size, height: size, ...style }} />;
 };
 
-const LocalBarcode = ({ data, style }: { data: string, style?: React.CSSProperties }) => {
-  const svgRef = useRef<SVGSVGElement>(null);
-  useEffect(() => {
-    if (svgRef.current && data) {
-      JsBarcode(svgRef.current, data, {
-        format: "CODE128",
-        displayValue: false,
-        margin: 0,
-        height: 50,
-        width: 2
-      });
-    }
-  }, [data]);
-  return <svg ref={svgRef} style={style} />;
-};export type CardOrientation = 'horizontal' | 'vertical';
+export type CardOrientation = 'horizontal' | 'vertical';
 export type CardTemplateName = 'classic-blue' | 'modern-green' | 'elegant-gold';
 
 export interface PrintableCardTemplate {
@@ -172,9 +157,6 @@ export const PrintableStudentCard = ({
     const kemenagLogoUrl = settings.kemenagLogoUrl || "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
     const headerColor = template?.primaryColor || '#14425A';
     const textColor = '#111827';
-    
-    // Encode essential ID info into the 1D Barcode. Max ~30 chars for highly reliable scanning.
-    const barcodeText = `${student.nisn}`;
 
     const bgUrl = settings.customTemplateFrontUrl;
 
@@ -217,9 +199,9 @@ export const PrintableStudentCard = ({
                   </div>
                 )}
               </div>
-              {/* Barcode 1D - below photo */}
-              <div style={{ height: '38px', width: '160px' }}>
-                <LocalBarcode data={barcodeText} style={{ height: '100%', width: '100%', objectFit: 'fill' }} />
+              {/* QR Code - below photo */}
+              <div style={{ height: '45px', width: '45px', marginTop: '2px' }}>
+                <LocalQRCode data={student.nisn} size={45} style={{ width: '100%', height: '100%' }} />
               </div>
             </div>
 
@@ -339,7 +321,6 @@ export const PrintableStudentCard = ({
     const headerColor = template?.primaryColor || '#3b1c9e'; // Default to deep purple if classic
     const textColor = '#111827';
     const kemenagLogoUrl = settings.kemenagLogoUrl || "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
-    const barcodeText = `${student.nisn}`;
 
     const DotsMatrix = ({ color }: { color: string }) => (
       <svg width="40" height="40" viewBox="0 0 40 40" fill={color}>
@@ -411,9 +392,9 @@ export const PrintableStudentCard = ({
                 <div>Alamat</div><div>:</div><div style={{ fontWeight: 500, lineHeight: 1.2 }}>{student.address || '-'}</div>
              </div>
 
-             {/* Barcode */}
-             <div style={{ marginTop: 'auto', marginBottom: '10px', height: '40px', width: '100%', display: 'flex', justifyContent: 'center' }}>
-               <LocalBarcode data={barcodeText} style={{ height: '100%', width: '220px', objectFit: 'fill' }} />
+             {/* QR Code */}
+             <div style={{ marginTop: 'auto', marginBottom: '10px', display: 'flex', justifyContent: 'center' }}>
+               <LocalQRCode data={student.nisn} size={55} style={{ borderRadius: '4px' }} />
              </div>
           </div>
         </div>
