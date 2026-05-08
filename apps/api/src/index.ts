@@ -33,6 +33,7 @@ import { examRoutes } from './modules/exams/routes';
 import { ppdbRoutes } from './modules/ppdb/routes';
 import { attendanceRoutes } from './modules/attendance/routes';
 import { jurnalRoutes } from './modules/jurnal/routes';
+import analyticsRoutes from './modules/analytics/routes';
 
 dotenv.config();
 
@@ -185,6 +186,7 @@ app.use("/api/ppdb", ppdbRoutes);
 app.use("/api/ijazah", ijazahRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/jurnal", jurnalRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
