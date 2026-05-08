@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
-import { useScheduleToday, useClassStudents, useJurnalMutations, useJurnalTemplates } from '../../../hooks/api/useJurnal';
+import { useScheduleToday, useClassStudents, useJurnalMutations } from '../../../hooks/api/useJurnal';
 import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Send, Save, Check, BookOpen, Users, Camera, Link as LinkIcon, FileText, MessageSquare, ClipboardList } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Send, Save, Check, BookOpen, Users, Camera, Link as LinkIcon, FileText, ClipboardList } from 'lucide-react';
 
 interface FormData {
   teachingSubjectId: string; teacherId: string; classId: string; subjectName: string; className: string;

@@ -15,7 +15,6 @@ export const DashboardJurnal = () => {
   const role = user?.role || '';
   const isAdmin = role === 'admin';
   const isLeadership = ['kepala_madrasah', 'wakil_kepala'].includes(role);
-  const isTU = ['kepala_tu', 'pegawai_tu'].includes(role);
   const canInput = !['kepala_tu', 'pegawai_tu', 'student', 'orang_tua', ''].includes(role);
 
   const [activeTab, setActiveTab] = useState<TabKey>(canInput ? 'input' : isLeadership ? 'monitoring' : 'list');

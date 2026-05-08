@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useJurnalEntries, useJurnalById, useJurnalMutations } from '../../../hooks/api/useJurnal';
-import { apiClient } from '../../../lib/api';
-import { useEffect } from 'react';
+import { apiClient, API_BASE_URL } from '../../../lib/api';
 import { toast } from 'sonner';
-import { Eye, Trash2, CheckCircle2, XCircle, Clock, FileText, Search, Filter } from 'lucide-react';
+import { Eye, Trash2, CheckCircle2, XCircle } from 'lucide-react';
 
 export const JurnalListTab = () => {
   const { user } = useAuth();
@@ -117,7 +116,7 @@ export const JurnalListTab = () => {
                 <div>
                   <span className="text-xs font-semibold text-gray-500 block mb-2">Dokumentasi:</span>
                   <div className="grid grid-cols-3 gap-2">{detail.data.attachments.map((a: any) => (
-                    <img key={a.id} src={a.fileUrl.startsWith('/') ? a.fileUrl : `/uploads/${a.fileUrl}`} className="w-full aspect-square object-cover rounded-lg" />
+                    <img key={a.id} src={`${API_BASE_URL.replace('/api', '')}${a.fileUrl.startsWith('/') ? a.fileUrl : `/uploads/${a.fileUrl}`}`} className="w-full aspect-square object-cover rounded-lg" />
                   ))}</div>
                 </div>
               )}

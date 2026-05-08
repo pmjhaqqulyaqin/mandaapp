@@ -3,7 +3,6 @@ import { JurnalService } from "./service";
 import * as xlsx from "xlsx";
 import { db } from "../../db";
 import { employees, classes } from "../../db/schema";
-import { eq } from "drizzle-orm";
 
 export class JurnalController {
 
