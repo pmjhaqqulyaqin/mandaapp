@@ -161,28 +161,54 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive }
   };
 
   const startScanning = async () => {
-    if (!selectedCamera) {
-      toast.error('Pilih kamera terlebih dahulu');
-      return;
-    }
-    
     setError(null);
     try {
-      const constraints: MediaStreamConstraints = {
-        video: {
-          deviceId: selectedCamera ? { exact: selectedCamera } : undefined,
-          facingMode: selectedCamera ? undefined : { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 960 }
-        }
-      };
+      // Build constraints - prefer back camera, fallback gracefully
+      let constraints: MediaStreamConstraints;
+      if (selectedCamera) {
+        constraints = {
+          video: {
+            deviceId: { exact: selectedCamera },
+            width: { ideal: 1280 },
+            height: { ideal: 960 }
+          }
+        };
+      } else {
+        // No specific camera selected - use environment (back camera)
+        constraints = {
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 960 }
+          }
+        };
+      }
       
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (e) {
+        // Fallback: just request any camera
+        console.warn('Primary camera constraint failed, trying fallback:', e);
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+      
       streamRef.current = stream;
+      
+      // Set scanning state FIRST so video element is rendered in DOM
+      setIsScanning(true);
+      
+      // Wait a tick for React to render the video element
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        // Use onloadedmetadata for reliable playback on mobile
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play().catch(err => {
+            console.error('Video play failed:', err);
+          });
+        };
       }
       
       // Check for torch capability
@@ -192,8 +218,6 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive }
         // @ts-ignore
         setHasTorch(!!capabilities.torch);
       }
-      
-      setIsScanning(true);
       
       // Request Wake Lock
       if ('wakeLock' in navigator) {
