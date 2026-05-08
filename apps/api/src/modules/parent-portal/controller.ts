@@ -113,4 +113,25 @@ export class ParentPortalController {
       return res.status(500).json({ error: "Gagal mengambil data orang tua." });
     }
   }
+
+  /** Admin: get global notification settings */
+  static async getNotifSettings(_req: Request, res: Response) {
+    try {
+      const settings = await ParentPortalService.getNotifSettings();
+      return res.json(settings);
+    } catch (error: any) {
+      return res.status(500).json({ error: "Gagal mengambil pengaturan notifikasi." });
+    }
+  }
+
+  /** Admin: update global notification settings */
+  static async updateNotifSettings(req: Request, res: Response) {
+    try {
+      const { emailEnabled, waEnabled } = req.body;
+      await ParentPortalService.updateNotifSettings(emailEnabled ?? true, waEnabled ?? false);
+      return res.json({ message: "Pengaturan notifikasi diperbarui." });
+    } catch (error: any) {
+      return res.status(500).json({ error: "Gagal memperbarui pengaturan." });
+    }
+  }
 }

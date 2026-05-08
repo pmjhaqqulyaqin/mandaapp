@@ -264,3 +264,74 @@ export const sendPMBRegistrantNotificationEmail = async (
     console.error(`[MAILER] Failed to send PMB Registrant notification email:`, err);
   }
 };
+
+export const sendParentAttendanceEmail = async (
+  to: string,
+  parentName: string,
+  studentName: string,
+  className: string,
+  status: string, // Terlambat, Alpa
+  date: string,
+  time?: string,
+  portalUrl?: string,
+) => {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn(`[MAILER] SMTP not configured. Skipping parent attendance email to ${to}`);
+    return;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '465'),
+    secure: process.env.SMTP_PORT === '465',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+  });
+
+  const statusColor = status === 'Terlambat' ? '#f59e0b' : '#ef4444';
+  const statusLabel = status === 'Terlambat' ? '⏰ TERLAMBAT' : '❌ TIDAK HADIR (ALPA)';
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+      <h2 style="color: ${statusColor}; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">
+        Notifikasi Kehadiran Siswa
+      </h2>
+      <p>Assalamualaikum Wr. Wb.</p>
+      <p>Yth. <strong>${parentName}</strong>,</p>
+      <p>Kami informasikan bahwa putra/putri Anda tercatat sebagai berikut:</p>
+      
+      <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 5px solid ${statusColor};">
+        <p style="margin: 0 0 10px 0;"><strong>Nama Siswa:</strong> ${studentName}</p>
+        <p style="margin: 0 0 10px 0;"><strong>Kelas:</strong> ${className}</p>
+        <p style="margin: 0 0 10px 0;"><strong>Status:</strong> <span style="color: ${statusColor}; font-weight: bold;">${statusLabel}</span></p>
+        <p style="margin: 0 0 10px 0;"><strong>Tanggal:</strong> ${new Date(date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        ${time ? `<p style="margin: 0;"><strong>Waktu Scan:</strong> ${time}</p>` : ''}
+      </div>
+
+      ${portalUrl ? `
+      <p style="font-size: 13px; color: #64748b;">
+        Pantau kehadiran lengkap anak Anda di Portal Orang Tua:<br/>
+        <a href="${portalUrl}" style="color: #6366f1; font-weight: bold;">${portalUrl}</a>
+      </p>
+      ` : ''}
+
+      <p style="font-size: 13px; color: #64748b;">
+        Jika ada pertanyaan, silakan hubungi wali kelas atau pihak sekolah.
+      </p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px; border-top: 1px solid #f0f0f0; padding-top: 20px; text-align: center;">
+        Ini adalah pesan otomatis dari sistem SIMANDA MAN 2 LOMBOK TIMUR.<br/>Harap tidak merespons email ini.
+      </p>
+    </div>
+  `;
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"SIMANDA MAN 2 LOTIM" <${process.env.SMTP_USER}>`,
+      to,
+      subject: `[Kehadiran] ${studentName} - ${statusLabel} (${date})`,
+      html: htmlContent
+    });
+    console.log(`[MAILER] Parent attendance email sent to ${to}: ${info.messageId}`);
+  } catch (err: any) {
+    console.error(`[MAILER] Failed to send parent attendance email to ${to}:`, err);
+  }
+};

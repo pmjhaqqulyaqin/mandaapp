@@ -1,6 +1,8 @@
 import { db } from "../../db";
-import { attendanceRecords, attendanceSettings, studentProfiles, classes } from "../../db/schema";
+import { attendanceRecords, attendanceSettings, studentProfiles, classes, siteSettings } from "../../db/schema";
 import { eq, and, or, sql, desc, count } from "drizzle-orm";
+import { sendParentAttendanceEmail } from "../../lib/mailer";
+import { ParentPortalService } from "../parent-portal/service";
 
 const VALID_STATUSES = ["Hadir", "Terlambat", "Alpa", "Sakit", "Izin", "Bolos"] as const;
 type AttendanceStatus = typeof VALID_STATUSES[number];
@@ -128,6 +130,11 @@ export class AttendanceService {
       recordedBy: recordedBy || null,
     }).returning();
 
+    // Auto-notify parents if Terlambat (async, non-blocking)
+    if (status === 'Terlambat') {
+      this.notifyParents(student.id, student.fullName || '', student.className || '', status, today, currentTime.slice(0, 5)).catch(() => {});
+    }
+
     return {
       success: true,
       status,
@@ -137,6 +144,26 @@ export class AttendanceService {
       jam: currentTime.slice(0, 5),
       foto: student.photoUrl || "",
     };
+  }
+
+  /**
+   * Send attendance notification emails to linked parents (non-blocking)
+   */
+  private static async notifyParents(studentId: string, studentName: string, className: string, status: string, date: string, time: string) {
+    try {
+      // Check global setting
+      const notifSettings = await ParentPortalService.getNotifSettings();
+      if (!notifSettings.emailEnabled) return;
+
+      const parents = await ParentPortalService.getParentEmailsForStudent(studentId);
+      const portalUrl = process.env.APP_URL ? `${process.env.APP_URL}/portal-ortu` : undefined;
+
+      for (const p of parents) {
+        sendParentAttendanceEmail(p.parentEmail, p.parentName || '', studentName, className, status, date, time, portalUrl).catch(() => {});
+      }
+    } catch (err) {
+      console.error('[ATTENDANCE] Failed to notify parents:', err);
+    }
   }
 
   // ─── Manual Input ───────────────────────────────────────────────────────
@@ -202,6 +229,11 @@ export class AttendanceService {
         note: data.note || null,
         recordedBy: data.recordedBy,
       });
+    }
+
+    // Auto-notify parents for Terlambat/Alpa (async, non-blocking)
+    if (data.status === 'Terlambat' || data.status === 'Alpa') {
+      this.notifyParents(data.studentId, student.fullName || '', student.className || '', data.status, data.date, currentTime.slice(0, 5)).catch(() => {});
     }
 
     return { success: true, status: data.status, message: "Absensi berhasil disimpan" };

@@ -19,5 +19,7 @@ router.put("/link/:linkId/notification", requireParent, ParentPortalController.u
 
 // ─── Admin Endpoints ─────────────────────────────────────────
 router.get("/admin/student/:studentId/parents", requireStaff, ParentPortalController.getLinksForStudent);
+router.get("/admin/notif-settings", requireStaff, ParentPortalController.getNotifSettings);
+router.put("/admin/notif-settings", requireStaff, ParentPortalController.updateNotifSettings);
 
 export const parentPortalRoutes = router;

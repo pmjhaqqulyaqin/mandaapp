@@ -1,6 +1,6 @@
 import { db } from "../../db";
-import { parentLinks, studentProfiles, classes, attendanceRecords, jurnalEntries, classSchedules, user, employees } from "../../db/schema";
-import { eq, and, desc, count, sql, gte, lte } from "drizzle-orm";
+import { parentLinks, studentProfiles, classes, attendanceRecords, jurnalEntries, classSchedules, user, employees, siteSettings } from "../../db/schema";
+import { eq, and, desc, count, sql, gte, lte, or } from "drizzle-orm";
 
 export class ParentPortalService {
 
@@ -281,5 +281,49 @@ export class ParentPortalService {
       .from(parentLinks)
       .innerJoin(user, eq(parentLinks.userId, user.id))
       .where(eq(parentLinks.studentId, studentId));
+  }
+
+  // ─── Admin: Global Notif Settings ──────────────────────────────
+
+  static async getNotifSettings() {
+    const rows = await db.select().from(siteSettings).where(
+      or(eq(siteSettings.key, 'parent_notif_email'), eq(siteSettings.key, 'parent_notif_wa'))
+    );
+    const map: Record<string, string> = {};
+    rows.forEach(r => { map[r.key] = r.value || ''; });
+    return {
+      emailEnabled: map['parent_notif_email'] !== 'false', // default true
+      waEnabled: map['parent_notif_wa'] === 'true',        // default false
+    };
+  }
+
+  static async updateNotifSettings(emailEnabled: boolean, waEnabled: boolean) {
+    for (const [key, val] of [['parent_notif_email', String(emailEnabled)], ['parent_notif_wa', String(waEnabled)]]) {
+      const existing = await db.select().from(siteSettings).where(eq(siteSettings.key, key)).limit(1);
+      if (existing.length > 0) {
+        await db.update(siteSettings).set({ value: val, updatedAt: new Date() }).where(eq(siteSettings.key, key));
+      } else {
+        await db.insert(siteSettings).values({ key, value: val, group: 'parent_portal' });
+      }
+    }
+  }
+
+  /**
+   * Get parent emails for a student who have email notifications enabled
+   */
+  static async getParentEmailsForStudent(studentId: string) {
+    const links = await db.select({
+      parentEmail: user.email,
+      parentName: user.name,
+      relation: parentLinks.relation,
+      notificationEmail: parentLinks.notificationEmail,
+    })
+      .from(parentLinks)
+      .innerJoin(user, eq(parentLinks.userId, user.id))
+      .where(and(
+        eq(parentLinks.studentId, studentId),
+        eq(parentLinks.notificationEmail, true),
+      ));
+    return links;
   }
 }
