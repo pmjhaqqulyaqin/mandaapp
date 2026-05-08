@@ -98,6 +98,14 @@ export const auth = betterAuth({
         "Akun Anda telah diblokir. Silakan hubungi administrator jika Anda merasa ini adalah kesalahan.",
     }),
   ],
+  session: {
+    expiresIn: 60 * 60 * 24 * 30, // 30 days in seconds
+    updateAge: 60 * 60 * 24, // Refresh session token every 1 day
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 5, // Cache cookie for 5 minutes to reduce DB lookups
+    },
+  },
   advanced: {
     useSecureCookies: true,
     crossDomain: true, // Crucial for cross-domain cookie handling
@@ -105,6 +113,7 @@ export const auth = betterAuth({
       sameSite: "None",
       secure: true,
       httpOnly: true,
+      maxAge: 60 * 60 * 24 * 30, // 30 days - persist cookie across browser restarts
     }
   }
 });

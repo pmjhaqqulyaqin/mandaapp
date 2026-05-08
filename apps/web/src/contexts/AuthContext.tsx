@@ -84,7 +84,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (error) {
           console.error('Failed to fetch session (error):', error);
-          // Don't log out on error, could be a temporary network issue
+          // Don't log out on error - could be temporary network issue on mobile
+          // Keep the saved user from localStorage
           return;
         }
 
@@ -93,18 +94,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(parsedUser);
           localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
         } else {
-          // Explicitly no session returned by the server
-          setUser(null);
-          localStorage.removeItem('mandualotim_user');
+          // Server explicitly says no session exists
+          // Only clear if we don't have a saved user, or if the server clearly responded
+          if (!localStorage.getItem('mandualotim_user')) {
+            setUser(null);
+          } else {
+            // We have a saved user but server says no session
+            // This means the session truly expired - clear it
+            setUser(null);
+            localStorage.removeItem('mandualotim_user');
+          }
         }
       } catch (error) {
         console.error('Failed to fetch session (exception):', error);
+        // Network error - keep existing user state (don't logout on mobile)
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchSession();
+
+    // Silently refresh session every 30 minutes to keep it alive on mobile
+    const refreshInterval = setInterval(async () => {
+      try {
+        const { data } = await authClient.getSession();
+        if (data?.user) {
+          const parsedUser = parseUser(data.user);
+          setUser(parsedUser);
+          localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
+        }
+      } catch (e) {
+        // Ignore - don't disrupt user on network issues
+      }
+    }, 30 * 60 * 1000); // 30 minutes
+
+    return () => clearInterval(refreshInterval);
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
