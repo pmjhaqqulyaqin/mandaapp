@@ -29,7 +29,8 @@ type UserRole =
   | 'guru'
   | 'kepala_tu'
   | 'pegawai_tu'
-  | 'student';
+  | 'student'
+  | 'orang_tua';
 
 /**
  * Authentication middleware — verifies session via better-auth.

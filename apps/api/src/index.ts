@@ -34,6 +34,7 @@ import { ppdbRoutes } from './modules/ppdb/routes';
 import { attendanceRoutes } from './modules/attendance/routes';
 import { jurnalRoutes } from './modules/jurnal/routes';
 import analyticsRoutes from './modules/analytics/routes';
+import { parentPortalRoutes } from './modules/parent-portal/routes';
 
 dotenv.config();
 
@@ -187,6 +188,7 @@ app.use("/api/ijazah", ijazahRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/jurnal", jurnalRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/parent-portal", parentPortalRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -502,6 +504,21 @@ async function runAutoMigration() {
       `);
       logger.info("Seeded default mapel codes.");
     }
+
+    // ─── Parent Portal ─────────────────────────────────────────
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS parent_links (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+        student_id UUID NOT NULL REFERENCES student_profiles(id) ON DELETE CASCADE,
+        relation VARCHAR(20) DEFAULT 'wali',
+        phone VARCHAR(50),
+        notification_email BOOLEAN DEFAULT true,
+        notification_wa BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT now()
+      );
+    `);
+    logger.info("Parent portal tables ready.");
 
   } catch (err) {
     logger.error({ err }, "Auto-migration failed");

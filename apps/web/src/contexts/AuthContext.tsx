@@ -11,7 +11,8 @@ export type UserRole =
   | 'guru' 
   | 'kepala_tu' 
   | 'pegawai_tu' 
-  | 'student';
+  | 'student'
+  | 'orang_tua';
 
 export interface User {
   id: string;

@@ -743,3 +743,18 @@ export const jurnalMapelCodes = pgTable("jurnal_mapel_codes", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
+
+// ═══════════════════════════════════════════════════════════════
+// Portal Orang Tua (Parent Portal)
+// ═══════════════════════════════════════════════════════════════
+
+export const parentLinks = pgTable("parent_links", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => user.id, { onDelete: "cascade" }).notNull(),
+  studentId: uuid("student_id").references(() => studentProfiles.id, { onDelete: "cascade" }).notNull(),
+  relation: varchar("relation", { length: 20 }).default("wali"), // ayah, ibu, wali
+  phone: varchar("phone", { length: 50 }),
+  notificationEmail: boolean("notification_email").default(true),
+  notificationWa: boolean("notification_wa").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});

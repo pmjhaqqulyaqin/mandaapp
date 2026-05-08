@@ -49,6 +49,7 @@ const SystemUpdateCenter = React.lazy(() => import('./pages/dashboard/SystemUpda
 const PublicScannerPage = React.lazy(() => import('./pages/attendance/PublicScannerPage').then(m => ({ default: m.PublicScannerPage })));
 const DashboardAttendance = React.lazy(() => import('./pages/attendance/DashboardAttendance').then(m => ({ default: m.DashboardAttendance })));
 const DashboardJurnal = React.lazy(() => import('./pages/jurnal/DashboardJurnal').then(m => ({ default: m.DashboardJurnal })));
+const ParentPortal = React.lazy(() => import('./pages/parent/ParentPortal').then(m => ({ default: m.ParentPortal })));
 const BatchPrintPage = React.lazy(() => import('./pages/BatchPrintPage').then(m => ({ default: m.BatchPrintPage })));
 const PrintAcademicCalendar = React.lazy(() => import('./pages/PrintAcademicCalendar').then(m => ({ default: m.PrintAcademicCalendar })));
 const PrintKartuPeserta = React.lazy(() => import('./pages/exams/print/PrintKartuPeserta').then(m => ({ default: m.PrintKartuPeserta })));
@@ -91,6 +92,11 @@ function App() {
             <Route path="/ppdb/verifikasi" element={<PPDBVerifikasiPage />} />
             <Route path="/attendance/scan" element={<MaintenanceGuard><PublicScannerPage /></MaintenanceGuard>} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/portal-ortu" element={
+              <ProtectedRoute allowedRoles={['orang_tua']}>
+                <ParentPortal />
+              </ProtectedRoute>
+            } />
             
             <Route path="/select-role" element={
               <ProtectedRoute>
