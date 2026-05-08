@@ -1,26 +1,52 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../../../lib/api';
-import { Download, Calendar, Search } from 'lucide-react';
+import { Download, Calendar, Search, CalendarRange } from 'lucide-react';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 
+type RecapMode = 'monthly' | 'range';
+
+// Helper: generate array of dates between start and end
+const getDatesInRange = (start: string, end: string): string[] => {
+  const dates: string[] = [];
+  const d = new Date(start);
+  const endDate = new Date(end);
+  while (d <= endDate) {
+    dates.push(d.toISOString().split('T')[0]);
+    d.setDate(d.getDate() + 1);
+  }
+  return dates;
+};
+
+// Helper: get Monday of current week
+const getMonday = () => {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.setDate(diff)).toISOString().split('T')[0];
+};
+
 export const AttendanceRecapTab = () => {
   const today = new Date();
+  const [mode, setMode] = useState<RecapMode>('monthly');
+  
+  // Monthly mode
   const [selectedMonth, setSelectedMonth] = useState<number>(today.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(today.getFullYear());
-  const [selectedClass, setSelectedClass] = useState<string>('');
   
+  // Range mode
+  const [startDate, setStartDate] = useState(getMonday());
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  const [selectedClass, setSelectedClass] = useState<string>('');
   const [classes, setClasses] = useState<any[]>([]);
   const [recapData, setRecapData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Fetch classes for dropdown
     apiClient<any[]>('/classes').then(data => {
       setClasses(data);
-      if (data.length > 0) {
-        setSelectedClass(data[0].id);
-      }
+      if (data.length > 0) setSelectedClass(data[0].id);
     }).catch(err => console.error(err));
   }, []);
 
@@ -28,27 +54,45 @@ export const AttendanceRecapTab = () => {
     if (!selectedClass) return;
     setIsLoading(true);
     try {
-      const data = await apiClient<any[]>(`/attendance/recap/monthly?month=${selectedMonth}&year=${selectedYear}&classId=${selectedClass}`);
+      let url: string;
+      if (mode === 'range') {
+        url = `/attendance/recap/monthly?startDate=${startDate}&endDate=${endDate}&classId=${selectedClass}`;
+      } else {
+        url = `/attendance/recap/monthly?month=${selectedMonth}&year=${selectedYear}&classId=${selectedClass}`;
+      }
+      const data = await apiClient<any[]>(url);
       setRecapData(data);
     } catch (err) {
       toast.error('Gagal mengambil data rekap');
-      console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (selectedClass) {
-      fetchRecap();
-    }
-  }, [selectedMonth, selectedYear, selectedClass]);
+    if (selectedClass) fetchRecap();
+  }, [selectedMonth, selectedYear, selectedClass, mode, startDate, endDate]);
 
-  const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
-  const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  // Generate date columns based on mode
+  const dateColumns: { key: string; label: string }[] = [];
+  if (mode === 'monthly') {
+    const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      dateColumns.push({ key: dateStr, label: String(d) });
+    }
+  } else {
+    const dates = getDatesInRange(startDate, endDate);
+    dates.forEach(date => {
+      const d = new Date(date);
+      const dayNum = d.getDate();
+      const dayName = d.toLocaleDateString('id-ID', { weekday: 'short' });
+      dateColumns.push({ key: date, label: `${dayNum}\n${dayName}` });
+    });
+  }
 
   // Map data to grid
-  const studentMap = new Map<string, { nama: string; nis: string; dates: Record<number, string>; stats: Record<string, number> }>();
+  const studentMap = new Map<string, { nama: string; nis: string; dates: Record<string, string>; stats: Record<string, number> }>();
   
   recapData.forEach(record => {
     if (!studentMap.has(record.studentId)) {
@@ -60,15 +104,10 @@ export const AttendanceRecapTab = () => {
       });
     }
     const stu = studentMap.get(record.studentId)!;
-    const day = parseInt(record.date.split('-')[2], 10);
-    stu.dates[day] = record.status;
-    
-    // Convert status to standard format if needed, and count
-    const statusKey = record.status === 'Pulang' ? 'Hadir' : record.status; // Pulang counts as Hadir in daily rekap
+    stu.dates[record.date] = record.status;
+    const statusKey = record.status === 'Pulang' ? 'Hadir' : record.status;
     if (stu.stats[statusKey] !== undefined) {
       stu.stats[statusKey]++;
-    } else if (statusKey === 'Hadir') {
-      stu.stats.Hadir++; // fallback
     }
   });
 
@@ -98,18 +137,15 @@ export const AttendanceRecapTab = () => {
 
   const handleExport = () => {
     const wsData = [];
-    
-    // Headers
-    const headers = ['No', 'NIS', 'Nama Siswa', ...daysArray.map(d => String(d)), 'H', 'T', 'S', 'I', 'A', 'B'];
+    const headers = ['No', 'NIS', 'Nama Siswa', ...dateColumns.map(d => d.label.replace('\n', ' ')), 'H', 'T', 'S', 'I', 'A', 'B'];
     wsData.push(headers);
     
-    // Rows
     studentsList.forEach((stu, idx) => {
       const row = [
         idx + 1,
         stu.nis,
         stu.nama,
-        ...daysArray.map(d => getStatusInitial(stu.dates[d])),
+        ...dateColumns.map(d => getStatusInitial(stu.dates[d.key])),
         stu.stats.Hadir,
         stu.stats.Terlambat,
         stu.stats.Sakit,
@@ -123,65 +159,144 @@ export const AttendanceRecapTab = () => {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     XLSX.utils.book_append_sheet(wb, ws, "Rekap Presensi");
-    XLSX.writeFile(wb, `Rekap_Presensi_${selectedClass}_${selectedYear}_${selectedMonth}.xlsx`);
+    const filename = mode === 'monthly' 
+      ? `Rekap_Presensi_${selectedYear}_${selectedMonth}.xlsx`
+      : `Rekap_Presensi_${startDate}_${endDate}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  };
+
+  // Quick range presets
+  const setThisWeek = () => {
+    setStartDate(getMonday());
+    setEndDate(new Date().toISOString().split('T')[0]);
+  };
+
+  const setLastWeek = () => {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(d.setDate(diff - 7));
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 5);
+    setStartDate(monday.toISOString().split('T')[0]);
+    setEndDate(friday.toISOString().split('T')[0]);
   };
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-[#222] p-3 flex flex-col sm:flex-row gap-3 items-end">
-        <div className="flex-1 min-w-0">
-          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Pilih Kelas</label>
-          <select 
-            value={selectedClass} 
-            onChange={e => setSelectedClass(e.target.value)}
-            className="w-full bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
+      {/* Mode Toggle + Filters */}
+      <div className="bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-[#222] p-3 space-y-3">
+        {/* Mode toggle */}
+        <div className="flex gap-1 p-0.5 bg-gray-100 dark:bg-[#222] rounded-lg w-fit">
+          <button
+            onClick={() => setMode('monthly')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-md transition-all ${
+              mode === 'monthly'
+                ? 'bg-white dark:bg-[#333] text-indigo-600 dark:text-indigo-400 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
           >
-            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
-        
-        <div className="flex gap-2">
-          <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Bulan</label>
-            <select 
-              value={selectedMonth} 
-              onChange={e => setSelectedMonth(Number(e.target.value))}
-              className="w-20 bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
-            >
-              {Array.from({length: 12}, (_, i) => i + 1).map(m => (
-                <option key={m} value={m}>{new Date(2000, m - 1).toLocaleString('id-ID', { month: 'short' })}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Tahun</label>
-            <select 
-              value={selectedYear} 
-              onChange={e => setSelectedYear(Number(e.target.value))}
-              className="w-20 bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
-            >
-              {[today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1].map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
+            <Calendar size={12} /> Bulanan
+          </button>
+          <button
+            onClick={() => setMode('range')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-md transition-all ${
+              mode === 'range'
+                ? 'bg-white dark:bg-[#333] text-indigo-600 dark:text-indigo-400 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <CalendarRange size={12} /> Rentang Tanggal
+          </button>
         </div>
 
-        <button 
-          onClick={fetchRecap}
-          disabled={isLoading}
-          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
-        >
-          <Search size={14} /> Filter
-        </button>
-        <button 
-          onClick={handleExport}
-          disabled={studentsList.length === 0}
-          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 disabled:opacity-50"
-        >
-          <Download size={14} /> Excel
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3 items-end">
+          {/* Class selector */}
+          <div className="flex-1 min-w-0">
+            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Pilih Kelas</label>
+            <select 
+              value={selectedClass} 
+              onChange={e => setSelectedClass(e.target.value)}
+              className="w-full bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
+            >
+              {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          
+          {mode === 'monthly' ? (
+            <div className="flex gap-2">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Bulan</label>
+                <select 
+                  value={selectedMonth} 
+                  onChange={e => setSelectedMonth(Number(e.target.value))}
+                  className="w-20 bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
+                >
+                  {Array.from({length: 12}, (_, i) => i + 1).map(m => (
+                    <option key={m} value={m}>{new Date(2000, m - 1).toLocaleString('id-ID', { month: 'short' })}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Tahun</label>
+                <select 
+                  value={selectedYear} 
+                  onChange={e => setSelectedYear(Number(e.target.value))}
+                  className="w-20 bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
+                >
+                  {[today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1].map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-2 items-end">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Dari</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Sampai</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  className="bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              {/* Quick presets */}
+              <div className="flex gap-1">
+                <button onClick={setThisWeek} className="px-2 py-1.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 rounded-lg text-[10px] font-bold hover:bg-indigo-100 transition">
+                  Minggu Ini
+                </button>
+                <button onClick={setLastWeek} className="px-2 py-1.5 bg-gray-100 text-gray-600 dark:bg-[#333] dark:text-gray-300 rounded-lg text-[10px] font-bold hover:bg-gray-200 transition">
+                  Minggu Lalu
+                </button>
+              </div>
+            </div>
+          )}
+
+          <button 
+            onClick={fetchRecap}
+            disabled={isLoading}
+            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
+          >
+            <Search size={14} /> Filter
+          </button>
+          <button 
+            onClick={handleExport}
+            disabled={studentsList.length === 0}
+            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 disabled:opacity-50"
+          >
+            <Download size={14} /> Excel
+          </button>
+        </div>
       </div>
 
       {/* Grid */}
@@ -194,7 +309,7 @@ export const AttendanceRecapTab = () => {
         ) : studentsList.length === 0 ? (
           <div className="p-12 text-center text-gray-400">
             <Calendar size={32} className="mx-auto mb-3 opacity-50" />
-            <p>Tidak ada data absensi untuk kelas dan bulan ini.</p>
+            <p>Tidak ada data absensi untuk kelas dan periode ini.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -202,8 +317,15 @@ export const AttendanceRecapTab = () => {
               <thead>
                 <tr className="bg-gray-50 dark:bg-[#222] text-gray-500 uppercase tracking-wider">
                   <th className="p-2 font-semibold border-b border-gray-200 dark:border-[#333] sticky left-0 bg-gray-50 dark:bg-[#222] z-10 min-w-[150px]">Siswa</th>
-                  {daysArray.map(d => (
-                    <th key={d} className="p-1 text-[10px] font-semibold border-b border-gray-200 dark:border-[#333] text-center min-w-[24px]">{d}</th>
+                  {dateColumns.map(d => (
+                    <th key={d.key} className="p-1 text-[10px] font-semibold border-b border-gray-200 dark:border-[#333] text-center min-w-[24px]">
+                      {d.label.includes('\n') ? (
+                        <div className="flex flex-col leading-tight">
+                          <span>{d.label.split('\n')[0]}</span>
+                          <span className="text-[8px] text-gray-400 font-normal">{d.label.split('\n')[1]}</span>
+                        </div>
+                      ) : d.label}
+                    </th>
                   ))}
                   <th className="p-1 text-[10px] font-bold border-b border-gray-200 dark:border-[#333] text-center text-emerald-600">H</th>
                   <th className="p-1 text-[10px] font-bold border-b border-gray-200 dark:border-[#333] text-center text-amber-600">T</th>
@@ -219,10 +341,10 @@ export const AttendanceRecapTab = () => {
                       <div className="truncate w-36 text-xs">{stu.nama}</div>
                       <div className="text-[9px] text-gray-500 font-normal">{stu.nis}</div>
                     </td>
-                    {daysArray.map(d => {
-                      const init = getStatusInitial(stu.dates[d]);
+                    {dateColumns.map(d => {
+                      const init = getStatusInitial(stu.dates[d.key]);
                       return (
-                        <td key={d} className="p-1 text-center">
+                        <td key={d.key} className="p-1 text-center">
                           <div className={`w-6 h-6 flex items-center justify-center rounded-md font-bold text-[10px] mx-auto ${getStatusColor(init)}`}>
                             {init !== '-' ? init : ''}
                           </div>

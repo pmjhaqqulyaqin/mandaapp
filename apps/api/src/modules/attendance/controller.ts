@@ -127,15 +127,23 @@ export class AttendanceController {
 
   static async getRecapMonthly(req: Request, res: Response) {
     try {
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
       const month = parseInt(req.query.month as string) || new Date().getMonth() + 1;
       const year = parseInt(req.query.year as string) || new Date().getFullYear();
       const classId = req.query.classId as string | undefined;
       const studentId = req.query.studentId as string | undefined;
+
+      // If startDate/endDate provided, use date range; otherwise fallback to month/year
+      if (startDate && endDate) {
+        const recap = await AttendanceService.getRecapByDateRange(startDate, endDate, classId, studentId);
+        return res.json(recap);
+      }
       const recap = await AttendanceService.getRecapMonthly(month, year, classId, studentId);
       return res.json(recap);
     } catch (error: any) {
       console.error("[ATTENDANCE] Recap monthly error:", error);
-      return res.status(500).json({ error: "Gagal mengambil rekap bulanan" });
+      return res.status(500).json({ error: "Gagal mengambil rekap" });
     }
   }
 

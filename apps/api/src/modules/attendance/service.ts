@@ -399,6 +399,32 @@ export class AttendanceService {
     return results;
   }
 
+  // ─── Recap by Date Range ──────────────────────────────────────────────
+
+  static async getRecapByDateRange(startDate: string, endDate: string, classId?: string, studentId?: string) {
+    const conditions = [
+      sql`${attendanceRecords.date} >= ${startDate}`,
+      sql`${attendanceRecords.date} <= ${endDate}`,
+    ];
+    if (classId) conditions.push(eq(attendanceRecords.classId, classId));
+    if (studentId) conditions.push(eq(attendanceRecords.studentId, studentId));
+
+    const results = await db.select({
+      studentId: attendanceRecords.studentId,
+      date: attendanceRecords.date,
+      status: attendanceRecords.status,
+      nama: studentProfiles.fullName,
+      nis: studentProfiles.nis,
+      kelas: studentProfiles.className,
+    })
+      .from(attendanceRecords)
+      .innerJoin(studentProfiles, eq(attendanceRecords.studentId, studentProfiles.id))
+      .where(and(...conditions))
+      .orderBy(studentProfiles.fullName, attendanceRecords.date);
+
+    return results;
+  }
+
   // ─── Student History ────────────────────────────────────────────────────
 
   static async getStudentHistory(studentId: string, limit: number = 60) {
