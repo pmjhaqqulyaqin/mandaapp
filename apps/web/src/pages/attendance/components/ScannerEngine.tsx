@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import jsQR from 'jsqr';
 import { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } from '@zxing/library';
-import { Camera, Play, Square, Lightbulb, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Camera, Lightbulb, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ScannerEngineProps {
@@ -296,7 +296,10 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive }
         </div>
       )}
 
-      <div className="relative w-full min-h-[50vh] md:min-h-0 md:aspect-[4/3] bg-black rounded-xl overflow-hidden shadow-inner flex items-center justify-center">
+      <div 
+        className="relative w-full min-h-[50vh] md:min-h-0 md:aspect-[4/3] bg-black rounded-xl overflow-hidden shadow-inner flex items-center justify-center cursor-pointer active:scale-[0.99] transition-transform"
+        onClick={() => isScanning ? stopScanning() : startScanning()}
+      >
         {/* Flash Effect */}
         <div 
           id="scanner-flash" 
@@ -306,9 +309,9 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive }
 
         {!isScanning ? (
           <div className="flex flex-col items-center justify-center text-white/50 p-4 text-center">
-            <Camera size={40} className="mb-3 opacity-50" />
-            <p className="text-xs font-medium">Kamera tidak aktif</p>
-            <p className="text-[10px] mt-1 max-w-[200px]">Klik tombol "Mulai Kamera" di bawah untuk mengaktifkan pemindai</p>
+            <Camera size={48} className="mb-3 opacity-60" />
+            <p className="text-sm font-semibold">Tap untuk aktifkan kamera</p>
+            <p className="text-[10px] mt-1 max-w-[200px] opacity-70">Tap lagi untuk mematikan</p>
           </div>
         ) : (
           <>
@@ -358,24 +361,6 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive }
       </div>
 
       <div className="flex flex-col sm:flex-row gap-2">
-        {!isScanning ? (
-          <button 
-            onClick={startScanning}
-            className="flex-1 flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3 text-xs rounded-lg font-medium transition-colors"
-          >
-            <Play size={14} />
-            <span>Mulai Kamera</span>
-          </button>
-        ) : (
-          <button 
-            onClick={stopScanning}
-            className="flex-1 flex items-center justify-center gap-1.5 bg-red-500 hover:bg-red-600 text-white py-2 px-3 text-xs rounded-lg font-medium transition-colors"
-          >
-            <Square size={14} />
-            <span>Hentikan Kamera</span>
-          </button>
-        )}
-
         <div className="flex-1 flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-2 py-1 shadow-sm">
           <Camera size={14} className="text-gray-400" />
           <select 
