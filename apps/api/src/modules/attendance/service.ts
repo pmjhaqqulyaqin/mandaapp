@@ -76,13 +76,21 @@ export class AttendanceService {
       ))
       .limit(1);
 
-    // 4. Smart auto-detect: first scan = masuk, second scan = pulang
+    // 4. Smart auto-detect: first scan = masuk, second scan = pulang (with time guard)
     if (existing.length > 0) {
       // Already checked in today
       if (existing[0].checkOut) {
         return { success: false, message: `${student.fullName} sudah absen masuk & pulang hari ini` };
       }
-      // Auto check-out (pulang)
+      // Time guard: only allow auto-pulang after checkOutTime setting
+      // This prevents accidental double-scan in the morning from marking "Pulang"
+      if (currentTime < settings.checkOutTime) {
+        return { 
+          success: false, 
+          message: `${student.fullName} sudah absen masuk (${existing[0].checkIn?.slice(0, 5)}). Scan pulang dibuka setelah jam ${settings.checkOutTime.slice(0, 5)}.` 
+        };
+      }
+      // Auto check-out (pulang) — only after checkOutTime
       await db.update(attendanceRecords)
         .set({ checkOut: currentTime, updatedAt: new Date() })
         .where(eq(attendanceRecords.id, existing[0].id));
