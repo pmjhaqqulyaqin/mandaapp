@@ -3,7 +3,7 @@ import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
 import { ScannerEngine } from './components/ScannerEngine';
 import { apiClient } from '../../lib/api';
 import { toast } from 'sonner';
-import { Camera, QrCode, LogIn, LogOut, CheckCircle2, LayoutDashboard, Grid, Settings } from 'lucide-react';
+import { Camera, QrCode, CheckCircle2, LayoutDashboard, Grid, Settings } from 'lucide-react';
 import { AttendanceDashboardTab } from './tabs/AttendanceDashboardTab';
 import { AttendanceRecapTab } from './tabs/AttendanceRecapTab';
 import { AttendanceManualInputTab } from './tabs/AttendanceManualInputTab';
@@ -11,7 +11,6 @@ import { AttendanceSettingsTab } from './tabs/AttendanceSettingsTab';
 
 export const DashboardAttendance = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'scanner' | 'manual' | 'rekap' | 'settings'>('dashboard');
-  const [scanMode, setScanMode] = useState<'masuk' | 'pulang'>('masuk');
   const [isLoading, setIsLoading] = useState(false);
 
   // Smart NIS extractor: handles NIS-only QR (new), verbose QR (old cards), and barcode
@@ -36,7 +35,7 @@ export const DashboardAttendance = () => {
     try {
       const result = await apiClient<any>('/attendance/scan', {
         method: 'POST',
-        data: { nis, jenis: scanMode, method }
+        data: { nis, method }
       });
       if (result.success) {
         toast.custom((t) => (
@@ -112,27 +111,8 @@ export const DashboardAttendance = () => {
           {activeTab === 'dashboard' && <AttendanceDashboardTab />}
           {activeTab === 'scanner' && (
             <div className="max-w-xl mx-auto bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-              <div className="flex p-1 bg-slate-100 rounded-lg mb-4">
-                <button
-                  onClick={() => setScanMode('masuk')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold transition-all text-sm ${
-                    scanMode === 'masuk' 
-                      ? 'bg-green-500 text-white shadow-md' 
-                      : 'text-slate-500 hover:bg-slate-200'
-                  }`}
-                >
-                  <LogIn size={16} /> MASUK
-                </button>
-                <button
-                  onClick={() => setScanMode('pulang')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold transition-all text-sm ${
-                    scanMode === 'pulang' 
-                      ? 'bg-blue-500 text-white shadow-md' 
-                      : 'text-slate-500 hover:bg-slate-200'
-                  }`}
-                >
-                  <LogOut size={16} /> PULANG
-                </button>
+              <div className="text-center mb-3">
+                <p className="text-xs text-gray-500">Scan pertama = <span className="font-bold text-green-600">Masuk</span> • Scan kedua = <span className="font-bold text-blue-600">Pulang</span></p>
               </div>
 
               <ScannerEngine 

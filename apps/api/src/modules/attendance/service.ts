@@ -76,18 +76,16 @@ export class AttendanceService {
       ))
       .limit(1);
 
-    // 4. Handle PULANG mode
-    if (mode === "pulang") {
-      if (existing.length === 0) {
-        return { success: false, message: `${student.fullName} belum absen masuk hari ini` };
-      }
+    // 4. Smart auto-detect: first scan = masuk, second scan = pulang
+    if (existing.length > 0) {
+      // Already checked in today
       if (existing[0].checkOut) {
-        return { success: false, message: `${student.fullName} sudah absen pulang (${existing[0].checkOut})` };
+        return { success: false, message: `${student.fullName} sudah absen masuk & pulang hari ini` };
       }
+      // Auto check-out (pulang)
       await db.update(attendanceRecords)
         .set({ checkOut: currentTime, updatedAt: new Date() })
         .where(eq(attendanceRecords.id, existing[0].id));
-
       return {
         success: true,
         status: "Pulang",
@@ -99,27 +97,7 @@ export class AttendanceService {
       };
     }
 
-    // 5. Handle MASUK mode
-    if (existing.length > 0) {
-      // Already checked in — auto-switch to pulang if after check-out time
-      if (currentTime >= settings.checkOutTime && !existing[0].checkOut) {
-        await db.update(attendanceRecords)
-          .set({ checkOut: currentTime, updatedAt: new Date() })
-          .where(eq(attendanceRecords.id, existing[0].id));
-        return {
-          success: true,
-          status: "Pulang",
-          nama: student.fullName,
-          nis: student.nis,
-          kelas: student.className,
-          jam: currentTime.slice(0, 5),
-          foto: student.photoUrl || "",
-        };
-      }
-      return { success: false, message: `${student.fullName} sudah absen (${existing[0].status})` };
-    }
-
-    // 6. Determine status
+    // 5. First scan today = MASUK
     const status: AttendanceStatus = currentTime > settings.lateTime ? "Terlambat" : "Hadir";
 
     // 7. Insert new record
