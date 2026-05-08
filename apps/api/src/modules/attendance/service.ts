@@ -105,10 +105,35 @@ export class AttendanceService {
       };
     }
 
-    // 5. First scan today = MASUK
+    // 5. First scan today
+    // Special case: first scan AFTER checkOutTime = student forgot morning scan
+    if (currentTime >= settings.checkOutTime) {
+      // Record as Alpa (no morning proof) + immediate checkout
+      await db.insert(attendanceRecords).values({
+        studentId: student.id,
+        classId: student.classId,
+        date: today,
+        checkIn: null,
+        checkOut: currentTime,
+        status: "Alpa",
+        method,
+        recordedBy: recordedBy || null,
+      });
+      return {
+        success: true,
+        status: "Alpa + Pulang",
+        nama: student.fullName,
+        nis: student.nis,
+        kelas: student.className,
+        jam: currentTime.slice(0, 5),
+        foto: student.photoUrl || "",
+        note: "Tidak ada absen masuk. Dicatat Alpa + Pulang.",
+      };
+    }
+
+    // Normal morning scan = MASUK
     const status: AttendanceStatus = currentTime > settings.lateTime ? "Terlambat" : "Hadir";
 
-    // 7. Insert new record
     const inserted = await db.insert(attendanceRecords).values({
       studentId: student.id,
       classId: student.classId,

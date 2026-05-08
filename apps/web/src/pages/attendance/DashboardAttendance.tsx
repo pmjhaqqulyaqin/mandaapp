@@ -38,18 +38,20 @@ export const DashboardAttendance = () => {
         data: { nis, method }
       });
       if (result.success) {
+        const isAlpa = result.status?.includes('Alpa');
         toast.custom((t) => (
-          <div className="bg-white border-l-4 border-green-500 rounded-lg shadow-lg p-4 flex items-start gap-3 w-80">
-            <CheckCircle2 className="text-green-500 mt-0.5" size={24} />
+          <div className={`bg-white border-l-4 ${isAlpa ? 'border-orange-500' : 'border-green-500'} rounded-lg shadow-lg p-4 flex items-start gap-3 w-80`}>
+            <CheckCircle2 className={`${isAlpa ? 'text-orange-500' : 'text-green-500'} mt-0.5`} size={24} />
             <div>
               <h4 className="font-bold text-gray-800">{result.nama}</h4>
               <p className="text-sm text-gray-600">{result.nis} | {result.kelas}</p>
-              <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-green-100 text-green-700 text-xs font-bold uppercase tracking-wider">
+              <div className={`mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded ${isAlpa ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'} text-xs font-bold uppercase tracking-wider`}>
                 {result.status} • {result.jam}
               </div>
+              {result.note && <p className="text-[10px] text-gray-500 mt-1">{result.note}</p>}
             </div>
           </div>
-        ), { duration: 3000 });
+        ), { duration: isAlpa ? 5000 : 3000 });
       } else {
         toast.error(result.message);
       }
