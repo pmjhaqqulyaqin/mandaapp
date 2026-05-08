@@ -195,7 +195,7 @@ export const PublicScannerPage = () => {
         </div>
 
         {/* Scanner Area */}
-        <div className="bg-white p-2 md:p-3 rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-100 flex-1 flex flex-col min-h-[300px]">
+        <div className="bg-white p-2 md:p-3 rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-100 flex-1 flex flex-col min-h-[55vh] md:min-h-[300px]">
           {inputMode === 'kamera' ? (
             <ScannerEngine 
               isActive={inputMode === 'kamera'} 

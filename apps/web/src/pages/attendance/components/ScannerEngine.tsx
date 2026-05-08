@@ -170,9 +170,10 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive }
     try {
       const constraints: MediaStreamConstraints = {
         video: {
-          deviceId: { exact: selectedCamera },
+          deviceId: selectedCamera ? { exact: selectedCamera } : undefined,
+          facingMode: selectedCamera ? undefined : { ideal: 'environment' },
           width: { ideal: 1280 },
-          height: { ideal: 720 }
+          height: { ideal: 960 }
         }
       };
       
@@ -253,7 +254,7 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive }
         </div>
       )}
 
-      <div className="relative w-full aspect-[4/3] bg-black rounded-xl overflow-hidden shadow-inner flex items-center justify-center">
+      <div className="relative w-full min-h-[50vh] md:min-h-0 md:aspect-[4/3] bg-black rounded-xl overflow-hidden shadow-inner flex items-center justify-center">
         {/* Flash Effect */}
         <div 
           id="scanner-flash" 
