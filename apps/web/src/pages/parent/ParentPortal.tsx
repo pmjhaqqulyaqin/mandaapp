@@ -47,8 +47,12 @@ export const ParentPortal = () => {
       setChildren(data || []);
       if (data && data.length > 0 && !selectedChild) {
         setSelectedChild(data[0]);
+      } else if (!data || data.length === 0) {
+        setIsLoading(false);
       }
-    } catch { }
+    } catch {
+      setIsLoading(false);
+    }
   };
 
   const fetchChildData = async (child: any) => {
