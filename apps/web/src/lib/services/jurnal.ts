@@ -12,6 +12,10 @@ export const jurnalService = {
   bulkCreateTeachingSubjects: (records: any[]) => apiClient<any>(`${BASE}/teaching-subjects/bulk`, { method: 'POST', data: { records } }),
   importExcel: (formData: FormData) => apiClient<any>(`${BASE}/teaching-subjects/import`, { method: 'POST', data: formData }),
 
+  // Teacher Codes
+  getTeacherCodes: () => apiClient<any[]>(`${BASE}/teacher-codes`),
+  updateTeacherCodes: (codes: { employeeId: string; kodeGuru: string }[]) => apiClient<any>(`${BASE}/teacher-codes`, { method: 'PUT', data: { codes } }),
+
   // Jurnal Entries
   getEntries: (params?: Record<string, string>) => apiClient<any[]>(`${BASE}/entries${params ? '?' + new URLSearchParams(params).toString() : ''}`),
   getEntryById: (id: string) => apiClient<any>(`${BASE}/entries/${id}`),

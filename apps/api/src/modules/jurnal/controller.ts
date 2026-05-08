@@ -61,6 +61,36 @@ export class JurnalController {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
 
+  // ─── Teacher Code Management ──────────────────────────────────────────
+
+  static async getTeacherCodes(_req: Request, res: Response) {
+    try {
+      const result = await db.select({
+        id: employees.id, name: employees.name, nip: employees.nip,
+        kodeGuru: employees.kodeGuru, type: employees.type,
+      }).from(employees).orderBy(employees.name);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async updateTeacherCodes(req: Request, res: Response) {
+    try {
+      const { codes } = req.body; // [{employeeId, kodeGuru}]
+      if (!Array.isArray(codes)) return res.status(400).json({ error: "codes array required" });
+
+      const { eq } = await import("drizzle-orm");
+      let updated = 0;
+      for (const item of codes) {
+        if (!item.employeeId) continue;
+        await db.update(employees)
+          .set({ kodeGuru: item.kodeGuru || null, updatedAt: new Date() })
+          .where(eq(employees.id, item.employeeId));
+        updated++;
+      }
+      res.json({ success: true, updated });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
   // ─── Excel Import / Template (Grid Format) ─────────────────────────────
 
   // Default mapel list for MA (editable by admin in the sheet)
@@ -79,7 +109,7 @@ export class JurnalController {
 
   static async downloadTemplate(_req: Request, res: Response) {
     try {
-      const empList = await db.select({ id: employees.id, name: employees.name }).from(employees);
+      const empList = await db.select({ id: employees.id, name: employees.name, kodeGuru: employees.kodeGuru }).from(employees).orderBy(employees.name);
       const classList = await db.select({ id: classes.id, name: classes.name }).from(classes);
       const classNames = classList.map(c => c.name).sort();
 
@@ -97,10 +127,10 @@ export class JurnalController {
         xlsx.utils.book_append_sheet(wb, ws, dayName);
       }
 
-      // ── Sheet "Kode Guru" ──
+      // ── Sheet "Kode Guru" (use stored kodeGuru or fallback to auto-number) ──
       const guruData: any[][] = [['Kode', 'Nama Guru', 'ID (jangan diedit)']];
       empList.forEach((e, i) => {
-        guruData.push([i + 1, e.name, e.id]);
+        guruData.push([e.kodeGuru || String(i + 1), e.name, e.id]);
       });
       const wsGuru = xlsx.utils.aoa_to_sheet(guruData);
       wsGuru['!cols'] = [{ wch: 6 }, { wch: 35 }, { wch: 40 }];

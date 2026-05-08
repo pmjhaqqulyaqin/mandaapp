@@ -471,6 +471,9 @@ async function runAutoMigration() {
     } catch (idxErr) { /* indexes may already exist */ }
     logger.info("Jurnal mengajar tables ready.");
 
+    // Add kode_guru column to employees if not exists
+    await db.execute(sql`ALTER TABLE employees ADD COLUMN IF NOT EXISTS kode_guru VARCHAR(10);`);
+
   } catch (err) {
     logger.error({ err }, "Auto-migration failed");
   }

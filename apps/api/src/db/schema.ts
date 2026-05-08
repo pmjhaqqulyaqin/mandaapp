@@ -68,6 +68,7 @@ export const employees = pgTable("employees", {
   birthDate: date("birth_date"),
   photoUrl: varchar("photo_url", { length: 255 }), // Ditambahkan untuk menyimpan URL foto
   task: varchar("task", { length: 100 }), // Tugas / Guru Mapel apa
+  kodeGuru: varchar("kode_guru", { length: 10 }), // Kode singkat untuk jadwal Excel (1, 2, 3...)
   status: varchar("status", { length: 20 }).default("active"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()

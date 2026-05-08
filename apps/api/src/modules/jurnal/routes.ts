@@ -29,6 +29,10 @@ router.post("/teaching-subjects/bulk", JurnalController.bulkCreateTeachingSubjec
 router.get("/teaching-subjects/template", JurnalController.downloadTemplate);
 router.post("/teaching-subjects/import", memoryUpload.single("file"), JurnalController.importExcel);
 
+// Teacher Codes
+router.get("/teacher-codes", JurnalController.getTeacherCodes);
+router.put("/teacher-codes", JurnalController.updateTeacherCodes);
+
 // Jurnal Entries
 router.get("/entries", JurnalController.getJurnalEntries);
 router.post("/entries", JurnalController.createJurnalEntry);

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTeachingSubjects } from '../../../hooks/api/useJurnal';
 import { apiClient, API_BASE_URL } from '../../../lib/api';
+import { jurnalService } from '../../../lib/services/jurnal';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Upload, Download, X, Save, FileSpreadsheet, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Download, X, Save, FileSpreadsheet, AlertTriangle, Hash } from 'lucide-react';
 
 const DAYS = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
@@ -17,11 +18,36 @@ export const JurnalSettingsTab = () => {
   const [importResult, setImportResult] = useState<{ imported: number; errors: string[]; total: number } | null>(null);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showKodeGuru, setShowKodeGuru] = useState(false);
+  const [teacherCodes, setTeacherCodes] = useState<any[]>([]);
+  const [editedCodes, setEditedCodes] = useState<Record<string, string>>({});
+  const [savingCodes, setSavingCodes] = useState(false);
 
   useEffect(() => {
     apiClient<any[]>('/employees').then(setEmployees).catch(() => {});
     apiClient<any[]>('/classes').then(setClasses).catch(() => {});
   }, []);
+
+  const loadTeacherCodes = async () => {
+    try {
+      const data = await jurnalService.getTeacherCodes();
+      setTeacherCodes(data);
+      const codes: Record<string, string> = {};
+      data.forEach((t: any) => { codes[t.id] = t.kodeGuru || ''; });
+      setEditedCodes(codes);
+    } catch { toast.error('Gagal memuat kode guru'); }
+  };
+
+  const handleSaveCodes = async () => {
+    setSavingCodes(true);
+    try {
+      const codes = Object.entries(editedCodes).map(([employeeId, kodeGuru]) => ({ employeeId, kodeGuru }));
+      await jurnalService.updateTeacherCodes(codes);
+      toast.success('Kode guru tersimpan');
+      await loadTeacherCodes();
+    } catch { toast.error('Gagal menyimpan'); }
+    setSavingCodes(false);
+  };
 
   const resetForm = () => { setForm({ employeeId: '', classId: '', subjectName: '', dayOfWeek: 1, jamKe: '', waktuMulai: '', waktuSelesai: '' }); setEditId(''); setShowForm(false); };
 
@@ -222,6 +248,45 @@ export const JurnalSettingsTab = () => {
           </table>
           {filtered.length === 0 && !query.isLoading && <p className="text-xs text-gray-400 text-center py-8">Belum ada jadwal mengajar</p>}
         </div>
+      </div>
+
+      {/* Kode Guru Management */}
+      <div className="bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <button onClick={() => { setShowKodeGuru(!showKodeGuru); if (!showKodeGuru && teacherCodes.length === 0) loadTeacherCodes(); }}
+          className="w-full flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-[#222] transition-colors">
+          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Hash size={14} /> Kelola Kode Guru
+          </span>
+          <span className="text-[10px] text-gray-400">{showKodeGuru ? '▲' : '▼'}</span>
+        </button>
+        {showKodeGuru && (
+          <div className="px-3 pb-3 border-t border-gray-100 dark:border-gray-800">
+            <p className="text-[10px] text-gray-500 py-2">Atur kode singkat guru untuk digunakan di template Excel jadwal. Kode ini akan tampil di sheet "Kode Guru".</p>
+            <div className="max-h-72 overflow-y-auto space-y-1">
+              {teacherCodes.filter((t: any) => t.type === 'Guru').map((t: any) => (
+                <div key={t.id} className="flex items-center gap-2 py-1">
+                  <input
+                    type="text" placeholder="-" maxLength={5}
+                    value={editedCodes[t.id] || ''}
+                    onChange={e => setEditedCodes(c => ({ ...c, [t.id]: e.target.value }))}
+                    className="w-14 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-xs text-center font-bold"
+                  />
+                  <span className="text-xs text-gray-700 dark:text-gray-300 truncate flex-1">{t.name}</span>
+                  <span className="text-[10px] text-gray-400 shrink-0">{t.nip}</span>
+                </div>
+              ))}
+              {teacherCodes.filter((t: any) => t.type === 'Guru').length === 0 && (
+                <p className="text-xs text-gray-400 text-center py-4">Memuat...</p>
+              )}
+            </div>
+            <div className="flex justify-end pt-2">
+              <button onClick={handleSaveCodes} disabled={savingCodes}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 active:scale-95 flex items-center gap-1 disabled:opacity-50">
+                <Save size={14} /> {savingCodes ? 'Menyimpan...' : 'Simpan Kode'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
