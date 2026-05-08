@@ -200,8 +200,8 @@ export const PrintableStudentCard = ({
                 )}
               </div>
               {/* QR Code - below photo */}
-              <div style={{ height: '45px', width: '45px', marginTop: '2px' }}>
-                <LocalQRCode data={student.nisn} size={45} style={{ width: '100%', height: '100%' }} />
+              <div style={{ height: '75px', width: '75px', marginTop: '10px' }}>
+                <LocalQRCode data={student.nisn} size={75} style={{ width: '100%', height: '100%', borderRadius: '4px' }} />
               </div>
             </div>
 
