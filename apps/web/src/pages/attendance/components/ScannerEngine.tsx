@@ -75,6 +75,8 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive }
     getCameras();
   }, [getCameras]);
 
+  const barcodeCanvasRef = useRef<HTMLCanvasElement>(null);
+
   // Scan Loop
   const scanLoop = useCallback(() => {
     if (!isScanning || !videoRef.current || !canvasRef.current) return;
@@ -93,7 +95,6 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive }
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
         // 1. Try jsQR first (fastest for QR codes)
-        // Crop center 70% for jsQR focus
         const cw = Math.floor(canvas.width * 0.7);
         const ch = Math.floor(canvas.height * 0.7);
         const cx = Math.floor((canvas.width - cw) / 2);
@@ -106,12 +107,31 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive }
           if (qr && qr.data) {
             handleScanSuccess(qr.data);
           } else if (zxingReader.current) {
-            // 2. Try ZXing for 1D barcodes (CODE128, EAN, etc.) every frame
+            // 2. Try ZXing for 1D barcodes using a cropped horizontal strip
+            // Crop center 80% width × 40% height strip for better barcode focus
             try {
-               const zxingRes = zxingReader.current.decodeFromCanvas(canvas);
-               if (zxingRes && zxingRes.getText()) {
-                  handleScanSuccess(zxingRes.getText());
-               }
+              const stripW = Math.floor(canvas.width * 0.8);
+              const stripH = Math.floor(canvas.height * 0.4);
+              const stripX = Math.floor((canvas.width - stripW) / 2);
+              const stripY = Math.floor((canvas.height - stripH) / 2);
+              
+              const barcodeCanvas = barcodeCanvasRef.current;
+              if (barcodeCanvas) {
+                barcodeCanvas.width = stripW;
+                barcodeCanvas.height = stripH;
+                const bCtx = barcodeCanvas.getContext('2d');
+                if (bCtx) {
+                  // Draw cropped strip with contrast boost
+                  bCtx.filter = 'contrast(1.5) brightness(1.1)';
+                  bCtx.drawImage(canvas, stripX, stripY, stripW, stripH, 0, 0, stripW, stripH);
+                  bCtx.filter = 'none';
+                  
+                  const zxingRes = zxingReader.current.decodeFromCanvas(barcodeCanvas);
+                  if (zxingRes && zxingRes.getText()) {
+                    handleScanSuccess(zxingRes.getText());
+                  }
+                }
+              }
             } catch(e) {
               // Ignore NotFoundException from ZXing (normal when no barcode in frame)
             }
@@ -332,8 +352,9 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive }
           </>
         )}
 
-        {/* Hidden canvas for processing */}
+        {/* Hidden canvases for processing */}
         <canvas ref={canvasRef} className="hidden" />
+        <canvas ref={barcodeCanvasRef} className="hidden" />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-2">
