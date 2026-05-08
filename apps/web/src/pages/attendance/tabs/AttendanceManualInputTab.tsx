@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
-import { Save, Calendar, Users, AlertCircle } from 'lucide-react';
+import { Save, Calendar, Users, AlertCircle, Lock } from 'lucide-react';
 
 const STATUS_OPTIONS = ['Hadir', 'Terlambat', 'Izin', 'Sakit', 'Alpa', 'Bolos'];
 
@@ -13,6 +13,7 @@ export const AttendanceManualInputTab = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [lockedStudents, setLockedStudents] = useState<Record<string, { method: string; checkIn?: string; checkOut?: string }>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [bulkStatus, setBulkStatus] = useState('Hadir');
@@ -37,15 +38,21 @@ export const AttendanceManualInputTab = () => {
       
       const recordsMap: Record<string, string> = {};
       const notesMap: Record<string, string> = {};
+      const lockedMap: Record<string, { method: string; checkIn?: string; checkOut?: string }> = {};
       
       recapData.forEach(r => {
         recordsMap[r.studentId] = r.status;
         if (r.note) notesMap[r.studentId] = r.note;
+        // Lock if recorded by scan (not manual)
+        if (r.method && r.method !== 'manual') {
+          lockedMap[r.studentId] = { method: r.method, checkIn: r.checkIn, checkOut: r.checkOut };
+        }
       });
 
       setStudents(studentsList.sort((a: any, b: any) => a.fullName.localeCompare(b.fullName)));
       setAttendanceRecords(recordsMap);
       setNotes(notesMap);
+      setLockedStudents(lockedMap);
     } catch (err) {
       toast.error('Gagal mengambil data siswa');
     } finally {
@@ -196,18 +203,30 @@ export const AttendanceManualInputTab = () => {
               <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
                 {students.map((stu, index) => {
                   const status = attendanceRecords[stu.id] || '';
+                  const locked = lockedStudents[stu.id];
                   return (
-                    <tr key={stu.id} className="hover:bg-gray-50/50 dark:hover:bg-[#1f1f1f]">
+                    <tr key={stu.id} className={`hover:bg-gray-50/50 dark:hover:bg-[#1f1f1f] ${locked ? 'bg-gray-50/30 dark:bg-[#181818]' : ''}`}>
                       <td className="p-2 text-center text-gray-500">{index + 1}</td>
                       <td className="p-2">
                         <div className="font-semibold text-gray-900 dark:text-gray-100">{stu.fullName}</div>
                         <div className="text-[10px] text-gray-500">{stu.nis}</div>
+                        {locked && (
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <Lock size={9} className="text-amber-500" />
+                            <span className="text-[9px] text-amber-600 dark:text-amber-400 font-medium">
+                              Scan {locked.checkIn?.slice(0,5)}{locked.checkOut ? ` → ${locked.checkOut.slice(0,5)}` : ''}
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td className="p-2">
                         <select
                           value={status}
                           onChange={(e) => handleStatusChange(stu.id, e.target.value)}
+                          disabled={!!locked}
                           className={`w-full px-2 py-1 rounded text-xs border font-medium outline-none focus:ring-2 focus:ring-indigo-500 ${
+                            locked ? 'opacity-60 cursor-not-allowed ' : ''
+                          }${
                             status === 'Hadir' ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400' :
                             status === 'Terlambat' ? 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400' :
                             status === 'Sakit' ? 'bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-900/20 dark:border-purple-800 dark:text-purple-400' :
@@ -223,10 +242,11 @@ export const AttendanceManualInputTab = () => {
                       <td className="p-2">
                         <input
                           type="text"
-                          placeholder="Tambahkan catatan (opsional)"
+                          placeholder={locked ? 'Terkunci (dari scan)' : 'Tambahkan catatan (opsional)'}
                           value={notes[stu.id] || ''}
                           onChange={(e) => handleNoteChange(stu.id, e.target.value)}
-                          className="w-full px-2 py-1 text-xs rounded border border-gray-200 dark:border-[#333] bg-white dark:bg-[#222] focus:ring-2 focus:ring-indigo-500 outline-none"
+                          disabled={!!locked}
+                          className={`w-full px-2 py-1 text-xs rounded border border-gray-200 dark:border-[#333] bg-white dark:bg-[#222] focus:ring-2 focus:ring-indigo-500 outline-none ${locked ? 'opacity-60 cursor-not-allowed' : ''}`}
                         />
                       </td>
                     </tr>

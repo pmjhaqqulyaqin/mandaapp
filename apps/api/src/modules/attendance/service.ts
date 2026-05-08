@@ -358,6 +358,7 @@ export class AttendanceService {
       checkIn: attendanceRecords.checkIn,
       checkOut: attendanceRecords.checkOut,
       note: attendanceRecords.note,
+      method: attendanceRecords.method,
       nama: studentProfiles.fullName,
       nis: studentProfiles.nis,
       kelas: studentProfiles.className,
