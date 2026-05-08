@@ -21,6 +21,7 @@ import {
   User as UserIcon,
   LogOut,
   ClipboardCheck,
+  QrCode,
   GraduationCap,
   Star,
   LayoutGrid,
@@ -76,6 +77,13 @@ const ALL_MENU_ITEMS = [
     label: 'Data Pegawai',
     href: '/dashboard/employees',
     icon: <UserSquare2 size={16} />,
+    group: 'main',
+  },
+  {
+    key: 'attendance',
+    label: 'Presensi Siswa',
+    href: '/dashboard/attendance',
+    icon: <QrCode size={16} />,
     group: 'main',
   },
   {
@@ -199,6 +207,7 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'ijazah': 'ijazah',
   'nis': 'nis',
   'employees': 'employees',
+  'attendance': 'attendance',
   'exams': 'exams',
   'ppdb': 'ppdb',
   'ppdb/penilaian': 'penilaian-pmb',
@@ -338,7 +347,7 @@ export const DashboardLayout = () => {
     if (idx > -1) finalAllowedMenusForRender.splice(idx, 1);
   }
 
-  const siswaMenuKeys = ['students', 'nis', 'ijazah', 'student-card', 'ppdb', 'penilaian-pmb'];
+  const siswaMenuKeys = ['students', 'nis', 'ijazah', 'student-card', 'ppdb', 'penilaian-pmb', 'attendance'];
   const topMobileNavKeys = ['news', 'gallery', 'students', 'ptsp'];
 
   const mainMenuItems = ALL_MENU_ITEMS.filter((item) => 

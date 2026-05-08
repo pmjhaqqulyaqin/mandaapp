@@ -46,6 +46,8 @@ const PPDBPenilaianPage = React.lazy(() => import('./pages/ppdb/PPDBPenilaianPag
 const PPDBDaftarUlangPage = React.lazy(() => import('./pages/ppdb/PPDBDaftarUlangPage').then(m => ({ default: m.PPDBDaftarUlangPage })));
 const PPDBVerifikasiPage = React.lazy(() => import('./pages/ppdb/PPDBVerifikasiPage').then(m => ({ default: m.PPDBVerifikasiPage })));
 const SystemUpdateCenter = React.lazy(() => import('./pages/dashboard/SystemUpdateCenter').then(m => ({ default: m.SystemUpdateCenter })));
+const PublicScannerPage = React.lazy(() => import('./pages/attendance/PublicScannerPage').then(m => ({ default: m.PublicScannerPage })));
+const DashboardAttendance = React.lazy(() => import('./pages/attendance/DashboardAttendance').then(m => ({ default: m.DashboardAttendance })));
 const BatchPrintPage = React.lazy(() => import('./pages/BatchPrintPage').then(m => ({ default: m.BatchPrintPage })));
 const PrintAcademicCalendar = React.lazy(() => import('./pages/PrintAcademicCalendar').then(m => ({ default: m.PrintAcademicCalendar })));
 const PrintKartuPeserta = React.lazy(() => import('./pages/exams/print/PrintKartuPeserta').then(m => ({ default: m.PrintKartuPeserta })));
@@ -86,6 +88,7 @@ function App() {
             <Route path="/ppdb/daftar/:jalurId" element={<MaintenanceGuard><PPDBFormPage /></MaintenanceGuard>} />
             <Route path="/ppdb/daftar-ulang" element={<MaintenanceGuard><PPDBDaftarUlangPage /></MaintenanceGuard>} />
             <Route path="/ppdb/verifikasi" element={<PPDBVerifikasiPage />} />
+            <Route path="/attendance/scan" element={<MaintenanceGuard><PublicScannerPage /></MaintenanceGuard>} />
             <Route path="/login" element={<LoginPage />} />
             
             <Route path="/select-role" element={
@@ -162,6 +165,7 @@ function App() {
               <Route path="menus" element={<DashboardMenus />} />
               <Route path="e-office" element={<EOfficePage />} />
               <Route path="exams" element={<ExamManagementPage />} />
+              <Route path="attendance" element={<DashboardAttendance />} />
               <Route path="updates" element={<ProtectedRoute allowedRoles={['admin']}><SystemUpdateCenter /></ProtectedRoute>} />
               <Route path="services" element={<DashboardServices />} />
               <Route path="ppdb" element={<PPDBAdminPage />} />

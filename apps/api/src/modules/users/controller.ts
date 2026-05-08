@@ -9,20 +9,20 @@ import { SettingsService } from "../settings/service";
 // All available menu keys
 const ALL_MENU_KEYS = [
   "overview", "news", "calendar", "student-card", "students", "classes", "employees", "nis",
-  "gallery", "contacts", "pages", "menus", "settings", "users", "updates", "e-office", "ptsp", "exams", "ppdb", "penilaian-pmb", "ijazah"
+  "gallery", "contacts", "pages", "menus", "settings", "users", "updates", "e-office", "ptsp", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance"
 ];
 
 const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
   admin: ALL_MENU_KEYS,
-  kepala_madrasah: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah"],
-  wakil_kepala: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah"],
-  kepala_unit: ["overview", "news", "calendar", "student-card", "gallery", "contacts", "exams", "penilaian-pmb"],
-  wali_kelas: ["overview", "news", "calendar", "student-card", "students", "gallery", "penilaian-pmb", "ijazah"],
+  kepala_madrasah: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance"],
+  wakil_kepala: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance"],
+  kepala_unit: ["overview", "news", "calendar", "student-card", "gallery", "contacts", "exams", "penilaian-pmb", "attendance"],
+  wali_kelas: ["overview", "news", "calendar", "student-card", "students", "gallery", "penilaian-pmb", "ijazah", "attendance"],
   pembina_ekstra: ["overview", "news", "calendar", "student-card", "gallery", "penilaian-pmb"],
-  guru: ["overview", "news", "calendar", "student-card", "exams", "penilaian-pmb"],
+  guru: ["overview", "news", "calendar", "student-card", "exams", "penilaian-pmb", "attendance"],
   student: ["overview", "calendar", "student-card"],
-  kepala_tu: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah"],
-  pegawai_tu: ["overview", "news", "calendar", "student-card", "students", "employees", "e-office", "ppdb", "penilaian-pmb", "ijazah"],
+  kepala_tu: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance"],
+  pegawai_tu: ["overview", "news", "calendar", "student-card", "students", "employees", "e-office", "ppdb", "penilaian-pmb", "ijazah", "attendance"],
 };
 
 export async function getAuditLogsHandler(req: Request, res: Response) {
@@ -136,6 +136,19 @@ export async function getRoleMenuPermissionsHandler(_req: Request, res: Response
     let permissions: Record<string, string[]>;
     if (setting?.value) {
       permissions = JSON.parse(setting.value);
+      // Merge in any new menu keys from defaults that weren't in the saved DB version
+      // This ensures newly added menus (e.g. "attendance") appear automatically
+      for (const [role, defaultMenus] of Object.entries(DEFAULT_ROLE_PERMISSIONS)) {
+        if (!permissions[role]) {
+          permissions[role] = defaultMenus;
+        } else {
+          for (const menuKey of defaultMenus) {
+            if (!permissions[role].includes(menuKey)) {
+              permissions[role].push(menuKey);
+            }
+          }
+        }
+      }
     } else {
       permissions = { ...DEFAULT_ROLE_PERMISSIONS };
     }

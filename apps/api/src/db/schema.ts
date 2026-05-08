@@ -611,3 +611,30 @@ export const ijazahExportSelections = pgTable("ijazah_export_selections", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
+
+// Attendance / Presensi Siswa
+export const attendanceRecords = pgTable("attendance_records", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  studentId: uuid("student_id").references(() => studentProfiles.id, { onDelete: "cascade" }).notNull(),
+  classId: uuid("class_id").references(() => classes.id),
+  date: date("date").notNull(),
+  checkIn: time("check_in"),          // jam masuk
+  checkOut: time("check_out"),        // jam pulang
+  status: varchar("status", { length: 20 }).notNull(), // Hadir, Terlambat, Alpa, Sakit, Izin, Bolos
+  method: varchar("method", { length: 20 }).default("manual"), // qr_scan, manual, usb_scanner, system
+  note: text("note"),
+  recordedBy: text("recorded_by").references(() => user.id), // nullable for public scanner
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const attendanceSettings = pgTable("attendance_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  academicYearId: uuid("academic_year_id").references(() => academicYears.id),
+  checkInTime: time("check_in_time").notNull(),   // e.g. 06:30
+  lateTime: time("late_time").notNull(),           // e.g. 07:30
+  checkOutTime: time("check_out_time").notNull(),  // e.g. 13:00
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});

@@ -31,6 +31,7 @@ import { eventsRoutes } from './modules/events/routes';
 import { nisRoutes } from './modules/nis/routes';
 import { examRoutes } from './modules/exams/routes';
 import { ppdbRoutes } from './modules/ppdb/routes';
+import { attendanceRoutes } from './modules/attendance/routes';
 
 dotenv.config();
 
@@ -181,6 +182,7 @@ app.use("/api/nis", nisRoutes);
 app.use("/api/exams", examRoutes);
 app.use("/api/ppdb", ppdbRoutes);
 app.use("/api/ijazah", ijazahRoutes);
+app.use("/api/attendance", attendanceRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -320,6 +322,58 @@ async function runAutoMigration() {
       logger.warn({ err: fkErr }, "Mapping FK setup (non-critical)");
     }
     logger.info("ijazah_subject_mappings table ready.");
+
+    // Auto-create Attendance tables
+    logger.info("Checking attendance tables...");
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "attendance_records" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        "student_id" uuid NOT NULL REFERENCES "student_profiles"("id") ON DELETE CASCADE,
+        "class_id" uuid REFERENCES "classes"("id"),
+        "date" date NOT NULL,
+        "check_in" time,
+        "check_out" time,
+        "status" varchar(20) NOT NULL,
+        "method" varchar(20) DEFAULT 'manual',
+        "note" text,
+        "recorded_by" text REFERENCES "user"("id"),
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now(),
+        UNIQUE("student_id", "date")
+      );
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "attendance_settings" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        "academic_year_id" uuid REFERENCES "academic_years"("id"),
+        "check_in_time" time NOT NULL DEFAULT '06:30',
+        "late_time" time NOT NULL DEFAULT '07:30',
+        "check_out_time" time NOT NULL DEFAULT '13:00',
+        "is_active" boolean DEFAULT true,
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `);
+    // Create indexes for attendance performance
+    try {
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance_records(date);`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_attendance_student ON attendance_records(student_id);`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_attendance_class ON attendance_records(class_id);`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_attendance_status ON attendance_records(status);`);
+    } catch (idxErr) { /* indexes may already exist */ }
+    // Seed default settings if empty
+    try {
+      const settingsCheck = await db.execute(sql`SELECT COUNT(*) as c FROM attendance_settings;`);
+      const rows = (settingsCheck as any).rows || settingsCheck;
+      if (rows[0] && (Number(rows[0].c) === 0 || Number(rows[0].count) === 0)) {
+        await db.execute(sql`
+          INSERT INTO attendance_settings (id, check_in_time, late_time, check_out_time, is_active)
+          VALUES (gen_random_uuid(), '06:30', '07:30', '13:00', true);
+        `);
+        logger.info("Seeded default attendance settings (06:30 / 07:30 / 13:00)");
+      }
+    } catch (seedErr) { /* non-critical */ }
+    logger.info("Attendance tables ready.");
 
   } catch (err) {
     logger.error({ err }, "Auto-migration failed");
