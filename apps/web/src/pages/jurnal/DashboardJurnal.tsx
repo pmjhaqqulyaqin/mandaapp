@@ -15,12 +15,13 @@ export const DashboardJurnal = () => {
   const role = user?.role || '';
   const isAdmin = role === 'admin';
   const isLeadership = ['kepala_madrasah', 'wakil_kepala'].includes(role);
-  const isTeacher = ['guru', 'wali_kelas', 'pembina_ekstra'].includes(role);
+  const isTU = ['kepala_tu', 'pegawai_tu'].includes(role);
+  const canInput = !['kepala_tu', 'pegawai_tu', 'student', 'orang_tua', ''].includes(role);
 
-  const [activeTab, setActiveTab] = useState<TabKey>(isTeacher ? 'input' : isLeadership ? 'monitoring' : 'list');
+  const [activeTab, setActiveTab] = useState<TabKey>(canInput ? 'input' : isLeadership ? 'monitoring' : 'list');
 
   const tabs: { key: TabKey; icon: React.ReactNode; label: string; visible: boolean }[] = [
-    { key: 'input', icon: <PenLine size={13} />, label: 'Input', visible: isTeacher },
+    { key: 'input', icon: <PenLine size={13} />, label: 'Input', visible: canInput },
     { key: 'list', icon: <List size={13} />, label: 'Daftar', visible: true },
     { key: 'monitoring', icon: <Activity size={13} />, label: 'Monitoring', visible: isAdmin || isLeadership },
     { key: 'rekap', icon: <BarChart3 size={13} />, label: 'Rekap', visible: isAdmin || isLeadership || role === 'wali_kelas' },
