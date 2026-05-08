@@ -19,7 +19,8 @@ export const useTeachingSubjects = (params?: Record<string, string>) => {
   const updateMut = useMutation({ mutationFn: ({ id, data }: { id: string; data: any }) => jurnalService.updateTeachingSubject(id, data), onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.subjects }) });
   const deleteMut = useMutation({ mutationFn: jurnalService.deleteTeachingSubject, onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.subjects }) });
   const bulkMut = useMutation({ mutationFn: jurnalService.bulkCreateTeachingSubjects, onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.subjects }) });
-  return { query, createMut, updateMut, deleteMut, bulkMut };
+  const importMut = useMutation({ mutationFn: jurnalService.importExcel, onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.subjects }) });
+  return { query, createMut, updateMut, deleteMut, bulkMut, importMut };
 };
 
 export const useScheduleToday = (employeeId: string) =>

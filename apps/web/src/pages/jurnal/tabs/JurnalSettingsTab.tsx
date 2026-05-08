@@ -1,19 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTeachingSubjects } from '../../../hooks/api/useJurnal';
-import { apiClient } from '../../../lib/api';
+import { apiClient, API_BASE_URL } from '../../../lib/api';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Upload, Download, X, Save } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Download, X, Save, FileSpreadsheet, AlertTriangle } from 'lucide-react';
 
 const DAYS = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
 export const JurnalSettingsTab = () => {
-  const { query, createMut, updateMut, deleteMut, bulkMut } = useTeachingSubjects();
+  const { query, createMut, updateMut, deleteMut, bulkMut, importMut } = useTeachingSubjects();
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState('');
   const [employees, setEmployees] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [form, setForm] = useState({ employeeId: '', classId: '', subjectName: '', dayOfWeek: 1, jamKe: '', waktuMulai: '', waktuSelesai: '', semester: 'ganjil', tahunAjaran: '2025/2026' });
   const [filterDay, setFilterDay] = useState(0);
+  const [importResult, setImportResult] = useState<{ imported: number; errors: string[]; total: number } | null>(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     apiClient<any[]>('/employees').then(setEmployees).catch(() => {});
@@ -49,8 +52,31 @@ export const JurnalSettingsTab = () => {
 
   const filtered = query.data?.filter((s: any) => !filterDay || s.dayOfWeek === filterDay) || [];
 
+  const handleDownloadTemplate = () => {
+    window.open(`${API_BASE_URL}/jurnal/teaching-subjects/template`, '_blank');
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const result = await importMut.mutateAsync(fd);
+      setImportResult(result);
+      if (result.imported > 0) toast.success(`${result.imported} jadwal berhasil diimpor`);
+      if (result.errors?.length > 0) toast.warning(`${result.errors.length} baris bermasalah`);
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal mengimpor');
+    }
+    setImporting(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   return (
     <div className="space-y-4">
+      {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex gap-2">
           <select value={filterDay} onChange={e => setFilterDay(Number(e.target.value))}
@@ -59,11 +85,55 @@ export const JurnalSettingsTab = () => {
             {DAYS.slice(1).map((d, i) => <option key={i + 1} value={i + 1}>{d}</option>)}
           </select>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(true); }}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 active:scale-95">
-          <Plus size={14} /> Tambah Jadwal
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={handleDownloadTemplate}
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-emerald-600 text-emerald-600 rounded-lg text-xs font-semibold hover:bg-emerald-50 dark:hover:bg-emerald-900/20 active:scale-95 transition-all">
+            <Download size={14} /> Template Excel
+          </button>
+          <label className={`flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 active:scale-95 cursor-pointer transition-all ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
+            <Upload size={14} /> {importing ? 'Mengimpor...' : 'Import Excel'}
+            <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} disabled={importing} />
+          </label>
+          <button onClick={() => { resetForm(); setShowForm(true); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 active:scale-95">
+            <Plus size={14} /> Tambah
+          </button>
+        </div>
       </div>
+
+      {/* Import Result Modal */}
+      {importResult && (
+        <div className="bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
+              <FileSpreadsheet size={16} className="text-emerald-600" /> Hasil Import
+            </h3>
+            <button onClick={() => setImportResult(null)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-gray-50 dark:bg-[#111] rounded-lg p-3 text-center">
+              <p className="text-lg font-bold text-gray-800 dark:text-white">{importResult.total}</p>
+              <p className="text-[10px] font-semibold text-gray-500">Total Baris</p>
+            </div>
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-3 text-center">
+              <p className="text-lg font-bold text-emerald-600">{importResult.imported}</p>
+              <p className="text-[10px] font-semibold text-emerald-600">Berhasil</p>
+            </div>
+            <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 text-center">
+              <p className="text-lg font-bold text-red-600">{importResult.errors.length}</p>
+              <p className="text-[10px] font-semibold text-red-600">Error</p>
+            </div>
+          </div>
+          {importResult.errors.length > 0 && (
+            <div className="bg-red-50 dark:bg-red-900/10 rounded-lg p-3 max-h-40 overflow-y-auto">
+              <p className="text-xs font-semibold text-red-700 dark:text-red-400 mb-1 flex items-center gap-1"><AlertTriangle size={12} /> Detail Error:</p>
+              {importResult.errors.map((err, i) => (
+                <p key={i} className="text-[11px] text-red-600 dark:text-red-400">• {err}</p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Form Modal */}
       {showForm && (
