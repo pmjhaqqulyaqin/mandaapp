@@ -64,42 +64,35 @@ export const DashboardAttendance = () => {
       </div>
 
       <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl overflow-hidden shadow-sm">
-        <div className="p-2 md:p-3 border-b border-gray-100 dark:border-[#222] overflow-x-auto bg-slate-50/50 dark:bg-[#151515]">
-          <div className="flex gap-1 min-w-max p-1 bg-slate-200/60 dark:bg-[#222] rounded-xl shadow-inner">
-            <button 
-              onClick={() => setActiveTab('dashboard')}
-              className={`px-4 py-2 text-xs font-semibold flex items-center gap-2 whitespace-nowrap rounded-lg transition-all ${activeTab === 'dashboard' ? 'bg-white dark:bg-[#333] text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-            >
-              <LayoutDashboard size={14} /> Dashboard
-            </button>
-            <button 
-              onClick={() => setActiveTab('scanner')}
-              className={`px-4 py-2 text-xs font-semibold flex items-center gap-2 whitespace-nowrap rounded-lg transition-all ${activeTab === 'scanner' ? 'bg-white dark:bg-[#333] text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-            >
-              <Camera size={14} /> Scanner
-            </button>
-            <button 
-              onClick={() => setActiveTab('manual')}
-              className={`px-4 py-2 text-xs font-semibold flex items-center gap-2 whitespace-nowrap rounded-lg transition-all ${activeTab === 'manual' ? 'bg-white dark:bg-[#333] text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-            >
-              <QrCode size={14} /> Input Manual
-            </button>
-            <button 
-              onClick={() => setActiveTab('rekap')}
-              className={`px-4 py-2 text-xs font-semibold flex items-center gap-2 whitespace-nowrap rounded-lg transition-all ${activeTab === 'rekap' ? 'bg-white dark:bg-[#333] text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-            >
-              <Grid size={14} /> Rekap Kelas
-            </button>
-            <button 
-              onClick={() => setActiveTab('settings')}
-              className={`px-4 py-2 text-xs font-semibold flex items-center gap-2 whitespace-nowrap rounded-lg transition-all ${activeTab === 'settings' ? 'bg-white dark:bg-[#333] text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-            >
-              <Settings size={14} /> Pengaturan
-            </button>
+        {/* Segmented Control - iOS/Android Style */}
+        <div className="p-2.5 md:p-3 border-b border-gray-100 dark:border-[#222] bg-gray-50/80 dark:bg-[#0d0d0d]">
+          <div className="flex overflow-x-auto no-scrollbar">
+            <div className="inline-flex gap-1 p-0.5 bg-gray-200/70 dark:bg-[#1a1a1a] rounded-lg mx-auto">
+              {([
+                { key: 'dashboard', icon: <LayoutDashboard size={13} />, label: 'Dashboard' },
+                { key: 'scanner', icon: <Camera size={13} />, label: 'Scanner' },
+                { key: 'manual', icon: <QrCode size={13} />, label: 'Manual' },
+                { key: 'rekap', icon: <Grid size={13} />, label: 'Rekap' },
+                { key: 'settings', icon: <Settings size={13} />, label: 'Setting' },
+              ] as const).map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`relative flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold whitespace-nowrap rounded-md transition-all duration-200 ${
+                    activeTab === tab.key
+                      ? 'bg-white dark:bg-[#2a2a2a] text-indigo-600 dark:text-indigo-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  {tab.icon}
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="p-3 md:p-4 bg-white dark:bg-[#1a1a1a] min-h-[300px]">
+        <div className="p-3 md:p-4 bg-white dark:bg-[#111] min-h-[300px]">
           {activeTab === 'dashboard' && <AttendanceDashboardTab />}
           {activeTab === 'scanner' && (
             <div className="max-w-xl mx-auto bg-white p-4 rounded-xl shadow-sm border border-gray-100">
