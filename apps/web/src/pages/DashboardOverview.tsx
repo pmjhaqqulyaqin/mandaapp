@@ -105,6 +105,61 @@ export const DashboardOverview = () => {
         </p>
       </div>
 
+      {/* Classroom Monitor — Top Priority */}
+      <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-100 dark:border-[#222] shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 dark:border-[#222] flex items-center justify-between bg-gray-50/50 dark:bg-white/[0.02]">
+          <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <BookOpen size={16} className="text-violet-500" /> Monitor Kelas Real-Time
+            {classroom && <span className="text-[10px] font-normal text-gray-500">({classroom.dayName})</span>}
+          </h3>
+          {classroom && (
+            <div className="flex gap-2 text-[10px] font-bold">
+              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-full">{classroom.totalTerisi} Terisi</span>
+              <span className="px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400 rounded-full">{classroom.totalKosong} Kosong</span>
+              <span className="px-2 py-0.5 bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 rounded-full">{classroom.totalJadwal} Total</span>
+            </div>
+          )}
+        </div>
+        <div className="overflow-x-auto max-h-[320px] overflow-y-auto">
+          {!classroom || classroom.schedules.length === 0 ? (
+            <div className="p-8 text-center text-gray-400 text-sm">Tidak ada jadwal hari ini</div>
+          ) : (
+            <table className="w-full text-xs">
+              <thead className="bg-gray-50 dark:bg-[#1a1a1a] sticky top-0 z-10">
+                <tr>
+                  <th className="p-2 text-left font-semibold text-gray-500">Jam</th>
+                  <th className="p-2 text-left font-semibold text-gray-500">Kelas</th>
+                  <th className="p-2 text-left font-semibold text-gray-500">Mata Pelajaran</th>
+                  <th className="p-2 text-left font-semibold text-gray-500">Guru Pengajar</th>
+                  <th className="p-2 text-center font-semibold text-gray-500">Status Jurnal</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
+                {classroom.schedules.map((s: any, i: number) => (
+                  <tr key={i} className={`transition-colors ${s.isFilled ? 'hover:bg-gray-50 dark:hover:bg-white/5' : 'bg-red-50/40 dark:bg-red-900/5 hover:bg-red-50 dark:hover:bg-red-900/10'}`}>
+                    <td className="p-2 font-mono text-gray-600 dark:text-gray-400">{s.time?.slice(0, 5)}</td>
+                    <td className="p-2 font-bold text-gray-800 dark:text-gray-200">{s.className}</td>
+                    <td className="p-2 text-gray-700 dark:text-gray-300">{s.subject}</td>
+                    <td className="p-2 text-gray-600 dark:text-gray-400">{s.teacherName || '-'}</td>
+                    <td className="p-2 text-center">
+                      {s.isFilled ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 text-[10px] font-bold">
+                          <CheckCircle2 size={10} /> Terisi
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400 text-[10px] font-bold animate-pulse">
+                          <XCircle size={10} /> Kosong
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
@@ -171,89 +226,32 @@ export const DashboardOverview = () => {
         </div>
       </div>
 
-      {/* Row 3: Classroom Monitor + Activity Feed */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-        {/* Classroom Monitor */}
-        <div className="lg:col-span-3 bg-white dark:bg-[#111] rounded-xl border border-gray-100 dark:border-[#222] shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 dark:border-[#222] flex items-center justify-between bg-gray-50/50 dark:bg-white/[0.02]">
-            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-              <BookOpen size={16} className="text-violet-500" /> Monitor Kelas Hari Ini
-              {classroom && <span className="text-[10px] font-normal text-gray-500">({classroom.dayName})</span>}
-            </h3>
-            {classroom && (
-              <div className="flex gap-2 text-[10px] font-bold">
-                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">{classroom.totalTerisi} Terisi</span>
-                <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full">{classroom.totalKosong} Kosong</span>
-              </div>
-            )}
-          </div>
-          <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
-            {!classroom || classroom.schedules.length === 0 ? (
-              <div className="p-8 text-center text-gray-400 text-sm">Tidak ada jadwal hari ini</div>
-            ) : (
-              <table className="w-full text-xs">
-                <thead className="bg-gray-50 dark:bg-[#1a1a1a] sticky top-0">
-                  <tr>
-                    <th className="p-2 text-left font-semibold text-gray-500">Jam</th>
-                    <th className="p-2 text-left font-semibold text-gray-500">Kelas</th>
-                    <th className="p-2 text-left font-semibold text-gray-500">Mapel</th>
-                    <th className="p-2 text-left font-semibold text-gray-500">Guru</th>
-                    <th className="p-2 text-center font-semibold text-gray-500">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
-                  {classroom.schedules.map((s: any, i: number) => (
-                    <tr key={i} className={`${s.isFilled ? '' : 'bg-red-50/50 dark:bg-red-900/5'}`}>
-                      <td className="p-2 font-mono text-gray-600">{s.time?.slice(0, 5)}</td>
-                      <td className="p-2 font-semibold text-gray-800 dark:text-gray-200">{s.className}</td>
-                      <td className="p-2 text-gray-700 dark:text-gray-300">{s.subject}</td>
-                      <td className="p-2 text-gray-600 dark:text-gray-400">{s.teacherName || '-'}</td>
-                      <td className="p-2 text-center">
-                        {s.isFilled ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">
-                            <CheckCircle2 size={10} /> Terisi
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold">
-                            <XCircle size={10} /> Kosong
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+      {/* Row 3: Activity Feed (full width) */}
+      <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-100 dark:border-[#222] shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 dark:border-[#222] bg-gray-50/50 dark:bg-white/[0.02]">
+          <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <Clock size={16} className="text-amber-500" /> Aktivitas Terbaru
+          </h3>
         </div>
-
-        {/* Activity Feed */}
-        <div className="lg:col-span-2 bg-white dark:bg-[#111] rounded-xl border border-gray-100 dark:border-[#222] shadow-sm overflow-hidden flex flex-col">
-          <div className="px-4 py-3 border-b border-gray-100 dark:border-[#222] bg-gray-50/50 dark:bg-white/[0.02]">
-            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-              <Clock size={16} className="text-amber-500" /> Aktivitas Terbaru
-            </h3>
-          </div>
-          <div className="flex-1 overflow-y-auto max-h-[300px] p-2">
-            {activities.length === 0 ? (
-              <div className="p-6 text-center text-gray-400 text-sm">Belum ada aktivitas</div>
-            ) : (
-              <div className="space-y-1">
-                {activities.map((act, i) => (
-                  <div key={i} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                    <div className="mt-0.5 shrink-0">{activityIcon(act.type)}</div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{act.title}</p>
-                      <p className="text-[10px] text-gray-500 truncate">{act.detail}</p>
-                    </div>
-                    <span className="text-[9px] text-gray-400 whitespace-nowrap mt-0.5">
-                      {act.time ? new Date(act.time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : ''}
-                    </span>
+        <div className="overflow-y-auto max-h-[250px] p-2">
+          {activities.length === 0 ? (
+            <div className="p-6 text-center text-gray-400 text-sm">Belum ada aktivitas</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
+              {activities.map((act, i) => (
+                <div key={i} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                  <div className="mt-0.5 shrink-0">{activityIcon(act.type)}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{act.title}</p>
+                    <p className="text-[10px] text-gray-500 truncate">{act.detail}</p>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  <span className="text-[9px] text-gray-400 whitespace-nowrap mt-0.5">
+                    {act.time ? new Date(act.time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
