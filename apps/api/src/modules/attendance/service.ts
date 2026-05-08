@@ -107,27 +107,11 @@ export class AttendanceService {
 
     // 5. First scan today
     // Special case: first scan AFTER checkOutTime = student forgot morning scan
+    // Don't auto-mark Alpa — direct to admin for manual input (more forgiving)
     if (currentTime >= settings.checkOutTime) {
-      // Record as Alpa (no morning proof) + immediate checkout
-      await db.insert(attendanceRecords).values({
-        studentId: student.id,
-        classId: student.classId,
-        date: today,
-        checkIn: null,
-        checkOut: currentTime,
-        status: "Alpa",
-        method,
-        recordedBy: recordedBy || null,
-      });
       return {
-        success: true,
-        status: "Alpa + Pulang",
-        nama: student.fullName,
-        nis: student.nis,
-        kelas: student.className,
-        jam: currentTime.slice(0, 5),
-        foto: student.photoUrl || "",
-        note: "Tidak ada absen masuk. Dicatat Alpa + Pulang.",
+        success: false,
+        message: `${student.fullName} belum absen masuk hari ini. Hubungi guru/admin untuk input manual di tab "Manual".`,
       };
     }
 
