@@ -1,6 +1,6 @@
 import { db } from "../../db";
 import { attendanceRecords, attendanceSettings, studentProfiles, classes } from "../../db/schema";
-import { eq, and, sql, desc, count } from "drizzle-orm";
+import { eq, and, or, sql, desc, count } from "drizzle-orm";
 
 const VALID_STATUSES = ["Hadir", "Terlambat", "Alpa", "Sakit", "Izin", "Bolos"] as const;
 type AttendanceStatus = typeof VALID_STATUSES[number];
@@ -51,13 +51,13 @@ export class AttendanceService {
    * - Handles check-out (pulang) mode
    */
   static async processScan(nis: string, mode: "masuk" | "pulang", method: string = "qr_scan", recordedBy?: string) {
-    // 1. Find student by NIS
+    // 1. Find student by NIS or NISN (card QR/barcode may contain either)
     const students = await db.select().from(studentProfiles)
-      .where(eq(studentProfiles.nis, nis))
+      .where(or(eq(studentProfiles.nis, nis), eq(studentProfiles.nisn, nis)))
       .limit(1);
 
     if (students.length === 0) {
-      return { success: false, message: `NIS '${nis}' tidak ditemukan` };
+      return { success: false, message: `NIS/NISN '${nis}' tidak ditemukan` };
     }
 
     const student = students[0];
