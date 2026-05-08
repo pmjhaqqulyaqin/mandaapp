@@ -1,0 +1,298 @@
+import { db } from "../../db";
+import {
+  teachingSubjects, jurnalEntries, jurnalStudentAttendance,
+  jurnalAttachments, jurnalTemplates, employees, classes,
+  studentProfiles, attendanceRecords
+} from "../../db/schema";
+import { eq, and, desc, count, sql } from "drizzle-orm";
+
+export class JurnalService {
+
+  // ─── Teaching Subjects ────────────────────────────────────────────────
+
+  static async getTeachingSubjects(filters?: { employeeId?: string; classId?: string; dayOfWeek?: number }) {
+    const conditions: any[] = [eq(teachingSubjects.isActive, true)];
+    if (filters?.employeeId) conditions.push(eq(teachingSubjects.employeeId, filters.employeeId));
+    if (filters?.classId) conditions.push(eq(teachingSubjects.classId, filters.classId));
+    if (filters?.dayOfWeek) conditions.push(eq(teachingSubjects.dayOfWeek, filters.dayOfWeek));
+
+    return db.select({
+      id: teachingSubjects.id,
+      employeeId: teachingSubjects.employeeId,
+      employeeName: employees.name,
+      classId: teachingSubjects.classId,
+      className: classes.name,
+      subjectName: teachingSubjects.subjectName,
+      dayOfWeek: teachingSubjects.dayOfWeek,
+      jamKe: teachingSubjects.jamKe,
+      waktuMulai: teachingSubjects.waktuMulai,
+      waktuSelesai: teachingSubjects.waktuSelesai,
+      semester: teachingSubjects.semester,
+      tahunAjaran: teachingSubjects.tahunAjaran,
+    })
+      .from(teachingSubjects)
+      .leftJoin(employees, eq(teachingSubjects.employeeId, employees.id))
+      .leftJoin(classes, eq(teachingSubjects.classId, classes.id))
+      .where(and(...conditions))
+      .orderBy(teachingSubjects.dayOfWeek, teachingSubjects.jamKe);
+  }
+
+  static async getScheduleToday(employeeId: string) {
+    const now = new Date();
+    const jsDay = now.getDay();
+    if (jsDay === 0) return [];
+
+    const results = await db.select({
+      id: teachingSubjects.id,
+      classId: teachingSubjects.classId,
+      className: classes.name,
+      subjectName: teachingSubjects.subjectName,
+      jamKe: teachingSubjects.jamKe,
+      waktuMulai: teachingSubjects.waktuMulai,
+      waktuSelesai: teachingSubjects.waktuSelesai,
+    })
+      .from(teachingSubjects)
+      .leftJoin(classes, eq(teachingSubjects.classId, classes.id))
+      .where(and(
+        eq(teachingSubjects.employeeId, employeeId),
+        eq(teachingSubjects.dayOfWeek, jsDay),
+        eq(teachingSubjects.isActive, true)
+      ))
+      .orderBy(teachingSubjects.jamKe);
+
+    const today = now.toISOString().split("T")[0];
+    const todayJurnals = await db.select({ teachingSubjectId: jurnalEntries.teachingSubjectId })
+      .from(jurnalEntries)
+      .where(and(eq(jurnalEntries.teacherId, employeeId), eq(jurnalEntries.date, today)));
+    const filledIds = new Set(todayJurnals.map(j => j.teachingSubjectId));
+
+    return results.map(r => ({ ...r, alreadyFilled: filledIds.has(r.id) }));
+  }
+
+  static async createTeachingSubject(data: any) {
+    const results = await db.insert(teachingSubjects).values(data).returning();
+    return results[0];
+  }
+
+  static async updateTeachingSubject(id: string, data: any) {
+    const results = await db.update(teachingSubjects).set({ ...data, updatedAt: new Date() }).where(eq(teachingSubjects.id, id)).returning();
+    return results[0];
+  }
+
+  static async deleteTeachingSubject(id: string) {
+    const results = await db.delete(teachingSubjects).where(eq(teachingSubjects.id, id)).returning();
+    return results[0];
+  }
+
+  static async bulkCreateTeachingSubjects(data: any[]) {
+    if (!data.length) return [];
+    return db.insert(teachingSubjects).values(data).returning();
+  }
+
+  // ─── Jurnal Entries ───────────────────────────────────────────────────
+
+  static async createJurnalEntry(data: any) {
+    const results = await db.insert(jurnalEntries).values(data).returning();
+    return results[0];
+  }
+
+  static async updateJurnalEntry(id: string, data: any) {
+    const results = await db.update(jurnalEntries).set({ ...data, updatedAt: new Date() }).where(eq(jurnalEntries.id, id)).returning();
+    return results[0];
+  }
+
+  static async deleteJurnalEntry(id: string) {
+    const entry = await db.select().from(jurnalEntries).where(eq(jurnalEntries.id, id)).limit(1);
+    if (!entry.length) return null;
+    if (entry[0].status !== "draft") return { error: "Hanya jurnal draft yang bisa dihapus" };
+    return (await db.delete(jurnalEntries).where(eq(jurnalEntries.id, id)).returning())[0];
+  }
+
+  static async submitJurnal(id: string) {
+    return (await db.update(jurnalEntries).set({ status: "submitted", updatedAt: new Date() }).where(eq(jurnalEntries.id, id)).returning())[0];
+  }
+
+  static async approveJurnal(id: string, approvedById: string) {
+    return (await db.update(jurnalEntries).set({ status: "approved", approvedBy: approvedById, approvedAt: new Date(), updatedAt: new Date() }).where(eq(jurnalEntries.id, id)).returning())[0];
+  }
+
+  static async rejectJurnal(id: string, note: string) {
+    return (await db.update(jurnalEntries).set({ status: "rejected", rejectionNote: note, updatedAt: new Date() }).where(eq(jurnalEntries.id, id)).returning())[0];
+  }
+
+  static async getJurnalEntries(filters: { teacherId?: string; classId?: string; date?: string; dateFrom?: string; dateTo?: string; status?: string; limit?: number; offset?: number }) {
+    const conditions: any[] = [];
+    if (filters.teacherId) conditions.push(eq(jurnalEntries.teacherId, filters.teacherId));
+    if (filters.classId) conditions.push(eq(jurnalEntries.classId, filters.classId));
+    if (filters.date) conditions.push(eq(jurnalEntries.date, filters.date));
+    if (filters.dateFrom) conditions.push(sql`${jurnalEntries.date} >= ${filters.dateFrom}`);
+    if (filters.dateTo) conditions.push(sql`${jurnalEntries.date} <= ${filters.dateTo}`);
+    if (filters.status) conditions.push(eq(jurnalEntries.status, filters.status));
+
+    return db.select({
+      id: jurnalEntries.id, teacherId: jurnalEntries.teacherId, teacherName: employees.name,
+      classId: jurnalEntries.classId, className: classes.name, subjectName: jurnalEntries.subjectName,
+      date: jurnalEntries.date, jamKe: jurnalEntries.jamKe, linkRpp: jurnalEntries.linkRpp,
+      materiPembelajaran: jurnalEntries.materiPembelajaran, metode: jurnalEntries.metode,
+      catatan: jurnalEntries.catatan, evaluasi: jurnalEntries.evaluasi,
+      jumlahHadir: jurnalEntries.jumlahHadir, jumlahIzin: jurnalEntries.jumlahIzin,
+      jumlahSakit: jurnalEntries.jumlahSakit, jumlahAlpa: jurnalEntries.jumlahAlpa,
+      totalSiswa: jurnalEntries.totalSiswa, status: jurnalEntries.status,
+      createdAt: jurnalEntries.createdAt,
+    })
+      .from(jurnalEntries)
+      .leftJoin(employees, eq(jurnalEntries.teacherId, employees.id))
+      .leftJoin(classes, eq(jurnalEntries.classId, classes.id))
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(desc(jurnalEntries.date), jurnalEntries.jamKe)
+      .limit(filters.limit || 50).offset(filters.offset || 0);
+  }
+
+  static async getJurnalById(id: string) {
+    const entries = await db.select({
+      id: jurnalEntries.id, teachingSubjectId: jurnalEntries.teachingSubjectId,
+      teacherId: jurnalEntries.teacherId, teacherName: employees.name,
+      classId: jurnalEntries.classId, className: classes.name,
+      subjectName: jurnalEntries.subjectName, date: jurnalEntries.date,
+      jamKe: jurnalEntries.jamKe, waktuMulai: jurnalEntries.waktuMulai, waktuSelesai: jurnalEntries.waktuSelesai,
+      linkRpp: jurnalEntries.linkRpp, materiPembelajaran: jurnalEntries.materiPembelajaran,
+      metode: jurnalEntries.metode, capaianPembelajaran: jurnalEntries.capaianPembelajaran,
+      kendalaDanSolusi: jurnalEntries.kendalaDanSolusi, catatan: jurnalEntries.catatan, evaluasi: jurnalEntries.evaluasi,
+      jumlahHadir: jurnalEntries.jumlahHadir, jumlahIzin: jurnalEntries.jumlahIzin,
+      jumlahSakit: jurnalEntries.jumlahSakit, jumlahAlpa: jurnalEntries.jumlahAlpa, totalSiswa: jurnalEntries.totalSiswa,
+      status: jurnalEntries.status, approvedBy: jurnalEntries.approvedBy, approvedAt: jurnalEntries.approvedAt,
+      rejectionNote: jurnalEntries.rejectionNote, createdAt: jurnalEntries.createdAt,
+    }).from(jurnalEntries)
+      .leftJoin(employees, eq(jurnalEntries.teacherId, employees.id))
+      .leftJoin(classes, eq(jurnalEntries.classId, classes.id))
+      .where(eq(jurnalEntries.id, id)).limit(1);
+
+    if (!entries.length) return null;
+
+    const attachments = await db.select().from(jurnalAttachments).where(eq(jurnalAttachments.jurnalEntryId, id));
+    const studentAtt = await db.select({
+      id: jurnalStudentAttendance.id, studentId: jurnalStudentAttendance.studentId,
+      studentName: studentProfiles.fullName, nis: studentProfiles.nis,
+      status: jurnalStudentAttendance.status, note: jurnalStudentAttendance.note,
+    }).from(jurnalStudentAttendance)
+      .leftJoin(studentProfiles, eq(jurnalStudentAttendance.studentId, studentProfiles.id))
+      .where(eq(jurnalStudentAttendance.jurnalEntryId, id)).orderBy(studentProfiles.fullName);
+
+    return { ...entries[0], attachments, studentAttendance: studentAtt };
+  }
+
+  // ─── Student Attendance per Mapel ─────────────────────────────────────
+
+  static async getClassStudentsWithDailyAttendance(classId: string, date: string) {
+    const students = await db.select({ id: studentProfiles.id, fullName: studentProfiles.fullName, nis: studentProfiles.nis })
+      .from(studentProfiles)
+      .where(and(eq(studentProfiles.classId, classId), eq(studentProfiles.status, "active")))
+      .orderBy(studentProfiles.fullName);
+
+    const daily = await db.select({ studentId: attendanceRecords.studentId, status: attendanceRecords.status, checkIn: attendanceRecords.checkIn })
+      .from(attendanceRecords)
+      .where(and(eq(attendanceRecords.classId, classId), eq(attendanceRecords.date, date)));
+
+    const map = new Map(daily.map(a => [a.studentId, a]));
+    return students.map(s => ({ ...s, dailyStatus: map.get(s.id)?.status || null, dailyCheckIn: map.get(s.id)?.checkIn || null }));
+  }
+
+  static async saveStudentAttendance(jurnalEntryId: string, records: { studentId: string; status: string; note?: string }[]) {
+    await db.delete(jurnalStudentAttendance).where(eq(jurnalStudentAttendance.jurnalEntryId, jurnalEntryId));
+    if (!records.length) return { count: 0 };
+
+    await db.insert(jurnalStudentAttendance).values(records.map(r => ({ jurnalEntryId, studentId: r.studentId, status: r.status, note: r.note || null })));
+
+    const summary = { Hadir: 0, Izin: 0, Sakit: 0, Alpa: 0 };
+    for (const r of records) { if (r.status in summary) summary[r.status as keyof typeof summary]++; }
+
+    await db.update(jurnalEntries).set({
+      jumlahHadir: summary.Hadir, jumlahIzin: summary.Izin, jumlahSakit: summary.Sakit, jumlahAlpa: summary.Alpa,
+      totalSiswa: records.length, updatedAt: new Date(),
+    }).where(eq(jurnalEntries.id, jurnalEntryId));
+
+    return { count: records.length, summary };
+  }
+
+  // ─── Attachments ──────────────────────────────────────────────────────
+
+  static async addAttachment(data: { jurnalEntryId: string; fileType: string; fileUrl: string; fileName?: string; fileSize?: number }) {
+    return (await db.insert(jurnalAttachments).values(data).returning())[0];
+  }
+
+  static async deleteAttachment(id: string) {
+    return (await db.delete(jurnalAttachments).where(eq(jurnalAttachments.id, id)).returning())[0];
+  }
+
+  // ─── Monitoring ───────────────────────────────────────────────────────
+
+  static async getMonitoringToday(date?: string) {
+    const targetDate = date || new Date().toISOString().split("T")[0];
+    const jsDay = new Date(targetDate).getDay();
+    if (jsDay === 0) return { date: targetDate, teachers: [], summary: { total: 0, filled: 0, notFilled: 0 } };
+
+    const scheduled = await db.select({
+      employeeId: teachingSubjects.employeeId, employeeName: employees.name,
+      subjectName: teachingSubjects.subjectName, className: classes.name,
+      classId: teachingSubjects.classId, jamKe: teachingSubjects.jamKe,
+      teachingSubjectId: teachingSubjects.id,
+    }).from(teachingSubjects)
+      .leftJoin(employees, eq(teachingSubjects.employeeId, employees.id))
+      .leftJoin(classes, eq(teachingSubjects.classId, classes.id))
+      .where(and(eq(teachingSubjects.dayOfWeek, jsDay), eq(teachingSubjects.isActive, true)))
+      .orderBy(employees.name, teachingSubjects.jamKe);
+
+    const filled = await db.select({ teachingSubjectId: jurnalEntries.teachingSubjectId, status: jurnalEntries.status })
+      .from(jurnalEntries).where(eq(jurnalEntries.date, targetDate));
+    const filledSet = new Set(filled.map(j => j.teachingSubjectId));
+
+    const teachers = scheduled.map(t => ({
+      ...t, filled: filledSet.has(t.teachingSubjectId),
+      jurnalStatus: filled.find(j => j.teachingSubjectId === t.teachingSubjectId)?.status || null,
+    }));
+
+    const filledCount = teachers.filter(t => t.filled).length;
+    return { date: targetDate, teachers, summary: { total: teachers.length, filled: filledCount, notFilled: teachers.length - filledCount } };
+  }
+
+  // ─── Recap ────────────────────────────────────────────────────────────
+
+  static async getJurnalRecap(filters: { dateFrom: string; dateTo: string; teacherId?: string; classId?: string }) {
+    const conditions: any[] = [sql`${jurnalEntries.date} >= ${filters.dateFrom}`, sql`${jurnalEntries.date} <= ${filters.dateTo}`];
+    if (filters.teacherId) conditions.push(eq(jurnalEntries.teacherId, filters.teacherId));
+    if (filters.classId) conditions.push(eq(jurnalEntries.classId, filters.classId));
+
+    const results = await db.select({
+      teacherName: employees.name, className: classes.name, subjectName: jurnalEntries.subjectName,
+      date: jurnalEntries.date, jamKe: jurnalEntries.jamKe, materiPembelajaran: jurnalEntries.materiPembelajaran,
+      metode: jurnalEntries.metode, catatan: jurnalEntries.catatan, evaluasi: jurnalEntries.evaluasi,
+      jumlahHadir: jurnalEntries.jumlahHadir, totalSiswa: jurnalEntries.totalSiswa, status: jurnalEntries.status,
+    }).from(jurnalEntries)
+      .leftJoin(employees, eq(jurnalEntries.teacherId, employees.id))
+      .leftJoin(classes, eq(jurnalEntries.classId, classes.id))
+      .where(and(...conditions)).orderBy(jurnalEntries.date, jurnalEntries.jamKe);
+
+    const statusCounts = { draft: 0, submitted: 0, approved: 0, rejected: 0 };
+    for (const r of results) { if (r.status && r.status in statusCounts) statusCounts[r.status as keyof typeof statusCounts]++; }
+    return { entries: results, summary: { totalEntries: results.length, ...statusCounts } };
+  }
+
+  // ─── Templates ────────────────────────────────────────────────────────
+
+  static async getTemplates(teacherId: string) {
+    return db.select().from(jurnalTemplates).where(eq(jurnalTemplates.teacherId, teacherId)).orderBy(desc(jurnalTemplates.usageCount));
+  }
+
+  static async createTemplate(data: { teacherId: string; subjectName: string; title: string; content: string }) {
+    return (await db.insert(jurnalTemplates).values(data).returning())[0];
+  }
+
+  static async useTemplate(id: string) {
+    await db.update(jurnalTemplates).set({ usageCount: sql`${jurnalTemplates.usageCount} + 1`, updatedAt: new Date() }).where(eq(jurnalTemplates.id, id));
+    return (await db.select().from(jurnalTemplates).where(eq(jurnalTemplates.id, id)).limit(1))[0];
+  }
+
+  static async deleteTemplate(id: string) {
+    return (await db.delete(jurnalTemplates).where(eq(jurnalTemplates.id, id)).returning())[0];
+  }
+}

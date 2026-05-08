@@ -638,3 +638,98 @@ export const attendanceSettings = pgTable("attendance_settings", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
+
+// ═══════════════════════════════════════════════════════════════
+// Jurnal Mengajar (Teaching Journal / KBM)
+// ═══════════════════════════════════════════════════════════════
+
+// Master jadwal mengajar guru (dikelola admin)
+export const teachingSubjects = pgTable("teaching_subjects", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  employeeId: uuid("employee_id").references(() => employees.id, { onDelete: "cascade" }).notNull(),
+  classId: uuid("class_id").references(() => classes.id).notNull(),
+  subjectName: varchar("subject_name", { length: 150 }).notNull(), // e.g. "Matematika"
+  dayOfWeek: integer("day_of_week").notNull(), // 1=Senin, 2=Selasa, ... 6=Sabtu
+  jamKe: varchar("jam_ke", { length: 20 }), // "1-2", "3-4", etc.
+  waktuMulai: time("waktu_mulai"),
+  waktuSelesai: time("waktu_selesai"),
+  semester: varchar("semester", { length: 10 }).default("ganjil"), // ganjil, genap
+  tahunAjaran: varchar("tahun_ajaran", { length: 20 }), // "2025/2026"
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Jurnal entry utama
+export const jurnalEntries = pgTable("jurnal_entries", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  teachingSubjectId: uuid("teaching_subject_id").references(() => teachingSubjects.id),
+  teacherId: uuid("teacher_id").references(() => employees.id).notNull(),
+  classId: uuid("class_id").references(() => classes.id).notNull(),
+  subjectName: varchar("subject_name", { length: 150 }).notNull(),
+  date: date("date").notNull(),
+  jamKe: varchar("jam_ke", { length: 20 }),
+  waktuMulai: time("waktu_mulai"),
+  waktuSelesai: time("waktu_selesai"),
+  linkRpp: text("link_rpp"), // URL ke dokumen RPP
+
+  // Content
+  materiPembelajaran: text("materi_pembelajaran"),
+  metode: varchar("metode", { length: 255 }), // Metode pembelajaran
+  capaianPembelajaran: text("capaian_pembelajaran"),
+  kendalaDanSolusi: text("kendala_dan_solusi"),
+
+  // Catatan & Evaluasi
+  catatan: text("catatan"),
+  evaluasi: text("evaluasi"),
+
+  // Attendance summary (auto-calculated dari jurnalStudentAttendance)
+  jumlahHadir: integer("jumlah_hadir").default(0),
+  jumlahIzin: integer("jumlah_izin").default(0),
+  jumlahSakit: integer("jumlah_sakit").default(0),
+  jumlahAlpa: integer("jumlah_alpa").default(0),
+  totalSiswa: integer("total_siswa").default(0),
+
+  // Status workflow
+  status: varchar("status", { length: 20 }).default("draft"), // draft, submitted, approved, rejected
+  approvedBy: text("approved_by").references(() => user.id),
+  approvedAt: timestamp("approved_at"),
+  rejectionNote: text("rejection_note"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Absensi per mata pelajaran (checklist kehadiran belajar per siswa)
+export const jurnalStudentAttendance = pgTable("jurnal_student_attendance", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  jurnalEntryId: uuid("jurnal_entry_id").references(() => jurnalEntries.id, { onDelete: "cascade" }).notNull(),
+  studentId: uuid("student_id").references(() => studentProfiles.id).notNull(),
+  status: varchar("status", { length: 20 }).notNull(), // Hadir, Izin, Sakit, Alpa
+  note: text("note"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Lampiran/dokumentasi jurnal
+export const jurnalAttachments = pgTable("jurnal_attachments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  jurnalEntryId: uuid("jurnal_entry_id").references(() => jurnalEntries.id, { onDelete: "cascade" }).notNull(),
+  fileType: varchar("file_type", { length: 20 }).notNull(), // photo, video
+  fileUrl: varchar("file_url", { length: 500 }).notNull(),
+  fileName: varchar("file_name", { length: 255 }),
+  fileSize: integer("file_size"), // bytes
+  caption: text("caption"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Template materi reusable
+export const jurnalTemplates = pgTable("jurnal_templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  teacherId: uuid("teacher_id").references(() => employees.id).notNull(),
+  subjectName: varchar("subject_name", { length: 150 }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  usageCount: integer("usage_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});

@@ -32,6 +32,7 @@ import { nisRoutes } from './modules/nis/routes';
 import { examRoutes } from './modules/exams/routes';
 import { ppdbRoutes } from './modules/ppdb/routes';
 import { attendanceRoutes } from './modules/attendance/routes';
+import { jurnalRoutes } from './modules/jurnal/routes';
 
 dotenv.config();
 
@@ -183,6 +184,7 @@ app.use("/api/exams", examRoutes);
 app.use("/api/ppdb", ppdbRoutes);
 app.use("/api/ijazah", ijazahRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/jurnal", jurnalRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -374,6 +376,100 @@ async function runAutoMigration() {
       }
     } catch (seedErr) { /* non-critical */ }
     logger.info("Attendance tables ready.");
+
+    // Auto-create Jurnal Mengajar tables
+    logger.info("Checking jurnal mengajar tables...");
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "teaching_subjects" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        "employee_id" uuid NOT NULL REFERENCES "employees"("id") ON DELETE CASCADE,
+        "class_id" uuid NOT NULL REFERENCES "classes"("id"),
+        "subject_name" varchar(150) NOT NULL,
+        "day_of_week" integer NOT NULL,
+        "jam_ke" varchar(20),
+        "waktu_mulai" time,
+        "waktu_selesai" time,
+        "semester" varchar(10) DEFAULT 'ganjil',
+        "tahun_ajaran" varchar(20),
+        "is_active" boolean DEFAULT true,
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "jurnal_entries" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        "teaching_subject_id" uuid REFERENCES "teaching_subjects"("id"),
+        "teacher_id" uuid NOT NULL REFERENCES "employees"("id"),
+        "class_id" uuid NOT NULL REFERENCES "classes"("id"),
+        "subject_name" varchar(150) NOT NULL,
+        "date" date NOT NULL,
+        "jam_ke" varchar(20),
+        "waktu_mulai" time,
+        "waktu_selesai" time,
+        "link_rpp" text,
+        "materi_pembelajaran" text,
+        "metode" varchar(255),
+        "capaian_pembelajaran" text,
+        "kendala_dan_solusi" text,
+        "catatan" text,
+        "evaluasi" text,
+        "jumlah_hadir" integer DEFAULT 0,
+        "jumlah_izin" integer DEFAULT 0,
+        "jumlah_sakit" integer DEFAULT 0,
+        "jumlah_alpa" integer DEFAULT 0,
+        "total_siswa" integer DEFAULT 0,
+        "status" varchar(20) DEFAULT 'draft',
+        "approved_by" text REFERENCES "user"("id"),
+        "approved_at" timestamp,
+        "rejection_note" text,
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "jurnal_student_attendance" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        "jurnal_entry_id" uuid NOT NULL REFERENCES "jurnal_entries"("id") ON DELETE CASCADE,
+        "student_id" uuid NOT NULL REFERENCES "student_profiles"("id"),
+        "status" varchar(20) NOT NULL,
+        "note" text,
+        "created_at" timestamp DEFAULT now()
+      );
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "jurnal_attachments" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        "jurnal_entry_id" uuid NOT NULL REFERENCES "jurnal_entries"("id") ON DELETE CASCADE,
+        "file_type" varchar(20) NOT NULL,
+        "file_url" varchar(500) NOT NULL,
+        "file_name" varchar(255),
+        "file_size" integer,
+        "caption" text,
+        "created_at" timestamp DEFAULT now()
+      );
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "jurnal_templates" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        "teacher_id" uuid NOT NULL REFERENCES "employees"("id"),
+        "subject_name" varchar(150) NOT NULL,
+        "title" varchar(255) NOT NULL,
+        "content" text NOT NULL,
+        "usage_count" integer DEFAULT 0,
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `);
+    try {
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_jurnal_date ON jurnal_entries(date);`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_jurnal_teacher ON jurnal_entries(teacher_id);`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_jurnal_class ON jurnal_entries(class_id);`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_jurnal_status ON jurnal_entries(status);`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_teaching_employee ON teaching_subjects(employee_id);`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_teaching_day ON teaching_subjects(day_of_week);`);
+    } catch (idxErr) { /* indexes may already exist */ }
+    logger.info("Jurnal mengajar tables ready.");
 
   } catch (err) {
     logger.error({ err }, "Auto-migration failed");

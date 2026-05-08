@@ -48,6 +48,7 @@ const PPDBVerifikasiPage = React.lazy(() => import('./pages/ppdb/PPDBVerifikasiP
 const SystemUpdateCenter = React.lazy(() => import('./pages/dashboard/SystemUpdateCenter').then(m => ({ default: m.SystemUpdateCenter })));
 const PublicScannerPage = React.lazy(() => import('./pages/attendance/PublicScannerPage').then(m => ({ default: m.PublicScannerPage })));
 const DashboardAttendance = React.lazy(() => import('./pages/attendance/DashboardAttendance').then(m => ({ default: m.DashboardAttendance })));
+const DashboardJurnal = React.lazy(() => import('./pages/jurnal/DashboardJurnal').then(m => ({ default: m.DashboardJurnal })));
 const BatchPrintPage = React.lazy(() => import('./pages/BatchPrintPage').then(m => ({ default: m.BatchPrintPage })));
 const PrintAcademicCalendar = React.lazy(() => import('./pages/PrintAcademicCalendar').then(m => ({ default: m.PrintAcademicCalendar })));
 const PrintKartuPeserta = React.lazy(() => import('./pages/exams/print/PrintKartuPeserta').then(m => ({ default: m.PrintKartuPeserta })));
@@ -166,6 +167,7 @@ function App() {
               <Route path="e-office" element={<EOfficePage />} />
               <Route path="exams" element={<ExamManagementPage />} />
               <Route path="attendance" element={<DashboardAttendance />} />
+              <Route path="jurnal" element={<DashboardJurnal />} />
               <Route path="updates" element={<ProtectedRoute allowedRoles={['admin']}><SystemUpdateCenter /></ProtectedRoute>} />
               <Route path="services" element={<DashboardServices />} />
               <Route path="ppdb" element={<PPDBAdminPage />} />

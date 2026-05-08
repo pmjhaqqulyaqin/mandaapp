@@ -31,6 +31,7 @@ import {
   Briefcase,
   BookUser,
   MessageSquareWarning,
+  NotebookPen,
 } from 'lucide-react';
 import { ProfileModal } from '../components/modals/ProfileModal';
 
@@ -84,6 +85,13 @@ const ALL_MENU_ITEMS = [
     label: 'Presensi Siswa',
     href: '/dashboard/attendance',
     icon: <QrCode size={16} />,
+    group: 'main',
+  },
+  {
+    key: 'jurnal',
+    label: 'Jurnal Mengajar',
+    href: '/dashboard/jurnal',
+    icon: <NotebookPen size={16} />,
     group: 'main',
   },
   {
@@ -208,6 +216,7 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'nis': 'nis',
   'employees': 'employees',
   'attendance': 'attendance',
+  'jurnal': 'jurnal',
   'exams': 'exams',
   'ppdb': 'ppdb',
   'ppdb/penilaian': 'penilaian-pmb',
