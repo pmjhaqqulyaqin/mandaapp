@@ -112,7 +112,7 @@ export const DashboardAttendance = () => {
           {activeTab === 'scanner' && (
             <div className="max-w-xl mx-auto bg-white p-4 rounded-xl shadow-sm border border-gray-100">
               <div className="text-center mb-3">
-                <p className="text-xs text-gray-500">Scan pertama = <span className="font-bold text-green-600">Masuk</span> • Scan kedua = <span className="font-bold text-blue-600">Pulang</span></p>
+                <p className="text-xs text-gray-500">Scan 1× = <span className="font-bold text-green-600">Masuk</span> • Scan 2× setelah jam pulang = <span className="font-bold text-blue-600">Pulang</span></p>
               </div>
 
               <ScannerEngine 
