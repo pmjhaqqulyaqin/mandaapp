@@ -30,8 +30,7 @@ export const AttendanceManualInputTab = () => {
     setIsLoading(true);
     try {
       // Fetch students in class
-      const studentsData = await apiClient<any>(`/students?classId=${selectedClass}&limit=100`);
-      const studentsList = studentsData.data || [];
+      const studentsList = await apiClient<any[]>(`/students?classId=${selectedClass}`);
       
       // Fetch existing attendance for the date
       const recapData = await apiClient<any[]>(`/attendance/recap/daily?date=${selectedDate}&classId=${selectedClass}`);

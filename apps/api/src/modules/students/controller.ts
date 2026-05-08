@@ -6,7 +6,8 @@ export class StudentController {
   static async getAll(req: Request, res: Response) {
     try {
       const classFilter = req.query.class as string;
-      const students = await StudentService.getAllStudents(classFilter);
+      const classIdFilter = req.query.classId as string;
+      const students = await StudentService.getAllStudents(classFilter, classIdFilter);
       res.json(students);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch students" });

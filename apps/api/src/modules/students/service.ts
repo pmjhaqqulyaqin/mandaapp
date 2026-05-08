@@ -3,7 +3,10 @@ import { studentProfiles, identityRevisions } from "../../db/schema";
 import { eq, ilike, or } from "drizzle-orm";
 
 export class StudentService {
-  static async getAllStudents(classFilter?: string) {
+  static async getAllStudents(classFilter?: string, classIdFilter?: string) {
+    if (classIdFilter) {
+      return db.select().from(studentProfiles).where(eq(studentProfiles.classId, classIdFilter));
+    }
     if (classFilter) {
       return db.select().from(studentProfiles).where(eq(studentProfiles.className, classFilter));
     }
