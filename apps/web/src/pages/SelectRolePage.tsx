@@ -26,6 +26,18 @@ const SELECTABLE_ROLES = [
       </svg>
     ),
   },
+  {
+    value: 'orang_tua',
+    label: 'Orang Tua / Wali',
+    description: 'Pantau kehadiran, jurnal, dan perkembangan akademik anak Anda.',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        <circle cx="20" cy="8" r="1"/><path d="M20 12v2"/>
+      </svg>
+    ),
+  },
 ];
 
 export const SelectRolePage = () => {
@@ -35,10 +47,10 @@ export const SelectRolePage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // If user already has a non-default role, skip to dashboard
+  // If user already has a non-default role, skip to appropriate page
   useEffect(() => {
     if (user && user.role && user.role !== 'student') {
-      navigate('/dashboard', { replace: true });
+      navigate(user.role === 'orang_tua' ? '/portal-ortu' : '/dashboard', { replace: true });
     }
   }, [user, navigate]);
 
@@ -57,7 +69,7 @@ export const SelectRolePage = () => {
 
       // Refresh session to get updated role
       await refreshSession();
-      navigate('/dashboard', { replace: true });
+      navigate(selectedRole === 'orang_tua' ? '/portal-ortu' : '/dashboard', { replace: true });
     } catch (err: any) {
       setError(err?.message || 'Gagal menyimpan peran. Silakan coba lagi.');
     } finally {

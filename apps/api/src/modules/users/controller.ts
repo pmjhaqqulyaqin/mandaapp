@@ -65,12 +65,13 @@ export function getRolesHandler(_req: Request, res: Response) {
     { value: "kepala_tu", label: "Kepala TU" },
     { value: "pegawai_tu", label: "Pegawai TU" },
     { value: "student", label: "Siswa" },
+    { value: "orang_tua", label: "Orang Tua / Wali" },
   ];
   res.json(roles);
 }
 
 // Allows a new user (non-admin) to select their own role (guru/student only)
-const SELF_SELECTABLE_ROLES = ["guru", "student"];
+const SELF_SELECTABLE_ROLES = ["guru", "student", "orang_tua"];
 
 export async function selectOwnRoleHandler(req: Request, res: Response) {
   try {
