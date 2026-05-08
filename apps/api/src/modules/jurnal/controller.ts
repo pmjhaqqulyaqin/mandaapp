@@ -62,39 +62,108 @@ export class JurnalController {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
 
-  // ─── Excel Import / Template ──────────────────────────────────────────
+  // ─── Excel Import / Template (Grid Format) ─────────────────────────────
+
+  // Default mapel list for MA (editable by admin in the sheet)
+  static readonly DEFAULT_MAPEL: [string, string][] = [
+    ['A', 'Al-Quran Hadits'], ['B', 'Fikih'], ['C', 'Akidah Akhlak'], ['D', 'SKI'],
+    ['E', 'Bahasa Arab'], ['F', 'Pendidikan Pancasila'], ['G', 'Bahasa Indonesia'],
+    ['H', 'Bahasa Inggris'], ['I', 'Matematika'], ['J', 'Sejarah'], ['K', 'Penjaskes'],
+    ['L', 'Seni Budaya'], ['M', 'Prakarya dan Kewirausahaan'], ['N', 'Ilmu Tafsir'],
+    ['O', 'Ilmu Hadits'], ['P', 'Ushul Fikih'], ['Q', 'Ekonomi'], ['R', 'Geografi'],
+    ['S', 'Sosiologi'], ['T', 'Fisika'], ['U', 'Kimia'], ['V', 'Biologi'],
+    ['W', 'Informatika'], ['X', 'Bimbingan Konseling'], ['Y', 'Tahfidz'], ['Z', 'Mulok'],
+  ];
+
+  static readonly DAY_NAMES = ['SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
+  static readonly MAX_JAM = 12;
 
   static async downloadTemplate(_req: Request, res: Response) {
     try {
-      // Fetch employees and classes for reference sheet
       const empList = await db.select({ id: employees.id, name: employees.name }).from(employees);
       const classList = await db.select({ id: classes.id, name: classes.name }).from(classes);
+      const classNames = classList.map(c => c.name).sort();
 
       const wb = xlsx.utils.book_new();
 
-      // Main template sheet
-      const templateData = [
-        ['Nama Guru', 'Kelas', 'Mata Pelajaran', 'Hari (1=Senin..6=Sabtu)', 'Jam Ke', 'Waktu Mulai', 'Waktu Selesai', 'Semester (ganjil/genap)', 'Tahun Ajaran'],
-        ['Contoh: Ahmad S.Pd', 'X IPA 1', 'Matematika', 1, '1-2', '07:30', '09:00', 'ganjil', '2025/2026'],
-      ];
-      const ws = xlsx.utils.aoa_to_sheet(templateData);
-      ws['!cols'] = [
-        { wch: 25 }, { wch: 15 }, { wch: 25 }, { wch: 28 }, { wch: 10 },
-        { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 14 },
-      ];
-      xlsx.utils.book_append_sheet(wb, ws, 'Jadwal Mengajar');
+      // ── Sheet per day (SENIN - SABTU) ──
+      for (const dayName of JurnalController.DAY_NAMES) {
+        const header = ['JAM', ...classNames];
+        const rows: any[][] = [header];
+        for (let jam = 1; jam <= JurnalController.MAX_JAM; jam++) {
+          rows.push([jam, ...classNames.map(() => '')]);
+        }
+        const ws = xlsx.utils.aoa_to_sheet(rows);
+        ws['!cols'] = [{ wch: 6 }, ...classNames.map(() => ({ wch: 10 }))];
+        xlsx.utils.book_append_sheet(wb, ws, dayName);
+      }
 
-      // Reference: Employees
-      const empData = [['Nama Guru', 'ID'], ...empList.map(e => [e.name, e.id])];
-      const wsEmp = xlsx.utils.aoa_to_sheet(empData);
-      wsEmp['!cols'] = [{ wch: 30 }, { wch: 40 }];
-      xlsx.utils.book_append_sheet(wb, wsEmp, 'Ref Guru');
+      // ── Sheet "Kode Guru" ──
+      const guruData: any[][] = [['Kode', 'Nama Guru', 'ID (jangan diedit)']];
+      empList.forEach((e, i) => {
+        guruData.push([i + 1, e.name, e.id]);
+      });
+      const wsGuru = xlsx.utils.aoa_to_sheet(guruData);
+      wsGuru['!cols'] = [{ wch: 6 }, { wch: 35 }, { wch: 40 }];
+      xlsx.utils.book_append_sheet(wb, wsGuru, 'Kode Guru');
 
-      // Reference: Classes
-      const clsData = [['Nama Kelas', 'ID'], ...classList.map(c => [c.name, c.id])];
-      const wsCls = xlsx.utils.aoa_to_sheet(clsData);
-      wsCls['!cols'] = [{ wch: 20 }, { wch: 40 }];
-      xlsx.utils.book_append_sheet(wb, wsCls, 'Ref Kelas');
+      // ── Sheet "Kode Mapel" ──
+      // Pre-fill with existing distinct subjects from DB + defaults
+      let existingSubjects: string[] = [];
+      try {
+        const existing = await db.selectDistinct({ name: (await import('../../db/schema')).teachingSubjects.subjectName })
+          .from((await import('../../db/schema')).teachingSubjects);
+        existingSubjects = existing.map(e => e.name).filter(Boolean);
+      } catch {}
+
+      const mapelMap = new Map(JurnalController.DEFAULT_MAPEL);
+      // Merge existing subjects that aren't in defaults
+      let nextCode = 'A'.charCodeAt(0);
+      const usedCodes = new Set(mapelMap.keys());
+      for (const subj of existingSubjects) {
+        const existing = [...mapelMap.entries()].find(([, v]) => v.toLowerCase() === subj.toLowerCase());
+        if (!existing) {
+          // Find next available letter
+          while (usedCodes.has(String.fromCharCode(nextCode)) && nextCode <= 'Z'.charCodeAt(0)) nextCode++;
+          if (nextCode <= 'Z'.charCodeAt(0)) {
+            const code = String.fromCharCode(nextCode);
+            mapelMap.set(code, subj);
+            usedCodes.add(code);
+            nextCode++;
+          }
+        }
+      }
+
+      const mapelData: any[][] = [['Kode', 'Mata Pelajaran']];
+      for (const [code, name] of mapelMap.entries()) {
+        mapelData.push([code, name]);
+      }
+      const wsMapel = xlsx.utils.aoa_to_sheet(mapelData);
+      wsMapel['!cols'] = [{ wch: 6 }, { wch: 35 }];
+      xlsx.utils.book_append_sheet(wb, wsMapel, 'Kode Mapel');
+
+      // ── Sheet "PETUNJUK" ──
+      const helpData = [
+        ['PETUNJUK PENGISIAN JADWAL MENGAJAR'],
+        [''],
+        ['FORMAT CELL: [NomorGuru][HurufMapel]'],
+        ['Contoh: 3C = Guru #3 (Azanul Haq) mengajar Mapel C (Akidah Akhlak)'],
+        [''],
+        ['LANGKAH:'],
+        ['1. Lihat sheet "Kode Guru" untuk nomor kode guru'],
+        ['2. Lihat sheet "Kode Mapel" untuk huruf kode mata pelajaran'],
+        ['3. Isi setiap cell di sheet hari (SENIN-SABTU) dengan format NomorHuruf'],
+        ['4. Kosongkan cell jika tidak ada jadwal pada jam tersebut'],
+        ['5. Sheet "Kode Mapel" bisa ditambah/diedit sesuai kebutuhan'],
+        [''],
+        ['CONTOH:'],
+        ['  1A = Guru #1 mengajar Al-Quran Hadits'],
+        ['  5I = Guru #5 mengajar Matematika'],
+        ['  12G = Guru #12 mengajar Bahasa Indonesia'],
+      ];
+      const wsHelp = xlsx.utils.aoa_to_sheet(helpData);
+      wsHelp['!cols'] = [{ wch: 60 }];
+      xlsx.utils.book_append_sheet(wb, wsHelp, 'PETUNJUK');
 
       const buf = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
       res.setHeader('Content-Disposition', 'attachment; filename=template_jadwal_mengajar.xlsx');
@@ -109,52 +178,109 @@ export class JurnalController {
       if (!file) return res.status(400).json({ error: 'File Excel diperlukan' });
 
       const wb = xlsx.read(file.buffer, { type: 'buffer' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows: any[] = xlsx.utils.sheet_to_json(ws, { header: 1 });
 
-      // Fetch lookup maps
-      const empList = await db.select({ id: employees.id, name: employees.name }).from(employees);
+      // ── Parse "Kode Guru" sheet ──
+      const guruSheet = wb.Sheets['Kode Guru'];
+      if (!guruSheet) return res.status(400).json({ error: 'Sheet "Kode Guru" tidak ditemukan' });
+      const guruRows: any[] = xlsx.utils.sheet_to_json(guruSheet, { header: 1 });
+      const guruMap = new Map<string, string>(); // kode → employeeId
+      const guruNameMap = new Map<string, string>(); // kode → name
+      for (let i = 1; i < guruRows.length; i++) {
+        const row = guruRows[i];
+        if (!row || !row[0]) continue;
+        const kode = String(row[0]).trim();
+        const name = String(row[1] || '').trim();
+        const id = String(row[2] || '').trim();
+        if (id) {
+          guruMap.set(kode, id);
+          guruNameMap.set(kode, name);
+        }
+      }
+
+      // ── Parse "Kode Mapel" sheet ──
+      const mapelSheet = wb.Sheets['Kode Mapel'];
+      if (!mapelSheet) return res.status(400).json({ error: 'Sheet "Kode Mapel" tidak ditemukan' });
+      const mapelRows: any[] = xlsx.utils.sheet_to_json(mapelSheet, { header: 1 });
+      const mapelMap = new Map<string, string>(); // letter → subject name
+      for (let i = 1; i < mapelRows.length; i++) {
+        const row = mapelRows[i];
+        if (!row || !row[0]) continue;
+        const kode = String(row[0]).trim().toUpperCase();
+        const name = String(row[1] || '').trim();
+        if (name) mapelMap.set(kode, name);
+      }
+
+      // ── Fetch class lookup ──
       const classList = await db.select({ id: classes.id, name: classes.name }).from(classes);
-      const empMap = new Map(empList.map(e => [e.name?.toLowerCase().trim(), e.id]));
-      const classMap = new Map(classList.map(c => [c.name?.toLowerCase().trim(), c.id]));
+      const classMap = new Map(classList.map(c => [c.name?.trim(), c.id]));
 
       const records: any[] = [];
       const errors: string[] = [];
+      const cellRegex = /^(\d+)([A-Za-z]+)$/;
 
-      // Skip header row
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row || !row[0]) continue; // skip empty rows
+      // ── Parse day sheets ──
+      for (let dayIdx = 0; dayIdx < JurnalController.DAY_NAMES.length; dayIdx++) {
+        const dayName = JurnalController.DAY_NAMES[dayIdx];
+        const daySheet = wb.Sheets[dayName];
+        if (!daySheet) continue;
 
-        const guruName = String(row[0] || '').trim();
-        const kelasName = String(row[1] || '').trim();
-        const mapel = String(row[2] || '').trim();
-        const hari = Number(row[3]) || 0;
-        const jamKe = String(row[4] || '').trim();
-        const waktuMulai = String(row[5] || '').trim();
-        const waktuSelesai = String(row[6] || '').trim();
-        const semester = String(row[7] || 'ganjil').trim().toLowerCase();
-        const tahunAjaran = String(row[8] || '').trim();
+        const dayRows: any[] = xlsx.utils.sheet_to_json(daySheet, { header: 1 });
+        if (dayRows.length < 2) continue;
 
-        // Resolve employee
-        let employeeId = empMap.get(guruName.toLowerCase());
-        // Try UUID directly if name doesn't match
-        if (!employeeId && guruName.match(/^[0-9a-f-]{36}$/i)) employeeId = guruName;
-        if (!employeeId) { errors.push(`Baris ${i + 1}: Guru "${guruName}" tidak ditemukan`); continue; }
+        const headerRow = dayRows[0];
+        // Column 0 = JAM, columns 1+ = class names
+        const classColumns: { colIdx: number; classId: string; className: string }[] = [];
+        for (let c = 1; c < headerRow.length; c++) {
+          const className = String(headerRow[c] || '').trim();
+          const cId = classMap.get(className);
+          if (cId) {
+            classColumns.push({ colIdx: c, classId: cId, className });
+          } else if (className) {
+            errors.push(`${dayName}: Kelas "${className}" tidak ditemukan di database`);
+          }
+        }
 
-        // Resolve class
-        let classId = classMap.get(kelasName.toLowerCase());
-        if (!classId && kelasName.match(/^[0-9a-f-]{36}$/i)) classId = kelasName;
-        if (!classId) { errors.push(`Baris ${i + 1}: Kelas "${kelasName}" tidak ditemukan`); continue; }
+        // Parse data rows (jam 1-12)
+        for (let r = 1; r < dayRows.length; r++) {
+          const row = dayRows[r];
+          if (!row) continue;
+          const jam = Number(row[0]);
+          if (!jam || jam < 1 || jam > 12) continue;
 
-        if (!mapel) { errors.push(`Baris ${i + 1}: Mata pelajaran kosong`); continue; }
-        if (hari < 1 || hari > 6) { errors.push(`Baris ${i + 1}: Hari harus 1-6`); continue; }
+          for (const col of classColumns) {
+            const cellValue = String(row[col.colIdx] || '').trim();
+            if (!cellValue) continue; // empty = no schedule
 
-        records.push({
-          employeeId, classId, subjectName: mapel, dayOfWeek: hari,
-          jamKe, waktuMulai: waktuMulai || null, waktuSelesai: waktuSelesai || null,
-          semester, tahunAjaran,
-        });
+            const match = cellValue.match(cellRegex);
+            if (!match) {
+              errors.push(`${dayName} Jam ${jam} ${col.className}: "${cellValue}" format tidak valid (contoh: 3C)`);
+              continue;
+            }
+
+            const guruKode = match[1];
+            const mapelKode = match[2].toUpperCase();
+
+            const employeeId = guruMap.get(guruKode);
+            if (!employeeId) {
+              errors.push(`${dayName} Jam ${jam} ${col.className}: Kode guru "${guruKode}" tidak ditemukan`);
+              continue;
+            }
+
+            const subjectName = mapelMap.get(mapelKode);
+            if (!subjectName) {
+              errors.push(`${dayName} Jam ${jam} ${col.className}: Kode mapel "${mapelKode}" tidak ditemukan`);
+              continue;
+            }
+
+            records.push({
+              employeeId,
+              classId: col.classId,
+              subjectName,
+              dayOfWeek: dayIdx + 1, // 1=Senin, 6=Sabtu
+              jamKe: String(jam),
+            });
+          }
+        }
       }
 
       let imported = 0;
@@ -167,7 +293,7 @@ export class JurnalController {
         success: true,
         imported,
         errors,
-        total: rows.length - 1,
+        total: records.length + errors.length,
         message: `${imported} jadwal berhasil diimpor${errors.length > 0 ? `, ${errors.length} error` : ''}`
       });
     } catch (err: any) { res.status(500).json({ error: err.message }); }

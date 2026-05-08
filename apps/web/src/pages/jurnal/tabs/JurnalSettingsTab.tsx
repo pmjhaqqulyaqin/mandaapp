@@ -12,7 +12,7 @@ export const JurnalSettingsTab = () => {
   const [editId, setEditId] = useState('');
   const [employees, setEmployees] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
-  const [form, setForm] = useState({ employeeId: '', classId: '', subjectName: '', dayOfWeek: 1, jamKe: '', waktuMulai: '', waktuSelesai: '', semester: 'ganjil', tahunAjaran: '2025/2026' });
+  const [form, setForm] = useState({ employeeId: '', classId: '', subjectName: '', dayOfWeek: 1, jamKe: '', waktuMulai: '', waktuSelesai: '' });
   const [filterDay, setFilterDay] = useState(0);
   const [importResult, setImportResult] = useState<{ imported: number; errors: string[]; total: number } | null>(null);
   const [importing, setImporting] = useState(false);
@@ -23,7 +23,7 @@ export const JurnalSettingsTab = () => {
     apiClient<any[]>('/classes').then(setClasses).catch(() => {});
   }, []);
 
-  const resetForm = () => { setForm({ employeeId: '', classId: '', subjectName: '', dayOfWeek: 1, jamKe: '', waktuMulai: '', waktuSelesai: '', semester: 'ganjil', tahunAjaran: '2025/2026' }); setEditId(''); setShowForm(false); };
+  const resetForm = () => { setForm({ employeeId: '', classId: '', subjectName: '', dayOfWeek: 1, jamKe: '', waktuMulai: '', waktuSelesai: '' }); setEditId(''); setShowForm(false); };
 
   const handleSave = async () => {
     if (!form.employeeId || !form.classId || !form.subjectName) { toast.error('Lengkapi data wajib'); return; }
@@ -40,7 +40,7 @@ export const JurnalSettingsTab = () => {
   };
 
   const handleEdit = (item: any) => {
-    setForm({ employeeId: item.employeeId, classId: item.classId, subjectName: item.subjectName, dayOfWeek: item.dayOfWeek, jamKe: item.jamKe || '', waktuMulai: item.waktuMulai || '', waktuSelesai: item.waktuSelesai || '', semester: item.semester || 'ganjil', tahunAjaran: item.tahunAjaran || '2025/2026' });
+    setForm({ employeeId: item.employeeId, classId: item.classId, subjectName: item.subjectName, dayOfWeek: item.dayOfWeek, jamKe: item.jamKe || '', waktuMulai: item.waktuMulai || '', waktuSelesai: item.waktuSelesai || '' });
     setEditId(item.id);
     setShowForm(true);
   };
@@ -175,14 +175,6 @@ export const JurnalSettingsTab = () => {
               <label className="text-[10px] font-semibold text-gray-500 uppercase block mb-1">Jam Ke</label>
               <input type="text" placeholder="1-2" value={form.jamKe} onChange={e => setForm(f => ({ ...f, jamKe: e.target.value }))}
                 className="w-full bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs" />
-            </div>
-            <div>
-              <label className="text-[10px] font-semibold text-gray-500 uppercase block mb-1">Semester</label>
-              <select value={form.semester} onChange={e => setForm(f => ({ ...f, semester: e.target.value }))}
-                className="w-full bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs">
-                <option value="ganjil">Ganjil</option>
-                <option value="genap">Genap</option>
-              </select>
             </div>
           </div>
           <div className="flex gap-2 pt-1">
