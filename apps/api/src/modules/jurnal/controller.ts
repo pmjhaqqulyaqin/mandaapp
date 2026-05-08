@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { JurnalService } from "./service";
 import * as xlsx from "xlsx";
 import { db } from "../../db";
-import { employees, classes } from "../../db/schema";
+import { employees, classes, jurnalMapelCodes } from "../../db/schema";
 
 export class JurnalController {
 
@@ -91,6 +91,48 @@ export class JurnalController {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
 
+  // ─── Mapel Code Management ────────────────────────────────────────────
+
+  static async getMapelCodes(_req: Request, res: Response) {
+    try {
+      const result = await db.select().from(jurnalMapelCodes).orderBy(jurnalMapelCodes.kode);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async upsertMapelCodes(req: Request, res: Response) {
+    try {
+      const { codes } = req.body; // [{kode, subjectName}]
+      if (!Array.isArray(codes)) return res.status(400).json({ error: "codes array required" });
+
+      const { eq } = await import("drizzle-orm");
+      let updated = 0;
+      for (const item of codes) {
+        if (!item.kode || !item.subjectName) continue;
+        // Try update first, then insert
+        if (item.id) {
+          await db.update(jurnalMapelCodes)
+            .set({ kode: item.kode, subjectName: item.subjectName, updatedAt: new Date() })
+            .where(eq(jurnalMapelCodes.id, item.id));
+        } else {
+          await db.insert(jurnalMapelCodes).values({ kode: item.kode, subjectName: item.subjectName })
+            .onConflictDoUpdate({ target: jurnalMapelCodes.kode, set: { subjectName: item.subjectName, updatedAt: new Date() } });
+        }
+        updated++;
+      }
+      res.json({ success: true, updated });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async deleteMapelCode(req: Request, res: Response) {
+    try {
+      const { eq } = await import("drizzle-orm");
+      const result = await db.delete(jurnalMapelCodes).where(eq(jurnalMapelCodes.id, req.params.id)).returning();
+      if (!result.length) return res.status(404).json({ error: "Not found" });
+      res.json(result[0]);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
   // ─── Excel Import / Template (Grid Format) ─────────────────────────────
 
   // Default mapel list for MA (editable by admin in the sheet)
@@ -136,36 +178,12 @@ export class JurnalController {
       wsGuru['!cols'] = [{ wch: 6 }, { wch: 35 }, { wch: 40 }];
       xlsx.utils.book_append_sheet(wb, wsGuru, 'Kode Guru');
 
-      // ── Sheet "Kode Mapel" ──
-      // Pre-fill with existing distinct subjects from DB + defaults
-      let existingSubjects: string[] = [];
-      try {
-        const existing = await db.selectDistinct({ name: (await import('../../db/schema')).teachingSubjects.subjectName })
-          .from((await import('../../db/schema')).teachingSubjects);
-        existingSubjects = existing.map(e => e.name).filter(Boolean);
-      } catch {}
-
-      const mapelMap = new Map(JurnalController.DEFAULT_MAPEL);
-      // Merge existing subjects that aren't in defaults
-      let nextCode = 'A'.charCodeAt(0);
-      const usedCodes = new Set(mapelMap.keys());
-      for (const subj of existingSubjects) {
-        const existing = [...mapelMap.entries()].find(([, v]) => v.toLowerCase() === subj.toLowerCase());
-        if (!existing) {
-          // Find next available letter
-          while (usedCodes.has(String.fromCharCode(nextCode)) && nextCode <= 'Z'.charCodeAt(0)) nextCode++;
-          if (nextCode <= 'Z'.charCodeAt(0)) {
-            const code = String.fromCharCode(nextCode);
-            mapelMap.set(code, subj);
-            usedCodes.add(code);
-            nextCode++;
-          }
-        }
-      }
+      // ── Sheet "Kode Mapel" (from database) ──
+      const mapelCodes = await db.select().from(jurnalMapelCodes).orderBy(jurnalMapelCodes.kode);
 
       const mapelData: any[][] = [['Kode', 'Mata Pelajaran']];
-      for (const [code, name] of mapelMap.entries()) {
-        mapelData.push([code, name]);
+      for (const mc of mapelCodes) {
+        mapelData.push([mc.kode, mc.subjectName]);
       }
       const wsMapel = xlsx.utils.aoa_to_sheet(mapelData);
       wsMapel['!cols'] = [{ wch: 6 }, { wch: 35 }];

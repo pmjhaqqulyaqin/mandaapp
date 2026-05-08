@@ -734,3 +734,12 @@ export const jurnalTemplates = pgTable("jurnal_templates", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
+
+// Kode mata pelajaran untuk template Excel jadwal
+export const jurnalMapelCodes = pgTable("jurnal_mapel_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  kode: varchar("kode", { length: 10 }).notNull().unique(),
+  subjectName: varchar("subject_name", { length: 150 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});

@@ -474,6 +474,33 @@ async function runAutoMigration() {
     // Add kode_guru column to employees if not exists
     await db.execute(sql`ALTER TABLE employees ADD COLUMN IF NOT EXISTS kode_guru VARCHAR(10);`);
 
+    // Create jurnal_mapel_codes table
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS jurnal_mapel_codes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        kode VARCHAR(10) NOT NULL UNIQUE,
+        subject_name VARCHAR(150) NOT NULL,
+        created_at TIMESTAMP DEFAULT now(),
+        updated_at TIMESTAMP DEFAULT now()
+      );
+    `);
+    // Seed default mapel codes if table is empty
+    const mapelCount = await db.execute(sql`SELECT COUNT(*) as cnt FROM jurnal_mapel_codes`);
+    if (Number((mapelCount as any).rows?.[0]?.cnt || 0) === 0) {
+      await db.execute(sql`
+        INSERT INTO jurnal_mapel_codes (kode, subject_name) VALUES
+        ('A','Al-Quran Hadits'),('B','Fikih'),('C','Akidah Akhlak'),('D','SKI'),
+        ('E','Bahasa Arab'),('F','Pendidikan Pancasila'),('G','Bahasa Indonesia'),
+        ('H','Bahasa Inggris'),('I','Matematika'),('J','Sejarah'),('K','Penjaskes'),
+        ('L','Seni Budaya'),('M','Prakarya dan Kewirausahaan'),('N','Ilmu Tafsir'),
+        ('O','Ilmu Hadits'),('P','Ushul Fikih'),('Q','Ekonomi'),('R','Geografi'),
+        ('S','Sosiologi'),('T','Fisika'),('U','Kimia'),('V','Biologi'),
+        ('W','Informatika'),('X','Bimbingan Konseling'),('Y','Tahfidz'),('Z','Mulok')
+        ON CONFLICT (kode) DO NOTHING;
+      `);
+      logger.info("Seeded default mapel codes.");
+    }
+
   } catch (err) {
     logger.error({ err }, "Auto-migration failed");
   }

@@ -33,6 +33,11 @@ router.post("/teaching-subjects/import", memoryUpload.single("file"), JurnalCont
 router.get("/teacher-codes", JurnalController.getTeacherCodes);
 router.put("/teacher-codes", JurnalController.updateTeacherCodes);
 
+// Mapel Codes
+router.get("/mapel-codes", JurnalController.getMapelCodes);
+router.put("/mapel-codes", JurnalController.upsertMapelCodes);
+router.delete("/mapel-codes/:id", JurnalController.deleteMapelCode);
+
 // Jurnal Entries
 router.get("/entries", JurnalController.getJurnalEntries);
 router.post("/entries", JurnalController.createJurnalEntry);
