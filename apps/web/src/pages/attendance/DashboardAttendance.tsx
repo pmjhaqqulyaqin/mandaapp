@@ -202,6 +202,20 @@ export const DashboardAttendance = () => {
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'rekap' | 'settings'>('scan');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Cache student list for offline NIS lookup (runs once on mount)
+  useEffect(() => {
+    if (!navigator.onLine) return;
+    apiClient<any[]>('/students').then(students => {
+      if (students?.length) {
+        const mapped = students.map((s: any) => ({
+          id: s.id, nis: s.nis, fullName: s.fullName,
+          className: s.class?.name || s.className || '',
+        }));
+        offlineCache.cacheStudents(mapped).catch(() => {});
+      }
+    }).catch(() => {});
+  }, []);
+
   // Smart NIS extractor: handles NIS-only QR (new), verbose QR (old cards), and barcode
   const extractNIS = (raw: string): string => {
     const trimmed = raw.trim();
