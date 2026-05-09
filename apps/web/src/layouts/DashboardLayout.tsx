@@ -36,6 +36,45 @@ import {
 } from 'lucide-react';
 import { ProfileModal } from '../components/modals/ProfileModal';
 
+// ── Standalone Network Status Icon ──
+const NetworkStatusIcon = () => {
+  const { isOnline, pendingCount, isSyncing } = useNetworkStatus();
+
+  if (isSyncing) {
+    return (
+      <div className="relative" title={`Menyinkronkan ${pendingCount} data...`}>
+        <Loader2 size={16} className="text-blue-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isOnline) {
+    return (
+      <div className="relative" title={`Offline — ${pendingCount} data menunggu sync`}>
+        <WifiOff size={16} className="text-orange-500" />
+        {pendingCount > 0 && (
+          <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-orange-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center animate-pulse">
+            {pendingCount > 9 ? '9+' : pendingCount}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  if (pendingCount > 0) {
+    return (
+      <div className="relative" title={`Online — ${pendingCount} data menunggu sync`}>
+        <CloudOff size={16} className="text-amber-500" />
+        <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-amber-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+          {pendingCount > 9 ? '9+' : pendingCount}
+        </span>
+      </div>
+    );
+  }
+
+  return null;
+};
+
 // All menu items definition with their route paths and icons
 const ALL_MENU_ITEMS = [
   {
@@ -409,49 +448,6 @@ export const DashboardLayout = () => {
   // Items not in any category (catch-all)
   const categorizedKeys = new Set([...frequentKeys, ...infoKeys, ...siswaKeys, ...layananKeys, 'overview']);
   const uncategorizedItems = mainMenuItems.filter(i => !categorizedKeys.has(i.key));
-
-  // ── Network Status Icon (compact, no banner) ──
-  const NetworkStatusIcon = () => {
-    const { isOnline, pendingCount, isSyncing } = useNetworkStatus();
-    // Only show for guru/tendik, not admin
-    const showIndicator = user?.role && !['admin'].includes(user.role);
-    if (!showIndicator) return null;
-
-    if (isSyncing) {
-      return (
-        <div className="relative" title={`Menyinkronkan ${pendingCount} data...`}>
-          <Loader2 size={16} className="text-blue-500 animate-spin" />
-        </div>
-      );
-    }
-
-    if (!isOnline) {
-      return (
-        <div className="relative" title={`Offline — ${pendingCount} data menunggu sync`}>
-          <WifiOff size={16} className="text-orange-500" />
-          {pendingCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-orange-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center animate-pulse">
-              {pendingCount > 9 ? '9+' : pendingCount}
-            </span>
-          )}
-        </div>
-      );
-    }
-
-    if (pendingCount > 0) {
-      return (
-        <div className="relative" title={`Online — ${pendingCount} data menunggu sync`}>
-          <CloudOff size={16} className="text-amber-500" />
-          <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-amber-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
-            {pendingCount > 9 ? '9+' : pendingCount}
-          </span>
-        </div>
-      );
-    }
-
-    // Online and no pending — show subtle green wifi (or hide entirely)
-    return null;
-  };
 
   return (
     <div className="flex h-[100dvh] print:h-auto print:min-h-0 w-screen print:w-full overflow-hidden print:overflow-visible print:block bg-gray-50 dark:bg-[#050505] relative">
