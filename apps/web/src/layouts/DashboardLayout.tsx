@@ -774,7 +774,8 @@ export const DashboardLayout = () => {
 
       <ProfileModal 
         isOpen={isProfileModalOpen} 
-        onClose={() => setIsProfileModalOpen(false)} 
+        onClose={() => setIsProfileModalOpen(false)}
+        onLogout={handleLogout}
       />
 
       {/* CSS for sidebar hover — transitions ONLY on hover, not on active state change */}

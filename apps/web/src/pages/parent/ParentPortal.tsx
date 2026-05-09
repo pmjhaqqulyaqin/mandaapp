@@ -142,8 +142,8 @@ export const ParentPortal = () => {
   function renderPairModal() {
     if (!showPairModal) return null;
     return (
-      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowPairModal(false)}>
-        <div className="bg-white dark:bg-[#111] rounded-2xl p-6 w-full max-w-md border border-gray-200 dark:border-[#333]" onClick={e => e.stopPropagation()}>
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={() => setShowPairModal(false)}>
+        <div className="bg-white dark:bg-[#111] rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 w-full sm:max-w-md border border-gray-200 dark:border-[#333]" onClick={e => e.stopPropagation()}>
           <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <UserPlus size={18} className="text-indigo-600" /> Hubungkan Anak
           </h3>
@@ -270,7 +270,9 @@ export const ParentPortal = () => {
               <div key={i} className={`aspect-square flex items-center justify-center rounded-lg text-xs font-bold relative
                 ${!cell ? '' : cell.status ? `${STATUS_BG[cell.status] || 'bg-gray-100 text-gray-600'}` : 'text-gray-400'}`}
                 title={cell?.status ? `${cell.status}${cell.checkIn ? ' (' + cell.checkIn.slice(0,5) + ')' : ''}` : ''}>
-                {cell?.day || ''}
+                <div className="text-center text-[10px] font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                  {cell?.day || ''}
+                </div>
               </div>
             ))}
           </div>
@@ -308,7 +310,7 @@ export const ParentPortal = () => {
             ) : (
               <div className="space-y-1.5">
                 {schedule.map((s, i) => (
-                  <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-gray-50/50 dark:bg-white/[0.02]">
+                  <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50/50 dark:bg-white/[0.02] border border-gray-100/50 dark:border-[#222]/50">
                     <span className="text-xs font-mono text-gray-500 w-10">{s.time?.slice(0, 5)}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{s.subject}</p>
@@ -334,7 +336,7 @@ export const ParentPortal = () => {
             ) : (
               <div className="space-y-2">
                 {jurnals.map((j, i) => (
-                  <details key={i} className="group rounded-lg border border-gray-100 dark:border-[#222] overflow-hidden">
+                  <details key={i} open className="group rounded-xl border border-gray-100 dark:border-[#222] overflow-hidden">
                     <summary className="px-3 py-2 cursor-pointer flex items-center justify-between bg-gray-50/50 dark:bg-white/[0.02] hover:bg-gray-100 dark:hover:bg-white/5">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{j.subjectName}</span>

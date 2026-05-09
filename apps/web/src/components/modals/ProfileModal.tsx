@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { authClient } from '../../lib/auth-client';
-import { X, Lock, User as UserIcon, Mail, ShieldAlert } from 'lucide-react';
+import { X, Lock, User as UserIcon, Mail, ShieldAlert, LogOut } from 'lucide-react';
 
 interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onLogout?: () => void;
 }
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, onLogout }) => {
   const { user, refreshSession } = useAuth();
   
   const [name, setName] = useState(user?.name || '');
@@ -110,19 +111,32 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
       <div 
-        className="bg-white dark:bg-[#111111] w-full max-w-md rounded-2xl shadow-xl flex flex-col border border-border-light dark:border-border-dark overflow-hidden animate-in slide-in-from-bottom-4 duration-300"
+        className="bg-white dark:bg-[#111111] w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-xl flex flex-col border border-border-light dark:border-border-dark overflow-hidden animate-in slide-in-from-bottom-4 duration-300 max-h-[92vh] sm:max-h-[85vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between border-b border-border-light dark:border-border-dark dark:bg-[#161616] bg-gray-50/50">
-          <h2 className="text-lg font-semibold text-text-primary dark:text-text-darkPrimary leading-none">
-            Pengaturan Profil
-          </h2>
+        {/* Drag handle (mobile) */}
+        <div className="sm:hidden flex justify-center pt-2 pb-1">
+          <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+        </div>
+
+        {/* Header with user info */}
+        <div className="px-5 py-3 sm:px-6 sm:py-4 flex items-center justify-between border-b border-border-light dark:border-border-dark dark:bg-[#161616] bg-gray-50/50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-center text-sm font-bold uppercase shrink-0 shadow-sm">
+              {user?.name?.charAt(0) || '?'}
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-[15px] font-bold text-text-primary dark:text-text-darkPrimary leading-tight truncate">
+                {user?.name}
+              </h2>
+              <p className="text-[11px] font-medium text-primary leading-tight">{roleLabel}</p>
+            </div>
+          </div>
           <button 
             onClick={onClose}
-            className="p-1.5 rounded-lg text-text-secondary hover:bg-gray-100 dark:hover:bg-[#202020] transition-colors"
+            className="p-2 rounded-lg text-text-secondary hover:bg-gray-100 dark:hover:bg-[#202020] transition-colors active:scale-95"
           >
             <X size={18} />
           </button>
@@ -131,13 +145,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
         {/* Tabs */}
         <div className="flex border-b border-border-light dark:border-border-dark">
             <button
-                className={`flex-1 py-3 text-[13px] font-medium transition-colors ${activeTab === 'profile' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary hover:bg-gray-50 border-b-2 border-transparent dark:hover:bg-[#161616]'}`}
+                className={`flex-1 py-3 text-[13px] font-semibold transition-colors active:scale-95 ${activeTab === 'profile' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-text-secondary border-b-2 border-transparent'}`}
                 onClick={() => { setActiveTab('profile'); setError(''); setSuccess(''); }}
             >
                 Informasi Dasar
             </button>
             <button
-                className={`flex-1 py-3 text-[13px] font-medium transition-colors ${activeTab === 'password' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary hover:bg-gray-50 border-b-2 border-transparent dark:hover:bg-[#161616]'}`}
+                className={`flex-1 py-3 text-[13px] font-semibold transition-colors active:scale-95 ${activeTab === 'password' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-text-secondary border-b-2 border-transparent'}`}
                 onClick={() => { setActiveTab('password'); setError(''); setSuccess(''); }}
             >
                 Ubah Password
@@ -145,7 +159,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
         </div>
 
         {/* Content */}
-        <div className="px-6 py-5">
+        <div className="px-5 py-4 sm:px-6 sm:py-5 overflow-y-auto">
             {error && (
                 <div className="mb-4 p-3 rounded-lg bg-error/10 border border-error/20 flex items-start gap-2.5">
                     <ShieldAlert size={16} className="text-error mt-0.5 shrink-0" />
@@ -276,6 +290,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                 </form>
             )}
         </div>
+
+        {/* Logout button — visible on mobile for easy access */}
+        {onLogout && (
+          <div className="sm:hidden px-5 py-3 border-t border-border-light dark:border-border-dark">
+            <button
+              onClick={onLogout}
+              className="w-full py-2.5 text-[14px] font-semibold text-error hover:bg-error/10 rounded-xl transition-colors flex items-center justify-center gap-2 active:scale-95"
+            >
+              <LogOut size={16} /> Keluar dari Akun
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

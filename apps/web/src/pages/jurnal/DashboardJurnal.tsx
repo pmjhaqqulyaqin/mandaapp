@@ -20,11 +20,11 @@ export const DashboardJurnal = () => {
   const [activeTab, setActiveTab] = useState<TabKey>(canInput ? 'input' : isLeadership ? 'monitoring' : 'list');
 
   const tabs: { key: TabKey; icon: React.ReactNode; label: string; visible: boolean }[] = [
-    { key: 'input', icon: <PenLine size={13} />, label: 'Input', visible: canInput },
-    { key: 'list', icon: <List size={13} />, label: 'Daftar', visible: true },
-    { key: 'monitoring', icon: <Activity size={13} />, label: 'Monitoring', visible: isAdmin || isLeadership },
-    { key: 'rekap', icon: <BarChart3 size={13} />, label: 'Rekap', visible: isAdmin || isLeadership || role === 'wali_kelas' },
-    { key: 'settings', icon: <Settings size={13} />, label: 'Jadwal', visible: isAdmin },
+    { key: 'input', icon: <PenLine size={15} />, label: 'Input', visible: canInput },
+    { key: 'list', icon: <List size={15} />, label: 'Daftar', visible: true },
+    { key: 'monitoring', icon: <Activity size={15} />, label: 'Monitoring', visible: isAdmin || isLeadership },
+    { key: 'rekap', icon: <BarChart3 size={15} />, label: 'Rekap', visible: isAdmin || isLeadership || role === 'wali_kelas' },
+    { key: 'settings', icon: <Settings size={15} />, label: 'Jadwal', visible: isAdmin },
   ];
 
   const visibleTabs = tabs.filter(t => t.visible);
@@ -45,18 +45,18 @@ export const DashboardJurnal = () => {
       </div>
 
       <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl overflow-hidden shadow-sm">
-        {/* Segmented Control */}
-        <div className="p-2.5 md:p-3 border-b border-gray-100 dark:border-[#222] bg-gray-50/80 dark:bg-[#0d0d0d]">
+        {/* Segmented Control - Mobile Optimized */}
+        <div className="p-2 md:p-3 border-b border-gray-100 dark:border-[#222] bg-gray-50/80 dark:bg-[#0d0d0d]">
           <div className="flex overflow-x-auto no-scrollbar">
-            <div className="inline-flex gap-1 p-0.5 bg-gray-200/70 dark:bg-[#1a1a1a] rounded-lg mx-auto">
+            <div className="inline-flex w-full md:w-auto gap-1 p-0.5 bg-gray-200/70 dark:bg-[#1a1a1a] rounded-xl">
               {visibleTabs.map(tab => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`relative flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold whitespace-nowrap rounded-md transition-all duration-200 ${
+                  className={`relative flex items-center justify-center gap-1.5 flex-1 md:flex-initial px-3 md:px-4 py-2.5 md:py-2 text-[12px] font-semibold whitespace-nowrap rounded-lg transition-all duration-200 active:scale-95 ${
                     activeTab === tab.key
                       ? 'bg-white dark:bg-[#2a2a2a] text-emerald-600 dark:text-emerald-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                      : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
                   {tab.icon}
