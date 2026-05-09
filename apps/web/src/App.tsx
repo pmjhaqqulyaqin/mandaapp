@@ -183,7 +183,7 @@ function App() {
         </Suspense>
         <FloatingActionButton />
         <ScrollToTopButton />
-        <Toaster richColors position="top-right" />
+        <Toaster richColors position="top-center" toastOptions={{ className: 'text-sm', style: { maxWidth: '92vw' } }} />
         <PwaInstallPrompt />
       </Router>
     </AuthProvider>

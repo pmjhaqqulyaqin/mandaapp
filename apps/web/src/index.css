@@ -275,6 +275,61 @@ main .text-xs { font-size: 0.6875rem !important; }
   main .p-6 { padding: 0.75rem !important; }
   main .gap-6 { gap: 0.75rem !important; }
   main h1 { font-size: 1.125rem !important; }
+
+  /* ── Mobile Touch Targets (min 44px) ── */
+  main button:not([class*="p-0"]):not([class*="rounded-full"]):not([class*="w-1"]) {
+    min-height: 40px;
+  }
+  main select,
+  main input[type="text"],
+  main input[type="email"],
+  main input[type="password"],
+  main input[type="search"],
+  main input[type="number"],
+  main input[type="date"],
+  main textarea {
+    min-height: 42px;
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+
+  /* ── Page content fade-in animation ── */
+  main > div > div {
+    animation: mobilePageIn 0.2s ease-out;
+  }
+
+  /* ── Active press feedback for cards ── */
+  main .rounded-xl:active:not(table):not(thead):not(tbody),
+  main .rounded-2xl:active:not(table):not(thead):not(tbody) {
+    transform: scale(0.985);
+    transition: transform 0.08s ease;
+  }
+
+  /* ── Action icon buttons — bigger touch area on mobile ── */
+  main button[title] {
+    padding: 0.5rem !important;
+    min-width: 36px;
+    min-height: 36px;
+  }
+  main button[title] svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+}
+
+@keyframes mobilePageIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Mobile: momentum scrolling & thin scrollbar ── */
+@media (max-width: 768px) {
+  .custom-scrollbar {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════

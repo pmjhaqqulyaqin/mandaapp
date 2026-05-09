@@ -6,6 +6,13 @@ export default {
     "../../packages/ui/src/**/*.{js,ts,jsx,tsx}"
   ],
   darkMode: 'class',
+  safelist: [
+    // Gradient directions used in dynamic menu icon colors
+    'bg-gradient-to-br',
+    // From/To color classes used dynamically in MENU_ICON_COLORS
+    { pattern: /from-(blue|orange|pink|rose|red|cyan|teal|emerald|lime|green|violet|indigo|amber|purple|sky|yellow|fuchsia|slate|stone|gray)-(400|500|600)/ },
+    { pattern: /to-(blue|orange|pink|rose|red|cyan|teal|emerald|lime|green|violet|indigo|amber|purple|sky|yellow|fuchsia|slate|stone|gray)-(400|500|600)/ },
+  ],
   theme: {
     extend: {
       colors: {

@@ -120,7 +120,37 @@ export const DashboardOverview = () => {
             </div>
           )}
         </div>
-        <div className="overflow-x-auto max-h-[320px] overflow-y-auto">
+        {/* Mobile: Card list view */}
+        <div className="md:hidden p-2.5 space-y-2 max-h-[320px] overflow-y-auto">
+          {!classroom || classroom.schedules.length === 0 ? (
+            <div className="p-6 text-center text-gray-400 text-sm">Tidak ada jadwal hari ini</div>
+          ) : (
+            classroom.schedules.map((s: any, i: number) => (
+              <div key={i} className={`flex items-center gap-3 p-2.5 rounded-xl border transition-colors ${
+                s.isFilled ? 'border-gray-100 dark:border-[#222] bg-white dark:bg-[#111]' : 'border-red-200/60 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10'
+              }`}>
+                <div className="text-center shrink-0 w-11">
+                  <div className="text-[11px] font-mono font-bold text-gray-700 dark:text-gray-300">{s.time?.slice(0, 5)}</div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-bold text-gray-800 dark:text-gray-200 truncate">{s.subject}</p>
+                  <p className="text-[10px] text-gray-500 truncate">{s.className} • {s.teacherName || '-'}</p>
+                </div>
+                {s.isFilled ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 text-[10px] font-bold shrink-0">
+                    <CheckCircle2 size={10} /> Terisi
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400 text-[10px] font-bold shrink-0 animate-pulse">
+                    <XCircle size={10} /> Kosong
+                  </span>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+        {/* Desktop: Table view */}
+        <div className="hidden md:block overflow-x-auto max-h-[320px] overflow-y-auto">
           {!classroom || classroom.schedules.length === 0 ? (
             <div className="p-8 text-center text-gray-400 text-sm">Tidak ada jadwal hari ini</div>
           ) : (
@@ -187,12 +217,12 @@ export const DashboardOverview = () => {
           <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
             <TrendingUp size={16} className="text-indigo-500" /> Statistik Kehadiran 7 Hari
           </h3>
-          <div className="h-56">
+          <div className="h-40 md:h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weeklyStats} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} />
                 <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }} />
                 <Bar dataKey="Hadir" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} />
                 <Bar dataKey="Terlambat" stackId="a" fill="#f59e0b" />
@@ -209,14 +239,14 @@ export const DashboardOverview = () => {
             <UserCheck size={16} className="text-emerald-500" /> Hari Ini
           </h3>
           {todayPieData.length > 0 ? (
-            <div className="h-52">
+            <div className="h-40 md:h-52">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={todayPieData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} dataKey="value">
+                  <Pie data={todayPieData} cx="50%" cy="50%" innerRadius={35} outerRadius={55} paddingAngle={3} dataKey="value">
                     {todayPieData.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
                   </Pie>
                   <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', fontSize: '12px' }} />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: '11px' }} />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -237,15 +267,15 @@ export const DashboardOverview = () => {
           {activities.length === 0 ? (
             <div className="p-6 text-center text-gray-400 text-sm">Belum ada aktivitas</div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
               {activities.map((act, i) => (
-                <div key={i} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                <div key={i} className="flex items-start gap-2.5 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                   <div className="mt-0.5 shrink-0">{activityIcon(act.type)}</div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{act.title}</p>
-                    <p className="text-[10px] text-gray-500 truncate">{act.detail}</p>
+                    <p className="text-[13px] md:text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{act.title}</p>
+                    <p className="text-[11px] md:text-[10px] text-gray-500 truncate">{act.detail}</p>
                   </div>
-                  <span className="text-[9px] text-gray-400 whitespace-nowrap mt-0.5">
+                  <span className="text-[10px] md:text-[9px] text-gray-400 whitespace-nowrap mt-0.5">
                     {act.time ? new Date(act.time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : ''}
                   </span>
                 </div>
