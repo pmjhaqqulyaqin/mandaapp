@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useEvents } from '../hooks/api/useEvents';
 import { useSiteSettings } from '../hooks/api/useSettings';
 import { SchoolEvent } from '../lib/services/events';
+import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 
 // ── Category Config ──
@@ -54,6 +55,8 @@ function parseDate(s: string) {
 // ── Main Component ──
 export const DashboardCalendar = () => {
   const { get } = useSiteSettings();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   // Academic year from settings
   const activeAcademicYear = get('active_academic_year', '2025/2026');
@@ -292,7 +295,8 @@ export const DashboardCalendar = () => {
               <option key={y} value={y}>TA {y}</option>
             ))}
           </select>
-          {/* Print Button */}
+          {/* Print Button - Admin Only */}
+          {isAdmin && (
           <div className="relative" ref={printRef}>
             <button
               onClick={() => setPrintDropdownOpen(!printDropdownOpen)}
@@ -319,6 +323,7 @@ export const DashboardCalendar = () => {
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
 
@@ -365,8 +370,8 @@ export const DashboardCalendar = () => {
                 return (
                   <div
                     key={idx}
-                    onClick={() => cell.isCurrentMonth && openAddModal(cell.date)}
-                    className={`min-h-[80px] sm:min-h-[100px] border-b border-r border-border-light dark:border-border-dark p-1 sm:p-1.5 cursor-pointer hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors relative group ${
+                    onClick={() => isAdmin && cell.isCurrentMonth && openAddModal(cell.date)}
+                    className={`min-h-[80px] sm:min-h-[100px] border-b border-r border-border-light dark:border-border-dark p-1 sm:p-1.5 ${isAdmin ? 'cursor-pointer hover:bg-primary/5 dark:hover:bg-primary/10' : ''} transition-colors relative group ${
                       !cell.isCurrentMonth ? 'opacity-30 bg-gray-50/50 dark:bg-white/[0.02]' : ''
                     }`}
                   >
@@ -380,8 +385,8 @@ export const DashboardCalendar = () => {
                       {dayEvents.slice(0, 3).map((ev, evIdx) => (
                         <button
                           key={ev.id + evIdx}
-                          onClick={(e) => { e.stopPropagation(); openEditModal(ev); }}
-                          className="w-full text-left text-[10px] sm:text-[11px] leading-tight font-medium px-1.5 py-0.5 rounded truncate block transition-opacity hover:opacity-80"
+                          onClick={(e) => { e.stopPropagation(); if (isAdmin) openEditModal(ev); }}
+                          className={`w-full text-left text-[10px] sm:text-[11px] leading-tight font-medium px-1.5 py-0.5 rounded truncate block transition-opacity hover:opacity-80 ${isAdmin ? 'cursor-pointer' : 'cursor-default'}`}
                           style={{ backgroundColor: getCategoryColor(ev.category, ev.color) + '22', color: getCategoryColor(ev.category, ev.color), borderLeft: `3px solid ${getCategoryColor(ev.category, ev.color)}` }}
                           title={ev.title}
                         >
@@ -392,10 +397,12 @@ export const DashboardCalendar = () => {
                         <span className="text-[9px] text-text-secondary font-medium pl-1">+{dayEvents.length - 3} lainnya</span>
                       )}
                     </div>
-                    {/* Hover plus icon */}
+                    {/* Hover plus icon - Admin only */}
+                    {isAdmin && (
                     <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <span className="text-primary text-lg leading-none">+</span>
                     </div>
+                    )}
                   </div>
                 );
               })}

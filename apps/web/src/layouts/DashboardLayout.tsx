@@ -8,6 +8,7 @@ import {
   Home,
   Newspaper,
   Calendar,
+  CalendarDays,
   CreditCard,
   Image as ImageIcon,
   MessageSquare,
@@ -25,12 +26,7 @@ import {
   GraduationCap,
   Star,
   LayoutGrid,
-  Globe,
   BookOpen,
-  Search,
-  Briefcase,
-  BookUser,
-  MessageSquareWarning,
   NotebookPen,
 } from 'lucide-react';
 import { ProfileModal } from '../components/modals/ProfileModal';
@@ -223,18 +219,6 @@ const MENU_ICON_COLORS: Record<string, { bg: string; text: string }> = {
   'updates':       { bg: 'bg-gradient-to-br from-emerald-500 to-teal-600',    text: 'text-white' },
 };
 
-const LAYANAN_ICON_COLORS = [
-  'bg-gradient-to-br from-blue-400 to-blue-500',
-  'bg-gradient-to-br from-emerald-400 to-emerald-500',
-  'bg-gradient-to-br from-amber-400 to-amber-500',
-  'bg-gradient-to-br from-purple-400 to-purple-500',
-  'bg-gradient-to-br from-cyan-400 to-cyan-500',
-  'bg-gradient-to-br from-rose-400 to-rose-500',
-  'bg-gradient-to-br from-indigo-400 to-indigo-500',
-  'bg-gradient-to-br from-red-400 to-red-500',
-  'bg-gradient-to-br from-teal-400 to-teal-500',
-];
-
 // Map route segments to menu keys for route protection
 const ROUTE_TO_MENU_KEY: Record<string, string> = {
   '': 'overview',
@@ -267,7 +251,7 @@ export const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [activeBottomSheet, setActiveBottomSheet] = useState<'menu' | 'layanan' | 'siswa' | null>(null);
+  const [activeBottomSheet, setActiveBottomSheet] = useState<'menu' | null>(null);
   
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -395,50 +379,31 @@ export const DashboardLayout = () => {
     if (idx > -1) finalAllowedMenusForRender.splice(idx, 1);
   }
 
-  const siswaMenuKeys = ['students', 'nis', 'ijazah', 'student-card', 'ppdb', 'penilaian-pmb', 'attendance'];
-  const topMobileNavKeys = ['news', 'gallery', 'students', 'ptsp'];
-
   const mainMenuItems = ALL_MENU_ITEMS.filter((item) => 
     item.group === 'main' && 
     finalAllowedMenusForRender.includes(item.key)
   );
-
-  const tombolSaktiMenuItems = mainMenuItems.filter((item) => 
-    !siswaMenuKeys.includes(item.key) &&
-    !topMobileNavKeys.includes(item.key)
-  );
   const systemMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'system' && finalAllowedMenusForRender.includes(item.key));
 
-  const SISWA_MENUS = ALL_MENU_ITEMS.filter(item => siswaMenuKeys.includes(item.key) && finalAllowedMenusForRender.includes(item.key));
+  // ── Categorized menu sections for unified grid ──
+  const frequentKeys = ['jurnal', 'attendance', 'employees', 'e-office'];
+  const infoKeys = ['news', 'gallery', 'contacts', 'calendar'];
+  const siswaKeys = ['students', 'student-card', 'nis', 'ijazah', 'ppdb', 'penilaian-pmb'];
+  const layananKeys = ['ptsp', 'exams'];
 
-  const LAYANAN_MENUS = [
-    { label: 'Suket', icon: <FileText />, href: '/dashboard/services' },
-    { label: 'Legalisir', icon: <Globe />, href: '/dashboard/services' },
-    { label: 'Izin Siswa', icon: <BookOpen />, href: '/dashboard/services' },
-    { label: 'Izin Pen.', icon: <Search />, href: '/dashboard/services' },
-    { label: 'Sosialisasi', icon: <Users />, href: '/dashboard/services' },
-    { label: 'Izin Magang', icon: <Briefcase />, href: '/dashboard/services' },
-    { label: 'Buku Tamu', icon: <BookUser />, href: '/dashboard/services' },
-    { label: 'Pengaduan', icon: <MessageSquareWarning />, href: '/dashboard/services' },
-    { label: 'Survey', icon: <ClipboardCheck />, href: '/dashboard/services' },
+  const menuSections = [
+    { title: 'Sering Diakses', keys: frequentKeys },
+    { title: 'Informasi', keys: infoKeys },
+    { title: 'Kesiswaan', keys: siswaKeys },
+    { title: 'Layanan', keys: layananKeys },
   ];
 
-  const mobileNavItemsMap = new Map(
-    ALL_MENU_ITEMS
-      .filter(item => topMobileNavKeys.includes(item.key) && finalAllowedMenusForRender.includes(item.key))
-      .map(item => [item.key, item])
-  );
-  
-  const leftNavItems = [mobileNavItemsMap.get('news'), mobileNavItemsMap.get('gallery')].filter(Boolean);
-  const rightNavItems = [mobileNavItemsMap.get('students'), mobileNavItemsMap.get('ptsp')].filter(Boolean);
+  const getMenuItemsByKeys = (keys: string[]) =>
+    keys.map(k => mainMenuItems.find(i => i.key === k)).filter(Boolean) as typeof mainMenuItems;
 
-  const getMobileLabel = (key: string, originalLabel: string) => {
-    if (key === 'news') return 'Berita';
-    if (key === 'gallery') return 'Galeri';
-    if (key === 'students') return 'Siswa';
-    if (key === 'ptsp') return 'Layanan';
-    return originalLabel.split(' ')[0];
-  };
+  // Items not in any category (catch-all)
+  const categorizedKeys = new Set([...frequentKeys, ...infoKeys, ...siswaKeys, ...layananKeys, 'overview']);
+  const uncategorizedItems = mainMenuItems.filter(i => !categorizedKeys.has(i.key));
 
   return (
     <div className="flex h-[100dvh] print:h-auto print:min-h-0 w-screen print:w-full overflow-hidden print:overflow-visible print:block bg-gray-50 dark:bg-[#050505] relative">
@@ -574,23 +539,29 @@ export const DashboardLayout = () => {
       {/* --- MOBILE UI COMPONENTS --- */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-border-light dark:border-border-dark z-50 flex items-center justify-evenly px-1 pb-safe shadow-[0_-8px_30px_rgba(0,0,0,0.08)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.4)]">
         
-        {/* Left Items */}
-        {leftNavItems.map(item => item && (() => {
-          const isActive = location.pathname.startsWith(item.href) && activeBottomSheet === null;
+        {/* Beranda */}
+        {(() => {
+          const isActive = location.pathname === '/dashboard' && activeBottomSheet === null;
           return (
-            <button
-              key={item.key}
-              onClick={() => { setActiveBottomSheet(null); navigate(item.href); }}
-              className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-200 active:scale-95 ${isActive ? 'text-primary' : 'text-text-secondary'}`}
-            >
-              <div className={`[&>svg]:w-[22px] [&>svg]:h-[22px] flex items-center justify-center ${isActive ? '[&>svg]:stroke-[2.5]' : ''}`}>
-                {item.icon}
-              </div>
-              <span className="text-[11px] font-semibold leading-none">{getMobileLabel(item.key, item.label)}</span>
+            <button onClick={() => { setActiveBottomSheet(null); navigate('/dashboard'); }} className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-200 active:scale-95 ${isActive ? 'text-primary' : 'text-text-secondary'}`}>
+              <div className={`[&>svg]:w-[22px] [&>svg]:h-[22px] flex items-center justify-center ${isActive ? '[&>svg]:stroke-[2.5]' : ''}`}><Home /></div>
+              <span className="text-[11px] font-semibold leading-none">Beranda</span>
               <div className={`w-1 h-1 rounded-full transition-all duration-300 ${isActive ? 'bg-primary scale-100' : 'bg-transparent scale-0'}`} />
             </button>
           );
-        })())}
+        })()}
+
+        {/* Jurnal */}
+        {(() => {
+          const isActive = location.pathname.startsWith('/dashboard/jurnal') && activeBottomSheet === null;
+          return (
+            <button onClick={() => { setActiveBottomSheet(null); navigate('/dashboard/jurnal'); }} className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-200 active:scale-95 ${isActive ? 'text-primary' : 'text-text-secondary'}`}>
+              <div className={`[&>svg]:w-[22px] [&>svg]:h-[22px] flex items-center justify-center ${isActive ? '[&>svg]:stroke-[2.5]' : ''}`}><NotebookPen /></div>
+              <span className="text-[11px] font-semibold leading-none">Jurnal</span>
+              <div className={`w-1 h-1 rounded-full transition-all duration-300 ${isActive ? 'bg-primary scale-100' : 'bg-transparent scale-0'}`} />
+            </button>
+          );
+        })()}
 
         {/* Center Special Menu Button (FAB style) */}
         <div className="relative flex-1 flex justify-center items-end h-full max-w-[80px]">
@@ -609,35 +580,29 @@ export const DashboardLayout = () => {
           <span className={`text-[11px] font-bold leading-none mb-1.5 transition-colors ${activeBottomSheet === 'menu' ? 'text-primary' : 'text-text-secondary'}`}>Menu</span>
         </div>
 
-        {/* Right Items */}
-        {rightNavItems.map(item => item && (() => {
-          const isActive = 
-            (item.key === 'students' && activeBottomSheet === 'siswa') ||
-            (item.key === 'ptsp' && activeBottomSheet === 'layanan') ||
-            (activeBottomSheet === null && location.pathname.startsWith(item.href));
+        {/* Presensi */}
+        {(() => {
+          const isActive = location.pathname.startsWith('/dashboard/attendance') && activeBottomSheet === null;
           return (
-            <button
-              key={item.key}
-              onClick={() => {
-                if (item.key === 'students') {
-                  setActiveBottomSheet(activeBottomSheet === 'siswa' ? null : 'siswa');
-                } else if (item.key === 'ptsp') {
-                  setActiveBottomSheet(activeBottomSheet === 'layanan' ? null : 'layanan');
-                } else {
-                  setActiveBottomSheet(null);
-                  navigate(item.href);
-                }
-              }}
-              className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-200 active:scale-95 ${isActive ? 'text-primary' : 'text-text-secondary'}`}
-            >
-              <div className={`[&>svg]:w-[22px] [&>svg]:h-[22px] flex items-center justify-center ${isActive ? '[&>svg]:stroke-[2.5]' : ''}`}>
-                {item.icon}
-              </div>
-              <span className="text-[11px] font-semibold leading-none">{getMobileLabel(item.key, item.label)}</span>
+            <button onClick={() => { setActiveBottomSheet(null); navigate('/dashboard/attendance'); }} className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-200 active:scale-95 ${isActive ? 'text-primary' : 'text-text-secondary'}`}>
+              <div className={`[&>svg]:w-[22px] [&>svg]:h-[22px] flex items-center justify-center ${isActive ? '[&>svg]:stroke-[2.5]' : ''}`}><QrCode /></div>
+              <span className="text-[11px] font-semibold leading-none">Presensi</span>
               <div className={`w-1 h-1 rounded-full transition-all duration-300 ${isActive ? 'bg-primary scale-100' : 'bg-transparent scale-0'}`} />
             </button>
           );
-        })())}
+        })()}
+
+        {/* Kalender */}
+        {(() => {
+          const isActive = location.pathname.startsWith('/dashboard/calendar') && activeBottomSheet === null;
+          return (
+            <button onClick={() => { setActiveBottomSheet(null); navigate('/dashboard/calendar'); }} className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-200 active:scale-95 ${isActive ? 'text-primary' : 'text-text-secondary'}`}>
+              <div className={`[&>svg]:w-[22px] [&>svg]:h-[22px] flex items-center justify-center ${isActive ? '[&>svg]:stroke-[2.5]' : ''}`}><CalendarDays /></div>
+              <span className="text-[11px] font-semibold leading-none">Kalender</span>
+              <div className={`w-1 h-1 rounded-full transition-all duration-300 ${isActive ? 'bg-primary scale-100' : 'bg-transparent scale-0'}`} />
+            </button>
+          );
+        })()}
         
       </nav>
 
@@ -648,42 +613,76 @@ export const DashboardLayout = () => {
       >
         <div className="flex-1 overflow-y-auto p-5 custom-scrollbar pb-10">
           
-          {/* MENU SAKTI SHEET */}
+          {/* UNIFIED MENU GRID */}
           {activeBottomSheet === 'menu' && (
             <div className="animate-in fade-in zoom-in-95 duration-200">
               <div className="mb-5">
                 <h2 className="text-lg font-bold text-text-primary dark:text-text-darkPrimary mb-0.5">Eksplorasi Menu</h2>
-                <p className="text-xs text-text-secondary">Pilih menu untuk mengakses fitur aplikasi</p>
+                <p className="text-xs text-text-secondary">Akses semua fitur SIMANDA</p>
               </div>
               
-              <div className="mb-7">
-                <h3 className="text-[10px] font-bold text-text-secondary/60 uppercase tracking-widest mb-3">Main Menu</h3>
-                <div className="grid grid-cols-4 gap-x-2 gap-y-4">
-                  {tombolSaktiMenuItems.map(item => {
-                    const colors = MENU_ICON_COLORS[item.key] || { bg: 'bg-gradient-to-br from-gray-400 to-gray-500', text: 'text-white' };
-                    return (
-                      <button
-                        key={item.href}
-                        onClick={() => { setActiveBottomSheet(null); navigate(item.href); }}
-                        className="flex flex-col items-center gap-2 text-center group"
-                      >
-                        <div className={`w-[52px] h-[52px] rounded-2xl flex items-center justify-center transition-all duration-200 ${colors.bg} ${colors.text} shadow-md group-active:scale-90`}>
-                          <div className="[&>svg]:w-[22px] [&>svg]:h-[22px]">
-                            {item.icon}
+              {menuSections.map(section => {
+                const items = getMenuItemsByKeys(section.keys);
+                if (items.length === 0) return null;
+                return (
+                  <div key={section.title} className="mb-6">
+                    <h3 className="text-[10px] font-bold text-text-secondary/60 uppercase tracking-widest mb-3">{section.title}</h3>
+                    <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+                      {items.map(item => {
+                        const colors = MENU_ICON_COLORS[item.key] || { bg: 'bg-gradient-to-br from-gray-400 to-gray-500', text: 'text-white' };
+                        return (
+                          <button
+                            key={item.href}
+                            onClick={() => { setActiveBottomSheet(null); navigate(item.href); }}
+                            className="flex flex-col items-center gap-2 text-center group"
+                          >
+                            <div className={`w-[52px] h-[52px] rounded-2xl flex items-center justify-center transition-all duration-200 ${colors.bg} ${colors.text} shadow-md group-active:scale-90`}>
+                              <div className="[&>svg]:w-[22px] [&>svg]:h-[22px]">
+                                {item.icon}
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-semibold leading-tight line-clamp-2 px-0.5 text-text-secondary dark:text-gray-400">
+                              {item.label.split(' ').slice(0, 2).join(' ')}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Uncategorized items catch-all */}
+              {uncategorizedItems.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-[10px] font-bold text-text-secondary/60 uppercase tracking-widest mb-3">Lainnya</h3>
+                  <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+                    {uncategorizedItems.map(item => {
+                      const colors = MENU_ICON_COLORS[item.key] || { bg: 'bg-gradient-to-br from-gray-400 to-gray-500', text: 'text-white' };
+                      return (
+                        <button
+                          key={item.href}
+                          onClick={() => { setActiveBottomSheet(null); navigate(item.href); }}
+                          className="flex flex-col items-center gap-2 text-center group"
+                        >
+                          <div className={`w-[52px] h-[52px] rounded-2xl flex items-center justify-center transition-all duration-200 ${colors.bg} ${colors.text} shadow-md group-active:scale-90`}>
+                            <div className="[&>svg]:w-[22px] [&>svg]:h-[22px]">
+                              {item.icon}
+                            </div>
                           </div>
-                        </div>
-                        <span className="text-[10px] font-semibold leading-tight line-clamp-2 px-0.5 text-text-secondary dark:text-gray-400">
-                          {item.label.split(' ').slice(0, 2).join(' ')}
-                        </span>
-                      </button>
-                    );
-                  })}
+                          <span className="text-[10px] font-semibold leading-tight line-clamp-2 px-0.5 text-text-secondary dark:text-gray-400">
+                            {item.label.split(' ').slice(0, 2).join(' ')}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {systemMenuItems.length > 0 && (
                 <div>
-                  <h3 className="text-[10px] font-bold text-text-secondary/60 uppercase tracking-widest mb-3">System</h3>
+                  <h3 className="text-[10px] font-bold text-text-secondary/60 uppercase tracking-widest mb-3">Sistem</h3>
                   <div className="grid grid-cols-4 gap-x-2 gap-y-4">
                     {systemMenuItems.map(item => {
                       const colors = MENU_ICON_COLORS[item.key] || { bg: 'bg-gradient-to-br from-gray-400 to-gray-500', text: 'text-white' };
@@ -707,65 +706,6 @@ export const DashboardLayout = () => {
                   </div>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* LAYANAN SHEET */}
-          {activeBottomSheet === 'layanan' && (
-            <div className="animate-in fade-in zoom-in-95 duration-200">
-              <div className="mb-5">
-                <h2 className="text-lg font-bold text-text-primary dark:text-text-darkPrimary mb-0.5">Pusat Layanan</h2>
-                <p className="text-xs text-text-secondary">Pilih kategori layanan E-PTSP</p>
-              </div>
-              <div className="grid grid-cols-3 gap-x-3 gap-y-4">
-                 {LAYANAN_MENUS.map((menu, idx) => (
-                   <button
-                     key={menu.label}
-                     onClick={() => { setActiveBottomSheet(null); navigate(menu.href); }}
-                     className="flex flex-col items-center gap-2 text-center group"
-                   >
-                     <div className={`w-[60px] h-[60px] rounded-2xl flex items-center justify-center transition-all duration-200 ${LAYANAN_ICON_COLORS[idx] || 'bg-gradient-to-br from-gray-400 to-gray-500'} text-white shadow-md group-active:scale-90`}>
-                       <div className="[&>svg]:w-[26px] [&>svg]:h-[26px]">
-                         {menu.icon}
-                       </div>
-                     </div>
-                     <span className="text-[11px] font-semibold leading-tight line-clamp-2 px-1 text-text-secondary dark:text-gray-400">
-                       {menu.label}
-                     </span>
-                   </button>
-                 ))}
-              </div>
-            </div>
-          )}
-
-          {/* SISWA SHEET */}
-          {activeBottomSheet === 'siswa' && (
-            <div className="animate-in fade-in zoom-in-95 duration-200">
-              <div className="mb-5">
-                <h2 className="text-lg font-bold text-text-primary dark:text-text-darkPrimary mb-0.5">Manajemen Siswa</h2>
-                <p className="text-xs text-text-secondary">Akses fitur kesiswaan dan PMB</p>
-              </div>
-              <div className="grid grid-cols-3 gap-x-3 gap-y-4">
-                 {SISWA_MENUS.map(menu => {
-                   const colors = MENU_ICON_COLORS[menu.key] || { bg: 'bg-gradient-to-br from-gray-400 to-gray-500', text: 'text-white' };
-                   return (
-                     <button
-                       key={menu.label}
-                       onClick={() => { setActiveBottomSheet(null); navigate(menu.href); }}
-                       className="flex flex-col items-center gap-2 text-center group"
-                     >
-                       <div className={`w-[60px] h-[60px] rounded-2xl flex items-center justify-center transition-all duration-200 ${colors.bg} ${colors.text} shadow-md group-active:scale-90`}>
-                         <div className="[&>svg]:w-[26px] [&>svg]:h-[26px]">
-                           {menu.icon}
-                         </div>
-                       </div>
-                       <span className="text-[11px] font-semibold leading-tight line-clamp-2 px-1 text-text-secondary dark:text-gray-400">
-                         {menu.label}
-                       </span>
-                     </button>
-                   );
-                 })}
-              </div>
             </div>
           )}
           
