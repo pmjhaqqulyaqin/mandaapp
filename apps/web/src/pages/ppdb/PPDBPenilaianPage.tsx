@@ -165,7 +165,7 @@ export const PPDBPenilaianPage = () => {
   const totalColSpan = fixedColCount + tests.length + (isAdminView ? 1 : 0);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-3 md:gap-6">
       <Breadcrumbs items={[
         { label: 'Dashboard', href: '/dashboard' },
         { label: 'PPDB', href: '/dashboard/ppdb' },

@@ -30,7 +30,7 @@ export const DashboardJurnal = () => {
   const visibleTabs = tabs.filter(t => t.visible);
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-3 md:gap-4">
       <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Jurnal Mengajar' }]} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

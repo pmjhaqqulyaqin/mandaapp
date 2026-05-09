@@ -468,7 +468,7 @@ export const DashboardStudentCard = () => {
         }
       `}} />
 
-      <div className="max-w-5xl mx-auto space-y-6 print:hidden">
+      <div className="max-w-5xl mx-auto flex flex-col gap-3 md:gap-6 print:hidden">
         <Breadcrumbs
           items={[
             { label: 'Dashboard', href: '/dashboard' },

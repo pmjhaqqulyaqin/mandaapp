@@ -93,7 +93,7 @@ export const DashboardOverview = () => {
   const ikmGrade = ikm ? getIKMGrade(ikm.indexPct || 0) : null;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-5">
+    <div className="max-w-7xl mx-auto flex flex-col gap-3 md:gap-5">
       <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Overview' }]} />
 
       {/* Greeting */}

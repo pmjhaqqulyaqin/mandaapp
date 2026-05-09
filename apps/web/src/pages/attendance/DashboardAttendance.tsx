@@ -255,14 +255,12 @@ export const DashboardAttendance = () => {
   // Non-admin: render unified page directly (no tabs)
   if (!isAdmin) {
     return (
-      <div>
+      <div className="flex flex-col gap-3 md:gap-4">
         <Breadcrumbs items={[
           { label: 'Dashboard', href: '/dashboard' },
           { label: 'Presensi Siswa' }
         ]} />
-        <div className="mt-3">
-          <UnifiedScanPage processScan={processScan} isLoading={isLoading} />
-        </div>
+        <UnifiedScanPage processScan={processScan} isLoading={isLoading} />
       </div>
     );
   }
@@ -276,7 +274,7 @@ export const DashboardAttendance = () => {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-3 md:gap-4">
       <Breadcrumbs items={[
         { label: 'Dashboard', href: '/dashboard' },
         { label: 'Presensi Siswa' }

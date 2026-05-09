@@ -94,7 +94,7 @@ export const ExamManagementPage = () => {
     selectedUjian?.status === 'draft' ? 'bg-amber-500' : 'bg-gray-400';
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-3 md:gap-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>

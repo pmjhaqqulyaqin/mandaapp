@@ -531,7 +531,7 @@ export const DashboardLayout = () => {
             </div>
           </div>
         </header>
-        <div className="flex-1 p-4 sm:p-5 print:p-0 overflow-auto print:overflow-visible print:block custom-scrollbar pb-24 md:pb-5">
+        <div className="flex-1 px-3 pt-1 pb-24 md:p-5 md:pb-5 print:p-0 overflow-auto print:overflow-visible print:block custom-scrollbar">
           <Outlet />
         </div>
       </main>

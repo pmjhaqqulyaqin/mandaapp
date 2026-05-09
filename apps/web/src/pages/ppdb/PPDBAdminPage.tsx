@@ -51,7 +51,7 @@ export const PPDBAdminPage = () => {
   useEffect(() => { fetchStats(selectedConfigId); }, [selectedConfigId]);
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-3 md:gap-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
