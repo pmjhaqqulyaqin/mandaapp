@@ -7,9 +7,10 @@ import { toast } from 'sonner';
 interface ScannerEngineProps {
   onScan: (data: string) => void;
   isActive: boolean;
+  compact?: boolean;
 }
 
-export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive }) => {
+export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive, compact = false }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
@@ -168,6 +169,9 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive }
     
     lastScanned.current = { code, time: now };
     
+    // Haptic feedback
+    if (navigator.vibrate) navigator.vibrate(100);
+    
     // Flash effect
     const flashEl = document.getElementById('scanner-flash');
     if (flashEl) {
@@ -297,7 +301,7 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive }
       )}
 
       <div 
-        className="relative w-full min-h-[50vh] md:min-h-0 md:aspect-[4/3] bg-black rounded-xl overflow-hidden shadow-inner flex items-center justify-center cursor-pointer active:scale-[0.99] transition-transform"
+        className={`relative w-full ${compact ? 'min-h-[35vh]' : 'min-h-[50vh]'} md:min-h-0 md:aspect-[4/3] bg-black rounded-xl overflow-hidden shadow-inner flex items-center justify-center cursor-pointer active:scale-[0.99] transition-transform`}
         onClick={() => isScanning ? stopScanning() : startScanning()}
       >
         {/* Flash Effect */}
