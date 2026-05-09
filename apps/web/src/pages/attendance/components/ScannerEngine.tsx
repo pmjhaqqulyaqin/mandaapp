@@ -292,7 +292,7 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive, 
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-1.5">
       {error && (
         <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg flex items-start gap-2 border border-red-200">
           <AlertTriangle size={18} className="shrink-0 mt-0.5" />
@@ -301,7 +301,7 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive, 
       )}
 
       <div 
-        className={`relative w-full ${compact ? 'min-h-[35vh]' : 'min-h-[50vh]'} md:min-h-0 md:aspect-[4/3] bg-black rounded-xl overflow-hidden shadow-inner flex items-center justify-center cursor-pointer active:scale-[0.99] transition-transform`}
+        className={`relative w-full ${compact ? 'min-h-[45vh]' : 'min-h-[50vh]'} md:min-h-0 md:aspect-[4/3] bg-black rounded-xl overflow-hidden shadow-inner flex items-center justify-center cursor-pointer active:scale-[0.99] transition-transform`}
         onClick={() => isScanning ? stopScanning() : startScanning()}
       >
         {/* Flash Effect */}
@@ -364,14 +364,14 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive, 
         <canvas ref={barcodeCanvasRef} className="hidden" />
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-2">
-        <div className="flex-1 flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-2 py-1 shadow-sm">
-          <Camera size={14} className="text-gray-400" />
+      <div className="flex gap-1.5">
+        <div className="flex-1 flex items-center gap-1 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-md px-1.5 py-0.5">
+          <Camera size={11} className="text-gray-400 shrink-0" />
           <select 
             value={selectedCamera} 
             onChange={(e) => setSelectedCamera(e.target.value)}
             disabled={isScanning}
-            className="flex-1 bg-transparent border-none text-[10px] focus:ring-0 p-1 cursor-pointer disabled:opacity-50"
+            className="flex-1 bg-transparent border-none text-[9px] focus:ring-0 p-0.5 cursor-pointer disabled:opacity-50 text-text-secondary"
           >
             {cameras.length === 0 ? (
               <option value="">Memuat kamera...</option>
@@ -383,8 +383,8 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive, 
               ))
             )}
           </select>
-          <button onClick={getCameras} disabled={isScanning} className="p-1 text-gray-400 hover:text-indigo-600 disabled:opacity-50">
-            <RefreshCw size={14} />
+          <button onClick={getCameras} disabled={isScanning} className="p-0.5 text-gray-400 hover:text-indigo-600 disabled:opacity-50">
+            <RefreshCw size={11} />
           </button>
         </div>
       </div>

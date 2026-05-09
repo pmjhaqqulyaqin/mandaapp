@@ -73,24 +73,24 @@ const UnifiedScanPage = ({ processScan, isLoading: scanLoading }: { processScan:
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* ── Header: Title + Date + Running Clock ── */}
-      <div className="bg-white dark:bg-[#111] rounded-xl border border-border-light dark:border-border-dark p-4 text-center">
-        <h2 className="text-base font-bold text-primary tracking-wide uppercase">Presensi Siswa</h2>
-        <p className="text-xs text-text-secondary mt-0.5">{formatDate(now)}</p>
-        <p className="text-2xl font-mono font-bold text-text-primary dark:text-text-darkPrimary mt-1 tabular-nums tracking-widest">
+      <div className="bg-white dark:bg-[#111] rounded-lg border border-border-light dark:border-border-dark px-3 py-2 flex items-center justify-between">
+        <div>
+          <h2 className="text-[13px] font-bold text-primary uppercase leading-tight">Presensi Siswa</h2>
+          <p className="text-[10px] text-text-secondary leading-tight">{formatDate(now)}</p>
+        </div>
+        <p className="text-lg font-mono font-bold text-text-primary dark:text-text-darkPrimary tabular-nums tracking-wider">
           {formatTime(now)}
         </p>
       </div>
 
       {/* ── Scanner Area ── */}
-      <div className="bg-white dark:bg-[#111] rounded-xl border border-border-light dark:border-border-dark overflow-hidden">
-        <div className="p-3">
-          <div className="text-center mb-2">
-            <p className="text-[11px] text-text-secondary">
-              Scan 1× = <span className="font-bold text-emerald-600">Masuk</span> • Scan 2× setelah jam pulang = <span className="font-bold text-blue-600">Pulang</span>
-            </p>
-          </div>
+      <div className="bg-white dark:bg-[#111] rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
+        <div className="p-2">
+          <p className="text-[10px] text-text-secondary text-center mb-1.5">
+            Scan 1× = <span className="font-bold text-emerald-600">Masuk</span> • Scan 2× setelah jam pulang = <span className="font-bold text-blue-600">Pulang</span>
+          </p>
           <ScannerEngine
             isActive={true}
             onScan={(code) => handleScan(code, 'qr_scan')}
@@ -100,11 +100,9 @@ const UnifiedScanPage = ({ processScan, isLoading: scanLoading }: { processScan:
       </div>
 
       {/* ── NIS Manual Input ── */}
-      <div className="bg-white dark:bg-[#111] rounded-xl border border-border-light dark:border-border-dark p-3">
-        <p className="text-[11px] font-semibold text-text-secondary mb-2 flex items-center gap-1.5">
-          <NotebookPen size={13} /> Input NIS Manual
-        </p>
-        <form onSubmit={handleNisSubmit} className="flex gap-2">
+      <div className="bg-white dark:bg-[#111] rounded-lg border border-border-light dark:border-border-dark px-2.5 py-2">
+        <form onSubmit={handleNisSubmit} className="flex gap-1.5 items-center">
+          <NotebookPen size={12} className="text-text-secondary shrink-0" />
           <input
             ref={nisInputRef}
             type="text"
@@ -113,15 +111,15 @@ const UnifiedScanPage = ({ processScan, isLoading: scanLoading }: { processScan:
             value={nisInput}
             onChange={(e) => setNisInput(e.target.value)}
             placeholder="Ketik NIS lalu Enter"
-            className="flex-1 px-3 py-2.5 rounded-lg border border-border-light dark:border-border-dark bg-gray-50 dark:bg-[#1a1a1a] text-sm text-text-primary dark:text-text-darkPrimary focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none"
+            className="flex-1 px-2.5 py-1.5 rounded-md border border-border-light dark:border-border-dark bg-gray-50 dark:bg-[#1a1a1a] text-xs text-text-primary dark:text-text-darkPrimary focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none"
             style={{ fontSize: '16px' }} // prevent iOS zoom
           />
           <button
             type="submit"
             disabled={!nisInput.trim() || scanLoading}
-            className="px-4 py-2.5 bg-primary text-white rounded-lg font-semibold text-sm disabled:opacity-40 active:scale-95 transition-all shadow-sm"
+            className="px-3 py-1.5 bg-primary text-white rounded-md font-semibold text-xs disabled:opacity-40 active:scale-95 transition-all shadow-sm"
           >
-            <Search size={18} />
+            <Search size={14} />
           </button>
         </form>
       </div>
