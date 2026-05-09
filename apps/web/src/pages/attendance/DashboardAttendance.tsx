@@ -199,7 +199,7 @@ const UnifiedScanPage = ({ processScan, isLoading: scanLoading }: { processScan:
 // ── Main Component ──
 export const DashboardAttendance = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = ['admin', 'wakil_kepala', 'kepala_madrasah'].includes(user?.role || '');
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'rekap' | 'settings'>('scan');
   const [isLoading, setIsLoading] = useState(false);
 
