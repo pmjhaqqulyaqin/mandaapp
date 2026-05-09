@@ -2,6 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { initSyncListeners } from './lib/syncEngine';
+
+// Initialize offline sync engine — listens for online/offline events
+initSyncListeners();
 import { ThemeProvider } from '@mandaapp/ui/src/ThemeContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HelmetProvider } from 'react-helmet-async';

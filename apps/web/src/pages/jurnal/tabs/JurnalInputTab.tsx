@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useScheduleToday, useClassStudents, useJurnalMutations } from '../../../hooks/api/useJurnal';
 import { apiClient } from '../../../lib/api';
+import { smartSend, offlineCache } from '../../../lib/syncEngine';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, Send, Save, Check, BookOpen, Users, Camera, Link as LinkIcon, FileText, ClipboardList } from 'lucide-react';
 
@@ -50,8 +51,17 @@ export const JurnalInputTab = () => {
         studentId: s.id, name: s.fullName || s.nis || '-',
         status: s.dailyStatus === 'Hadir' || s.dailyStatus === 'Terlambat' ? 'Hadir' : (s.dailyStatus || 'Hadir'),
       })));
+      // Cache class students for offline access
+      offlineCache.cacheClassStudents(form.classId, classStudents.data).catch(() => {});
     }
   }, [classStudents.data, form.classId]);
+
+  // Cache schedule when loaded for offline access
+  useEffect(() => {
+    if (schedule.data && schedule.data.length > 0) {
+      offlineCache.cacheScheduleToday(schedule.data).catch(() => {});
+    }
+  }, [schedule.data]);
 
   // Auto-save draft to localStorage
   useEffect(() => {
@@ -106,7 +116,26 @@ export const JurnalInputTab = () => {
       localStorage.removeItem('jurnal_draft');
       toast.success(andSubmit ? 'Jurnal berhasil disubmit!' : 'Draft tersimpan!');
       setForm(INITIAL); setAttendance([]); setPhotos([]); setStep(0);
-    } catch (err: any) { toast.error(err.message || 'Gagal menyimpan'); }
+    } catch (err: any) {
+      // Offline fallback: save to IndexedDB queue
+      if (!navigator.onLine || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        try {
+          await smartSend('jurnal_create', {
+            ...form,
+            status: andSubmit ? 'submitted' : 'draft',
+            attendance: attendance.map(a => ({ studentId: a.studentId, status: a.status })),
+            // Note: photos cannot be saved offline in this simplified flow
+          }, `Jurnal ${form.subjectName} - ${form.className}`);
+          localStorage.removeItem('jurnal_draft');
+          toast.success('📱 Jurnal tersimpan offline — akan di-sync saat online');
+          setForm(INITIAL); setAttendance([]); setPhotos([]); setStep(0);
+        } catch {
+          toast.error('Gagal menyimpan bahkan secara offline');
+        }
+      } else {
+        toast.error(err.message || 'Gagal menyimpan');
+      }
+    }
     setSaving(false);
   };
 

@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
 import { ScannerEngine } from './components/ScannerEngine';
 import { apiClient } from '../../lib/api';
+import { smartSend, offlineCache } from '../../lib/syncEngine';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
-import { CheckCircle2, Search, Clock, UserCheck, AlertTriangle, Users, Grid, Settings, NotebookPen } from 'lucide-react';
+import { CheckCircle2, Search, Clock, UserCheck, AlertTriangle, Users, Grid, Settings, NotebookPen, WifiOff } from 'lucide-react';
 import { AttendanceRecapTab } from './tabs/AttendanceRecapTab';
 import { AttendanceManualInputTab } from './tabs/AttendanceManualInputTab';
 import { AttendanceSettingsTab } from './tabs/AttendanceSettingsTab';
@@ -217,31 +218,52 @@ export const DashboardAttendance = () => {
     if (!nis || nis.length < 3 || isLoading) return;
     setIsLoading(true);
     try {
-      const result = await apiClient<any>('/attendance/scan', {
-        method: 'POST',
-        data: { nis, method }
-      });
-      if (result.success) {
-        // Haptic feedback
-        if (navigator.vibrate) navigator.vibrate(100);
+      const result = await smartSend('attendance_scan', {
+        nis, method, timestamp: Date.now()
+      }, `Presensi ${nis} via ${method}`);
 
-        const isAlpa = result.status?.includes('Alpa');
-        toast.custom((t) => (
-          <div className={`bg-white dark:bg-[#1a1a1a] border-l-4 ${isAlpa ? 'border-orange-500' : 'border-green-500'} rounded-lg shadow-lg p-4 flex items-start gap-3 w-80`}>
-            <CheckCircle2 className={`${isAlpa ? 'text-orange-500' : 'text-green-500'} mt-0.5`} size={24} />
+      if (result.fromCache) {
+        // Offline or server failed — show optimistic response
+        if (navigator.vibrate) navigator.vibrate([50, 100]);
+        // Try to look up student name from cache
+        const cached = await offlineCache.lookupStudent(nis);
+        toast.custom(() => (
+          <div className="bg-white dark:bg-[#1a1a1a] border-l-4 border-orange-400 rounded-lg shadow-lg p-4 flex items-start gap-3 w-80">
+            <WifiOff className="text-orange-500 mt-0.5" size={24} />
             <div>
-              <h4 className="font-bold text-text-primary dark:text-text-darkPrimary">{result.nama}</h4>
-              <p className="text-sm text-text-secondary">{result.nis} | {result.kelas}</p>
-              <div className={`mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded ${isAlpa ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'} text-xs font-bold uppercase tracking-wider`}>
-                {result.status} • {result.jam}
+              <h4 className="font-bold text-text-primary dark:text-text-darkPrimary">
+                {cached?.fullName || `NIS: ${nis}`}
+              </h4>
+              {cached?.className && <p className="text-sm text-text-secondary">{nis} | {cached.className}</p>}
+              <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-orange-100 text-orange-700 text-xs font-bold uppercase tracking-wider">
+                📱 Tersimpan Offline
               </div>
-              {result.note && <p className="text-[10px] text-text-secondary mt-1">{result.note}</p>}
+              <p className="text-[10px] text-text-secondary mt-1">Akan disinkronkan otomatis saat online</p>
             </div>
           </div>
-        ), { duration: isAlpa ? 5000 : 3000 });
-      } else {
-        if (navigator.vibrate) navigator.vibrate([50, 50, 50]); // error pattern
-        toast.error(result.message);
+        ), { duration: 3000 });
+      } else if (result.result) {
+        const data = result.result;
+        if (data.success) {
+          if (navigator.vibrate) navigator.vibrate(100);
+          const isAlpa = data.status?.includes('Alpa');
+          toast.custom(() => (
+            <div className={`bg-white dark:bg-[#1a1a1a] border-l-4 ${isAlpa ? 'border-orange-500' : 'border-green-500'} rounded-lg shadow-lg p-4 flex items-start gap-3 w-80`}>
+              <CheckCircle2 className={`${isAlpa ? 'text-orange-500' : 'text-green-500'} mt-0.5`} size={24} />
+              <div>
+                <h4 className="font-bold text-text-primary dark:text-text-darkPrimary">{data.nama}</h4>
+                <p className="text-sm text-text-secondary">{data.nis} | {data.kelas}</p>
+                <div className={`mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded ${isAlpa ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'} text-xs font-bold uppercase tracking-wider`}>
+                  {data.status} • {data.jam}
+                </div>
+                {data.note && <p className="text-[10px] text-text-secondary mt-1">{data.note}</p>}
+              </div>
+            </div>
+          ), { duration: isAlpa ? 5000 : 3000 });
+        } else {
+          if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+          toast.error(data.message);
+        }
       }
     } catch (error: any) {
       toast.error('Error: ' + error.message);
