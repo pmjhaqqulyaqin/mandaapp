@@ -130,30 +130,39 @@ export const JurnalSettingsTab = () => {
 
   const resetForm = () => { setForm({ employeeId: '', classId: '', subjectName: '', dayOfWeek: 1, jamKe: '', waktuMulai: '', waktuSelesai: '' }); setEditId(''); setShowForm(false); };
 
+  // Parse jamKe string like "3", "1-2", "1-3" into {first, last}
+  const parseJamRange = (jamKe: string): { first: number; last: number } | null => {
+    const trimmed = jamKe.trim();
+    if (!trimmed) return null;
+    const match = trimmed.match(/^(\d+)(?:-(\d+))?$/);
+    if (!match) return null;
+    const first = parseInt(match[1]);
+    const last = match[2] ? parseInt(match[2]) : first;
+    if (first < 1 || last > MAX_JAM || first > last) return null;
+    return { first, last };
+  };
+
   // Auto-fill waktu when jamKe or dayOfWeek changes in form
   const handleJamKeChange = (jamKe: string) => {
     const updated = { ...form, jamKe };
-    // Try to find time slot for this day + jam
-    const jamNum = parseInt(jamKe);
-    if (jamNum >= 1 && jamNum <= MAX_JAM) {
-      const slot = timeSlotsMap.get(`${form.dayOfWeek}-${jamNum}`);
-      if (slot) {
-        updated.waktuMulai = slot.waktuMulai;
-        updated.waktuSelesai = slot.waktuSelesai;
-      }
+    const range = parseJamRange(jamKe);
+    if (range) {
+      const slotStart = timeSlotsMap.get(`${form.dayOfWeek}-${range.first}`);
+      const slotEnd = timeSlotsMap.get(`${form.dayOfWeek}-${range.last}`);
+      if (slotStart) updated.waktuMulai = slotStart.waktuMulai;
+      if (slotEnd) updated.waktuSelesai = slotEnd.waktuSelesai;
     }
     setForm(updated);
   };
 
   const handleDayChange = (dayOfWeek: number) => {
     const updated = { ...form, dayOfWeek };
-    const jamNum = parseInt(form.jamKe);
-    if (jamNum >= 1 && jamNum <= MAX_JAM) {
-      const slot = timeSlotsMap.get(`${dayOfWeek}-${jamNum}`);
-      if (slot) {
-        updated.waktuMulai = slot.waktuMulai;
-        updated.waktuSelesai = slot.waktuSelesai;
-      }
+    const range = parseJamRange(form.jamKe);
+    if (range) {
+      const slotStart = timeSlotsMap.get(`${dayOfWeek}-${range.first}`);
+      const slotEnd = timeSlotsMap.get(`${dayOfWeek}-${range.last}`);
+      if (slotStart) updated.waktuMulai = slotStart.waktuMulai;
+      if (slotEnd) updated.waktuSelesai = slotEnd.waktuSelesai;
     }
     setForm(updated);
   };
@@ -329,14 +338,8 @@ export const JurnalSettingsTab = () => {
             </div>
             <div>
               <label className="text-[10px] font-semibold text-gray-500 uppercase block mb-1">Jam Ke</label>
-              <select value={form.jamKe} onChange={e => handleJamKeChange(e.target.value)}
-                className="w-full bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs">
-                <option value="">Pilih Jam</option>
-                {Array.from({ length: MAX_JAM }, (_, i) => i + 1).map(j => {
-                  const slot = timeSlotsMap.get(`${form.dayOfWeek}-${j}`);
-                  return <option key={j} value={String(j)}>Jam {j}{slot ? ` (${slot.waktuMulai}-${slot.waktuSelesai})` : ''}</option>;
-                })}
-              </select>
+              <input type="text" placeholder="1-2" value={form.jamKe} onChange={e => handleJamKeChange(e.target.value)}
+                className="w-full bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs" />
             </div>
             {(form.waktuMulai || form.waktuSelesai) && (
               <div className="sm:col-span-2 flex items-center gap-3">
