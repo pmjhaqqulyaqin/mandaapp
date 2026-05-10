@@ -2,7 +2,7 @@ import { db } from "../../db";
 import {
   teachingSubjects, jurnalEntries, jurnalStudentAttendance,
   jurnalAttachments, jurnalTemplates, employees, classes,
-  studentProfiles, attendanceRecords
+  studentProfiles, attendanceRecords, jurnalTimeSlots
 } from "../../db/schema";
 import { eq, and, desc, count, sql } from "drizzle-orm";
 
@@ -70,11 +70,17 @@ export class JurnalService {
   }
 
   static async createTeachingSubject(data: any) {
+    // Sanitize empty strings to null for time columns
+    if (data.waktuMulai === '') data.waktuMulai = null;
+    if (data.waktuSelesai === '') data.waktuSelesai = null;
     const results = await db.insert(teachingSubjects).values(data).returning();
     return results[0];
   }
 
   static async updateTeachingSubject(id: string, data: any) {
+    // Sanitize empty strings to null for time columns
+    if (data.waktuMulai === '') data.waktuMulai = null;
+    if (data.waktuSelesai === '') data.waktuSelesai = null;
     const results = await db.update(teachingSubjects).set({ ...data, updatedAt: new Date() }).where(eq(teachingSubjects.id, id)).returning();
     return results[0];
   }
@@ -86,6 +92,11 @@ export class JurnalService {
 
   static async bulkCreateTeachingSubjects(data: any[]) {
     if (!data.length) return [];
+    // Sanitize empty strings to null for time columns
+    for (const d of data) {
+      if (d.waktuMulai === '') d.waktuMulai = null;
+      if (d.waktuSelesai === '') d.waktuSelesai = null;
+    }
     return db.insert(teachingSubjects).values(data).returning();
   }
 
@@ -294,5 +305,64 @@ export class JurnalService {
 
   static async deleteTemplate(id: string) {
     return (await db.delete(jurnalTemplates).where(eq(jurnalTemplates.id, id)).returning())[0];
+  }
+
+  // ─── Time Slots (Kelola Waktu Pelajaran) ──────────────────────────────
+
+  static async getTimeSlots(dayOfWeek?: number) {
+    const conditions: any[] = [eq(jurnalTimeSlots.isActive, true)];
+    if (dayOfWeek) conditions.push(eq(jurnalTimeSlots.dayOfWeek, dayOfWeek));
+    return db.select().from(jurnalTimeSlots)
+      .where(and(...conditions))
+      .orderBy(jurnalTimeSlots.dayOfWeek, jurnalTimeSlots.jamKe);
+  }
+
+  static async upsertTimeSlots(slots: { dayOfWeek: number; jamKe: number; waktuMulai: string; waktuSelesai: string; label?: string }[]) {
+    if (!slots.length) return [];
+    const results: any[] = [];
+    for (const slot of slots) {
+      if (!slot.waktuMulai || !slot.waktuSelesai) continue;
+      // Try to find existing
+      const existing = await db.select().from(jurnalTimeSlots)
+        .where(and(eq(jurnalTimeSlots.dayOfWeek, slot.dayOfWeek), eq(jurnalTimeSlots.jamKe, slot.jamKe)))
+        .limit(1);
+      if (existing.length > 0) {
+        const updated = await db.update(jurnalTimeSlots)
+          .set({ waktuMulai: slot.waktuMulai, waktuSelesai: slot.waktuSelesai, label: slot.label || null, updatedAt: new Date() })
+          .where(eq(jurnalTimeSlots.id, existing[0].id))
+          .returning();
+        results.push(updated[0]);
+      } else {
+        const inserted = await db.insert(jurnalTimeSlots)
+          .values({ dayOfWeek: slot.dayOfWeek, jamKe: slot.jamKe, waktuMulai: slot.waktuMulai, waktuSelesai: slot.waktuSelesai, label: slot.label || null })
+          .returning();
+        results.push(inserted[0]);
+      }
+    }
+    return results;
+  }
+
+  static async copyTimeSlots(fromDay: number, toDay: number) {
+    const sourceSlots = await db.select().from(jurnalTimeSlots)
+      .where(and(eq(jurnalTimeSlots.dayOfWeek, fromDay), eq(jurnalTimeSlots.isActive, true)))
+      .orderBy(jurnalTimeSlots.jamKe);
+    if (!sourceSlots.length) return [];
+
+    // Delete existing slots for target day
+    await db.delete(jurnalTimeSlots).where(eq(jurnalTimeSlots.dayOfWeek, toDay));
+
+    // Insert copied slots
+    const newSlots = sourceSlots.map(s => ({
+      dayOfWeek: toDay,
+      jamKe: s.jamKe,
+      waktuMulai: s.waktuMulai,
+      waktuSelesai: s.waktuSelesai,
+      label: s.label,
+    }));
+    return db.insert(jurnalTimeSlots).values(newSlots).returning();
+  }
+
+  static async deleteTimeSlot(id: string) {
+    return (await db.delete(jurnalTimeSlots).where(eq(jurnalTimeSlots.id, id)).returning())[0];
   }
 }

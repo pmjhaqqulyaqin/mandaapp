@@ -10,6 +10,7 @@ const KEYS = {
   monitoring: (d?: string) => ['jurnal-monitoring', d] as const,
   recap: (f: Record<string, string>) => ['jurnal-recap', f] as const,
   templates: (tid: string) => ['jurnal-templates', tid] as const,
+  timeSlots: ['jurnal-time-slots'] as const,
 };
 
 export const useTeachingSubjects = (params?: Record<string, string>) => {
@@ -61,4 +62,14 @@ export const useJurnalMutations = () => {
     createTemplate: useMutation({ mutationFn: jurnalService.createTemplate, onSuccess: inv }),
     deleteTemplate: useMutation({ mutationFn: jurnalService.deleteTemplate, onSuccess: inv }),
   };
+};
+
+export const useTimeSlots = () => {
+  const qc = useQueryClient();
+  const inv = () => qc.invalidateQueries({ queryKey: KEYS.timeSlots });
+  const query = useQuery({ queryKey: KEYS.timeSlots, queryFn: () => jurnalService.getTimeSlots() });
+  const upsertMut = useMutation({ mutationFn: (slots: any[]) => jurnalService.upsertTimeSlots(slots), onSuccess: inv });
+  const copyMut = useMutation({ mutationFn: ({ fromDay, toDay }: { fromDay: number; toDay: number }) => jurnalService.copyTimeSlots(fromDay, toDay), onSuccess: inv });
+  const deleteMut = useMutation({ mutationFn: jurnalService.deleteTimeSlot, onSuccess: inv });
+  return { query, upsertMut, copyMut, deleteMut };
 };

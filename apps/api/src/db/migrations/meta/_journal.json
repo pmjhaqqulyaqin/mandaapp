@@ -50,6 +50,13 @@
       "when": 1777639429301,
       "tag": "0006_light_marvex",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1778536800000,
+      "tag": "0007_jurnal_time_slots",
+      "breakpoints": true
     }
   ]
 }

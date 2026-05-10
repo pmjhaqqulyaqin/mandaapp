@@ -531,4 +531,40 @@ export class JurnalController {
       res.json(result);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
+
+  // ─── Time Slots (Kelola Waktu Pelajaran) ──────────────────────────────
+
+  static async getTimeSlots(req: Request, res: Response) {
+    try {
+      const dayOfWeek = req.query.dayOfWeek ? Number(req.query.dayOfWeek) : undefined;
+      const results = await JurnalService.getTimeSlots(dayOfWeek);
+      res.json(results);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async upsertTimeSlots(req: Request, res: Response) {
+    try {
+      const { slots } = req.body;
+      if (!Array.isArray(slots)) return res.status(400).json({ error: "slots array required" });
+      const results = await JurnalService.upsertTimeSlots(slots);
+      res.json({ success: true, count: results.length, results });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async copyTimeSlots(req: Request, res: Response) {
+    try {
+      const { fromDay, toDay } = req.body;
+      if (!fromDay || !toDay) return res.status(400).json({ error: "fromDay and toDay required" });
+      const results = await JurnalService.copyTimeSlots(Number(fromDay), Number(toDay));
+      res.json({ success: true, count: results.length, results });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async deleteTimeSlot(req: Request, res: Response) {
+    try {
+      const result = await JurnalService.deleteTimeSlot(req.params.id);
+      if (!result) return res.status(404).json({ error: "Not found" });
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
 }

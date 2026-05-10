@@ -744,6 +744,19 @@ export const jurnalMapelCodes = pgTable("jurnal_mapel_codes", {
   updatedAt: timestamp("updated_at").defaultNow()
 });
 
+// Kelola waktu pelajaran per hari (jam ke berapa mulai & selesai)
+export const jurnalTimeSlots = pgTable("jurnal_time_slots", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  dayOfWeek: integer("day_of_week").notNull(), // 1=Senin, 2=Selasa, ... 6=Sabtu
+  jamKe: integer("jam_ke").notNull(),           // 1, 2, 3, ... 12
+  waktuMulai: time("waktu_mulai").notNull(),    // e.g. 07:00
+  waktuSelesai: time("waktu_selesai").notNull(), // e.g. 07:45
+  label: varchar("label", { length: 50 }),       // optional: "Istirahat", etc.
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
 // ═══════════════════════════════════════════════════════════════
 // Portal Orang Tua (Parent Portal)
 // ═══════════════════════════════════════════════════════════════

@@ -1,14 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
-import { useTeachingSubjects } from '../../../hooks/api/useJurnal';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useTeachingSubjects, useTimeSlots } from '../../../hooks/api/useJurnal';
 import { apiClient, API_BASE_URL } from '../../../lib/api';
 import { jurnalService } from '../../../lib/services/jurnal';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Upload, Download, X, Save, FileSpreadsheet, AlertTriangle, Hash, BookOpen } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Download, X, Save, FileSpreadsheet, AlertTriangle, Hash, BookOpen, Clock, Copy } from 'lucide-react';
+
+const MAX_JAM = 12;
 
 const DAYS = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
 export const JurnalSettingsTab = () => {
   const { query, createMut, updateMut, deleteMut, bulkMut, importMut } = useTeachingSubjects();
+  const timeSlots = useTimeSlots();
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState('');
   const [employees, setEmployees] = useState<any[]>([]);
@@ -28,10 +31,39 @@ export const JurnalSettingsTab = () => {
   const [newMapelName, setNewMapelName] = useState('');
   const [savingMapel, setSavingMapel] = useState(false);
 
+  // Time Slots state
+  const [showWaktu, setShowWaktu] = useState(false);
+  const [waktuDay, setWaktuDay] = useState(1); // active day tab
+  const [waktuEdits, setWaktuEdits] = useState<Record<number, { mulai: string; selesai: string }>>({}); // jamKe -> {mulai, selesai}
+  const [savingWaktu, setSavingWaktu] = useState(false);
+  const [copyFromDay, setCopyFromDay] = useState(0);
+
+  // Build a time slot lookup map: "dayOfWeek-jamKe" -> {waktuMulai, waktuSelesai}
+  const timeSlotsMap = useMemo(() => {
+    const map = new Map<string, { waktuMulai: string; waktuSelesai: string }>();
+    if (timeSlots.query.data) {
+      for (const s of timeSlots.query.data) {
+        map.set(`${s.dayOfWeek}-${s.jamKe}`, { waktuMulai: s.waktuMulai, waktuSelesai: s.waktuSelesai });
+      }
+    }
+    return map;
+  }, [timeSlots.query.data]);
+
   useEffect(() => {
     apiClient<any[]>('/employees').then(setEmployees).catch(() => {});
     apiClient<any[]>('/classes').then(setClasses).catch(() => {});
   }, []);
+
+  // Populate waktu edits when day tab changes or data loads
+  useEffect(() => {
+    if (!timeSlots.query.data) return;
+    const edits: Record<number, { mulai: string; selesai: string }> = {};
+    for (let j = 1; j <= MAX_JAM; j++) {
+      const slot = timeSlots.query.data.find((s: any) => s.dayOfWeek === waktuDay && s.jamKe === j);
+      edits[j] = { mulai: slot?.waktuMulai || '', selesai: slot?.waktuSelesai || '' };
+    }
+    setWaktuEdits(edits);
+  }, [waktuDay, timeSlots.query.data]);
 
   const loadTeacherCodes = async () => {
     try {
@@ -98,6 +130,34 @@ export const JurnalSettingsTab = () => {
 
   const resetForm = () => { setForm({ employeeId: '', classId: '', subjectName: '', dayOfWeek: 1, jamKe: '', waktuMulai: '', waktuSelesai: '' }); setEditId(''); setShowForm(false); };
 
+  // Auto-fill waktu when jamKe or dayOfWeek changes in form
+  const handleJamKeChange = (jamKe: string) => {
+    const updated = { ...form, jamKe };
+    // Try to find time slot for this day + jam
+    const jamNum = parseInt(jamKe);
+    if (jamNum >= 1 && jamNum <= MAX_JAM) {
+      const slot = timeSlotsMap.get(`${form.dayOfWeek}-${jamNum}`);
+      if (slot) {
+        updated.waktuMulai = slot.waktuMulai;
+        updated.waktuSelesai = slot.waktuSelesai;
+      }
+    }
+    setForm(updated);
+  };
+
+  const handleDayChange = (dayOfWeek: number) => {
+    const updated = { ...form, dayOfWeek };
+    const jamNum = parseInt(form.jamKe);
+    if (jamNum >= 1 && jamNum <= MAX_JAM) {
+      const slot = timeSlotsMap.get(`${dayOfWeek}-${jamNum}`);
+      if (slot) {
+        updated.waktuMulai = slot.waktuMulai;
+        updated.waktuSelesai = slot.waktuSelesai;
+      }
+    }
+    setForm(updated);
+  };
+
   const handleSave = async () => {
     if (!form.employeeId || !form.classId || !form.subjectName) { toast.error('Lengkapi data wajib'); return; }
     try {
@@ -110,6 +170,29 @@ export const JurnalSettingsTab = () => {
       }
       resetForm();
     } catch (err: any) { toast.error(err.message || 'Gagal menyimpan'); }
+  };
+
+  // Time slots handlers
+  const handleSaveWaktu = async () => {
+    setSavingWaktu(true);
+    try {
+      const slots = Object.entries(waktuEdits)
+        .filter(([_, v]) => v.mulai && v.selesai)
+        .map(([k, v]) => ({ dayOfWeek: waktuDay, jamKe: Number(k), waktuMulai: v.mulai, waktuSelesai: v.selesai }));
+      if (!slots.length) { toast.error('Isi minimal 1 jam pelajaran'); setSavingWaktu(false); return; }
+      await timeSlots.upsertMut.mutateAsync(slots);
+      toast.success(`Waktu hari ${DAYS[waktuDay]} tersimpan`);
+    } catch { toast.error('Gagal menyimpan waktu'); }
+    setSavingWaktu(false);
+  };
+
+  const handleCopyWaktu = async () => {
+    if (!copyFromDay) { toast.error('Pilih hari sumber'); return; }
+    try {
+      await timeSlots.copyMut.mutateAsync({ fromDay: copyFromDay, toDay: waktuDay });
+      toast.success(`Waktu disalin dari ${DAYS[copyFromDay]} ke ${DAYS[waktuDay]}`);
+      setCopyFromDay(0);
+    } catch { toast.error('Gagal menyalin waktu'); }
   };
 
   const handleEdit = (item: any) => {
@@ -239,16 +322,36 @@ export const JurnalSettingsTab = () => {
             </div>
             <div>
               <label className="text-[10px] font-semibold text-gray-500 uppercase block mb-1">Hari *</label>
-              <select value={form.dayOfWeek} onChange={e => setForm(f => ({ ...f, dayOfWeek: Number(e.target.value) }))}
+              <select value={form.dayOfWeek} onChange={e => handleDayChange(Number(e.target.value))}
                 className="w-full bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs">
                 {DAYS.slice(1).map((d, i) => <option key={i + 1} value={i + 1}>{d}</option>)}
               </select>
             </div>
             <div>
               <label className="text-[10px] font-semibold text-gray-500 uppercase block mb-1">Jam Ke</label>
-              <input type="text" placeholder="1-2" value={form.jamKe} onChange={e => setForm(f => ({ ...f, jamKe: e.target.value }))}
-                className="w-full bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs" />
+              <select value={form.jamKe} onChange={e => handleJamKeChange(e.target.value)}
+                className="w-full bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs">
+                <option value="">Pilih Jam</option>
+                {Array.from({ length: MAX_JAM }, (_, i) => i + 1).map(j => {
+                  const slot = timeSlotsMap.get(`${form.dayOfWeek}-${j}`);
+                  return <option key={j} value={String(j)}>Jam {j}{slot ? ` (${slot.waktuMulai}-${slot.waktuSelesai})` : ''}</option>;
+                })}
+              </select>
             </div>
+            {(form.waktuMulai || form.waktuSelesai) && (
+              <div className="sm:col-span-2 flex items-center gap-3">
+                <div className="flex-1">
+                  <label className="text-[10px] font-semibold text-gray-500 uppercase block mb-1">Waktu Mulai</label>
+                  <input type="time" value={form.waktuMulai} onChange={e => setForm(f => ({ ...f, waktuMulai: e.target.value }))}
+                    className="w-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-lg px-3 py-2 text-xs font-mono" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[10px] font-semibold text-gray-500 uppercase block mb-1">Waktu Selesai</label>
+                  <input type="time" value={form.waktuSelesai} onChange={e => setForm(f => ({ ...f, waktuSelesai: e.target.value }))}
+                    className="w-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-lg px-3 py-2 text-xs font-mono" />
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex gap-2 pt-1">
             <button onClick={resetForm} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 dark:hover:bg-[#222]">Batal</button>
@@ -282,7 +385,12 @@ export const JurnalSettingsTab = () => {
                   <td className="px-3 py-2">{s.subjectName}</td>
                   <td className="px-3 py-2">{s.className}</td>
                   <td className="px-3 py-2 text-center">{DAYS[s.dayOfWeek]}</td>
-                  <td className="px-3 py-2 text-center">{s.jamKe || '-'}</td>
+                  <td className="px-3 py-2 text-center">
+                    <span>{s.jamKe || '-'}</span>
+                    {(s.waktuMulai || s.waktuSelesai) && (
+                      <span className="text-[10px] text-gray-400 block">{s.waktuMulai}–{s.waktuSelesai}</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2 text-center">
                     <div className="flex items-center justify-center gap-1">
                       <button onClick={() => handleEdit(s)} className="p-1 hover:bg-gray-100 dark:hover:bg-[#333] rounded"><Pencil size={12} className="text-blue-500" /></button>
@@ -295,6 +403,92 @@ export const JurnalSettingsTab = () => {
           </table>
           {filtered.length === 0 && !query.isLoading && <p className="text-xs text-gray-400 text-center py-8">Belum ada jadwal mengajar</p>}
         </div>
+      </div>
+
+      {/* Kelola Waktu Pelajaran */}
+      <div className="bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <button onClick={() => setShowWaktu(!showWaktu)}
+          className="w-full flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-[#222] transition-colors">
+          <span className="text-xs font-bold text-orange-700 dark:text-orange-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Clock size={14} /> Kelola Waktu Pelajaran
+          </span>
+          <span className="text-[10px] text-gray-400">{showWaktu ? '▲' : '▼'}</span>
+        </button>
+        {showWaktu && (
+          <div className="px-3 pb-3 border-t border-gray-100 dark:border-gray-800">
+            <p className="text-[10px] text-gray-500 py-2">Atur waktu mulai & selesai setiap jam pelajaran per hari. Waktu ini akan otomatis terisi saat menambah jadwal mengajar.</p>
+
+            {/* Day Tabs */}
+            <div className="flex gap-1 mb-3 overflow-x-auto pb-1">
+              {DAYS.slice(1).map((d, i) => {
+                const dayNum = i + 1;
+                const count = timeSlots.query.data?.filter((s: any) => s.dayOfWeek === dayNum).length || 0;
+                return (
+                  <button key={dayNum} onClick={() => setWaktuDay(dayNum)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                      waktuDay === dayNum
+                        ? 'bg-orange-600 text-white shadow-md'
+                        : 'bg-gray-100 dark:bg-[#222] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#333]'
+                    }`}>
+                    {d}
+                    {count > 0 && <span className="ml-1 text-[9px] opacity-70">({count})</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Copy from day */}
+            <div className="flex items-center gap-2 mb-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg px-3 py-2">
+              <Copy size={12} className="text-blue-600 shrink-0" />
+              <span className="text-[10px] text-blue-700 dark:text-blue-400 font-semibold shrink-0">Salin dari:</span>
+              <select value={copyFromDay} onChange={e => setCopyFromDay(Number(e.target.value))}
+                className="bg-white dark:bg-[#111] border border-blue-200 dark:border-blue-700 rounded-lg px-2 py-1 text-xs flex-1">
+                <option value={0}>Pilih hari...</option>
+                {DAYS.slice(1).map((d, i) => {
+                  const dayNum = i + 1;
+                  if (dayNum === waktuDay) return null;
+                  const count = timeSlots.query.data?.filter((s: any) => s.dayOfWeek === dayNum).length || 0;
+                  return <option key={dayNum} value={dayNum} disabled={!count}>{d} {count ? `(${count} jam)` : '(kosong)'}</option>;
+                })}
+              </select>
+              <button onClick={handleCopyWaktu} disabled={!copyFromDay || timeSlots.copyMut.isPending}
+                className="px-3 py-1 bg-blue-600 text-white rounded-lg text-[10px] font-semibold hover:bg-blue-700 active:scale-95 disabled:opacity-50 shrink-0">
+                {timeSlots.copyMut.isPending ? '...' : 'Salin'}
+              </button>
+            </div>
+
+            {/* Time Grid */}
+            <div className="space-y-1.5 max-h-[420px] overflow-y-auto">
+              {Array.from({ length: MAX_JAM }, (_, i) => i + 1).map(jam => (
+                <div key={jam} className="flex items-center gap-2">
+                  <span className="w-10 text-center text-xs font-bold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-[#222] rounded-lg py-2 shrink-0">
+                    {jam}
+                  </span>
+                  <input
+                    type="time" placeholder="Mulai"
+                    value={waktuEdits[jam]?.mulai || ''}
+                    onChange={e => setWaktuEdits(prev => ({ ...prev, [jam]: { ...prev[jam], mulai: e.target.value } }))}
+                    className="flex-1 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-2 text-xs font-mono text-center"
+                  />
+                  <span className="text-gray-400 text-xs">—</span>
+                  <input
+                    type="time" placeholder="Selesai"
+                    value={waktuEdits[jam]?.selesai || ''}
+                    onChange={e => setWaktuEdits(prev => ({ ...prev, [jam]: { ...prev[jam], selesai: e.target.value } }))}
+                    className="flex-1 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-2 text-xs font-mono text-center"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end pt-3">
+              <button onClick={handleSaveWaktu} disabled={savingWaktu}
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg text-xs font-semibold hover:bg-orange-700 active:scale-95 flex items-center gap-1 disabled:opacity-50">
+                <Save size={14} /> {savingWaktu ? 'Menyimpan...' : `Simpan Waktu ${DAYS[waktuDay]}`}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Kode Guru Management */}

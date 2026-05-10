@@ -67,4 +67,10 @@ router.post("/templates", JurnalController.createTemplate);
 router.post("/templates/:id/use", JurnalController.useTemplate);
 router.delete("/templates/:id", JurnalController.deleteTemplate);
 
+// Time Slots (Kelola Waktu Pelajaran)
+router.get("/time-slots", JurnalController.getTimeSlots);
+router.put("/time-slots", JurnalController.upsertTimeSlots);
+router.post("/time-slots/copy", JurnalController.copyTimeSlots);
+router.delete("/time-slots/:id", JurnalController.deleteTimeSlot);
+
 export const jurnalRoutes = router;

@@ -49,4 +49,10 @@ export const jurnalService = {
   createTemplate: (data: any) => apiClient<any>(`${BASE}/templates`, { method: 'POST', data }),
   useTemplate: (id: string) => apiClient<any>(`${BASE}/templates/${id}/use`, { method: 'POST' }),
   deleteTemplate: (id: string) => apiClient<any>(`${BASE}/templates/${id}`, { method: 'DELETE' }),
+
+  // Time Slots (Kelola Waktu Pelajaran)
+  getTimeSlots: (dayOfWeek?: number) => apiClient<any[]>(`${BASE}/time-slots${dayOfWeek ? '?dayOfWeek=' + dayOfWeek : ''}`),
+  upsertTimeSlots: (slots: any[]) => apiClient<any>(`${BASE}/time-slots`, { method: 'PUT', data: { slots } }),
+  copyTimeSlots: (fromDay: number, toDay: number) => apiClient<any>(`${BASE}/time-slots/copy`, { method: 'POST', data: { fromDay, toDay } }),
+  deleteTimeSlot: (id: string) => apiClient<any>(`${BASE}/time-slots/${id}`, { method: 'DELETE' }),
 };
