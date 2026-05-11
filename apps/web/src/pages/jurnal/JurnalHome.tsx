@@ -75,17 +75,7 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
   return (
     <div className="pb-4 -mx-3 md:mx-0">
       {/* Gradient Header */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-700 dark:to-teal-600 text-white px-5 pt-6 pb-6 md:rounded-t-xl">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <p className="text-emerald-100 text-sm">{getGreeting()},</p>
-            <h1 className="text-xl font-bold">{employeeName || user?.name || 'Guru'}</h1>
-            <p className="text-emerald-100 text-xs mt-0.5">{user?.role === 'guru' ? 'Guru' : user?.role === 'wali_kelas' ? 'Wali Kelas' : 'Pengajar'}</p>
-          </div>
-          <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center text-emerald-600 font-bold text-sm shadow-lg shrink-0">
-            {initials}
-          </div>
-        </div>
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-700 dark:to-teal-600 text-white px-5 pt-5 pb-5 md:rounded-t-xl">
         <div className="bg-white/10 backdrop-blur rounded-xl p-3 flex items-start gap-2">
           <span className="text-white/60 text-xs mt-0.5">❝</span>
           <p className="text-xs text-white/90 italic leading-relaxed">{quote}</p>
