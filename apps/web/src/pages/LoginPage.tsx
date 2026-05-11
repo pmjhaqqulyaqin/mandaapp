@@ -23,7 +23,7 @@ export const LoginPage = () => {
 
   // Get dynamic hero background from settings, same as landing page
   const heroImageRaw = get('hero_background_url');
-  const heroImage = heroImageRaw ? (heroImageRaw.startsWith('/') ? `${SERVER_BASE}${heroImageRaw}` : heroImageRaw) : '/hero-building.png';
+  const heroImage = heroImageRaw ? (heroImageRaw.startsWith('/') ? `${SERVER_BASE}${heroImageRaw}` : heroImageRaw) : '/hero-building.webp';
 
   // Detect OAuth error from URL query params (set by Better Auth on failure)
   useEffect(() => {
@@ -86,7 +86,7 @@ export const LoginPage = () => {
       {/* Background Layer 1: Sky (fallback for transparent hero images like hero-building.png) */}
       <div 
         className="absolute inset-0 bg-cover bg-center z-0 opacity-60 mix-blend-overlay gradient-to-b from-sky-400 via-sky-300 to-orange-200"
-        style={{ backgroundImage: `url('/Gambar Langit manda.png')` }}
+        style={{ backgroundImage: `url('/Gambar Langit manda.webp')` }}
       />
       {/* Sky Base Color */}
       <div className="absolute inset-0 bg-gradient-to-b from-sky-300 via-sky-400 to-blue-400 z-[-1]"></div>
