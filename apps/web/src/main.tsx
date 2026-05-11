@@ -10,6 +10,24 @@ import { initSyncListeners } from './lib/syncEngine';
 // Initialize offline sync engine — listens for online/offline events
 initSyncListeners();
 
+// Global handler: auto-reload on chunk load failures (after new deployment)
+window.addEventListener('unhandledrejection', (event) => {
+  const msg = (event.reason?.message || '').toLowerCase();
+  if (
+    msg.includes('dynamically imported module') ||
+    msg.includes('loading chunk') ||
+    msg.includes('loading css chunk') ||
+    msg.includes('failed to fetch')
+  ) {
+    const key = 'simanda_chunk_reload';
+    const last = sessionStorage.getItem(key);
+    if (!last || Date.now() - parseInt(last) > 30000) {
+      sessionStorage.setItem(key, Date.now().toString());
+      window.location.reload();
+    }
+  }
+});
+
 // Listen for SW background sync completion
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', (event) => {
