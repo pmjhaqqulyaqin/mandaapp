@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiClient, API_BASE_URL } from '../lib/api';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useSiteSettings } from '../hooks/api/useSettings';
+import { NetworkStatusBanner } from '../components/NetworkStatusBanner';
 import {
   Home,
   Newspaper,
@@ -576,6 +577,7 @@ export const DashboardLayout = () => {
             </div>
           </div>
         </header>
+        <NetworkStatusBanner />
         <div className="flex-1 px-3 pt-1 pb-24 md:p-5 md:pb-5 print:p-0 overflow-auto print:overflow-visible print:block custom-scrollbar">
           <Outlet />
         </div>

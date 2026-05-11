@@ -1,4 +1,6 @@
 /// <reference types="vite/client" />
+import { cacheApiResponse, getCachedApiResponse } from './apiCache';
+
 export const API_BASE_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? `${window.location.origin}/api` : "http://localhost:3001/api");
 
 interface ApiRequestOptions extends RequestInit {
@@ -13,6 +15,7 @@ export async function apiClient<T>(
 
   const isFormData = data instanceof FormData;
   const { method = data ? "POST" : "GET", ...configWithoutMethod } = customConfig;
+  const isGET = method === "GET";
 
   const config: RequestInit = {
     method,
@@ -27,29 +30,48 @@ export async function apiClient<T>(
 
   const url = `${API_BASE_URL}${endpoint}`;
 
-  const response = await fetch(url, config);
-
-  if (!response.ok) {
-    // Attempt to parse error message if available
-    let errorMessage = "An error occurred";
-    try {
-      const errorData = await response.json();
-      errorMessage = errorData?.message || errorData?.error || response.statusText;
-    } catch {
-      errorMessage = response.statusText;
-    }
-    throw new Error(errorMessage);
-  }
-
-  // Handle empty responses
-  if (response.status === 204) {
-    return {} as T;
-  }
-
   try {
-    return (await response.json()) as T;
-  } catch {
-    return {} as T;
+    const response = await fetch(url, config);
+
+    if (!response.ok) {
+      let errorMessage = "An error occurred";
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData?.message || errorData?.error || response.statusText;
+      } catch {
+        errorMessage = response.statusText;
+      }
+      throw new Error(errorMessage);
+    }
+
+    // Handle empty responses
+    if (response.status === 204) {
+      return {} as T;
+    }
+
+    let result: T;
+    try {
+      result = (await response.json()) as T;
+    } catch {
+      result = {} as T;
+    }
+
+    // Cache successful GET responses
+    if (isGET) {
+      cacheApiResponse(endpoint, result).catch(() => {});
+    }
+
+    return result;
+  } catch (err: any) {
+    // On network error for GET requests, try cached response
+    if (isGET && (!navigator.onLine || err?.message?.includes('Failed to fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Load failed'))) {
+      const cached = await getCachedApiResponse(endpoint);
+      if (cached) {
+        console.log(`[API Cache] Serving offline: ${endpoint} (${cached.isStale ? 'stale' : 'fresh'}, cached ${Math.round((Date.now() - cached.cachedAt) / 60000)}m ago)`);
+        return cached.data as T;
+      }
+    }
+    throw err;
   }
 }
 

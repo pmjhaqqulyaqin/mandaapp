@@ -4,7 +4,7 @@
  * and Background Sync for attendance & jurnal offline queue.
  */
 
-const CACHE_NAME = 'man2lotim-pwa-v3';
+const CACHE_NAME = 'man2lotim-pwa-v4';
 const DB_NAME = 'simanda-offline';
 
 // Core shell assets to pre-cache on install
