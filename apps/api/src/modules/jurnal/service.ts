@@ -2,7 +2,7 @@ import { db } from "../../db";
 import {
   teachingSubjects, jurnalEntries, jurnalStudentAttendance,
   jurnalAttachments, jurnalTemplates, employees, classes,
-  studentProfiles, attendanceRecords, jurnalTimeSlots
+  studentProfiles, attendanceRecords, jurnalTimeSlots, teachingMethods
 } from "../../db/schema";
 import { eq, and, desc, count, sql } from "drizzle-orm";
 
@@ -369,5 +369,18 @@ export class JurnalService {
 
   static async deleteTimeSlot(id: string) {
     return (await db.delete(jurnalTimeSlots).where(eq(jurnalTimeSlots.id, id)).returning())[0];
+  }
+
+  // ─── Teaching Methods (Shared) ───────────────────────────────
+
+  static async getTeachingMethods() {
+    return db.select().from(teachingMethods).orderBy(teachingMethods.name);
+  }
+
+  static async createTeachingMethod(name: string, createdBy?: string) {
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error('Nama metode tidak boleh kosong');
+    const results = await db.insert(teachingMethods).values({ name: trimmed, createdBy }).returning();
+    return results[0];
   }
 }

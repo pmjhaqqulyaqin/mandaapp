@@ -757,6 +757,14 @@ export const jurnalTimeSlots = pgTable("jurnal_time_slots", {
   updatedAt: timestamp("updated_at").defaultNow()
 });
 
+// Metode pembelajaran shared — semua guru bisa tambah, semua bisa pakai
+export const teachingMethods = pgTable("teaching_methods", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  createdBy: text("created_by").references(() => user.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // ═══════════════════════════════════════════════════════════════
 // Portal Orang Tua (Parent Portal)
 // ═══════════════════════════════════════════════════════════════

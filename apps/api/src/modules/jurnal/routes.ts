@@ -73,4 +73,8 @@ router.put("/time-slots", JurnalController.upsertTimeSlots);
 router.post("/time-slots/copy", JurnalController.copyTimeSlots);
 router.delete("/time-slots/:id", JurnalController.deleteTimeSlot);
 
+// Teaching Methods (Shared metode pembelajaran)
+router.get("/methods", JurnalController.getTeachingMethods);
+router.post("/methods", JurnalController.createTeachingMethod);
+
 export const jurnalRoutes = router;

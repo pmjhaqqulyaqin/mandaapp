@@ -61,4 +61,8 @@ export const jurnalService = {
   upsertTimeSlots: (slots: any[]) => apiClient<any>(`${BASE}/time-slots`, { method: 'PUT', data: { slots } }),
   copyTimeSlots: (fromDay: number, toDay: number) => apiClient<any>(`${BASE}/time-slots/copy`, { method: 'POST', data: { fromDay, toDay } }),
   deleteTimeSlot: (id: string) => apiClient<any>(`${BASE}/time-slots/${id}`, { method: 'DELETE' }),
+
+  // Teaching Methods (Shared)
+  getMethods: () => apiClient<any[]>(`${BASE}/methods`),
+  createMethod: (name: string) => apiClient<any>(`${BASE}/methods`, { method: 'POST', data: { name } }),
 };

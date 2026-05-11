@@ -73,3 +73,13 @@ export const useTimeSlots = () => {
   const deleteMut = useMutation({ mutationFn: jurnalService.deleteTimeSlot, onSuccess: inv });
   return { query, upsertMut, copyMut, deleteMut };
 };
+
+export const useTeachingMethodsList = () => {
+  const qc = useQueryClient();
+  const query = useQuery({ queryKey: ['jurnal-methods'], queryFn: () => jurnalService.getMethods() });
+  const createMut = useMutation({
+    mutationFn: jurnalService.createMethod,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['jurnal-methods'] }),
+  });
+  return { query, createMut };
+};

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
-import { useScheduleToday, useClassStudents } from '../../../hooks/api/useJurnal';
+import { useScheduleToday, useClassStudents, useTeachingMethodsList } from '../../../hooks/api/useJurnal';
 import { apiClient } from '../../../lib/api';
 import { smartSend, offlineCache } from '../../../lib/syncEngine';
 import { compressImage } from '../../../lib/imageCompressor';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Send, Save, Check, BookOpen, Users, Camera, Link as LinkIcon, FileText, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Check, BookOpen, Users, Camera, Link as LinkIcon, FileText, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface FormData {
   teachingSubjectId: string; teacherId: string; classId: string; subjectName: string; className: string;
@@ -21,23 +21,46 @@ const INITIAL: FormData = {
   catatan: '', evaluasi: '', status: 'draft',
 };
 
-export const JurnalInputTab = () => {
+interface Props {
+  onBack: () => void;
+  selectedSchedule?: any;
+}
+
+export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
   const { user } = useAuth();
-  const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>(INITIAL);
   const [employeeId, setEmployeeId] = useState('');
   const [attendance, setAttendance] = useState<{ studentId: string; status: string; name: string }[]>([]);
   const [photos, setPhotos] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ materi: true, attendance: true, catatan: true });
+  const [attendanceExpanded, setAttendanceExpanded] = useState(false);
+  const [selectedMethods, setSelectedMethods] = useState<string[]>([]);
 
-  // Get employee ID from user (uses smart auto-link endpoint)
+  const methods = useTeachingMethodsList();
+
+  // Get employee ID
   useEffect(() => {
     if (!user?.id) return;
     apiClient<any>('/employees/me').then(emp => {
       if (emp) { setEmployeeId(emp.id); setForm(f => ({ ...f, teacherId: emp.id })); }
     }).catch(() => {});
   }, [user?.id]);
+
+  // Auto-fill from selected schedule
+  useEffect(() => {
+    if (selectedSchedule) {
+      setForm(f => ({
+        ...f,
+        teachingSubjectId: selectedSchedule.id,
+        classId: selectedSchedule.classId,
+        subjectName: selectedSchedule.subjectName,
+        className: selectedSchedule.className || '',
+        jamKe: selectedSchedule.jamKe || '',
+        waktuMulai: selectedSchedule.waktuMulai || '',
+        waktuSelesai: selectedSchedule.waktuSelesai || '',
+      }));
+    }
+  }, [selectedSchedule]);
 
   const schedule = useScheduleToday(employeeId);
   const classStudents = useClassStudents(form.classId, form.date);
@@ -49,19 +72,17 @@ export const JurnalInputTab = () => {
         studentId: s.id, name: s.fullName || s.nis || '-',
         status: s.dailyStatus === 'Hadir' || s.dailyStatus === 'Terlambat' ? 'Hadir' : (s.dailyStatus || 'Hadir'),
       })));
-      // Cache class students for offline access
       offlineCache.cacheClassStudents(form.classId, classStudents.data).catch(() => {});
     }
   }, [classStudents.data, form.classId]);
 
-  // Cache schedule when loaded for offline access
   useEffect(() => {
     if (schedule.data && schedule.data.length > 0) {
       offlineCache.cacheScheduleToday(schedule.data).catch(() => {});
     }
   }, [schedule.data]);
 
-  // Auto-save draft to localStorage
+  // Auto-save draft
   useEffect(() => {
     const timer = setInterval(() => {
       if (form.materiPembelajaran || form.classId) {
@@ -71,8 +92,9 @@ export const JurnalInputTab = () => {
     return () => clearInterval(timer);
   }, [form]);
 
-  // Load draft on mount
+  // Load draft
   useEffect(() => {
+    if (selectedSchedule) return; // Don't load draft if navigating from schedule
     const draft = localStorage.getItem('jurnal_draft');
     if (draft) {
       try {
@@ -90,19 +112,40 @@ export const JurnalInputTab = () => {
     }));
   };
 
-  const toggleSection = (key: string) => setExpandedSections(s => ({ ...s, [key]: !s[key] }));
-
   const toggleStudentStatus = (studentId: string, newStatus: string) => {
     setAttendance(a => a.map(s => s.studentId === studentId ? { ...s, status: newStatus } : s));
   };
 
   const setAllHadir = () => setAttendance(a => a.map(s => ({ ...s, status: 'Hadir' })));
 
+  const toggleMethod = (name: string) => {
+    setSelectedMethods(prev =>
+      prev.includes(name) ? prev.filter(m => m !== name) : [...prev, name]
+    );
+  };
+
+  const handleAddMethod = () => {
+    const name = prompt('Nama metode pembelajaran baru:');
+    if (name?.trim()) {
+      methods.createMut.mutate(name.trim(), {
+        onSuccess: (data: any) => {
+          setSelectedMethods(prev => [...prev, data.name]);
+          toast.success(`Metode "${data.name}" ditambahkan`);
+        },
+        onError: () => toast.error('Gagal menambah metode. Mungkin sudah ada.'),
+      });
+    }
+  };
+
+  // Sync selectedMethods to form.metode
+  useEffect(() => {
+    setForm(f => ({ ...f, metode: selectedMethods.join(', ') }));
+  }, [selectedMethods]);
+
   const handleSave = async (andSubmit: boolean) => {
     if (!form.classId || !form.subjectName) { toast.error('Pilih jadwal terlebih dahulu'); return; }
     setSaving(true);
     try {
-      // Single API call: create entry + save attendance + optional submit
       const payload = {
         ...form,
         status: andSubmit ? 'submitted' : 'draft',
@@ -110,7 +153,6 @@ export const JurnalInputTab = () => {
       };
       const entry = await apiClient<any>('/jurnal/entries', { method: 'POST', data: payload });
 
-      // Upload photos in parallel with compression (if any)
       if (photos.length > 0) {
         const compressed = await Promise.all(photos.map(p => compressImage(p, { maxWidth: 1280, quality: 0.7 })));
         await Promise.all(compressed.map(photo => {
@@ -124,9 +166,8 @@ export const JurnalInputTab = () => {
 
       localStorage.removeItem('jurnal_draft');
       toast.success(andSubmit ? 'Jurnal berhasil disubmit!' : 'Draft tersimpan!');
-      setForm(INITIAL); setAttendance([]); setPhotos([]); setStep(0);
+      onBack();
     } catch (err: any) {
-      // Offline fallback: save to IndexedDB queue
       if (!navigator.onLine || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
         try {
           await smartSend('jurnal_create', {
@@ -136,7 +177,7 @@ export const JurnalInputTab = () => {
           }, `Jurnal ${form.subjectName} - ${form.className}`);
           localStorage.removeItem('jurnal_draft');
           toast.success('📱 Jurnal tersimpan offline — akan di-sync saat online');
-          setForm(INITIAL); setAttendance([]); setPhotos([]); setStep(0);
+          onBack();
         } catch {
           toast.error('Gagal menyimpan bahkan secara offline');
         }
@@ -147,241 +188,229 @@ export const JurnalInputTab = () => {
     setSaving(false);
   };
 
-  const steps = ['Jadwal & RPP', 'Isi Jurnal', 'Upload & Submit'];
+  // Attendance summary
+  const attSummary = {
+    hadir: attendance.filter(a => a.status === 'Hadir').length,
+    sakit: attendance.filter(a => a.status === 'Sakit').length,
+    izin: attendance.filter(a => a.status === 'Izin').length,
+    alpa: attendance.filter(a => a.status === 'Alpa').length,
+  };
+
+  const statusColors: Record<string, string> = {
+    Hadir: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400',
+    Sakit: 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400',
+    Izin: 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400',
+    Alpa: 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+  };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Stepper */}
-      <div className="flex items-center justify-center mb-6 px-2">
-        {steps.map((label, i) => (
-          <div key={i} className="flex items-center">
-            <button onClick={() => setStep(i)} className="flex flex-col items-center gap-1">
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                i <= step ? 'bg-emerald-600 text-white shadow-md' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
-              } ${i === step ? 'ring-4 ring-emerald-100 dark:ring-emerald-900/30 scale-110' : ''}`}>
-                {i < step ? <Check size={16} /> : i + 1}
-              </div>
-              <span className={`text-[10px] font-semibold ${i <= step ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'}`}>{label}</span>
+    <div className="pb-4 -mx-3 md:mx-0">
+      {/* Sticky Header */}
+      <div className="bg-white dark:bg-[#111] px-4 pt-3 pb-3 sticky top-0 z-40 border-b border-gray-100 dark:border-gray-800 md:rounded-t-xl">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <button onClick={onBack} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95">
+              <ArrowLeft size={18} className="text-gray-600 dark:text-gray-400" />
             </button>
-            {i < 2 && <div className={`w-12 sm:w-20 h-0.5 mx-1 mt-[-18px] ${i < step ? 'bg-emerald-500' : 'bg-gray-200 dark:bg-gray-700'}`} />}
+            <h1 className="text-lg font-bold text-gray-800 dark:text-white">Jurnal Baru</h1>
           </div>
-        ))}
+          <button onClick={() => handleSave(true)} disabled={saving || !form.classId}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-emerald-600 text-white disabled:opacity-40 active:scale-95 transition-all">
+            <Check size={16} />
+          </button>
+        </div>
       </div>
 
-      {/* Step 1: Jadwal & RPP */}
-      {step === 0 && (
-        <div className="space-y-4 animate-in fade-in duration-200">
-          <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 border border-emerald-200 dark:border-emerald-800">
-            <h3 className="text-sm font-bold text-emerald-800 dark:text-emerald-300 mb-3 flex items-center gap-2"><BookOpen size={16} /> Jadwal Hari Ini</h3>
-            {schedule.isLoading && <p className="text-xs text-gray-500">Memuat jadwal...</p>}
-            {schedule.data?.length === 0 && <p className="text-xs text-gray-500">Tidak ada jadwal hari ini</p>}
-            <div className="space-y-2">
-              {schedule.data?.map((item: any) => (
-                <button key={item.id} onClick={() => selectSchedule(item)} disabled={item.alreadyFilled}
-                  className={`w-full text-left p-3 rounded-lg border transition-all active:scale-[0.98] ${
-                    form.teachingSubjectId === item.id ? 'border-emerald-500 bg-emerald-100 dark:bg-emerald-900/40 ring-2 ring-emerald-500/30'
-                    : item.alreadyFilled ? 'border-gray-200 bg-gray-100 dark:bg-gray-800 opacity-60 cursor-not-allowed'
-                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] hover:border-emerald-300'
-                  }`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-sm text-gray-900 dark:text-white">{item.subjectName}</p>
-                      <p className="text-xs text-gray-500">{item.className} • Jam ke {item.jamKe}</p>
-                    </div>
-                    {item.alreadyFilled && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-full">Sudah Diisi</span>}
-                    {form.teachingSubjectId === item.id && <Check size={18} className="text-emerald-600" />}
+      <div className="px-4 py-4 space-y-4">
+        {/* Section 1: Pilih Jadwal */}
+        <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+          <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+            <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-[10px] flex items-center justify-center font-bold">1</span>
+            Pilih Jadwal
+          </h3>
+          {schedule.isLoading && <p className="text-xs text-gray-400">Memuat jadwal...</p>}
+          {schedule.data?.length === 0 && <p className="text-xs text-gray-400">Tidak ada jadwal hari ini</p>}
+          <div className="space-y-2">
+            {schedule.data?.map((item: any) => (
+              <button key={item.id} onClick={() => selectSchedule(item)} disabled={item.alreadyFilled}
+                className={`w-full text-left p-3 rounded-lg border transition-all active:scale-[0.98] ${
+                  form.teachingSubjectId === item.id ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 ring-2 ring-emerald-500/30'
+                  : item.alreadyFilled ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-50 cursor-not-allowed'
+                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#222] hover:border-emerald-300'
+                }`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-sm text-gray-900 dark:text-white">{item.subjectName}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{item.className} • Jam ke {item.jamKe || '-'}</p>
                   </div>
-                </button>
-              ))}
-            </div>
+                  {item.alreadyFilled && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-full">Sudah Diisi</span>}
+                  {form.teachingSubjectId === item.id && <Check size={18} className="text-emerald-600" />}
+                </div>
+              </button>
+            ))}
           </div>
+
           {/* Link RPP */}
-          <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-            <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-2"><LinkIcon size={14} /> Link RPP (opsional)</label>
+          <div className="mt-3">
+            <label className="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1"><LinkIcon size={12} /> Link RPP (opsional)</label>
             <input type="url" placeholder="https://drive.google.com/..." value={form.linkRpp} onChange={e => setForm(f => ({ ...f, linkRpp: e.target.value }))}
-              className="w-full bg-gray-50 dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 py-2.5 px-3 text-sm" />
+              className="w-full mt-1 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-gray-50 dark:bg-[#111] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" />
           </div>
         </div>
-      )}
 
-      {/* Step 2: Isi Jurnal */}
-      {step === 1 && (
-        <div className="space-y-3 animate-in fade-in duration-200">
-          {/* Info card */}
-          {form.subjectName && (
-            <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-3 border border-emerald-200 dark:border-emerald-800 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm">{form.subjectName.charAt(0)}</div>
-              <div>
-                <p className="font-semibold text-sm text-gray-900 dark:text-white">{form.subjectName}</p>
-                <p className="text-xs text-gray-500">{form.className} • Jam ke {form.jamKe} • {form.date}</p>
+        {/* Section 2: Materi & Kegiatan */}
+        <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+          <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+            <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-[10px] flex items-center justify-center font-bold">2</span>
+            Materi & Kegiatan
+          </h3>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Materi Pokok <span className="text-red-400">*</span></label>
+              <textarea className="w-full mt-1 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-gray-50 dark:bg-[#111] focus:border-emerald-500 outline-none resize-none"
+                rows={2} placeholder="Contoh: Perubahan Wujud Benda" value={form.materiPembelajaran}
+                onChange={e => setForm(f => ({ ...f, materiPembelajaran: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Tujuan Pembelajaran</label>
+              <textarea className="w-full mt-1 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-gray-50 dark:bg-[#111] focus:border-emerald-500 outline-none resize-none"
+                rows={2} placeholder="Siswa dapat menjelaskan..." value={form.capaianPembelajaran}
+                onChange={e => setForm(f => ({ ...f, capaianPembelajaran: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Metode Pembelajaran</label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {methods.query.data?.map((m: any) => (
+                  <button key={m.id} onClick={() => toggleMethod(m.name)}
+                    className={`px-3 py-1.5 text-xs rounded-full font-medium transition-all active:scale-95 ${
+                      selectedMethods.includes(m.name)
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                    }`}>{m.name}</button>
+                ))}
+                <button onClick={handleAddMethod}
+                  className="px-3 py-1.5 border border-dashed border-gray-300 dark:border-gray-600 text-gray-400 text-xs rounded-full hover:border-emerald-400 hover:text-emerald-500 transition-colors flex items-center gap-1 active:scale-95">
+                  <Plus size={12} /> Lainnya
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Absensi */}
+        <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+          <div className="p-4">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-semibold text-sm text-gray-800 dark:text-white flex items-center gap-2">
+                <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-[10px] flex items-center justify-center font-bold">3</span>
+                Absensi Siswa
+              </h3>
+              <button onClick={() => setAttendanceExpanded(!attendanceExpanded)}
+                className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                {attendanceExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                {attendanceExpanded ? 'Tutup' : 'Isi Absensi'}
+              </button>
+            </div>
+            <div className="flex gap-3 text-center">
+              <div className="flex-1 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-2">
+                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{attSummary.hadir}</p>
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400">Hadir</p>
+              </div>
+              <div className="flex-1 bg-red-50 dark:bg-red-900/20 rounded-lg p-2">
+                <p className="text-lg font-bold text-red-500 dark:text-red-400">{attSummary.sakit}</p>
+                <p className="text-[10px] text-red-500 dark:text-red-400">Sakit</p>
+              </div>
+              <div className="flex-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2">
+                <p className="text-lg font-bold text-blue-500 dark:text-blue-400">{attSummary.izin}</p>
+                <p className="text-[10px] text-blue-500 dark:text-blue-400">Izin</p>
+              </div>
+              <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
+                <p className="text-lg font-bold text-gray-500 dark:text-gray-400">{attSummary.alpa}</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400">Alpa</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Expanded: Student list */}
+          {attendanceExpanded && (
+            <div className="border-t border-gray-100 dark:border-gray-800">
+              <div className="px-4 py-2 flex items-center justify-between">
+                <p className="text-[10px] text-gray-500 dark:text-gray-400">Tap untuk ubah status</p>
+                <button onClick={setAllHadir} className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-full active:scale-95">
+                  Semua Hadir
+                </button>
+              </div>
+              <div className="max-h-80 overflow-y-auto px-4 pb-3 space-y-1.5">
+                {attendance.map((s, i) => (
+                  <div key={s.studentId} className="flex items-center gap-3 bg-white dark:bg-[#222] rounded-lg p-2.5">
+                    <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-xs shrink-0">
+                      {s.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{s.name}</p>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      {['Hadir', 'Sakit', 'Izin', 'Alpa'].map(st => (
+                        <button key={st} onClick={() => toggleStudentStatus(s.studentId, st)}
+                          className={`px-2 py-1 rounded-full text-[10px] font-medium transition-all active:scale-90 ${
+                            s.status === st ? statusColors[st] : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500'
+                          }`}>{st.charAt(0)}</button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {attendance.length === 0 && (
+                  <p className="text-xs text-gray-400 text-center py-6">Pilih jadwal di atas untuk memuat data siswa</p>
+                )}
               </div>
             </div>
           )}
-
-          {/* Kehadiran */}
-          <div className="bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <button onClick={() => toggleSection('attendance')} className="w-full flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-[#222]">
-              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5"><Users size={14} /> Kehadiran Siswa</span>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-semibold px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 rounded-full">
-                  {attendance.filter(a => a.status === 'Hadir').length}/{attendance.length}
-                </span>
-                <ChevronRight size={14} className={`text-gray-400 transition-transform ${expandedSections.attendance ? 'rotate-90' : ''}`} />
-              </div>
-            </button>
-            {expandedSections.attendance && (
-              <div className="px-3 pb-3 border-t border-gray-100 dark:border-gray-800">
-                <div className="flex items-center justify-between py-2">
-                  <p className="text-[10px] text-gray-500">Info absen pagi ditampilkan sebagai default</p>
-                  <button onClick={setAllHadir} className="text-[10px] font-semibold text-emerald-600 hover:text-emerald-700">Semua Hadir</button>
-                </div>
-                <div className="max-h-60 overflow-y-auto space-y-1 custom-scrollbar">
-                  {attendance.map((s, i) => (
-                    <div key={s.studentId} className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-[#222]">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-[10px] text-gray-400 w-5">{i + 1}</span>
-                        <span className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{s.name}</span>
-                      </div>
-                      <div className="flex gap-1 shrink-0">
-                        {['Hadir', 'Izin', 'Sakit', 'Alpa'].map(st => (
-                          <button key={st} onClick={() => toggleStudentStatus(s.studentId, st)}
-                            className={`px-2 py-0.5 rounded text-[9px] font-bold transition-all active:scale-95 ${
-                              s.status === st
-                                ? st === 'Hadir' ? 'bg-emerald-500 text-white' : st === 'Izin' ? 'bg-blue-500 text-white' : st === 'Sakit' ? 'bg-yellow-500 text-white' : 'bg-red-500 text-white'
-                                : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
-                            }`}>
-                            {st.charAt(0)}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                  {attendance.length === 0 && <p className="text-xs text-gray-400 text-center py-4">Pilih jadwal di Step 1 untuk memuat siswa</p>}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Materi */}
-          <div className="bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <button onClick={() => toggleSection('materi')} className="w-full flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-[#222]">
-              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5"><FileText size={14} /> Materi Pembelajaran</span>
-              <ChevronRight size={14} className={`text-gray-400 transition-transform ${expandedSections.materi ? 'rotate-90' : ''}`} />
-            </button>
-            {expandedSections.materi && (
-              <div className="px-3 pb-3 space-y-3 border-t border-gray-100 dark:border-gray-800">
-                <div className="pt-2">
-                  <label className="text-[10px] font-semibold text-gray-500 uppercase mb-1 block">Materi</label>
-                  <textarea rows={4} placeholder="Deskripsikan materi pembelajaran..." value={form.materiPembelajaran}
-                    onChange={e => setForm(f => ({ ...f, materiPembelajaran: e.target.value }))}
-                    className="w-full bg-gray-50 dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 p-3 text-sm resize-none" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-gray-500 uppercase mb-1 block">Metode</label>
-                  <input type="text" placeholder="Ceramah, Diskusi, Praktikum..." value={form.metode}
-                    onChange={e => setForm(f => ({ ...f, metode: e.target.value }))}
-                    className="w-full bg-gray-50 dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 py-2.5 px-3 text-sm" />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Catatan & Evaluasi */}
-          <div className="bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <button onClick={() => toggleSection('catatan')} className="w-full flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-[#222]">
-              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList size={14} /> Catatan & Evaluasi</span>
-              <ChevronRight size={14} className={`text-gray-400 transition-transform ${expandedSections.catatan ? 'rotate-90' : ''}`} />
-            </button>
-            {expandedSections.catatan && (
-              <div className="px-3 pb-3 space-y-3 border-t border-gray-100 dark:border-gray-800">
-                <div className="pt-2">
-                  <label className="text-[10px] font-semibold text-gray-500 uppercase mb-1 block">Catatan</label>
-                  <textarea rows={3} placeholder="Catatan tambahan..." value={form.catatan}
-                    onChange={e => setForm(f => ({ ...f, catatan: e.target.value }))}
-                    className="w-full bg-gray-50 dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 p-3 text-sm resize-none" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-gray-500 uppercase mb-1 block">Evaluasi</label>
-                  <textarea rows={3} placeholder="Evaluasi pembelajaran hari ini..." value={form.evaluasi}
-                    onChange={e => setForm(f => ({ ...f, evaluasi: e.target.value }))}
-                    className="w-full bg-gray-50 dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 p-3 text-sm resize-none" />
-                </div>
-              </div>
-            )}
-          </div>
         </div>
-      )}
 
-      {/* Step 3: Upload & Submit */}
-      {step === 2 && (
-        <div className="space-y-4 animate-in fade-in duration-200">
-          {/* Documentation Upload */}
-          <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"><Camera size={14} /> Dokumentasi</h3>
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <label className="aspect-square bg-gray-50 dark:bg-[#111] rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-400 transition-colors group">
-                <Camera size={24} className="text-gray-400 group-hover:text-emerald-500 mb-1" />
-                <span className="text-[10px] font-semibold text-gray-500">Ambil Foto</span>
-                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { if (e.target.files?.[0]) setPhotos(p => [...p, e.target.files![0]]); }} />
-              </label>
-              <label className="aspect-square bg-gray-50 dark:bg-[#111] rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-400 transition-colors group">
-                <Camera size={24} className="text-gray-400 group-hover:text-emerald-500 mb-1" />
-                <span className="text-[10px] font-semibold text-gray-500">Pilih File</span>
-                <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={e => { if (e.target.files) setPhotos(p => [...p, ...Array.from(e.target.files!)]); }} />
-              </label>
+        {/* Section 4: Evaluasi & Lampiran */}
+        <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+          <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+            <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-[10px] flex items-center justify-center font-bold">4</span>
+            Evaluasi & Lampiran
+          </h3>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Catatan Guru</label>
+              <textarea className="w-full mt-1 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-gray-50 dark:bg-[#111] focus:border-emerald-500 outline-none resize-none"
+                rows={3} placeholder="Kendala, perilaku khusus siswa, atau hal penting..." value={form.catatan}
+                onChange={e => setForm(f => ({ ...f, catatan: e.target.value }))} />
             </div>
-            {photos.length > 0 && (
-              <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Foto Kegiatan</label>
+              <div className="flex gap-2 mt-2 flex-wrap">
+                <label className="w-16 h-16 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:border-emerald-400 hover:text-emerald-500 transition-colors shrink-0">
+                  <Camera size={16} />
+                  <span className="text-[9px] mt-0.5">Tambah</span>
+                  <input type="file" accept="image/*" capture="environment" className="hidden"
+                    onChange={e => { if (e.target.files?.[0]) setPhotos(p => [...p, e.target.files![0]]); }} />
+                </label>
                 {photos.map((f, i) => (
-                  <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+                  <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0">
                     <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
                     <button onClick={() => setPhotos(p => p.filter((_, j) => j !== i))}
-                      className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">×</button>
+                      className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white rounded-full text-[9px] flex items-center justify-center leading-none">×</button>
                   </div>
                 ))}
               </div>
-            )}
-            <p className="text-[10px] text-gray-400 text-center mt-2">JPG, PNG, MP4. Maks 20MB</p>
-          </div>
-
-          {/* Summary */}
-          <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 border border-emerald-200 dark:border-emerald-800">
-            <h3 className="text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-2">Ringkasan</h3>
-            <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-              <p><span className="font-semibold">Mapel:</span> {form.subjectName || '-'}</p>
-              <p><span className="font-semibold">Kelas:</span> {form.className || '-'}</p>
-              <p><span className="font-semibold">Tanggal:</span> {form.date}</p>
-              <p><span className="font-semibold">Kehadiran:</span> {attendance.filter(a => a.status === 'Hadir').length} Hadir / {attendance.length} Siswa</p>
-              <p><span className="font-semibold">Foto:</span> {photos.length} file</p>
             </div>
           </div>
         </div>
-      )}
 
-      {/* Sticky Bottom Action Bar */}
-      <div className="sticky bottom-0 mt-4 bg-white dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-xl p-3 shadow-lg flex items-center justify-between gap-3">
-        <button onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}
-          className="flex items-center gap-1 px-4 py-2.5 text-gray-500 font-semibold text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-[#222] transition-all disabled:opacity-30 active:scale-95">
-          <ChevronLeft size={16} /> Kembali
-        </button>
-        <div className="flex gap-2">
-          {step === 2 && (
-            <button onClick={() => handleSave(false)} disabled={saving}
-              className="px-4 py-2.5 border border-emerald-600 text-emerald-600 font-semibold text-xs rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all active:scale-95 disabled:opacity-50">
-              <Save size={14} className="inline mr-1" /> Draft
-            </button>
-          )}
-          {step < 2 ? (
-            <button onClick={() => setStep(step + 1)}
-              className="px-6 py-2.5 bg-emerald-600 text-white font-semibold text-xs rounded-lg shadow-md hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-1">
-              Lanjut <ChevronRight size={16} />
-            </button>
-          ) : (
-            <button onClick={() => handleSave(true)} disabled={saving}
-              className="px-6 py-2.5 bg-emerald-600 text-white font-semibold text-xs rounded-lg shadow-md hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-1 disabled:opacity-50">
-              Submit <Send size={14} />
-            </button>
-          )}
+        {/* Action Buttons */}
+        <div className="flex gap-3 pt-2 pb-2">
+          <button onClick={() => handleSave(false)} disabled={saving || !form.classId}
+            className="flex-1 py-3 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 rounded-xl text-sm font-medium disabled:opacity-40 active:scale-[0.98] transition-all">
+            Simpan Draft
+          </button>
+          <button onClick={() => handleSave(true)} disabled={saving || !form.classId}
+            className="flex-1 py-3 bg-emerald-600 text-white rounded-xl text-sm font-medium shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30 disabled:opacity-40 active:scale-[0.98] transition-all">
+            {saving ? 'Menyimpan...' : 'Simpan Jurnal'}
+          </button>
         </div>
       </div>
     </div>

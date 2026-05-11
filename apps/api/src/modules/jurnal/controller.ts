@@ -575,4 +575,19 @@ export class JurnalController {
       res.json(result);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
+
+  // ─── Teaching Methods ─────────────────────────────────────────
+  static async getTeachingMethods(_req: Request, res: Response) {
+    try {
+      const data = await JurnalService.getTeachingMethods();
+      res.json(data);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async createTeachingMethod(req: Request, res: Response) {
+    try {
+      const result = await JurnalService.createTeachingMethod(req.body.name, req.authUser?.id);
+      res.status(201).json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
 }
