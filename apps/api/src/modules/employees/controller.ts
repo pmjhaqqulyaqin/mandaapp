@@ -13,6 +13,19 @@ export class EmployeeController {
     }
   }
 
+  /** Resolve the logged-in user's employee record (auto-links by name if needed) */
+  static async getMe(req: Request, res: Response) {
+    try {
+      const user = req.authUser;
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      const employee = await EmployeeService.resolveEmployeeForUser(user.id, user.name, user.email);
+      if (!employee) return res.json(null);
+      res.json(employee);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   static async getById(req: Request, res: Response) {
     try {
       const data = await EmployeeService.getEmployeeById(req.params.id);

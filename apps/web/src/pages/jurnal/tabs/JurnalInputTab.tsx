@@ -32,12 +32,11 @@ export const JurnalInputTab = () => {
 
   const { createEntry, saveAttendance, uploadAttachment, submitEntry } = useJurnalMutations();
 
-  // Get employee ID from user
+  // Get employee ID from user (uses smart auto-link endpoint)
   useEffect(() => {
     if (!user?.id) return;
-    apiClient<any[]>('/employees').then(emps => {
-      const me = emps.find((e: any) => e.userId === user.id);
-      if (me) { setEmployeeId(me.id); setForm(f => ({ ...f, teacherId: me.id })); }
+    apiClient<any>('/employees/me').then(emp => {
+      if (emp) { setEmployeeId(emp.id); setForm(f => ({ ...f, teacherId: emp.id })); }
     }).catch(() => {});
   }, [user?.id]);
 

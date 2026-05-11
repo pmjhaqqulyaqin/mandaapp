@@ -8,6 +8,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // All employee routes are staff-protected
 router.get("/", requireStaff, EmployeeController.getAll);
+router.get("/me", requireStaff, EmployeeController.getMe);
 router.get("/template", requireStaff, EmployeeController.downloadTemplate);
 router.get("/:id", requireStaff, EmployeeController.getById);
 router.post("/", requireStaff, EmployeeController.create);
