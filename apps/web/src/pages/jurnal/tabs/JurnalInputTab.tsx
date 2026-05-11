@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
-import { useScheduleToday, useClassStudents, useJurnalMutations } from '../../../hooks/api/useJurnal';
+import { useScheduleToday, useClassStudents } from '../../../hooks/api/useJurnal';
 import { apiClient } from '../../../lib/api';
 import { smartSend, offlineCache } from '../../../lib/syncEngine';
+import { compressImage } from '../../../lib/imageCompressor';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, Send, Save, Check, BookOpen, Users, Camera, Link as LinkIcon, FileText, ClipboardList } from 'lucide-react';
 
@@ -29,8 +30,6 @@ export const JurnalInputTab = () => {
   const [photos, setPhotos] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ materi: true, attendance: true, catatan: true });
-
-  const { createEntry, saveAttendance, uploadAttachment, submitEntry } = useJurnalMutations();
 
   // Get employee ID from user (uses smart auto-link endpoint)
   useEffect(() => {
@@ -103,15 +102,26 @@ export const JurnalInputTab = () => {
     if (!form.classId || !form.subjectName) { toast.error('Pilih jadwal terlebih dahulu'); return; }
     setSaving(true);
     try {
-      const entry = await createEntry.mutateAsync({ ...form, status: 'draft' });
-      if (attendance.length > 0) {
-        await saveAttendance.mutateAsync({ entryId: entry.id, records: attendance.map(a => ({ studentId: a.studentId, status: a.status })) });
+      // Single API call: create entry + save attendance + optional submit
+      const payload = {
+        ...form,
+        status: andSubmit ? 'submitted' : 'draft',
+        attendance: attendance.length > 0 ? attendance.map(a => ({ studentId: a.studentId, status: a.status })) : undefined,
+      };
+      const entry = await apiClient<any>('/jurnal/entries', { method: 'POST', data: payload });
+
+      // Upload photos in parallel with compression (if any)
+      if (photos.length > 0) {
+        const compressed = await Promise.all(photos.map(p => compressImage(p, { maxWidth: 1280, quality: 0.7 })));
+        await Promise.all(compressed.map(photo => {
+          const fd = new FormData();
+          fd.append('file', photo);
+          fd.append('jurnalEntryId', entry.id);
+          fd.append('fileType', 'photo');
+          return apiClient<any>('/jurnal/attachments', { method: 'POST', data: fd });
+        }));
       }
-      for (const photo of photos) {
-        const fd = new FormData(); fd.append('file', photo); fd.append('jurnalEntryId', entry.id); fd.append('fileType', 'photo');
-        await uploadAttachment.mutateAsync(fd);
-      }
-      if (andSubmit) await submitEntry.mutateAsync(entry.id);
+
       localStorage.removeItem('jurnal_draft');
       toast.success(andSubmit ? 'Jurnal berhasil disubmit!' : 'Draft tersimpan!');
       setForm(INITIAL); setAttendance([]); setPhotos([]); setStep(0);
@@ -123,7 +133,6 @@ export const JurnalInputTab = () => {
             ...form,
             status: andSubmit ? 'submitted' : 'draft',
             attendance: attendance.map(a => ({ studentId: a.studentId, status: a.status })),
-            // Note: photos cannot be saved offline in this simplified flow
           }, `Jurnal ${form.subjectName} - ${form.className}`);
           localStorage.removeItem('jurnal_draft');
           toast.success('📱 Jurnal tersimpan offline — akan di-sync saat online');

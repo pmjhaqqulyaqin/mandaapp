@@ -364,7 +364,14 @@ export class JurnalController {
 
   static async createJurnalEntry(req: Request, res: Response) {
     try {
-      const result = await JurnalService.createJurnalEntry(req.body);
+      const { attendance, ...entryData } = req.body;
+      const result = await JurnalService.createJurnalEntry(entryData);
+
+      // Handle inline attendance if provided (avoids extra round-trip)
+      if (Array.isArray(attendance) && attendance.length > 0) {
+        await JurnalService.saveStudentAttendance(result.id, attendance);
+      }
+
       res.status(201).json(result);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
