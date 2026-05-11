@@ -186,6 +186,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data } = await authClient.getSession();
       if (data?.user) {
         const parsedUser = parseUser(data.user);
+        // If the server still returns a stale role (e.g. 'student' due to cookie cache),
+        // but localStorage has an optimistically-updated role, prefer localStorage
+        const savedUserRaw = localStorage.getItem('mandualotim_user');
+        if (savedUserRaw) {
+          try {
+            const savedUser = JSON.parse(savedUserRaw);
+            if (savedUser.role && savedUser.role !== 'student' && parsedUser.role === 'student') {
+              parsedUser.role = savedUser.role;
+            }
+          } catch {}
+        }
         setUser(parsedUser);
         localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
       } else {

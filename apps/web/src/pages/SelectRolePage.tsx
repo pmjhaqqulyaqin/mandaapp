@@ -75,7 +75,18 @@ export const SelectRolePage = () => {
         data: { role: selectedRole, password },
       });
 
-      // Refresh session to get updated role
+      // Optimistically update user in localStorage with new role
+      // so ProtectedRoute immediately sees the correct role
+      const savedUser = localStorage.getItem('mandualotim_user');
+      if (savedUser) {
+        try {
+          const parsed = JSON.parse(savedUser);
+          parsed.role = selectedRole;
+          localStorage.setItem('mandualotim_user', JSON.stringify(parsed));
+        } catch {}
+      }
+
+      // Refresh session to sync with server
       await refreshSession();
       navigate(selectedRole === 'orang_tua' ? '/portal-ortu' : '/dashboard', { replace: true });
     } catch (err: any) {
