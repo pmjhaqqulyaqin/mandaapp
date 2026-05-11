@@ -345,16 +345,16 @@ export const DashboardLayout = () => {
         if (role === 'admin') {
           setAllowedMenus(result.allMenus);
         } else {
-          setAllowedMenus(result.permissions[role] || ['overview']);
+          const roleMenus = result.permissions[role] || [];
+          // If server returns empty permissions for a valid staff role, 
+          // keep all menus accessible (new user race condition)
+          setAllowedMenus(roleMenus.length > 0 ? roleMenus : ALL_MENU_ITEMS.map(i => i.key));
         }
       })
       .catch(err => {
         console.error('Failed to fetch permissions:', err);
-        if (user?.role === 'admin') {
-          setAllowedMenus(ALL_MENU_ITEMS.map((i) => i.key));
-        } else {
-          setAllowedMenus(['overview']);
-        }
+        // On error, keep ALL menus visible — don't lock users out
+        setAllowedMenus(ALL_MENU_ITEMS.map((i) => i.key));
       })
       .finally(() => setPermissionsLoaded(true));
 
@@ -368,11 +368,16 @@ export const DashboardLayout = () => {
     }
   }, [user?.id, user?.role]);
 
-  // Route protection: redirect only after permissions have actually loaded
+  // Route protection: redirect only after permissions have loaded AND settled
+  // Use a mount timestamp to avoid redirecting during async permission loading
+  const [mountTime] = useState(() => Date.now());
   useEffect(() => {
     if (!permissionsLoaded || !user) return;
     // Don't protect until the dynamic evaluation is complete
     if (hasPenilaianTests === null && user.role !== 'admin') return;
+    // Grace period: don't redirect within first 3 seconds of mount
+    // This prevents premature redirects when role/permissions are still settling
+    if (Date.now() - mountTime < 3000) return;
     
     const pathSegment = location.pathname.replace('/dashboard', '').replace(/^\//, '').split('/')[0] || '';
     
@@ -393,7 +398,7 @@ export const DashboardLayout = () => {
     if (menuKey && !finalAllowed.includes(menuKey)) {
       navigate('/dashboard', { replace: true });
     }
-  }, [permissionsLoaded, allowedMenus, hasPenilaianTests, location.pathname, navigate, user]);
+  }, [permissionsLoaded, allowedMenus, hasPenilaianTests, location.pathname, navigate, user, mountTime]);
 
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();

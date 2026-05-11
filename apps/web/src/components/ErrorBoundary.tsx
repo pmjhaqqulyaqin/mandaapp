@@ -22,7 +22,6 @@ function isChunkLoadError(error: Error): boolean {
     msg.includes('loading chunk') ||
     msg.includes('loading css chunk') ||
     msg.includes('dynamically imported module') ||
-    msg.includes('failed to fetch') ||
     msg.includes('loading module') ||
     msg.includes('importing a module') ||
     name === 'chunkerror' ||

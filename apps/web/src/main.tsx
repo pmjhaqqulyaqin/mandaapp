@@ -13,11 +13,11 @@ initSyncListeners();
 // Global handler: auto-reload on chunk load failures (after new deployment)
 window.addEventListener('unhandledrejection', (event) => {
   const msg = (event.reason?.message || '').toLowerCase();
+  // Only match specific chunk/module loading errors, NOT general "failed to fetch"
   if (
     msg.includes('dynamically imported module') ||
     msg.includes('loading chunk') ||
-    msg.includes('loading css chunk') ||
-    msg.includes('failed to fetch')
+    msg.includes('loading css chunk')
   ) {
     const key = 'simanda_chunk_reload';
     const last = sessionStorage.getItem(key);
