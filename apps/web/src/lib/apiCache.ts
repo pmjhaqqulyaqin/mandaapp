@@ -4,6 +4,8 @@
  * Strategy: Cache-then-network for critical GET endpoints.
  * - On fetch success: cache response, return fresh data
  * - On fetch failure (offline): return cached data with staleness info
+ * 
+ * Performance: Uses singleton DB connection + batched writes via requestIdleCallback
  */
 
 const DB_NAME = 'simanda-offline';
@@ -40,8 +42,17 @@ function getTTL(url: string): number {
   return DEFAULT_TTL;
 }
 
-function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+// ── Singleton DB Connection ──
+let dbInstance: IDBDatabase | null = null;
+let dbPromise: Promise<IDBDatabase> | null = null;
+
+function getDB(): Promise<IDBDatabase> {
+  if (dbInstance && dbInstance.objectStoreNames.length > 0) {
+    return Promise.resolve(dbInstance);
+  }
+  if (dbPromise) return dbPromise;
+
+  dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
@@ -57,34 +68,72 @@ function openDB(): Promise<IDBDatabase> {
         db.createObjectStore('offlineAuth', { keyPath: 'email' });
       }
     };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      dbInstance = request.result;
+      // If connection is closed externally, reset singleton
+      dbInstance.onclose = () => { dbInstance = null; dbPromise = null; };
+      dbInstance.onerror = () => { dbInstance = null; dbPromise = null; };
+      resolve(dbInstance);
+    };
+    request.onerror = () => {
+      dbPromise = null;
+      reject(request.error);
+    };
   });
+
+  return dbPromise;
+}
+
+// ── Batched Write Queue ──
+// Collect writes and flush them in a single transaction during idle time
+let writeQueue: CachedResponse[] = [];
+let flushScheduled = false;
+
+function scheduleFlush() {
+  if (flushScheduled) return;
+  flushScheduled = true;
+
+  const doFlush = () => {
+    flushScheduled = false;
+    const items = writeQueue.splice(0);
+    if (items.length === 0) return;
+
+    getDB().then(db => {
+      try {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        for (const item of items) {
+          store.put(item);
+        }
+        // No need to await — fire and forget
+      } catch {
+        // Transaction may fail if DB was closed, silently ignore
+      }
+    }).catch(() => {
+      // DB open failed — silently ignore, caching is best-effort
+    });
+  };
+
+  // Use requestIdleCallback if available (doesn't block main thread)
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(doFlush, { timeout: 2000 });
+  } else {
+    setTimeout(doFlush, 100);
+  }
 }
 
 /**
- * Save API response to cache
+ * Save API response to cache (non-blocking, batched)
  */
 export async function cacheApiResponse(url: string, data: any): Promise<void> {
-  try {
-    const db = await openDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const entry: CachedResponse = {
-      url,
-      data,
-      cachedAt: Date.now(),
-      ttl: getTTL(url),
-    };
-    store.put(entry);
-    await new Promise<void>((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-    db.close();
-  } catch (err) {
-    // Silently fail — caching is best-effort
-  }
+  const entry: CachedResponse = {
+    url,
+    data,
+    cachedAt: Date.now(),
+    ttl: getTTL(url),
+  };
+  writeQueue.push(entry);
+  scheduleFlush();
 }
 
 /**
@@ -93,7 +142,7 @@ export async function cacheApiResponse(url: string, data: any): Promise<void> {
  */
 export async function getCachedApiResponse(url: string): Promise<{ data: any; isStale: boolean; cachedAt: number } | null> {
   try {
-    const db = await openDB();
+    const db = await getDB();
     const tx = db.transaction(STORE_NAME, 'readonly');
     const store = tx.objectStore(STORE_NAME);
     const result = await new Promise<CachedResponse | undefined>((resolve, reject) => {
@@ -101,7 +150,6 @@ export async function getCachedApiResponse(url: string): Promise<{ data: any; is
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
-    db.close();
     
     if (!result) return null;
     
@@ -122,13 +170,8 @@ export async function getCachedApiResponse(url: string): Promise<{ data: any; is
  */
 export async function clearApiCache(): Promise<void> {
   try {
-    const db = await openDB();
+    const db = await getDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
     tx.objectStore(STORE_NAME).clear();
-    await new Promise<void>((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-    db.close();
   } catch {}
 }

@@ -46,10 +46,14 @@ export default {
           '0%': { backgroundPosition: '0% 100%' },
           '50%': { backgroundPosition: '100% 100%' },
           '100%': { backgroundPosition: '0% 100%' },
-        }
+        },
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' },
+        },
       },
       animation: {
         'pan-slow': 'pan 80s ease-in-out infinite',
+        shimmer: 'shimmer 1.5s infinite',
       }
     },
   },

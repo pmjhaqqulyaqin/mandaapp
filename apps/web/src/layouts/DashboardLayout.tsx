@@ -334,47 +334,39 @@ export const DashboardLayout = () => {
   const logoRaw = get('logo_url');
   const logoUrl = logoRaw ? (logoRaw.startsWith('/') ? `${SERVER_BASE}${logoRaw}` : logoRaw) : undefined;
 
-  // Fetch role permissions
+  // Fetch role permissions + penilaian tests in PARALLEL (not sequential)
   useEffect(() => {
-    const fetchPermissions = async () => {
-      try {
-        const result = await apiClient<{ permissions: Record<string, string[]>; allMenus: string[] }>('/users/role-permissions');
+    if (!user) return;
+
+    // Fire both requests simultaneously to avoid waterfall
+    const fetchPermissions = apiClient<{ permissions: Record<string, string[]>; allMenus: string[] }>('/users/role-permissions')
+      .then(result => {
         const role = user?.role || 'student';
         if (role === 'admin') {
           setAllowedMenus(result.allMenus);
         } else {
           setAllowedMenus(result.permissions[role] || ['overview']);
         }
-      } catch (err) {
+      })
+      .catch(err => {
         console.error('Failed to fetch permissions:', err);
         if (user?.role === 'admin') {
           setAllowedMenus(ALL_MENU_ITEMS.map((i) => i.key));
         } else {
           setAllowedMenus(['overview']);
         }
-      } finally {
-        setPermissionsLoaded(true);
-      }
-    };
-    if (user) fetchPermissions();
-  }, [user?.id, user?.role]);
+      })
+      .finally(() => setPermissionsLoaded(true));
 
-  // Dynamically check if the user has any assigned tests to hide the menu if they don't, OR show it even if their role lacks permission (bypass)
-  useEffect(() => {
-    if (!permissionsLoaded || !user) return;
-    
-    // Admin always sees it.
+    // Penilaian tests — fire in parallel, not after permissions
     if (user.role === 'admin') {
       setHasPenilaianTests(true);
-      return;
+    } else {
+      apiClient<any[]>('/ppdb/penguji/tes')
+        .then(res => setHasPenilaianTests(res && res.length > 0))
+        .catch(() => setHasPenilaianTests(false));
     }
-    
-    // Always check for assigned tests regardless of role. This implements the "IDE PAMUNGKAS":
-    // If they are assigned as an examiner, show the menu even if their role normally doesn't have it.
-    apiClient<any[]>('/ppdb/penguji/tes')
-      .then(res => setHasPenilaianTests(res && res.length > 0))
-      .catch(() => setHasPenilaianTests(false));
-  }, [permissionsLoaded, user]);
+  }, [user?.id, user?.role]);
 
   // Route protection: redirect only after permissions have actually loaded
   useEffect(() => {
