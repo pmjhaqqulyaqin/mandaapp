@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useSiteSettings } from '../hooks/api/useSettings';
 import { API_BASE_URL } from '../lib/api';
+import { hasCachedCredentials } from '../lib/offlineAuth';
 
 const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
 
@@ -11,6 +12,8 @@ export const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoadingState, setIsLoadingState] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [hasOfflineLogin, setHasOfflineLogin] = useState(false);
   
   const { login, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -43,6 +46,16 @@ export const LoginPage = () => {
       setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  // Track online/offline status
+  useEffect(() => {
+    const goOnline = () => setIsOffline(false);
+    const goOffline = () => setIsOffline(true);
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    hasCachedCredentials().then(setHasOfflineLogin);
+    return () => { window.removeEventListener('online', goOnline); window.removeEventListener('offline', goOffline); };
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,6 +103,14 @@ export const LoginPage = () => {
       <div className="w-full max-w-md p-6 sm:p-10 bg-[#188e63] rounded-xl shadow-2xl relative z-10 mx-4">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold tracking-tight text-white mb-2">Login</h1>
+          {isOffline && (
+            <div className="mt-2 px-3 py-1.5 bg-amber-500/20 border border-amber-400/30 rounded-lg inline-flex items-center gap-2">
+              <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+              <span className="text-xs text-amber-200 font-medium">
+                {hasOfflineLogin ? 'Mode Offline — gunakan password untuk login' : 'Anda sedang offline'}
+              </span>
+            </div>
+          )}
         </div>
         
         {error && (

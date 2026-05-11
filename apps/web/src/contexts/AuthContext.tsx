@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authClient } from '../lib/auth-client';
+import { cacheCredentials, offlineLogin, clearCachedCredentials } from '../lib/offlineAuth';
 
 export type UserRole = 
   | 'admin' 
@@ -149,7 +150,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const parsedUser = parseUser(data.user);
         setUser(parsedUser);
         localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
+        // Cache credentials for offline login
+        cacheCredentials(email, password, parsedUser).catch(() => {});
       }
+    } catch (onlineError: any) {
+      // If network error, try offline login
+      if (!navigator.onLine || onlineError?.message?.includes('Failed to fetch') || onlineError?.message?.includes('NetworkError')) {
+        const cachedUser = await offlineLogin(email, password);
+        if (cachedUser) {
+          setUser(cachedUser);
+          localStorage.setItem('mandualotim_user', JSON.stringify(cachedUser));
+          return; // Offline login success
+        }
+      }
+      throw onlineError;
     } finally {
       setIsLoading(false);
     }
@@ -163,6 +177,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setUser(null);
       localStorage.removeItem('mandualotim_user');
+      clearCachedCredentials().catch(() => {});
     }
   }, []);
 

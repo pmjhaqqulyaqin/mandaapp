@@ -3,6 +3,7 @@ import {
   getAuditLogsHandler,
   getRolesHandler,
   selectOwnRoleHandler,
+  setupAccountHandler,
   getRoleMenuPermissionsHandler,
   updateRoleMenuPermissionsHandler,
   getUsersDropdownHandler,
@@ -14,6 +15,7 @@ const router = Router();
 
 // Authenticated (any logged-in user can select their own role)
 router.post("/select-role", requireAuth(), selectOwnRoleHandler);
+router.post("/setup-account", requireAuth(), setupAccountHandler);
 
 // Staff only
 router.get("/audit-logs", requireStaff, getAuditLogsHandler);

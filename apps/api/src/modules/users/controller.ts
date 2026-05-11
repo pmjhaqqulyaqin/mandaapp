@@ -108,6 +108,61 @@ export async function selectOwnRoleHandler(req: Request, res: Response) {
   }
 }
 
+// Combined: set role + create credential password (for Google OAuth users)
+const SETUP_SELECTABLE_ROLES = ["guru", "student", "orang_tua"];
+
+export async function setupAccountHandler(req: Request, res: Response) {
+  try {
+    const session = await auth.api.getSession({ headers: req.headers as any });
+    if (!session?.user) {
+      return res.status(401).json({ error: "Tidak terautentikasi" });
+    }
+
+    const { role, password } = req.body;
+
+    // Validate role
+    if (!role || !SETUP_SELECTABLE_ROLES.includes(role)) {
+      return res.status(400).json({ error: "Role tidak valid. Pilih guru, student, atau orang_tua." });
+    }
+
+    // Validate password
+    if (!password || password.length < 8) {
+      return res.status(400).json({ error: "Password minimal 8 karakter." });
+    }
+
+    // 1. Set role
+    await db.update(user)
+      .set({ role })
+      .where(eq(user.id, session.user.id));
+
+    // 2. Set password (creates credential account if doesn't exist)
+    try {
+      await auth.api.setPassword({
+        body: { newPassword: password },
+        headers: req.headers as any,
+      });
+    } catch (pwErr: any) {
+      // If user already has a password, this might throw — that's ok
+      console.warn("[SETUP] setPassword warning:", pwErr?.message);
+    }
+
+    // 3. Audit log
+    await logAuditEvent({
+      userId: session.user.id,
+      action: "setup_account",
+      targetType: "user",
+      targetId: session.user.id,
+      details: JSON.stringify({ role, hasPassword: true }),
+      ipAddress: req.ip || undefined,
+    });
+
+    res.json({ success: true, role });
+  } catch (error) {
+    console.error("Error setting up account:", error);
+    res.status(500).json({ error: "Gagal menyiapkan akun" });
+  }
+}
+
 
 export async function getUsersDropdownHandler(_req: Request, res: Response) {
   try {
