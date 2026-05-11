@@ -5,7 +5,10 @@ const BASE = '/jurnal';
 export const jurnalService = {
   // Teaching Subjects
   getTeachingSubjects: (params?: Record<string, string>) => apiClient<any[]>(`${BASE}/teaching-subjects${params ? '?' + new URLSearchParams(params).toString() : ''}`),
-  getScheduleToday: (employeeId: string) => apiClient<any[]>(`${BASE}/schedule-today?employeeId=${employeeId}`),
+  getScheduleToday: (employeeId: string) => {
+    const localDate = new Date().toLocaleDateString('sv-SE'); // "YYYY-MM-DD" in client timezone
+    return apiClient<any[]>(`${BASE}/schedule-today?employeeId=${employeeId}&date=${localDate}`);
+  },
   createTeachingSubject: (data: any) => apiClient<any>(`${BASE}/teaching-subjects`, { method: 'POST', data }),
   updateTeachingSubject: (id: string, data: any) => apiClient<any>(`${BASE}/teaching-subjects/${id}`, { method: 'PUT', data }),
   deleteTeachingSubject: (id: string) => apiClient<any>(`${BASE}/teaching-subjects/${id}`, { method: 'DELETE' }),
@@ -41,7 +44,10 @@ export const jurnalService = {
   deleteAttachment: (id: string) => apiClient<any>(`${BASE}/attachments/${id}`, { method: 'DELETE' }),
 
   // Monitoring & Recap
-  getMonitoring: (date?: string) => apiClient<any>(`${BASE}/monitoring${date ? '?date=' + date : ''}`),
+  getMonitoring: (date?: string) => {
+    const d = date || new Date().toLocaleDateString('sv-SE'); // "YYYY-MM-DD" in client timezone
+    return apiClient<any>(`${BASE}/monitoring?date=${d}`);
+  },
   getRecap: (params: Record<string, string>) => apiClient<any>(`${BASE}/recap?${new URLSearchParams(params).toString()}`),
 
   // Templates

@@ -23,8 +23,9 @@ export class JurnalController {
   static async getScheduleToday(req: Request, res: Response) {
     try {
       const employeeId = req.query.employeeId as string;
+      const clientDate = req.query.date as string; // "YYYY-MM-DD" from client's local timezone
       if (!employeeId) return res.status(400).json({ error: "employeeId required" });
-      const results = await JurnalService.getScheduleToday(employeeId);
+      const results = await JurnalService.getScheduleToday(employeeId, clientDate);
       res.json(results);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }

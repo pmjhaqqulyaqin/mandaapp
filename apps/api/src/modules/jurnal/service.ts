@@ -37,9 +37,13 @@ export class JurnalService {
       .orderBy(teachingSubjects.dayOfWeek, teachingSubjects.jamKe);
   }
 
-  static async getScheduleToday(employeeId: string) {
-    const now = new Date();
-    const jsDay = now.getDay();
+  static async getScheduleToday(employeeId: string, clientDate?: string) {
+    // Use client-provided date to avoid server timezone mismatch
+    // clientDate should be "YYYY-MM-DD" from the client's local timezone
+    const today = clientDate || new Date().toISOString().split("T")[0];
+    // Derive day-of-week from the date string (timezone-safe)
+    const [y, m, d] = today.split("-").map(Number);
+    const jsDay = new Date(y, m - 1, d).getDay(); // 0=Sunday, 1=Monday...
     if (jsDay === 0) return [];
 
     const results = await db.select({
@@ -60,7 +64,6 @@ export class JurnalService {
       ))
       .orderBy(teachingSubjects.jamKe);
 
-    const today = now.toISOString().split("T")[0];
     const todayJurnals = await db.select({ teachingSubjectId: jurnalEntries.teachingSubjectId })
       .from(jurnalEntries)
       .where(and(eq(jurnalEntries.teacherId, employeeId), eq(jurnalEntries.date, today)));
@@ -239,7 +242,9 @@ export class JurnalService {
 
   static async getMonitoringToday(date?: string) {
     const targetDate = date || new Date().toISOString().split("T")[0];
-    const jsDay = new Date(targetDate).getDay();
+    // Parse date components to avoid timezone issues with new Date(string)
+    const [y, m, d] = targetDate.split("-").map(Number);
+    const jsDay = new Date(y, m - 1, d).getDay();
     if (jsDay === 0) return { date: targetDate, teachers: [], summary: { total: 0, filled: 0, notFilled: 0 } };
 
     const scheduled = await db.select({
