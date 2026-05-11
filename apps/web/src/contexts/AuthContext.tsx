@@ -82,6 +82,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const fetchSession = async () => {
       try {
+        // If offline, skip session fetch entirely — trust localStorage
+        if (!navigator.onLine) {
+          console.log('[Auth] Offline — skipping session fetch, using cached user');
+          return;
+        }
+
         const { data, error } = await authClient.getSession();
         
         if (error) {
@@ -136,6 +142,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
+
+    // Helper: detect network-related errors
+    const isNetworkError = (err?: any): boolean => {
+      if (!navigator.onLine) return true;
+      const msg = (err?.message || err?.statusText || '').toLowerCase();
+      return msg.includes('failed to fetch') 
+        || msg.includes('networkerror') 
+        || msg.includes('network error')
+        || msg.includes('load failed')
+        || msg.includes('fetch')
+        || msg === 'fetch error';
+    };
+
+    // Helper: attempt offline login fallback
+    const tryOfflineLogin = async (): Promise<boolean> => {
+      const cachedUser = await offlineLogin(email, password);
+      if (cachedUser) {
+        setUser(cachedUser);
+        localStorage.setItem('mandualotim_user', JSON.stringify(cachedUser));
+        return true;
+      }
+      return false;
+    };
+
     try {
       const { data, error } = await authClient.signIn.email({
         email,
@@ -143,6 +173,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
+        // better-auth may catch fetch errors and return them as error objects
+        // instead of throwing — check for network errors here too
+        if (isNetworkError(error)) {
+          if (await tryOfflineLogin()) return;
+        }
         throw new Error(error.message || 'Login gagal');
       }
 
@@ -155,13 +190,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (onlineError: any) {
       // If network error, try offline login
-      if (!navigator.onLine || onlineError?.message?.includes('Failed to fetch') || onlineError?.message?.includes('NetworkError')) {
-        const cachedUser = await offlineLogin(email, password);
-        if (cachedUser) {
-          setUser(cachedUser);
-          localStorage.setItem('mandualotim_user', JSON.stringify(cachedUser));
-          return; // Offline login success
-        }
+      if (isNetworkError(onlineError)) {
+        if (await tryOfflineLogin()) return;
       }
       throw onlineError;
     } finally {
