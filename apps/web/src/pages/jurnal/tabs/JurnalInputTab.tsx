@@ -15,7 +15,7 @@ interface FormData {
 
 const INITIAL: FormData = {
   teachingSubjectId: '', teacherId: '', classId: '', subjectName: '', className: '',
-  date: new Date().toISOString().split('T')[0], jamKe: '', waktuMulai: '', waktuSelesai: '', linkRpp: '',
+  date: new Date().toLocaleDateString('sv-SE'), jamKe: '', waktuMulai: '', waktuSelesai: '', linkRpp: '',
   materiPembelajaran: '', metode: '', capaianPembelajaran: '', kendalaDanSolusi: '',
   catatan: '', evaluasi: '', status: 'draft',
 };

@@ -3,7 +3,7 @@ import { useJurnalMonitoring } from '../../../hooks/api/useJurnal';
 import { CheckCircle2, XCircle, Clock, Users, Calendar } from 'lucide-react';
 
 export const JurnalMonitoringTab = () => {
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => new Date().toLocaleDateString('sv-SE'));
   const monitoring = useJurnalMonitoring(date);
   const data = monitoring.data;
 
