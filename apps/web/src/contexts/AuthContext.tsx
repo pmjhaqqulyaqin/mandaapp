@@ -229,7 +229,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setUser(null);
       localStorage.removeItem('mandualotim_user');
-      clearCachedCredentials().catch(() => {});
+      // NOTE: Do NOT clear offline credentials here!
+      // They must persist across logouts so the user can log back in offline.
+      // clearCachedCredentials() is only for "forget this device" scenarios.
     }
   }, []);
 
