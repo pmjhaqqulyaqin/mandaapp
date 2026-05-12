@@ -608,10 +608,12 @@ export const DashboardCalendar = () => {
         </div>
       )}
 
-      {/* Loading overlay */}
+      {/* Subtle loading indicator — no full-screen block */}
       {queryAll.isLoading && (
-        <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-white/50 dark:bg-black/50 backdrop-blur-sm">
-          <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary border-t-transparent" />
+        <div className="fixed top-14 md:top-12 left-0 right-0 z-[100]">
+          <div className="h-0.5 bg-primary/30 overflow-hidden">
+            <div className="h-full bg-primary animate-[shimmer_1s_ease-in-out_infinite] w-1/3" />
+          </div>
         </div>
       )}
     </div>

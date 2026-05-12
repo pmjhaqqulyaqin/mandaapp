@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { useScheduleToday, useJurnalEntries } from '../../hooks/api/useJurnal';
 import { apiClient } from '../../lib/api';
@@ -28,24 +29,43 @@ interface Props {
   onAdminSettings?: () => void;
 }
 
+// Compute week date range once (for filtering entries to current week only)
+function getWeekRange() {
+  const today = new Date();
+  const day = today.getDay();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return {
+    from: monday.toLocaleDateString('sv-SE'),
+    to: sunday.toLocaleDateString('sv-SE'),
+  };
+}
+
 export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
   const { user } = useAuth();
-  const [employeeId, setEmployeeId] = useState('');
-  const [employeeName, setEmployeeName] = useState('');
   const today = new Date();
   const todayStr = today.toLocaleDateString('sv-SE');
   const [quote] = useState(() => QUOTES[Math.floor(Math.random() * QUOTES.length)]);
 
-  // Resolve employee
-  useEffect(() => {
-    if (!user?.id) return;
-    apiClient<any>('/employees/me').then(emp => {
-      if (emp) { setEmployeeId(emp.id); setEmployeeName(emp.name || user.name || ''); }
-    }).catch(() => setEmployeeName(user?.name || ''));
-  }, [user?.id]);
+  // Resolve employee via react-query (cached, instant on revisit)
+  const empQuery = useQuery({
+    queryKey: ['employee-me', user?.id],
+    queryFn: () => apiClient<any>('/employees/me'),
+    enabled: !!user?.id,
+    staleTime: 30 * 60 * 1000, // 30 min cache
+  });
+  const employeeId = empQuery.data?.id || '';
+  const employeeName = empQuery.data?.name || user?.name || '';
 
   const schedule = useScheduleToday(employeeId);
-  const entriesQuery = useJurnalEntries(employeeId ? { teacherId: employeeId } : undefined);
+
+  // Only fetch entries for current week, not ALL entries
+  const weekRange = useMemo(() => getWeekRange(), [todayStr]);
+  const entriesQuery = useJurnalEntries(
+    employeeId ? { teacherId: employeeId, dateFrom: weekRange.from, dateTo: weekRange.to } : undefined
+  );
 
   // Compute stats
   const todaySchedule = schedule.data || [];
