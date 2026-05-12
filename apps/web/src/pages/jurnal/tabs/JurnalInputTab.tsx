@@ -145,14 +145,27 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
   const handleSave = async (andSubmit: boolean) => {
     if (!form.classId || !form.subjectName) { toast.error('Pilih jadwal terlebih dahulu'); return; }
     setSaving(true);
+
+    const payload = {
+      ...form,
+      status: andSubmit ? 'submitted' : 'draft',
+      attendance: attendance.length > 0 ? attendance.map(a => ({ studentId: a.studentId, status: a.status })) : undefined,
+    };
+
     try {
-      const payload = {
-        ...form,
-        status: andSubmit ? 'submitted' : 'draft',
-        attendance: attendance.length > 0 ? attendance.map(a => ({ studentId: a.studentId, status: a.status })) : undefined,
-      };
+      // ━━ OFFLINE-FIRST: If offline, go straight to smartSend ━━
+      if (!navigator.onLine) {
+        await smartSend('jurnal_create', payload, `Jurnal ${form.subjectName} - ${form.className}`);
+        localStorage.removeItem('jurnal_draft');
+        toast.success('📱 Jurnal tersimpan offline — akan dikirim saat online');
+        onBack();
+        return;
+      }
+
+      // ━━ ONLINE: Try direct API for immediate server response ━━
       const entry = await apiClient<any>('/jurnal/entries', { method: 'POST', data: payload });
 
+      // Upload photos (only when online)
       if (photos.length > 0) {
         const compressed = await Promise.all(photos.map(p => compressImage(p, { maxWidth: 1280, quality: 0.7 })));
         await Promise.all(compressed.map(photo => {
@@ -168,15 +181,15 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
       toast.success(andSubmit ? 'Jurnal berhasil disubmit!' : 'Draft tersimpan!');
       onBack();
     } catch (err: any) {
-      if (!navigator.onLine || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+      // Online but server failed → queue for later sync
+      const msg = (err.message || '').toLowerCase();
+      const isNetErr = msg.includes('fetch') || msg.includes('network') || msg.includes('offline') || msg.includes('abort');
+
+      if (isNetErr) {
         try {
-          await smartSend('jurnal_create', {
-            ...form,
-            status: andSubmit ? 'submitted' : 'draft',
-            attendance: attendance.map(a => ({ studentId: a.studentId, status: a.status })),
-          }, `Jurnal ${form.subjectName} - ${form.className}`);
+          await smartSend('jurnal_create', payload, `Jurnal ${form.subjectName} - ${form.className}`);
           localStorage.removeItem('jurnal_draft');
-          toast.success('📱 Jurnal tersimpan offline — akan di-sync saat online');
+          toast.success('📱 Jurnal tersimpan offline — akan dikirim saat online');
           onBack();
         } catch {
           toast.error('Gagal menyimpan bahkan secara offline');
