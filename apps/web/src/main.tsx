@@ -11,7 +11,9 @@ import { initSyncListeners } from './lib/syncEngine';
 initSyncListeners();
 
 // Global handler: auto-reload on chunk load failures (after new deployment)
+// Only when online — offline chunk failures are handled by ErrorBoundary
 window.addEventListener('unhandledrejection', (event) => {
+  if (!navigator.onLine) return; // Don't reload when offline
   const msg = (event.reason?.message || '').toLowerCase();
   // Only match specific chunk/module loading errors, NOT general "failed to fetch"
   if (
