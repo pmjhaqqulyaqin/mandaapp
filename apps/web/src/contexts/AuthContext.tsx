@@ -152,6 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         || msg.includes('network error')
         || msg.includes('load failed')
         || msg.includes('fetch')
+        || msg.includes('abort')
         || msg === 'fetch error';
     };
 
@@ -166,34 +167,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return false;
     };
 
-    try {
-      const { data, error } = await authClient.signIn.email({
-        email,
-        password,
-      });
+    // ━━ FAST PATH: If clearly offline, skip network entirely ━━
+    if (!navigator.onLine) {
+      try {
+        if (await tryOfflineLogin()) return;
+        throw new Error('OFFLINE_NO_CACHE');
+      } finally {
+        setIsLoading(false);
+      }
+    }
 
-      if (error) {
-        // better-auth may catch fetch errors and return them as error objects
-        // instead of throwing — check for network errors here too
-        if (isNetworkError(error)) {
+    // ━━ ONLINE PATH: Try server with 5s timeout ━━
+    try {
+      // Race the login against a 5-second timeout
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+
+      try {
+        const { data, error } = await authClient.signIn.email({
+          email,
+          password,
+          fetchOptions: { signal: controller.signal },
+        });
+        clearTimeout(timeout);
+
+        if (error) {
+          if (isNetworkError(error)) {
+            if (await tryOfflineLogin()) return;
+          }
+          throw new Error(error.message || 'Login gagal');
+        }
+
+        if (data?.user) {
+          const parsedUser = parseUser(data.user);
+          setUser(parsedUser);
+          localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
+          // Cache credentials for offline login
+          cacheCredentials(email, password, parsedUser).catch(() => {});
+        }
+      } catch (fetchError: any) {
+        clearTimeout(timeout);
+        // Network error or timeout → try offline
+        if (isNetworkError(fetchError) || fetchError.name === 'AbortError') {
           if (await tryOfflineLogin()) return;
         }
-        throw new Error(error.message || 'Login gagal');
+        throw fetchError;
       }
-
-      if (data?.user) {
-        const parsedUser = parseUser(data.user);
-        setUser(parsedUser);
-        localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
-        // Cache credentials for offline login
-        cacheCredentials(email, password, parsedUser).catch(() => {});
-      }
-    } catch (onlineError: any) {
-      // If network error, try offline login
-      if (isNetworkError(onlineError)) {
-        if (await tryOfflineLogin()) return;
-      }
-      throw onlineError;
     } finally {
       setIsLoading(false);
     }

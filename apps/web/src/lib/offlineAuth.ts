@@ -7,10 +7,13 @@
  * 3. Load cached userData to restore session UI
  * 
  * Security: Uses SHA-256 hashing (SubtleCrypto). Expires after 30 days.
+ * 
+ * DB Strategy: Shares the same DB name/version as apiCache.ts to avoid
+ * upgrade conflicts. Uses a shared openDB that creates all stores.
  */
 
 const DB_NAME = 'simanda-offline';
-const DB_VERSION = 2; // Bump to add auth store
+const DB_VERSION = 2;
 const AUTH_STORE = 'offlineAuth';
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
@@ -29,25 +32,46 @@ async function hashPassword(password: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Shared DB opener — creates ALL stores needed by the app
+// This prevents version conflicts between apiCache and offlineAuth
+let dbInstance: IDBDatabase | null = null;
+let dbPromise: Promise<IDBDatabase> | null = null;
+
 function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  // Reuse existing connection if available
+  if (dbInstance && dbInstance.objectStoreNames.contains(AUTH_STORE)) {
+    return Promise.resolve(dbInstance);
+  }
+  if (dbPromise) return dbPromise;
+
+  dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
-      // Create auth store if not exists
-      if (!db.objectStoreNames.contains(AUTH_STORE)) {
-        db.createObjectStore(AUTH_STORE, { keyPath: 'email' });
+      if (!db.objectStoreNames.contains('apiCache')) {
+        db.createObjectStore('apiCache', { keyPath: 'url' });
       }
-      // Ensure syncQueue store exists (from v1)
       if (!db.objectStoreNames.contains('syncQueue')) {
         const store = db.createObjectStore('syncQueue', { keyPath: 'id', autoIncrement: true });
         store.createIndex('status', 'status', { unique: false });
         store.createIndex('type', 'type', { unique: false });
       }
+      if (!db.objectStoreNames.contains(AUTH_STORE)) {
+        db.createObjectStore(AUTH_STORE, { keyPath: 'email' });
+      }
     };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      dbInstance = request.result;
+      dbInstance.onclose = () => { dbInstance = null; dbPromise = null; };
+      resolve(dbInstance);
+    };
+    request.onerror = () => {
+      dbPromise = null;
+      reject(request.error);
+    };
   });
+
+  return dbPromise;
 }
 
 /**
@@ -72,7 +96,7 @@ export async function cacheCredentials(email: string, password: string, userData
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
-    db.close();
+    console.log('[OfflineAuth] Credentials cached successfully for:', email);
   } catch (err) {
     console.warn('[OfflineAuth] Failed to cache credentials:', err);
   }
@@ -92,9 +116,11 @@ export async function offlineLogin(email: string, password: string): Promise<any
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
-    db.close();
     
-    if (!result) return null;
+    if (!result) {
+      console.log('[OfflineAuth] No cached credentials found for:', email);
+      return null;
+    }
     
     // Check expiry
     if (Date.now() - result.cachedAt > MAX_AGE_MS) {
@@ -105,9 +131,11 @@ export async function offlineLogin(email: string, password: string): Promise<any
     // Verify password
     const inputHash = await hashPassword(password);
     if (inputHash !== result.passwordHash) {
+      console.log('[OfflineAuth] Password mismatch');
       return null;
     }
     
+    console.log('[OfflineAuth] Offline login successful for:', email);
     return result.userData;
   } catch (err) {
     console.warn('[OfflineAuth] Offline login failed:', err);
@@ -127,7 +155,6 @@ export async function clearCachedCredentials(): Promise<void> {
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
-    db.close();
   } catch (err) {
     console.warn('[OfflineAuth] Failed to clear credentials:', err);
   }
@@ -146,7 +173,6 @@ export async function hasCachedCredentials(): Promise<boolean> {
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
-    db.close();
     return count > 0;
   } catch {
     return false;

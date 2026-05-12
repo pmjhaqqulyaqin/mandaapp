@@ -74,9 +74,11 @@ export const LoginPage = () => {
       navigate(from, { replace: true });
     } catch (err: any) {
       const msg = err?.message?.toLowerCase() || '';
-      const isNetErr = !navigator.onLine || msg.includes('fetch') || msg.includes('network');
-      if (isNetErr) {
-        setError('Anda sedang offline dan belum pernah login di perangkat ini. Silakan hubungkan internet terlebih dahulu untuk login pertama kali.');
+      const isNetErr = !navigator.onLine || msg.includes('fetch') || msg.includes('network') || msg.includes('abort') || msg === 'offline_no_cache';
+      if (msg === 'offline_no_cache') {
+        setError('Anda sedang offline dan belum pernah login di perangkat ini. Hubungkan internet dan login sekali untuk mengaktifkan mode offline.');
+      } else if (isNetErr) {
+        setError('Anda sedang offline. Password yang Anda masukkan tidak cocok dengan data yang tersimpan. Periksa kembali email dan password Anda.');
       } else {
         setError(err?.message || 'Login gagal. Periksa email dan password Anda.');
       }

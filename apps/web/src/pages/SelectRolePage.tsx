@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../lib/api';
+import { cacheCredentials } from '../lib/offlineAuth';
 import { Eye, EyeOff, Check, Shield } from 'lucide-react';
 
 const SELECTABLE_ROLES = [
@@ -77,13 +78,13 @@ export const SelectRolePage = () => {
 
       // Optimistically update user in localStorage with new role
       // so ProtectedRoute immediately sees the correct role
-      const savedUser = localStorage.getItem('mandualotim_user');
-      if (savedUser) {
-        try {
-          const parsed = JSON.parse(savedUser);
-          parsed.role = selectedRole;
-          localStorage.setItem('mandualotim_user', JSON.stringify(parsed));
-        } catch {}
+      const updatedUser = { ...user, role: selectedRole };
+      localStorage.setItem('mandualotim_user', JSON.stringify(updatedUser));
+
+      // ━━ Cache credentials for offline login ━━
+      // This is critical for Google OAuth users who set their password here
+      if (user.email) {
+        cacheCredentials(user.email, password, updatedUser).catch(() => {});
       }
 
       // Refresh session to sync with server
