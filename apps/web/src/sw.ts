@@ -1,7 +1,8 @@
 /// <reference lib="webworker" />
-import { cleanupOutdatedCaches, precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching';
+import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching';
 import { clientsClaim } from 'workbox-core';
-import { NavigationRoute, registerRoute } from 'workbox-routing';
+import { registerRoute, NavigationRoute } from 'workbox-routing';
+import { NetworkFirst } from 'workbox-strategies';
 
 declare let self: ServiceWorkerGlobalScope;
 
@@ -11,13 +12,17 @@ cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 
 // ━━ SPA Navigation Fallback ━━
-// For any navigation request (e.g. /dashboard, /jurnal, /attendance),
-// serve the cached index.html — React Router handles the rest client-side
-const navigationHandler = createHandlerBoundToURL('/index.html');
-const navigationRoute = new NavigationRoute(navigationHandler, {
-  // Don't intercept API calls or auth routes
-  denylist: [/^\/api\//, /^\/auth\//],
-});
+// For any navigation request (e.g. /dashboard, /jurnal), serve index.html
+// Uses NetworkFirst: try network, fallback to cached index.html
+const navigationRoute = new NavigationRoute(
+  new NetworkFirst({
+    cacheName: 'navigations',
+    networkTimeoutSeconds: 3,
+  }),
+  {
+    denylist: [/^\/api\//, /^\/auth\//],
+  }
+);
 registerRoute(navigationRoute);
 
 // Take control immediately on install/activate
