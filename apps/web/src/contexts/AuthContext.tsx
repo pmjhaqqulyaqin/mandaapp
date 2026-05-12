@@ -142,81 +142,79 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
+    console.log('[Auth] Login attempt for:', email, 'online:', navigator.onLine);
 
-    // Helper: detect network-related errors
-    const isNetworkError = (err?: any): boolean => {
-      if (!navigator.onLine) return true;
-      const msg = (err?.message || err?.statusText || '').toLowerCase();
-      return msg.includes('failed to fetch') 
-        || msg.includes('networkerror') 
-        || msg.includes('network error')
-        || msg.includes('load failed')
-        || msg.includes('fetch')
-        || msg.includes('abort')
-        || msg === 'fetch error';
-    };
-
-    // Helper: attempt offline login fallback — throws specific error on failure
-    const tryOfflineLogin = async (): Promise<boolean> => {
-      const result = await offlineLogin(email, password);
-      if (result.success) {
-        setUser(result.user);
-        localStorage.setItem('mandualotim_user', JSON.stringify(result.user));
-        return true;
-      }
-      // Not successful — throw with specific reason
-      throw new Error(`OFFLINE_${result.reason.toUpperCase()}`);
-    };
-
-    // ━━ FAST PATH: If clearly offline, skip network entirely ━━
+    // ━━ FAST PATH: If clearly offline, skip network ━━
     if (!navigator.onLine) {
       try {
-        await tryOfflineLogin(); // will throw with specific reason if fails
-        return;
+        const result = await offlineLogin(email, password);
+        console.log('[Auth] Offline login result:', result);
+        if (result.success) {
+          setUser(result.user);
+          localStorage.setItem('mandualotim_user', JSON.stringify(result.user));
+          return;
+        }
+        throw new Error(`OFFLINE_${result.reason.toUpperCase()}`);
       } finally {
         setIsLoading(false);
       }
     }
 
-    // ━━ ONLINE PATH: Try server with 5s timeout ━━
+    // ━━ ONLINE PATH: Try server, fall back to offline ━━
     try {
-      // Race the login against a 5-second timeout
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
+      // Race login against 8-second timeout
+      const loginPromise = authClient.signIn.email({ email, password });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT')), 8000)
+      );
 
+      let data: any, error: any;
       try {
-        const { data, error } = await authClient.signIn.email({
-          email,
-          password,
-          fetchOptions: { signal: controller.signal },
-        });
-        clearTimeout(timeout);
-
-        if (error) {
-          if (isNetworkError(error)) {
-            await tryOfflineLogin();
-            return;
-          }
-          throw new Error(error.message || 'Login gagal');
-        }
-
-        if (data?.user) {
-          const parsedUser = parseUser(data.user);
-          setUser(parsedUser);
-          localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
-          // Cache credentials for offline login
-          cacheCredentials(email, password, parsedUser).catch(() => {});
-        }
-      } catch (fetchError: any) {
-        clearTimeout(timeout);
-        // If it's already an offline-specific error, rethrow it
-        if (fetchError.message?.startsWith('OFFLINE_')) throw fetchError;
-        // Network error or timeout → try offline
-        if (isNetworkError(fetchError) || fetchError.name === 'AbortError') {
-          await tryOfflineLogin();
+        const result = await Promise.race([loginPromise, timeoutPromise]);
+        data = result?.data;
+        error = result?.error;
+      } catch (raceError: any) {
+        // Timeout or network error → try offline
+        console.log('[Auth] Online login failed:', raceError.message);
+        const offResult = await offlineLogin(email, password);
+        if (offResult.success) {
+          setUser(offResult.user);
+          localStorage.setItem('mandualotim_user', JSON.stringify(offResult.user));
           return;
         }
-        throw fetchError;
+        throw new Error(`OFFLINE_${offResult.reason.toUpperCase()}`);
+      }
+
+      if (error) {
+        const errMsg = (error.message || error.statusText || '').toLowerCase();
+        const isNetErr = errMsg.includes('fetch') || errMsg.includes('network') || errMsg.includes('abort');
+        if (isNetErr) {
+          const offResult = await offlineLogin(email, password);
+          if (offResult.success) {
+            setUser(offResult.user);
+            localStorage.setItem('mandualotim_user', JSON.stringify(offResult.user));
+            return;
+          }
+          throw new Error(`OFFLINE_${offResult.reason.toUpperCase()}`);
+        }
+        throw new Error(error.message || 'Login gagal');
+      }
+
+      if (data?.user) {
+        const parsedUser = parseUser(data.user);
+        setUser(parsedUser);
+        localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
+        
+        // Cache credentials for offline login — with verification
+        try {
+          await cacheCredentials(email, password, parsedUser);
+          // Verify it was actually stored
+          const verifyKey = 'simanda_offline_cred_' + email.toLowerCase().trim().replace(/[^a-z0-9@._-]/g, '');
+          const stored = localStorage.getItem(verifyKey);
+          console.log('[Auth] Credential cache verified:', !!stored, 'key:', verifyKey);
+        } catch (cacheErr) {
+          console.error('[Auth] FAILED to cache credentials:', cacheErr);
+        }
       }
     } finally {
       setIsLoading(false);

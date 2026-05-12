@@ -225,6 +225,11 @@ export const LoginPage = () => {
             </svg>
           </Link>
         </div>
+
+        {/* Version & offline status indicator */}
+        <div className="absolute bottom-2 right-3 text-[9px] text-white/30 font-mono select-all">
+          v7 | {isOffline ? '⚫ offline' : '🟢 online'} | cache: {hasOfflineLogin ? '✅' : '❌'}
+        </div>
       </div>
     </div>
   );
