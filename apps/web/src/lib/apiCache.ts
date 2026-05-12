@@ -21,16 +21,27 @@ interface CachedResponse {
 
 // TTL config per endpoint pattern (in ms)
 const TTL_CONFIG: { pattern: RegExp; ttl: number }[] = [
-  { pattern: /\/employees\/me/, ttl: 7 * 24 * 60 * 60 * 1000 },           // 7 days
-  { pattern: /\/jurnal\/schedule-today/, ttl: 12 * 60 * 60 * 1000 },       // 12 hours
-  { pattern: /\/jurnal\/entries/, ttl: 24 * 60 * 60 * 1000 },              // 1 day
-  { pattern: /\/jurnal\/methods/, ttl: 7 * 24 * 60 * 60 * 1000 },          // 7 days
-  { pattern: /\/jurnal\/class-students/, ttl: 7 * 24 * 60 * 60 * 1000 },   // 7 days
-  { pattern: /\/jurnal\/recap/, ttl: 24 * 60 * 60 * 1000 },                // 1 day
-  { pattern: /\/jurnal\/time-slots/, ttl: 7 * 24 * 60 * 60 * 1000 },       // 7 days
-  { pattern: /\/users\/role-permissions/, ttl: 7 * 24 * 60 * 60 * 1000 },  // 7 days
-  { pattern: /\/attendance\/settings/, ttl: 7 * 24 * 60 * 60 * 1000 },     // 7 days
-  { pattern: /\/site-settings/, ttl: 24 * 60 * 60 * 1000 },                // 1 day
+  // User/Profile
+  { pattern: /\/employees\/me/, ttl: 7 * 24 * 60 * 60 * 1000 },            // 7 days
+  { pattern: /\/users\/role-permissions/, ttl: 7 * 24 * 60 * 60 * 1000 },   // 7 days
+  // Jurnal
+  { pattern: /\/jurnal\/schedule-today/, ttl: 12 * 60 * 60 * 1000 },        // 12 hours
+  { pattern: /\/jurnal\/entries/, ttl: 24 * 60 * 60 * 1000 },               // 1 day
+  { pattern: /\/jurnal\/methods/, ttl: 7 * 24 * 60 * 60 * 1000 },           // 7 days
+  { pattern: /\/jurnal\/class-students/, ttl: 7 * 24 * 60 * 60 * 1000 },    // 7 days
+  { pattern: /\/jurnal\/recap/, ttl: 24 * 60 * 60 * 1000 },                 // 1 day
+  { pattern: /\/jurnal\/time-slots/, ttl: 7 * 24 * 60 * 60 * 1000 },        // 7 days
+  // Attendance/Presensi
+  { pattern: /\/attendance\/settings/, ttl: 7 * 24 * 60 * 60 * 1000 },      // 7 days
+  { pattern: /\/attendance\/history/, ttl: 12 * 60 * 60 * 1000 },           // 12 hours
+  { pattern: /\/attendance\/summary/, ttl: 12 * 60 * 60 * 1000 },           // 12 hours
+  // Calendar/Events
+  { pattern: /\/events/, ttl: 24 * 60 * 60 * 1000 },                        // 1 day
+  // Site
+  { pattern: /\/site-settings/, ttl: 24 * 60 * 60 * 1000 },                 // 1 day
+  // Dashboard stats
+  { pattern: /\/dashboard/, ttl: 12 * 60 * 60 * 1000 },                     // 12 hours
+  { pattern: /\/statistics/, ttl: 12 * 60 * 60 * 1000 },                    // 12 hours
 ];
 
 const DEFAULT_TTL = 60 * 60 * 1000; // 1 hour fallback

@@ -17,6 +17,18 @@ export async function apiClient<T>(
   const { method = data ? "POST" : "GET", ...configWithoutMethod } = customConfig;
   const isGET = method === "GET";
 
+  // ━━ OFFLINE-FIRST for GET requests ━━
+  // If clearly offline, serve from cache immediately without attempting fetch
+  if (isGET && !navigator.onLine) {
+    const cached = await getCachedApiResponse(endpoint);
+    if (cached) {
+      console.log(`[API] Offline → serving cached: ${endpoint} (${cached.isStale ? 'stale' : 'fresh'}, ${Math.round((Date.now() - cached.cachedAt) / 60000)}m ago)`);
+      return cached.data as T;
+    }
+    // No cache available — throw so caller can show appropriate UI
+    throw new Error(`Offline: no cached data for ${endpoint}`);
+  }
+
   const config: RequestInit = {
     method,
     body: isFormData ? (data as FormData) : (data ? JSON.stringify(data) : undefined),
@@ -56,7 +68,7 @@ export async function apiClient<T>(
       result = {} as T;
     }
 
-    // Cache successful GET responses
+    // Cache successful GET responses (non-blocking)
     if (isGET) {
       cacheApiResponse(endpoint, result).catch(() => {});
     }
@@ -64,11 +76,23 @@ export async function apiClient<T>(
     return result;
   } catch (err: any) {
     // On network error for GET requests, try cached response
-    if (isGET && (!navigator.onLine || err?.message?.includes('Failed to fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Load failed'))) {
-      const cached = await getCachedApiResponse(endpoint);
-      if (cached) {
-        console.log(`[API Cache] Serving offline: ${endpoint} (${cached.isStale ? 'stale' : 'fresh'}, cached ${Math.round((Date.now() - cached.cachedAt) / 60000)}m ago)`);
-        return cached.data as T;
+    if (isGET) {
+      const msg = (err?.message || '').toLowerCase();
+      const isNetworkErr = !navigator.onLine 
+        || msg.includes('failed to fetch') 
+        || msg.includes('networkerror') 
+        || msg.includes('network error')
+        || msg.includes('load failed')
+        || msg.includes('fetch error')
+        || msg.includes('abort')
+        || err.name === 'TypeError'; // fetch() throws TypeError on network failures
+
+      if (isNetworkErr) {
+        const cached = await getCachedApiResponse(endpoint);
+        if (cached) {
+          console.log(`[API] Network error → serving cached: ${endpoint} (${cached.isStale ? 'stale' : 'fresh'})`);
+          return cached.data as T;
+        }
       }
     }
     throw err;
