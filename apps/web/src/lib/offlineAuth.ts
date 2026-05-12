@@ -13,7 +13,7 @@
  */
 
 const DB_NAME = 'simanda-offline';
-const DB_VERSION = 2;
+const DB_VERSION = 3; // Bumped to force creation of offlineAuth store on existing installs
 const AUTH_STORE = 'offlineAuth';
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 

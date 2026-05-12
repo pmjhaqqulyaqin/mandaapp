@@ -9,7 +9,7 @@
  */
 
 const DB_NAME = 'simanda-offline';
-const DB_VERSION = 2;
+const DB_VERSION = 3; // Must match offlineAuth.ts — bumped to create missing stores
 const STORE_NAME = 'apiCache';
 
 interface CachedResponse {

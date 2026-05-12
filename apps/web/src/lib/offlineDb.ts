@@ -8,7 +8,7 @@
  */
 
 const DB_NAME = 'simanda-offline';
-const DB_VERSION = 1;
+const DB_VERSION = 3; // Must match apiCache.ts and offlineAuth.ts
 
 export type SyncItemType = 'attendance_scan' | 'jurnal_create' | 'jurnal_submit' | 'jurnal_attachment';
 export type SyncItemStatus = 'pending' | 'syncing' | 'synced' | 'failed';
@@ -47,19 +47,26 @@ function openDb(): Promise<IDBDatabase> {
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
       
+      // Create ALL stores from ALL modules to prevent version conflicts
       if (!db.objectStoreNames.contains('syncQueue')) {
         const store = db.createObjectStore('syncQueue', { keyPath: 'id', autoIncrement: true });
         store.createIndex('status', 'status', { unique: false });
         store.createIndex('type', 'type', { unique: false });
       }
-      
       if (!db.objectStoreNames.contains('cachedData')) {
         db.createObjectStore('cachedData', { keyPath: 'key' });
       }
-      
       if (!db.objectStoreNames.contains('offlineLog')) {
         const logStore = db.createObjectStore('offlineLog', { keyPath: 'id', autoIncrement: true });
         logStore.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+      // Stores from apiCache.ts
+      if (!db.objectStoreNames.contains('apiCache')) {
+        db.createObjectStore('apiCache', { keyPath: 'url' });
+      }
+      // Stores from offlineAuth.ts
+      if (!db.objectStoreNames.contains('offlineAuth')) {
+        db.createObjectStore('offlineAuth', { keyPath: 'email' });
       }
     };
     
