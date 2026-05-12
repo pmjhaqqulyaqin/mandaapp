@@ -13,7 +13,7 @@ interface State {
 
 /**
  * Detect if an error is a chunk/module loading failure
- * (happens after new deployment when old chunks are gone)
+ * (happens after new deployment when old chunks are gone, OR when offline)
  */
 function isChunkLoadError(error: Error): boolean {
   const msg = error.message?.toLowerCase() || '';
@@ -43,8 +43,9 @@ export class ErrorBoundary extends Component<Props, State> {
     this.setState({ errorInfo });
     console.error('[ErrorBoundary] Caught error:', error, errorInfo);
 
-    // Auto-reload on chunk load errors (new deployment invalidated old chunks)
-    if (isChunkLoadError(error)) {
+    // Auto-reload on chunk load errors ONLY when online
+    // (offline chunk errors are expected — don't reload, it'll fail anyway)
+    if (isChunkLoadError(error) && navigator.onLine) {
       const reloadKey = 'simanda_chunk_reload';
       const lastReload = sessionStorage.getItem(reloadKey);
       const now = Date.now();
@@ -63,6 +64,11 @@ export class ErrorBoundary extends Component<Props, State> {
     this.setState({ hasError: false, error: null, errorInfo: null });
   };
 
+  handleGoHome = () => {
+    this.setState({ hasError: false, error: null, errorInfo: null });
+    window.location.href = '/dashboard';
+  };
+
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
@@ -70,15 +76,40 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       const isChunkErr = this.state.error ? isChunkLoadError(this.state.error) : false;
+      const isOffline = !navigator.onLine;
+
+      // Determine the right message based on context
+      const title = isChunkErr && isOffline 
+        ? 'Halaman Tidak Tersedia Offline'
+        : isChunkErr 
+          ? 'Pembaruan Tersedia' 
+          : 'Terjadi Kesalahan';
+
+      const description = isChunkErr && isOffline
+        ? 'Halaman ini belum di-cache untuk mode offline. Kembali ke Dashboard atau hubungkan internet untuk memuat halaman ini.'
+        : isChunkErr
+          ? 'Aplikasi telah diperbarui. Muat ulang halaman untuk menggunakan versi terbaru.'
+          : 'Aplikasi mengalami masalah yang tidak terduga. Silakan coba muat ulang halaman.';
+
+      const iconColor = isChunkErr && isOffline 
+        ? 'bg-amber-50 dark:bg-amber-900/20' 
+        : isChunkErr 
+          ? 'bg-blue-50 dark:bg-blue-900/20' 
+          : 'bg-red-50 dark:bg-red-900/20';
 
       return (
         <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-[#0a0a0a] p-6">
           <div className="max-w-lg w-full bg-white dark:bg-[#121212] rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-8 text-center">
             {/* Icon */}
-            <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-6 ${
-              isChunkErr ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-red-50 dark:bg-red-900/20'
-            }`}>
-              {isChunkErr ? (
+            <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-6 ${iconColor}`}>
+              {isChunkErr && isOffline ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500">
+                  <line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+                  <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
+                  <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                  <line x1="12" y1="20" x2="12.01" y2="20"/>
+                </svg>
+              ) : isChunkErr ? (
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
                   <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                   <path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
@@ -94,13 +125,10 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
 
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              {isChunkErr ? 'Pembaruan Tersedia' : 'Terjadi Kesalahan'}
+              {title}
             </h2>
             <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
-              {isChunkErr 
-                ? 'Aplikasi telah diperbarui. Muat ulang halaman untuk menggunakan versi terbaru.'
-                : 'Aplikasi mengalami masalah yang tidak terduga. Silakan coba muat ulang halaman.'
-              }
+              {description}
             </p>
 
             {/* Error details (collapsible) — only for non-chunk errors */}
@@ -119,20 +147,31 @@ export class ErrorBoundary extends Component<Props, State> {
             )}
 
             <div className="flex gap-3 justify-center">
-              {!isChunkErr && (
+              {isChunkErr && isOffline ? (
                 <button
-                  onClick={this.handleReset}
-                  className="px-5 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  onClick={this.handleGoHome}
+                  className="px-5 py-2.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shadow-sm"
                 >
-                  Coba Lagi
+                  ← Kembali ke Dashboard
                 </button>
+              ) : (
+                <>
+                  {!isChunkErr && (
+                    <button
+                      onClick={this.handleReset}
+                      className="px-5 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      Coba Lagi
+                    </button>
+                  )}
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="px-5 py-2.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shadow-sm"
+                  >
+                    {isChunkErr ? '🔄 Muat Ulang Sekarang' : 'Muat Ulang Halaman'}
+                  </button>
+                </>
               )}
-              <button
-                onClick={() => window.location.reload()}
-                className="px-5 py-2.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shadow-sm"
-              >
-                {isChunkErr ? '🔄 Muat Ulang Sekarang' : 'Muat Ulang Halaman'}
-              </button>
             </div>
           </div>
         </div>
