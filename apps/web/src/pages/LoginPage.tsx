@@ -73,14 +73,20 @@ export const LoginPage = () => {
       const from = location.state?.from?.pathname || defaultDest;
       navigate(from, { replace: true });
     } catch (err: any) {
-      const msg = err?.message?.toLowerCase() || '';
-      const isNetErr = !navigator.onLine || msg.includes('fetch') || msg.includes('network') || msg.includes('abort') || msg === 'offline_no_cache';
-      if (msg === 'offline_no_cache') {
-        setError('Anda sedang offline dan belum pernah login di perangkat ini. Hubungkan internet dan login sekali untuk mengaktifkan mode offline.');
-      } else if (isNetErr) {
-        setError('Anda sedang offline. Password yang Anda masukkan tidak cocok dengan data yang tersimpan. Periksa kembali email dan password Anda.');
+      const msg = err?.message || '';
+      const msgLower = msg.toLowerCase();
+
+      if (msg === 'OFFLINE_NO_CACHE') {
+        setError('Anda belum pernah login dengan email & password di perangkat ini. Hubungkan internet lalu login sekali menggunakan email & password (bukan Google) untuk mengaktifkan mode offline.');
+      } else if (msg === 'OFFLINE_WRONG_PASSWORD') {
+        setError('Password yang Anda masukkan tidak cocok dengan data offline yang tersimpan. Periksa kembali password Anda.');
+      } else if (msg === 'OFFLINE_EXPIRED') {
+        setError('Data login offline Anda sudah kedaluwarsa (>30 hari). Hubungkan internet dan login ulang untuk memperbarui.');
+      } else if (!navigator.onLine || msgLower.includes('fetch') || msgLower.includes('network') || msgLower.includes('abort')) {
+        // Generic network error — probably never cached
+        setError('Anda sedang offline. Login dengan email & password minimal sekali saat online untuk mengaktifkan mode offline.');
       } else {
-        setError(err?.message || 'Login gagal. Periksa email dan password Anda.');
+        setError(msg || 'Login gagal. Periksa email dan password Anda.');
       }
     } finally {
       setIsLoadingState(false);

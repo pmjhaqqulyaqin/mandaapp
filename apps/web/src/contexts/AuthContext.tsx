@@ -156,22 +156,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         || msg === 'fetch error';
     };
 
-    // Helper: attempt offline login fallback
+    // Helper: attempt offline login fallback — throws specific error on failure
     const tryOfflineLogin = async (): Promise<boolean> => {
-      const cachedUser = await offlineLogin(email, password);
-      if (cachedUser) {
-        setUser(cachedUser);
-        localStorage.setItem('mandualotim_user', JSON.stringify(cachedUser));
+      const result = await offlineLogin(email, password);
+      if (result.success) {
+        setUser(result.user);
+        localStorage.setItem('mandualotim_user', JSON.stringify(result.user));
         return true;
       }
-      return false;
+      // Not successful — throw with specific reason
+      throw new Error(`OFFLINE_${result.reason.toUpperCase()}`);
     };
 
     // ━━ FAST PATH: If clearly offline, skip network entirely ━━
     if (!navigator.onLine) {
       try {
-        if (await tryOfflineLogin()) return;
-        throw new Error('OFFLINE_NO_CACHE');
+        await tryOfflineLogin(); // will throw with specific reason if fails
+        return;
       } finally {
         setIsLoading(false);
       }
@@ -193,7 +194,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (error) {
           if (isNetworkError(error)) {
-            if (await tryOfflineLogin()) return;
+            await tryOfflineLogin();
+            return;
           }
           throw new Error(error.message || 'Login gagal');
         }
@@ -207,9 +209,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (fetchError: any) {
         clearTimeout(timeout);
+        // If it's already an offline-specific error, rethrow it
+        if (fetchError.message?.startsWith('OFFLINE_')) throw fetchError;
         // Network error or timeout → try offline
         if (isNetworkError(fetchError) || fetchError.name === 'AbortError') {
-          if (await tryOfflineLogin()) return;
+          await tryOfflineLogin();
+          return;
         }
         throw fetchError;
       }

@@ -104,8 +104,13 @@ export async function cacheCredentials(email: string, password: string, userData
 
 /**
  * Attempt offline login using cached credentials
+ * Returns: { success: true, user } or { success: false, reason: 'no_cache'|'expired'|'wrong_password' }
  */
-export async function offlineLogin(email: string, password: string): Promise<any | null> {
+export type OfflineLoginResult = 
+  | { success: true; user: any }
+  | { success: false; reason: 'no_cache' | 'expired' | 'wrong_password' };
+
+export async function offlineLogin(email: string, password: string): Promise<OfflineLoginResult> {
   try {
     const db = await openDB();
     const tx = db.transaction(AUTH_STORE, 'readonly');
@@ -119,27 +124,27 @@ export async function offlineLogin(email: string, password: string): Promise<any
     
     if (!result) {
       console.log('[OfflineAuth] No cached credentials found for:', email);
-      return null;
+      return { success: false, reason: 'no_cache' };
     }
     
     // Check expiry
     if (Date.now() - result.cachedAt > MAX_AGE_MS) {
       console.warn('[OfflineAuth] Cached credentials expired');
-      return null;
+      return { success: false, reason: 'expired' };
     }
     
     // Verify password
     const inputHash = await hashPassword(password);
     if (inputHash !== result.passwordHash) {
       console.log('[OfflineAuth] Password mismatch');
-      return null;
+      return { success: false, reason: 'wrong_password' };
     }
     
     console.log('[OfflineAuth] Offline login successful for:', email);
-    return result.userData;
+    return { success: true, user: result.userData };
   } catch (err) {
     console.warn('[OfflineAuth] Offline login failed:', err);
-    return null;
+    return { success: false, reason: 'no_cache' };
   }
 }
 
