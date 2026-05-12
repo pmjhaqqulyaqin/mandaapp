@@ -1,14 +1,24 @@
 /// <reference lib="webworker" />
-import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching';
+import { cleanupOutdatedCaches, precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching';
 import { clientsClaim } from 'workbox-core';
+import { NavigationRoute, registerRoute } from 'workbox-routing';
 
 declare let self: ServiceWorkerGlobalScope;
 
 // ━━ Workbox Precaching ━━
 // Automatically caches ALL build assets (JS, CSS, HTML, images)
-// This is what makes the app work fully offline
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
+
+// ━━ SPA Navigation Fallback ━━
+// For any navigation request (e.g. /dashboard, /jurnal, /attendance),
+// serve the cached index.html — React Router handles the rest client-side
+const navigationHandler = createHandlerBoundToURL('/index.html');
+const navigationRoute = new NavigationRoute(navigationHandler, {
+  // Don't intercept API calls or auth routes
+  denylist: [/^\/api\//, /^\/auth\//],
+});
+registerRoute(navigationRoute);
 
 // Take control immediately on install/activate
 self.skipWaiting();
