@@ -50,11 +50,33 @@ export class ErrorBoundary extends Component<Props, State> {
       const lastReload = sessionStorage.getItem(reloadKey);
       const now = Date.now();
 
-      // Prevent infinite reload loop — only auto-reload once per 30 seconds
-      if (!lastReload || now - parseInt(lastReload) > 30000) {
+      // Prevent infinite reload loop — only auto-reload once per 60 seconds
+      if (!lastReload || now - parseInt(lastReload) > 60000) {
         sessionStorage.setItem(reloadKey, now.toString());
-        console.log('[ErrorBoundary] Chunk load error detected — auto-reloading...');
-        window.location.reload();
+        console.log('[ErrorBoundary] Chunk load error detected — clearing SW caches and reloading...');
+
+        // Clear ALL service worker caches and unregister SW to force fresh fetch
+        const clearAndReload = async () => {
+          try {
+            // 1. Delete all SW caches
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map(name => caches.delete(name)));
+            console.log('[ErrorBoundary] Cleared', cacheNames.length, 'SW caches');
+
+            // 2. Unregister all service workers
+            const registrations = await navigator.serviceWorker?.getRegistrations();
+            if (registrations) {
+              await Promise.all(registrations.map(r => r.unregister()));
+              console.log('[ErrorBoundary] Unregistered', registrations.length, 'service workers');
+            }
+          } catch (e) {
+            console.warn('[ErrorBoundary] Failed to clear SW caches:', e);
+          }
+          // 3. Hard reload (bypass cache)
+          window.location.reload();
+        };
+
+        clearAndReload();
         return;
       }
     }

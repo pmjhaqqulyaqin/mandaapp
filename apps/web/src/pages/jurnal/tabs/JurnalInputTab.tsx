@@ -237,12 +237,12 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
       <div className="px-4 py-4 space-y-4">
         {/* Section 1: Pilih Jadwal */}
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-          <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3 flex items-center gap-2">
-            <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-[10px] flex items-center justify-center font-bold">1</span>
+          <h3 className="font-semibold text-base text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+            <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-xs flex items-center justify-center font-bold">1</span>
             Pilih Jadwal
           </h3>
-          {schedule.isLoading && <p className="text-xs text-gray-400">Memuat jadwal...</p>}
-          {schedule.data?.length === 0 && <p className="text-xs text-gray-400">Tidak ada jadwal hari ini</p>}
+          {schedule.isLoading && <p className="text-sm text-gray-400">Memuat jadwal...</p>}
+          {schedule.data?.length === 0 && <p className="text-sm text-gray-400">Tidak ada jadwal hari ini</p>}
           <div className="space-y-2">
             {schedule.data?.map((item: any) => (
               <button key={item.id} onClick={() => selectSchedule(item)} disabled={item.alreadyFilled}
@@ -253,10 +253,10 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
                 }`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-semibold text-sm text-gray-900 dark:text-white">{item.subjectName}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{item.className} • Jam ke {item.jamKe || '-'}</p>
+                    <p className="font-semibold text-base text-gray-900 dark:text-white">{item.subjectName}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{item.className} • Jam ke {item.jamKe || '-'}</p>
                   </div>
-                  {item.alreadyFilled && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-full">Sudah Diisi</span>}
+                  {item.alreadyFilled && <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-full">Sudah Diisi</span>}
                   {form.teachingSubjectId === item.id && <Check size={18} className="text-emerald-600" />}
                 </div>
               </button>
@@ -265,7 +265,7 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
 
           {/* Link RPP */}
           <div className="mt-3">
-            <label className="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1"><LinkIcon size={12} /> Link RPP (opsional)</label>
+            <label className="text-sm text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1"><LinkIcon size={14} /> Link RPP (opsional)</label>
             <input type="url" placeholder="https://drive.google.com/..." value={form.linkRpp} onChange={e => setForm(f => ({ ...f, linkRpp: e.target.value }))}
               className="w-full mt-1 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-gray-50 dark:bg-[#111] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" />
           </div>
@@ -273,25 +273,25 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
 
         {/* Section 2: Materi & Kegiatan */}
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-          <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3 flex items-center gap-2">
-            <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-[10px] flex items-center justify-center font-bold">2</span>
+          <h3 className="font-semibold text-base text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+            <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-xs flex items-center justify-center font-bold">2</span>
             Materi & Kegiatan
           </h3>
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Materi Pokok <span className="text-red-400">*</span></label>
+              <label className="text-sm text-gray-500 dark:text-gray-400 font-medium">Materi Pokok <span className="text-red-400">*</span></label>
               <textarea className="w-full mt-1 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-gray-50 dark:bg-[#111] focus:border-emerald-500 outline-none resize-none"
                 rows={2} placeholder="Contoh: Perubahan Wujud Benda" value={form.materiPembelajaran}
                 onChange={e => setForm(f => ({ ...f, materiPembelajaran: e.target.value }))} />
             </div>
             <div>
-              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Tujuan Pembelajaran</label>
+              <label className="text-sm text-gray-500 dark:text-gray-400 font-medium">Tujuan Pembelajaran</label>
               <textarea className="w-full mt-1 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-gray-50 dark:bg-[#111] focus:border-emerald-500 outline-none resize-none"
                 rows={2} placeholder="Siswa dapat menjelaskan..." value={form.capaianPembelajaran}
                 onChange={e => setForm(f => ({ ...f, capaianPembelajaran: e.target.value }))} />
             </div>
             <div>
-              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Metode Pembelajaran</label>
+              <label className="text-sm text-gray-500 dark:text-gray-400 font-medium">Metode Pembelajaran</label>
               <div className="flex flex-wrap gap-2 mt-2">
                 {methods.query.data?.map((m: any) => (
                   <button key={m.id} onClick={() => toggleMethod(m.name)}
@@ -314,8 +314,8 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
           <div className="p-4">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="font-semibold text-sm text-gray-800 dark:text-white flex items-center gap-2">
-                <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-[10px] flex items-center justify-center font-bold">3</span>
+              <h3 className="font-semibold text-base text-gray-800 dark:text-white flex items-center gap-2">
+                <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-xs flex items-center justify-center font-bold">3</span>
                 Absensi Siswa
               </h3>
               <button onClick={() => setAttendanceExpanded(!attendanceExpanded)}
@@ -326,20 +326,20 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
             </div>
             <div className="flex gap-3 text-center">
               <div className="flex-1 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-2">
-                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{attSummary.hadir}</p>
-                <p className="text-[10px] text-emerald-600 dark:text-emerald-400">Hadir</p>
+                <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{attSummary.hadir}</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400">Hadir</p>
               </div>
               <div className="flex-1 bg-red-50 dark:bg-red-900/20 rounded-lg p-2">
-                <p className="text-lg font-bold text-red-500 dark:text-red-400">{attSummary.sakit}</p>
-                <p className="text-[10px] text-red-500 dark:text-red-400">Sakit</p>
+                <p className="text-xl font-bold text-red-500 dark:text-red-400">{attSummary.sakit}</p>
+                <p className="text-xs text-red-500 dark:text-red-400">Sakit</p>
               </div>
               <div className="flex-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2">
-                <p className="text-lg font-bold text-blue-500 dark:text-blue-400">{attSummary.izin}</p>
-                <p className="text-[10px] text-blue-500 dark:text-blue-400">Izin</p>
+                <p className="text-xl font-bold text-blue-500 dark:text-blue-400">{attSummary.izin}</p>
+                <p className="text-xs text-blue-500 dark:text-blue-400">Izin</p>
               </div>
               <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
-                <p className="text-lg font-bold text-gray-500 dark:text-gray-400">{attSummary.alpa}</p>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400">Alpa</p>
+                <p className="text-xl font-bold text-gray-500 dark:text-gray-400">{attSummary.alpa}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Alpa</p>
               </div>
             </div>
           </div>
@@ -348,8 +348,8 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
           {attendanceExpanded && (
             <div className="border-t border-gray-100 dark:border-gray-800">
               <div className="px-4 py-2 flex items-center justify-between">
-                <p className="text-[10px] text-gray-500 dark:text-gray-400">Tap untuk ubah status</p>
-                <button onClick={setAllHadir} className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-full active:scale-95">
+                <p className="text-xs text-gray-500 dark:text-gray-400">Tap untuk ubah status</p>
+                <button onClick={setAllHadir} className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-full active:scale-95">
                   Semua Hadir
                 </button>
               </div>
@@ -360,12 +360,12 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
                       {s.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{s.name}</p>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{s.name}</p>
                     </div>
                     <div className="flex gap-1 shrink-0">
                       {['Hadir', 'Sakit', 'Izin', 'Alpa'].map(st => (
                         <button key={st} onClick={() => toggleStudentStatus(s.studentId, st)}
-                          className={`px-2 py-1 rounded-full text-[10px] font-medium transition-all active:scale-90 ${
+                          className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all active:scale-90 ${
                             s.status === st ? statusColors[st] : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500'
                           }`}>{st.charAt(0)}</button>
                       ))}
@@ -373,7 +373,7 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
                   </div>
                 ))}
                 {attendance.length === 0 && (
-                  <p className="text-xs text-gray-400 text-center py-6">Pilih jadwal di atas untuk memuat data siswa</p>
+                  <p className="text-sm text-gray-400 text-center py-6">Pilih jadwal di atas untuk memuat data siswa</p>
                 )}
               </div>
             </div>
@@ -382,19 +382,19 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
 
         {/* Section 4: Evaluasi & Lampiran */}
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-          <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3 flex items-center gap-2">
-            <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-[10px] flex items-center justify-center font-bold">4</span>
+          <h3 className="font-semibold text-base text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+            <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-xs flex items-center justify-center font-bold">4</span>
             Evaluasi & Lampiran
           </h3>
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Catatan Guru</label>
+              <label className="text-sm text-gray-500 dark:text-gray-400 font-medium">Catatan Guru</label>
               <textarea className="w-full mt-1 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-gray-50 dark:bg-[#111] focus:border-emerald-500 outline-none resize-none"
                 rows={3} placeholder="Kendala, perilaku khusus siswa, atau hal penting..." value={form.catatan}
                 onChange={e => setForm(f => ({ ...f, catatan: e.target.value }))} />
             </div>
             <div>
-              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Foto Kegiatan</label>
+              <label className="text-sm text-gray-500 dark:text-gray-400 font-medium">Foto Kegiatan</label>
               <div className="flex gap-2 mt-2 flex-wrap">
                 <label className="w-16 h-16 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:border-emerald-400 hover:text-emerald-500 transition-colors shrink-0">
                   <Camera size={16} />

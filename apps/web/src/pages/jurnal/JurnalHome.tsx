@@ -97,8 +97,8 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
       {/* Gradient Header */}
       <div className="bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-700 dark:to-teal-600 text-white px-5 pt-5 pb-5 md:rounded-t-xl">
         <div className="bg-white/10 backdrop-blur rounded-xl p-3 flex items-start gap-2">
-          <span className="text-white/60 text-xs mt-0.5">❝</span>
-          <p className="text-xs text-white/90 italic leading-relaxed">{quote}</p>
+          <span className="text-white/60 text-sm mt-0.5">❝</span>
+          <p className="text-sm text-white/90 italic leading-relaxed">{quote}</p>
         </div>
       </div>
 
@@ -107,24 +107,24 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-3 shadow-sm text-center border border-gray-100 dark:border-gray-800">
             <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center mx-auto mb-1">
-              <Clock size={14} className="text-emerald-600 dark:text-emerald-400" />
+              <Clock size={16} className="text-emerald-600 dark:text-emerald-400" />
             </div>
-            <p className="text-lg font-bold text-gray-800 dark:text-white">{todaySchedule.length}</p>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400">Jam Mengajar</p>
+            <p className="text-xl font-bold text-gray-800 dark:text-white">{todaySchedule.length}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Jam Mengajar</p>
           </div>
           <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-3 shadow-sm text-center border border-gray-100 dark:border-gray-800">
             <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center mx-auto mb-1">
-              <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-400" />
+              <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
             </div>
-            <p className="text-lg font-bold text-gray-800 dark:text-white">{filledCount}</p>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400">Jurnal Tersimpan</p>
+            <p className="text-xl font-bold text-gray-800 dark:text-white">{filledCount}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Jurnal Tersimpan</p>
           </div>
           <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-3 shadow-sm text-center border border-gray-100 dark:border-gray-800">
             <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center mx-auto mb-1">
-              <AlertCircle size={14} className="text-amber-600 dark:text-amber-400" />
+              <AlertCircle size={16} className="text-amber-600 dark:text-amber-400" />
             </div>
-            <p className="text-lg font-bold text-gray-800 dark:text-white">{pendingCount}</p>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400">Belum Dijurnal</p>
+            <p className="text-xl font-bold text-gray-800 dark:text-white">{pendingCount}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Belum Dijurnal</p>
           </div>
         </div>
       </div>
@@ -133,15 +133,15 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
       <div className="px-4 mt-4">
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
           <div className="flex justify-between items-center mb-3">
-            <h3 className="font-semibold text-sm text-gray-800 dark:text-white">
+            <h3 className="font-semibold text-base text-gray-800 dark:text-white">
               {today.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
             </h3>
           </div>
           <div className="flex justify-between text-center">
             {weekDays.map((d, i) => (
               <div key={i} className="flex flex-col items-center gap-1">
-                <span className={`text-[10px] ${d.isWeekend ? 'text-gray-300 dark:text-gray-600' : 'text-gray-400 dark:text-gray-500'}`}>{d.dayLabel}</span>
-                <span className={`text-xs w-7 h-7 flex items-center justify-center rounded-full font-medium transition-all ${
+                <span className={`text-xs ${d.isWeekend ? 'text-gray-300 dark:text-gray-600' : 'text-gray-400 dark:text-gray-500'}`}>{d.dayLabel}</span>
+                <span className={`text-sm w-8 h-8 flex items-center justify-center rounded-full font-medium transition-all ${
                   d.isToday ? 'bg-emerald-600 text-white shadow-sm' :
                   d.hasFilled ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400' :
                   d.isWeekend ? 'text-gray-300 dark:text-gray-600' : 'text-gray-600 dark:text-gray-400'
@@ -149,17 +149,17 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
               </div>
             ))}
           </div>
-          <div className="flex justify-center gap-4 mt-2 text-[10px]">
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Tersimpan</span>
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-600" /> Hari Ini</span>
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600" /> Libur</span>
+          <div className="flex justify-center gap-4 mt-2 text-xs">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Tersimpan</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-600" /> Hari Ini</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600" /> Libur</span>
           </div>
         </div>
       </div>
 
       {/* Jadwal Hari Ini */}
       <div className="px-4 mt-4">
-        <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3">Jadwal Hari Ini</h3>
+        <h3 className="font-semibold text-base text-gray-800 dark:text-white mb-3">Jadwal Hari Ini</h3>
         {schedule.isLoading && (
           <div className="space-y-3">
             {[1, 2, 3].map(i => <div key={i} className="bg-white dark:bg-[#1a1a1a] rounded-xl h-20 animate-pulse border border-gray-100 dark:border-gray-800" />)}
@@ -168,7 +168,7 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
         {!schedule.isLoading && todaySchedule.length === 0 && (
           <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-6 text-center border border-gray-100 dark:border-gray-800">
             <BookOpen size={32} className="text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-            <p className="text-xs text-gray-400 dark:text-gray-500">Tidak ada jadwal mengajar hari ini</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">Tidak ada jadwal mengajar hari ini</p>
           </div>
         )}
         <div className="space-y-3">
@@ -180,13 +180,13 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
               }`}>
               <div className="flex justify-between items-start">
                 <div>
-                  <p className={`text-xs font-medium ${item.alreadyFilled ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                  <p className={`text-sm font-medium ${item.alreadyFilled ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
                     {item.waktuMulai || '--:--'} - {item.waktuSelesai || '--:--'} • Jam ke {item.jamKe || '-'}
                   </p>
-                  <h4 className="font-semibold text-gray-800 dark:text-white mt-0.5">{item.subjectName}</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.className}</p>
+                  <h4 className="font-semibold text-base text-gray-800 dark:text-white mt-0.5">{item.subjectName}</h4>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{item.className}</p>
                 </div>
-                <span className={`px-2 py-1 text-[10px] font-medium rounded-full shrink-0 ${
+                <span className={`px-2.5 py-1 text-xs font-medium rounded-full shrink-0 ${
                   item.alreadyFilled
                     ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
                     : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
@@ -199,28 +199,28 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
 
       {/* Quick Access */}
       <div className="px-4 mt-4">
-        <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3">Akses Cepat</h3>
+        <h3 className="font-semibold text-base text-gray-800 dark:text-white mb-3">Akses Cepat</h3>
         <div className={`grid ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'} gap-3`}>
           <button onClick={() => onNavigate('create')}
             className="bg-white dark:bg-[#1a1a1a] rounded-xl p-3 shadow-sm flex flex-col items-center gap-2 hover:shadow-md transition border border-gray-100 dark:border-gray-800 active:scale-95">
             <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center"><PenLine size={18} className="text-emerald-600 dark:text-emerald-400" /></div>
-            <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300">Jurnal Baru</span>
+            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Jurnal Baru</span>
           </button>
           <button onClick={() => onNavigate('history')}
             className="bg-white dark:bg-[#1a1a1a] rounded-xl p-3 shadow-sm flex flex-col items-center gap-2 hover:shadow-md transition border border-gray-100 dark:border-gray-800 active:scale-95">
             <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center"><History size={18} className="text-purple-500 dark:text-purple-400" /></div>
-            <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300">Riwayat</span>
+            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Riwayat</span>
           </button>
           <button onClick={() => onNavigate('stats')}
             className="bg-white dark:bg-[#1a1a1a] rounded-xl p-3 shadow-sm flex flex-col items-center gap-2 hover:shadow-md transition border border-gray-100 dark:border-gray-800 active:scale-95">
             <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center"><BarChart3 size={18} className="text-amber-500 dark:text-amber-400" /></div>
-            <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300">Laporan</span>
+            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Laporan</span>
           </button>
           {isAdmin && (
             <button onClick={onAdminSettings}
               className="bg-white dark:bg-[#1a1a1a] rounded-xl p-3 shadow-sm flex flex-col items-center gap-2 hover:shadow-md transition border border-gray-100 dark:border-gray-800 active:scale-95">
               <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center"><Settings size={18} className="text-gray-500 dark:text-gray-400" /></div>
-              <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300">Jadwal</span>
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Jadwal</span>
             </button>
           )}
         </div>

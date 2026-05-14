@@ -126,17 +126,17 @@ export const JurnalListTab = ({ onBack }: Props) => {
             }`}>
             <div className="flex justify-between items-start mb-2">
               <div>
-                <span className="text-[10px] text-gray-500 dark:text-gray-400">{formatDate(e.date)}</span>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{e.waktuMulai || '--:--'} - {e.waktuSelesai || '--:--'} • Jam ke {e.jamKe || '-'}</p>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{formatDate(e.date)}</span>
+                <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">{e.waktuMulai || '--:--'} - {e.waktuSelesai || '--:--'} • Jam ke {e.jamKe || '-'}</p>
               </div>
               <div className="flex gap-1 items-center shrink-0">
                 {statusBadge(e.status)}
               </div>
             </div>
-            <h4 className="font-semibold text-gray-800 dark:text-white text-sm">{e.subjectName} — {e.className}</h4>
-            {e.materiPembelajaran && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{e.materiPembelajaran}</p>}
-            <div className="flex items-center gap-3 mt-3 text-[10px] text-gray-500 dark:text-gray-400">
-              <span className="flex items-center gap-1"><Users size={10} /> {e.jumlahHadir || 0}/{e.totalSiswa || 0} siswa</span>
+            <h4 className="font-semibold text-gray-800 dark:text-white text-base">{e.subjectName} — {e.className}</h4>
+            {e.materiPembelajaran && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{e.materiPembelajaran}</p>}
+            <div className="flex items-center gap-3 mt-3 text-xs text-gray-500 dark:text-gray-400">
+              <span className="flex items-center gap-1"><Users size={12} /> {e.jumlahHadir || 0}/{e.totalSiswa || 0} siswa</span>
               {canSeeAll && <span className="text-emerald-600 dark:text-emerald-400 font-medium">{e.teacherName}</span>}
             </div>
           </button>
@@ -144,7 +144,7 @@ export const JurnalListTab = ({ onBack }: Props) => {
 
         {!entries.isLoading && filteredEntries.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-xs text-gray-400 dark:text-gray-500">Belum ada jurnal pada periode ini</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">Belum ada jurnal pada periode ini</p>
           </div>
         )}
       </div>

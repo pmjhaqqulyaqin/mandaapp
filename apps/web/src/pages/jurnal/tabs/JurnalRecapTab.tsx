@@ -88,14 +88,14 @@ export const JurnalRecapTab = ({ onBack }: Props) => {
               <Clock size={14} className="text-emerald-600 dark:text-emerald-400" />
             </div>
             <p className="text-2xl font-bold text-gray-800 dark:text-white">{totalEntries}</p>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400">Total Sesi Mengajar</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Total Sesi Mengajar</p>
           </div>
           <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
             <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center mb-2">
               <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-400" />
             </div>
             <p className="text-2xl font-bold text-gray-800 dark:text-white">{approved + submitted}</p>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400">Jurnal Tersimpan</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Jurnal Tersimpan</p>
           </div>
           <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
             <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-2">
@@ -110,28 +110,28 @@ export const JurnalRecapTab = ({ onBack }: Props) => {
                 return totalS > 0 ? `${Math.round((totalH / totalS) * 100)}%` : '0%';
               })()}
             </p>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400">Rata-rata Kehadiran</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Rata-rata Kehadiran</p>
           </div>
           <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
             <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center mb-2">
               <BookOpen size={14} className="text-amber-500 dark:text-amber-400" />
             </div>
             <p className="text-2xl font-bold text-gray-800 dark:text-white">{Object.keys(subjectCounts).length}</p>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400">Mapel Diampu</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Mapel Diampu</p>
           </div>
         </div>
 
         {/* Bar Chart */}
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-          <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3">Sesi Mengajar per Hari</h3>
+          <h3 className="font-semibold text-base text-gray-800 dark:text-white mb-3">Sesi Mengajar per Hari</h3>
           <div className="flex items-end justify-between h-32 gap-2">
             {dayBuckets.map((count, i) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-[9px] text-gray-500 dark:text-gray-400 font-medium">{count > 0 ? count : ''}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{count > 0 ? count : ''}</span>
                 <div className={`w-full rounded-t-lg transition-all duration-500 ${
                   i >= 5 ? 'bg-gray-200 dark:bg-gray-700' : count > 0 ? 'bg-emerald-500 dark:bg-emerald-600' : 'bg-gray-100 dark:bg-gray-800'
                 }`} style={{ height: `${Math.max((count / maxBucket) * 100, 4)}%` }} />
-                <span className={`text-[9px] ${i >= 5 ? 'text-gray-400 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'}`}>{dayLabels[i]}</span>
+                <span className={`text-xs ${i >= 5 ? 'text-gray-400 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'}`}>{dayLabels[i]}</span>
               </div>
             ))}
           </div>
@@ -140,7 +140,7 @@ export const JurnalRecapTab = ({ onBack }: Props) => {
         {/* Top Subjects */}
         {topSubjects.length > 0 && (
           <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-            <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3">Materi Sering Diajarkan</h3>
+            <h3 className="font-semibold text-base text-gray-800 dark:text-white mb-3">Materi Sering Diajarkan</h3>
             <div className="space-y-3">
               {topSubjects.map(([name, count], i) => (
                 <div key={name} className="flex items-center gap-3">

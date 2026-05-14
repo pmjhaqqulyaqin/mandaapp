@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
-import { Activity, BarChart3, Settings } from 'lucide-react';
+import { Activity, ArrowLeft, BarChart3, Settings } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { JurnalHome } from './JurnalHome';
 import { JurnalInputTab } from './tabs/JurnalInputTab';
@@ -9,7 +9,7 @@ import { JurnalRecapTab } from './tabs/JurnalRecapTab';
 import { JurnalMonitoringTab } from './tabs/JurnalMonitoringTab';
 import { JurnalSettingsTab } from './tabs/JurnalSettingsTab';
 
-type GuruView = 'home' | 'create' | 'history' | 'stats';
+type GuruView = 'home' | 'create' | 'history' | 'stats' | 'settings';
 type AdminTab = 'monitoring' | 'rekap' | 'settings';
 
 // ── Guru Mobile-First View ──────────────────────────────────────
@@ -29,10 +29,7 @@ const JurnalGuruView = ({ isAdmin }: { isAdmin: boolean }) => {
   };
 
   const handleAdminSettings = () => {
-    // Admin can switch to settings view. We use a trick - switch to a fake
-    // "create" view but with a settings flag. For simplicity, we open settings
-    // in an overlay approach. But since admin has its own tab view, we just
-    // expose the quick access button.
+    setView('settings');
   };
 
   return (
@@ -41,6 +38,7 @@ const JurnalGuruView = ({ isAdmin }: { isAdmin: boolean }) => {
         <JurnalHome
           onNavigate={handleNavigate}
           isAdmin={isAdmin}
+          onAdminSettings={handleAdminSettings}
         />
       )}
       {view === 'create' && (
@@ -58,6 +56,21 @@ const JurnalGuruView = ({ isAdmin }: { isAdmin: boolean }) => {
         <JurnalRecapTab
           onBack={handleBack}
         />
+      )}
+      {view === 'settings' && (
+        <div className="pb-4 -mx-3 md:mx-0">
+          <div className="bg-white dark:bg-[#111] px-4 pt-3 pb-3 sticky top-0 z-40 border-b border-gray-100 dark:border-gray-800">
+            <div className="flex items-center gap-3">
+              <button onClick={handleBack} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95">
+                <ArrowLeft size={18} className="text-gray-600 dark:text-gray-400" />
+              </button>
+              <h1 className="text-lg font-bold text-gray-800 dark:text-white">Kelola Jadwal</h1>
+            </div>
+          </div>
+          <div className="px-4 py-4">
+            <JurnalSettingsTab />
+          </div>
+        </div>
       )}
     </div>
   );
