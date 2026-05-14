@@ -452,100 +452,71 @@ export const PrintableStudentCard = ({
   };
 
   const VerticalBack = () => {
+    const headerColor = template?.primaryColor || '#3b1c9e';
     const textColor = '#111827';
     
-    // Match the exact text from the image for fallback
-    const termsTextRaw = settings.termsText || "Kartu pelajar ini dikeluarkan hanya untuk siswa terdaftar di MAN 2 Lombok Timur\nKartu pelajar bersifat pribadi dan tidak boleh digunakan oleh orang lain.\nPemegang kartu bertanggung jawab untuk menjaga kebersihan dan keutuhan kartu.\nKartu Pelajar ini berlaku selama masa studi aktif di sekolah yang terdaftar.";
+    // Fallback terms matching the image specifically
+    const termsTextRaw = settings.termsText || "Kartu wajib dipakai selama berada di lingkungan sekolah\nTidak boleh dipinjamkan kepada orang lain.\nJika hilang, segera lapor ke wali kelas.\nMenjaga kartu agar tidak rusak atau kotor.";
     const termsLines = termsTextRaw.split('\n');
 
     const bgUrl = settings.customTemplateBackUrl;
 
     return (
-      <div style={{ width: '100%', height: '100%', position: 'relative', backgroundColor: bgUrl ? 'transparent' : '#ffffff', overflow: 'hidden' }}>
+      <div style={{ width: '100%', height: '100%', position: 'relative', backgroundColor: bgUrl ? 'transparent' : '#fcfcfc' }}>
         {bgUrl && <img src={bgUrl} alt="Background" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }} />}
-
-        {/* Geometric Decorations - Top Left */}
-        {!bgUrl && (
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '180px', height: '180px', zIndex: 1 }}>
-            {/* Light blue triangle */}
-            <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} viewBox="0 0 100 100" preserveAspectRatio="none">
-              <polygon points="0,0 100,0 0,100" fill="#38bdf8" opacity="0.9" />
-            </svg>
-            {/* Darker blue polygon */}
-            <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} viewBox="0 0 100 100" preserveAspectRatio="none">
-              <polygon points="0,0 50,0 0,50" fill="#0284c7" />
-              <polygon points="0,0 80,0 0,80" fill="#0369a1" opacity="0.8" />
-            </svg>
-          </div>
-        )}
-
-        {/* Geometric Decorations - Bottom Right */}
-        {!bgUrl && (
-          <div style={{ position: 'absolute', bottom: 0, right: 0, width: '150px', height: '150px', zIndex: 1 }}>
-            <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} viewBox="0 0 100 100" preserveAspectRatio="none">
-              <polygon points="100,100 100,0 0,100" fill="#38bdf8" opacity="0.9" />
-            </svg>
-            <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} viewBox="0 0 100 100" preserveAspectRatio="none">
-              <polygon points="100,100 100,40 40,100" fill="#0284c7" />
-            </svg>
-          </div>
-        )}
 
         <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           
-          {/* 1. LOGO SEKOLAH - Centered at top */}
-          <div style={{ marginTop: '20px', marginBottom: '6px', display: 'flex', justifyContent: 'center' }}>
+          {/* 1. LOGO SEKOLAH - paling atas, centered (Matches Front Card) */}
+          <div style={{ marginTop: '28px', marginBottom: '8px', display: 'flex', justifyContent: 'center' }}>
             {settings.schoolLogoUrl ? (
-              <img src={settings.schoolLogoUrl} alt="Logo Sekolah" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
+              <img src={settings.schoolLogoUrl} alt="Logo Sekolah" style={{ width: '72px', height: '72px', objectFit: 'contain' }} />
             ) : (
-              <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: bgUrl ? 'rgba(255,255,255,0.3)' : '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#94a3b8' }}>Logo</div>
+              <div style={{ width: '72px', height: '72px', borderRadius: '50%', backgroundColor: bgUrl ? 'rgba(255,255,255,0.3)' : '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#94a3b8' }}>Logo</div>
             )}
           </div>
 
-          {/* 2. NAMA SEKOLAH & ALAMAT */}
-          <div style={{ textAlign: 'center', marginBottom: '18px', padding: '0 25px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: textColor, textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: 1.3 }}>
+          {/* 2. NAMA SEKOLAH & ALAMAT (Matches Front Card) */}
+          <div style={{ textAlign: 'center', marginBottom: '20px', padding: '0 25px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: textColor, textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: 1.3 }}>
               KEMENTERIAN AGAMA RI
             </div>
-            <div style={{ fontSize: '16px', fontWeight: 900, color: textColor, textTransform: 'uppercase', letterSpacing: '0.3px', margin: '2px 0', lineHeight: 1.2 }}>
+            <div style={{ fontSize: '17px', fontWeight: 900, color: textColor, textTransform: 'uppercase', letterSpacing: '0.3px', margin: '3px 0', lineHeight: 1.2 }}>
               {settings.schoolName || 'MAN 2 LOMBOK TIMUR'}
             </div>
-            <div style={{ fontSize: '11px', fontWeight: 500, color: '#4b5563', lineHeight: 1.3 }}>
+            <div style={{ fontSize: '12px', fontWeight: 500, color: '#374151', lineHeight: 1.3 }}>
               {settings.schoolAddress || 'Alamat Sekolah'}
             </div>
           </div>
 
           {/* BODY (Terms & Conditions) */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 25px', width: '100%' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 30px', width: '100%' }}>
              
-             {/* Title with Green Underline */}
-             <div style={{ marginBottom: '15px', borderBottom: `3px solid #16a34a`, paddingBottom: '3px' }}>
-               <h3 style={{ fontSize: '15px', color: textColor, fontWeight: 900, textAlign: 'center', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                 TATA TERTIB PENGGUNAAN
-               </h3>
-             </div>
+             <h3 style={{ fontSize: '16px', color: textColor, fontWeight: 900, textAlign: 'center', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `2px solid ${headerColor}`, paddingBottom: '4px' }}>
+               TATA TERTIB PENGGUNAAN
+             </h3>
 
-             {/* Terms List - Ordered List */}
-             <ol style={{ fontSize: '11.5px', lineHeight: 1.5, color: textColor, margin: '0 0 15px 0', paddingLeft: '20px', paddingRight: '10px', fontWeight: 600, alignSelf: 'flex-start' }}>
+             {/* Terms List - Compact */}
+             <ol style={{ fontSize: '12px', lineHeight: 1.4, color: textColor, margin: '0 0 15px 0', paddingLeft: '18px', fontWeight: 600, alignSelf: 'flex-start' }}>
                 {termsLines.map((line, i) => (
-                  <li key={i} style={{ marginBottom: '8px', paddingLeft: '4px' }}>{line}</li>
+                  <li key={i} style={{ marginBottom: '6px', paddingLeft: '4px' }}>{line}</li>
                 ))}
              </ol>
 
-             {/* Center Text Blob - Grey Box */}
-             <div style={{ textAlign: 'center', fontSize: '10px', lineHeight: 1.4, fontWeight: 800, textTransform: 'uppercase', color: textColor, marginTop: '5px', padding: '12px 15px', backgroundColor: '#f3f4f6', borderRadius: '8px', width: '90%' }}>
+             {/* Center Text Blob */}
+             <div style={{ textAlign: 'center', fontSize: '11px', lineHeight: 1.3, fontWeight: 700, textTransform: 'uppercase', color: textColor, marginTop: '5px', padding: '10px', backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: '6px' }}>
                Kartu ini adalah milik resmi madrasah dan hanya digunakan oleh pemegang yang tertera
              </div>
           </div>
 
           {/* AUTHORIZATION BLOCK (Pengesahan) */}
-          <div style={{ marginTop: 'auto', marginBottom: '25px', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', padding: '0 30px' }}>
-             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '11px', fontWeight: 600, color: textColor, zIndex: 10, textAlign: 'center' }}>
+          <div style={{ marginTop: 'auto', marginBottom: '35px', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', padding: '0 30px' }}>
+             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', fontWeight: 600, color: textColor, zIndex: 10, textAlign: 'center' }}>
                 <span>Kepala Madrasah,</span>
                 
-                <div style={{ height: '65px', width: '130px', position: 'relative', margin: '2px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ height: '70px', width: '140px', position: 'relative', margin: '2px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {settings.schoolStampUrl && (
-                    <img src={settings.schoolStampUrl} alt="Stempel" style={{ position: 'absolute', width: '80px', height: '80px', left: '-10px', top: '-8px', opacity: 0.85, mixBlendMode: 'multiply' }} />
+                    <img src={settings.schoolStampUrl} alt="Stempel" style={{ position: 'absolute', width: '85px', height: '85px', left: '-10px', top: '-5px', opacity: 0.85, mixBlendMode: 'multiply' }} />
                   )}
                   {settings.headmasterSignatureUrl ? (
                     <img src={settings.headmasterSignatureUrl} alt="TTD" style={{ position: 'relative', width: '100%', height: '100%', objectFit: 'contain', zIndex: 2, mixBlendMode: 'multiply' }} />
@@ -559,6 +530,13 @@ export const PrintableStudentCard = ({
              </div>
           </div>
         </div>
+        
+        {/* FOOTER DECORATIONS (only when no custom template) */}
+        {!bgUrl && (
+          <>
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '25px', backgroundColor: headerColor, zIndex: 1 }}></div>
+          </>
+        )}
       </div>
     );
   };
