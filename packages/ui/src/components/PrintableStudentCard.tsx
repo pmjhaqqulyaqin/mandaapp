@@ -166,7 +166,7 @@ export const PrintableStudentCard = ({
         
         <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
           {/* HEADER */}
-          <div style={{ width: '100%', height: '130px', backgroundColor: bgUrl ? 'transparent' : headerColor, display: 'flex', alignItems: 'center', padding: '0 45px', justifyContent: 'space-between' }}>
+          <div style={{ width: '100%', height: '130px', backgroundColor: bgUrl ? 'transparent' : headerColor, display: 'flex', alignItems: 'center', padding: '0 65px', justifyContent: 'space-between' }}>
             <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
             <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
               <div style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '1px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
@@ -250,7 +250,7 @@ export const PrintableStudentCard = ({
         
         <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
           {/* HEADER (Identical to Front) */}
-          <div style={{ width: '100%', height: '130px', backgroundColor: bgUrl ? 'transparent' : headerColor, display: 'flex', alignItems: 'center', padding: '0 45px', justifyContent: 'space-between' }}>
+          <div style={{ width: '100%', height: '130px', backgroundColor: bgUrl ? 'transparent' : headerColor, display: 'flex', alignItems: 'center', padding: '0 65px', justifyContent: 'space-between' }}>
             <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
             <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
               <div style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '1px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
@@ -348,7 +348,7 @@ export const PrintableStudentCard = ({
                </div>
              )}
 
-             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '0 35px', width: '100%', marginTop: '10px' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '0 50px', width: '100%', marginTop: '10px' }}>
                 <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '65px', height: '65px', objectFit: 'contain' }} />
                 <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
                   <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.5px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
@@ -455,7 +455,7 @@ export const PrintableStudentCard = ({
                </div>
              )}
 
-             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '0 35px', width: '100%', marginTop: '10px' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '0 50px', width: '100%', marginTop: '10px' }}>
                 <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '65px', height: '65px', objectFit: 'contain' }} />
                 <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
                   <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.5px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
