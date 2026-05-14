@@ -454,22 +454,10 @@ export const PrintableStudentCard = ({
   const VerticalBack = () => {
     const headerColor = template?.primaryColor || '#3b1c9e';
     const textColor = '#111827';
-    const kemenagLogoUrl = settings.kemenagLogoUrl || "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
     
     // Fallback terms matching the image specifically
     const termsTextRaw = settings.termsText || "Kartu wajib dipakai selama berada di lingkungan sekolah\nTidak boleh dipinjamkan kepada orang lain.\nJika hilang, segera lapor ke wali kelas.\nMenjaga kartu agar tidak rusak atau kotor.";
     const termsLines = termsTextRaw.split('\n');
-
-    // QR payload: NIS only for fast attendance scanning
-    const qrPayload = student.nisn;
-
-    const DotsMatrix = ({ color }: { color: string }) => (
-      <svg width="40" height="40" viewBox="0 0 40 40" fill={color}>
-        {[0, 10, 20, 30].map(x => [0, 10, 20, 30].map(y => (
-          <circle key={`${x}-${y}`} cx={x+4} cy={y+4} r="2.5" />
-        )))}
-      </svg>
-    );
 
     const bgUrl = settings.customTemplateBackUrl;
 
@@ -477,69 +465,80 @@ export const PrintableStudentCard = ({
       <div style={{ width: '100%', height: '100%', position: 'relative', backgroundColor: bgUrl ? 'transparent' : '#fcfcfc' }}>
         {bgUrl && <img src={bgUrl} alt="Background" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }} />}
 
-        <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-          {/* HEADER */}
-          <div style={{ width: '100%', height: '180px', backgroundColor: bgUrl ? 'transparent' : headerColor, borderBottomLeftRadius: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', flexShrink: 0 }}>
-             {/* Yellow Top Pill */}
-             {!bgUrl && <div style={{ position: 'absolute', top: 0, left: 0, width: '140px', height: '24px', backgroundColor: '#facc15', borderBottomRightRadius: '12px' }}></div>}
-             
-             {/* Yellow Dots Top Right */}
-             {!bgUrl && (
-               <div style={{ position: 'absolute', top: '15px', right: '15px', opacity: 0.8 }}>
-                 <DotsMatrix color="#facc15" />
-               </div>
-             )}
-
-             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '0 50px', width: '100%', marginTop: '10px' }}>
-                <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '65px', height: '65px', objectFit: 'contain' }} />
-                <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.5px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
-                  <div style={{ fontSize: '19px', fontWeight: 800, margin: '4px 0', letterSpacing: '0.5px' }}>{settings.schoolName || 'MADRASAH ALIYAH NEGERI'}</div>
-                  <div style={{ fontSize: '10px', fontWeight: 400, opacity: 0.9 }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
-                </div>
-                {settings.schoolLogoUrl ? (
-                  <img src={settings.schoolLogoUrl} alt="Logo" style={{ width: '70px', height: '70px', objectFit: 'contain' }} />
-                ) : <div style={{ width: '70px' }} />}
-             </div>
+        <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          
+          {/* 1. LOGO SEKOLAH - paling atas, centered (Matches Front Card) */}
+          <div style={{ marginTop: '28px', marginBottom: '8px', display: 'flex', justifyContent: 'center' }}>
+            {settings.schoolLogoUrl ? (
+              <img src={settings.schoolLogoUrl} alt="Logo Sekolah" style={{ width: '72px', height: '72px', objectFit: 'contain' }} />
+            ) : (
+              <div style={{ width: '72px', height: '72px', borderRadius: '50%', backgroundColor: bgUrl ? 'rgba(255,255,255,0.3)' : '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#94a3b8' }}>Logo</div>
+            )}
           </div>
 
-          {/* BODY (Terms & QR) */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 40px' }}>
-             
-             {/* Title Area with Dots */}
-             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '20px' }}>
-                <div style={{ opacity: bgUrl ? 0 : 0.8 }}><DotsMatrix color={headerColor} /></div>
-                <h3 style={{ fontSize: '24px', color: textColor, fontWeight: 900, textAlign: 'center', lineHeight: 1.2, flex: 1 }}>
-                  SYARAT &<br/>KETENTUAN
-                </h3>
-                <div style={{ opacity: bgUrl ? 0 : 0.8 }}><DotsMatrix color={headerColor} /></div>
-             </div>
+          {/* 2. NAMA SEKOLAH & ALAMAT (Matches Front Card) */}
+          <div style={{ textAlign: 'center', marginBottom: '20px', padding: '0 25px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: textColor, textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: 1.3 }}>
+              KEMENTERIAN AGAMA RI
+            </div>
+            <div style={{ fontSize: '17px', fontWeight: 900, color: textColor, textTransform: 'uppercase', letterSpacing: '0.3px', margin: '3px 0', lineHeight: 1.2 }}>
+              {settings.schoolName || 'MAN 2 LOMBOK TIMUR'}
+            </div>
+            <div style={{ fontSize: '11px', fontWeight: 400, color: '#6b7280', lineHeight: 1.3 }}>
+              {settings.schoolAddress || 'Alamat Sekolah'}
+            </div>
+          </div>
 
-             {/* Terms List */}
-             <ul style={{ fontSize: '16px', lineHeight: 1.6, color: textColor, margin: '0 0 30px 0', paddingLeft: '20px', fontWeight: 500, alignSelf: 'flex-start' }}>
+          {/* BODY (Terms & Conditions) */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 30px', width: '100%' }}>
+             
+             <h3 style={{ fontSize: '16px', color: textColor, fontWeight: 900, textAlign: 'center', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `2px solid ${headerColor}`, paddingBottom: '4px' }}>
+               TATA TERTIB PENGGUNAAN
+             </h3>
+
+             {/* Terms List - Compact */}
+             <ol style={{ fontSize: '12px', lineHeight: 1.4, color: textColor, margin: '0 0 15px 0', paddingLeft: '18px', fontWeight: 600, alignSelf: 'flex-start' }}>
                 {termsLines.map((line, i) => (
-                  <li key={i} style={{ marginBottom: '12px' }}>{line}</li>
+                  <li key={i} style={{ marginBottom: '6px', paddingLeft: '4px' }}>{line}</li>
                 ))}
-             </ul>
+             </ol>
 
              {/* Center Text Blob */}
-             <div style={{ textAlign: 'center', fontSize: '14px', lineHeight: 1.4, fontWeight: 500, textTransform: 'uppercase', color: textColor }}>
-               KARTU INI ADALAH MILIK RESMI MADRASAH DAN HANYA<br/>DIGUNAKAN OLEH PEMEGANG YANG TERTERA
+             <div style={{ textAlign: 'center', fontSize: '11px', lineHeight: 1.3, fontWeight: 700, textTransform: 'uppercase', color: textColor, marginTop: '5px', padding: '10px', backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: '6px' }}>
+               Kartu ini adalah milik resmi madrasah dan hanya digunakan oleh pemegang yang tertera
              </div>
           </div>
 
-          {/* FOOTER */}
-          <div style={{ margin: '15px 25px 30px 25px', padding: '15px 20px', backgroundColor: bgUrl ? 'transparent' : headerColor, borderRadius: '15px', display: 'flex', justifyContent: 'center', gap: '30px', color: bgUrl ? textColor : 'white', alignItems: 'center' }}>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 500 }}>
-               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-               {settings.schoolEmail || 'man2lotim@gmail.com'}
-             </div>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 500 }}>
-               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
-               https://mandualotim.sch.id
+          {/* AUTHORIZATION BLOCK (Pengesahan) */}
+          <div style={{ marginTop: 'auto', marginBottom: '25px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', width: '100%', padding: '0 30px' }}>
+             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', fontSize: '12px', fontWeight: 600, color: textColor, zIndex: 10 }}>
+                {/* Try to extract city from address, otherwise default to a reasonable value */}
+                <span style={{ marginBottom: '2px' }}>{settings.schoolAddress ? settings.schoolAddress.split(',').pop()?.split('Kec.')[0].trim() || 'Tempat' : 'Tempat'}, {formatDate(new Date().toISOString())}</span>
+                <span>Kepala Madrasah,</span>
+                
+                <div style={{ height: '70px', width: '140px', position: 'relative', margin: '2px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {settings.schoolStampUrl && (
+                    <img src={settings.schoolStampUrl} alt="Stempel" style={{ position: 'absolute', width: '85px', height: '85px', left: '-20px', top: '-5px', opacity: 0.85, mixBlendMode: 'multiply' }} />
+                  )}
+                  {settings.headmasterSignatureUrl ? (
+                    <img src={settings.headmasterSignatureUrl} alt="TTD" style={{ position: 'relative', width: '100%', height: '100%', objectFit: 'contain', zIndex: 2, mixBlendMode: 'multiply' }} />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%' }}></div>
+                  )}
+                </div>
+                
+                <span style={{ textDecoration: 'underline', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.3px' }}>{settings.headmasterName || 'NAMA KEPALA MADRASAH'}</span>
+                <span>NIP. {settings.headmasterNip || '-'}</span>
              </div>
           </div>
         </div>
+        
+        {/* FOOTER DECORATIONS (only when no custom template) */}
+        {!bgUrl && (
+          <>
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '25px', backgroundColor: headerColor, zIndex: 1 }}></div>
+          </>
+        )}
       </div>
     );
   };
