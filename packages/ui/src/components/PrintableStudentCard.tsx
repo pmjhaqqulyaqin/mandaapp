@@ -355,7 +355,7 @@ export const PrintableStudentCard = ({
           </div>
 
           {/* 2. NAMA SEKOLAH & ALAMAT */}
-          <div style={{ textAlign: 'center', marginBottom: '18px', padding: '0 25px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '10px', padding: '0 25px' }}>
             <div style={{ fontSize: '13px', fontWeight: 700, color: textColor, textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: 1.3 }}>
               KEMENTERIAN AGAMA RI
             </div>
@@ -367,15 +367,29 @@ export const PrintableStudentCard = ({
             </div>
           </div>
 
-          {/* 3. PHOTO SISWA - large, centered */}
+          {/* 2.5 TITLE KARTU PELAJAR */}
+          <div style={{ 
+            fontSize: '22px', 
+            fontWeight: 900, 
+            color: bgUrl ? '#ffffff' : headerColor, 
+            textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.5)' : 'none',
+            marginBottom: '10px', 
+            textTransform: 'uppercase', 
+            letterSpacing: '1px',
+            textAlign: 'center'
+          }}>
+            KARTU PELAJAR
+          </div>
+
+          {/* 3. PHOTO SISWA - centered */}
           <div style={{
-            width: '140px', height: '180px',
+            width: '120px', height: '160px',
             backgroundColor: bgUrl ? 'rgba(226,232,240,0.5)' : '#e2e8f0',
             borderRadius: '8px',
             border: bgUrl ? '3px solid rgba(255,255,255,0.6)' : `3px solid ${headerColor}`,
             overflow: 'hidden',
             boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
-            marginBottom: '18px',
+            marginBottom: '12px',
             flexShrink: 0,
           }}>
             {student.photoUrl ? (
@@ -391,14 +405,14 @@ export const PrintableStudentCard = ({
           <div style={{
             fontSize: '18px', fontWeight: 900, textTransform: 'uppercase', textAlign: 'center',
             color: textColor,
-            marginBottom: '14px', padding: '0 20px', lineHeight: 1.2,
+            marginBottom: '10px', padding: '0 20px', lineHeight: 1.2,
             letterSpacing: '0.3px',
           }}>
             {student.name}
           </div>
 
           {/* 5-7. INFO ROWS with icons */}
-          <div style={{ width: '85%', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+          <div style={{ width: '85%', display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
             {/* NIS/NISN */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
               <IconNIS />
