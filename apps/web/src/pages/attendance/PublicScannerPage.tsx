@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { ScannerEngine } from './components/ScannerEngine';
 import { apiClient } from '../../lib/api';
+import { smartSend, offlineCache } from '../../lib/syncEngine';
 import { toast } from 'sonner';
-import { LogIn, LogOut, Keyboard, Info, CheckCircle2, XCircle, Clock, QrCode, Camera, BarChart2, List } from 'lucide-react';
+import { LogIn, LogOut, Keyboard, Info, CheckCircle2, XCircle, Clock, QrCode, Camera, BarChart2, List, WifiOff } from 'lucide-react';
 
 type ScanMode = 'masuk' | 'pulang';
 type InputMode = 'kamera' | 'usb_manual';
@@ -81,37 +82,56 @@ export const PublicScannerPage = () => {
     
     setIsLoading(true);
     try {
-      const result = await apiClient<any>('/attendance/scan', {
-        method: 'POST',
-        data: { nis, jenis: scanMode, method }
-      });
-      
-      if (result.success) {
-        toast.custom((t) => (
-          <div className="bg-white border-l-4 border-green-500 rounded-lg shadow-lg p-4 flex items-start gap-3 w-80">
-            <CheckCircle2 className="text-green-500 mt-0.5" size={24} />
+      const result = await smartSend('attendance_scan', {
+        nis, jenis: scanMode, method, timestamp: Date.now()
+      }, `Presensi ${nis} via ${method}`);
+
+      if (result.fromCache) {
+        // Offline — show optimistic response
+        const cached = await offlineCache.lookupStudent(nis);
+        toast.custom(() => (
+          <div className="bg-white border-l-4 border-orange-400 rounded-lg shadow-lg p-4 flex items-start gap-3 w-80">
+            <WifiOff className="text-orange-500 mt-0.5" size={24} />
             <div>
-              <h4 className="font-bold text-gray-800">{result.nama}</h4>
-              <p className="text-sm text-gray-600">{result.nis} | {result.kelas}</p>
-              <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-green-100 text-green-700 text-xs font-bold uppercase tracking-wider">
-                {result.status} • {result.jam}
+              <h4 className="font-bold text-gray-800">{cached?.fullName || `NIS: ${nis}`}</h4>
+              {cached?.className && <p className="text-sm text-gray-600">{nis} | {cached.className}</p>}
+              <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-orange-100 text-orange-700 text-xs font-bold uppercase tracking-wider">
+                📱 Tersimpan Offline
               </div>
+              <p className="text-[10px] text-gray-500 mt-1">Akan disinkronkan otomatis saat online</p>
             </div>
           </div>
         ), { duration: 3000 });
         playBeep('success');
-        fetchStatsAndLog(); // Refresh list
-      } else {
-        toast.custom((t) => (
-          <div className="bg-white border-l-4 border-red-500 rounded-lg shadow-lg p-4 flex items-start gap-3 w-80">
-            <XCircle className="text-red-500 mt-0.5" size={24} />
-            <div>
-              <h4 className="font-bold text-red-700">Gagal</h4>
-              <p className="text-sm text-gray-600">{result.message}</p>
+      } else if (result.result) {
+        const data = result.result;
+        if (data.success) {
+          toast.custom(() => (
+            <div className="bg-white border-l-4 border-green-500 rounded-lg shadow-lg p-4 flex items-start gap-3 w-80">
+              <CheckCircle2 className="text-green-500 mt-0.5" size={24} />
+              <div>
+                <h4 className="font-bold text-gray-800">{data.nama}</h4>
+                <p className="text-sm text-gray-600">{data.nis} | {data.kelas}</p>
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-green-100 text-green-700 text-xs font-bold uppercase tracking-wider">
+                  {data.status} • {data.jam}
+                </div>
+              </div>
             </div>
-          </div>
-        ), { duration: 3000 });
-        playBeep('error');
+          ), { duration: 3000 });
+          playBeep('success');
+          fetchStatsAndLog(); // Refresh list
+        } else {
+          toast.custom(() => (
+            <div className="bg-white border-l-4 border-red-500 rounded-lg shadow-lg p-4 flex items-start gap-3 w-80">
+              <XCircle className="text-red-500 mt-0.5" size={24} />
+              <div>
+                <h4 className="font-bold text-red-700">Gagal</h4>
+                <p className="text-sm text-gray-600">{data.message}</p>
+              </div>
+            </div>
+          ), { duration: 3000 });
+          playBeep('error');
+        }
       }
     } catch (error: any) {
       toast.error('Error: ' + error.message);

@@ -10,6 +10,9 @@ interface ScannerEngineProps {
   compact?: boolean;
 }
 
+// Maximum resolution to process — downscale if larger (big perf win on mobile)
+const MAX_SCAN_WIDTH = 640;
+
 export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive, compact = false }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -26,19 +29,31 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive, 
   const zxingReader = useRef<BrowserMultiFormatReader | null>(null);
   const lastScanned = useRef<{ code: string; time: number }>({ code: '', time: 0 });
 
-  // Initialize ZXing
+  // Performance tracking refs
+  const lastScanTime = useRef<number>(0);
+  const jsQrFailCount = useRef<number>(0);
+  const scanCanvasRef = useRef<HTMLCanvasElement | null>(null); // reusable offscreen canvas
+
+  // Initialize ZXing (lazily — only created when needed)
   useEffect(() => {
-    const hints = new Map();
-    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-      BarcodeFormat.CODE_128, BarcodeFormat.CODE_39,
-      BarcodeFormat.EAN_13, BarcodeFormat.EAN_8,
-      BarcodeFormat.QR_CODE, BarcodeFormat.DATA_MATRIX
-    ]);
-    hints.set(DecodeHintType.TRY_HARDER, true);
-    zxingReader.current = new BrowserMultiFormatReader(hints);
+    // Don't create ZXing upfront, create on demand to speed up startup
     return () => {
       stopScanning();
     };
+  }, []);
+
+  // Lazy ZXing initialization
+  const getZxingReader = useCallback(() => {
+    if (!zxingReader.current) {
+      const hints = new Map();
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.QR_CODE, BarcodeFormat.CODE_128, BarcodeFormat.CODE_39,
+        BarcodeFormat.EAN_13, BarcodeFormat.EAN_8,
+      ]);
+      hints.set(DecodeHintType.TRY_HARDER, true);
+      zxingReader.current = new BrowserMultiFormatReader(hints);
+    }
+    return zxingReader.current;
   }, []);
 
   // Fetch cameras
@@ -78,58 +93,102 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive, 
 
   const barcodeCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Scan Loop
+  // Get or create reusable offscreen canvas for downsampling
+  const getScanCanvas = useCallback(() => {
+    if (!scanCanvasRef.current) {
+      scanCanvasRef.current = document.createElement('canvas');
+    }
+    return scanCanvasRef.current;
+  }, []);
+
+  // Scan Loop — throttled to ~20fps for performance, with smart downsampling
   const scanLoop = useCallback(() => {
     if (!isScanning || !videoRef.current || !canvasRef.current) return;
     
+    const now = performance.now();
+    // Throttle: scan at most every 50ms (~20fps) — QR codes don't need 60fps
+    if (now - lastScanTime.current < 50) {
+      requestRef.current = requestAnimationFrame(scanLoop);
+      return;
+    }
+    lastScanTime.current = now;
+
     const video = videoRef.current;
     const canvas = canvasRef.current;
     
     if (video.readyState >= 2 && video.videoWidth > 0) {
-      if (canvas.width !== video.videoWidth) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+      // Determine processing dimensions — downsample if video is large
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      const scale = vw > MAX_SCAN_WIDTH ? MAX_SCAN_WIDTH / vw : 1;
+      const pw = Math.floor(vw * scale); // processing width
+      const ph = Math.floor(vh * scale); // processing height
+
+      // Use offscreen canvas for downsampled processing
+      const scanCanvas = getScanCanvas();
+      if (scanCanvas.width !== pw || scanCanvas.height !== ph) {
+        scanCanvas.width = pw;
+        scanCanvas.height = ph;
+      }
+
+      const ctx = scanCanvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) {
+        requestRef.current = requestAnimationFrame(scanLoop);
+        return;
       }
       
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // Draw downsampled frame
+      ctx.drawImage(video, 0, 0, pw, ph);
+      
+      // Crop center 60% for QR scan — smaller area = faster processing
+      const cropRatio = 0.6;
+      const cw = Math.floor(pw * cropRatio);
+      const ch = Math.floor(ph * cropRatio);
+      const cx = Math.floor((pw - cw) / 2);
+      const cy = Math.floor((ph - ch) / 2);
+      
+      try {
+        const imgData = ctx.getImageData(cx, cy, cw, ch);
+        const qr = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'dontInvert' });
         
-        // 1. Try jsQR first (fastest for QR codes)
-        const cw = Math.floor(canvas.width * 0.7);
-        const ch = Math.floor(canvas.height * 0.7);
-        const cx = Math.floor((canvas.width - cw) / 2);
-        const cy = Math.floor((canvas.height - ch) / 2);
-        
-        try {
-          const imgData = ctx.getImageData(cx, cy, cw, ch);
-          const qr = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'dontInvert' });
+        if (qr && qr.data) {
+          jsQrFailCount.current = 0;
+          handleScanSuccess(qr.data);
+        } else {
+          jsQrFailCount.current++;
           
-          if (qr && qr.data) {
-            handleScanSuccess(qr.data);
-          } else if (zxingReader.current) {
-            // 2. Try ZXing for 1D barcodes using a cropped horizontal strip
-            // Crop center 80% width × 40% height strip for better barcode focus
+          // Only try ZXing (heavier) after 10 consecutive jsQR failures
+          // This avoids running the expensive ZXing decode on every frame
+          if (jsQrFailCount.current >= 10 && jsQrFailCount.current % 5 === 0) {
             try {
-              const stripW = Math.floor(canvas.width * 0.8);
-              const stripH = Math.floor(canvas.height * 0.4);
-              const stripX = Math.floor((canvas.width - stripW) / 2);
-              const stripY = Math.floor((canvas.height - stripH) / 2);
-              
-              const barcodeCanvas = barcodeCanvasRef.current;
-              if (barcodeCanvas) {
-                barcodeCanvas.width = stripW;
-                barcodeCanvas.height = stripH;
-                const bCtx = barcodeCanvas.getContext('2d');
-                if (bCtx) {
-                  // Draw cropped strip with contrast boost
-                  bCtx.filter = 'contrast(1.5) brightness(1.1)';
-                  bCtx.drawImage(canvas, stripX, stripY, stripW, stripH, 0, 0, stripW, stripH);
-                  bCtx.filter = 'none';
-                  
-                  const zxingRes = zxingReader.current.decodeFromCanvas(barcodeCanvas);
-                  if (zxingRes && zxingRes.getText()) {
-                    handleScanSuccess(zxingRes.getText());
+              const reader = getZxingReader();
+              // Use the main (visible) canvas for ZXing — it needs a real canvas element
+              if (canvas.width !== pw || canvas.height !== ph) {
+                canvas.width = pw;
+                canvas.height = ph;
+              }
+              const mainCtx = canvas.getContext('2d');
+              if (mainCtx) {
+                // Draw a cropped horizontal strip (80% x 40%) for barcode detection
+                const stripW = Math.floor(pw * 0.8);
+                const stripH = Math.floor(ph * 0.4);
+                const stripX = Math.floor((pw - stripW) / 2);
+                const stripY = Math.floor((ph - stripH) / 2);
+                
+                if (barcodeCanvasRef.current) {
+                  const bc = barcodeCanvasRef.current;
+                  if (bc.width !== stripW || bc.height !== stripH) {
+                    bc.width = stripW;
+                    bc.height = stripH;
+                  }
+                  const bCtx = bc.getContext('2d');
+                  if (bCtx) {
+                    bCtx.drawImage(scanCanvas, stripX, stripY, stripW, stripH, 0, 0, stripW, stripH);
+                    const zxingRes = reader.decodeFromCanvas(bc);
+                    if (zxingRes && zxingRes.getText()) {
+                      jsQrFailCount.current = 0;
+                      handleScanSuccess(zxingRes.getText());
+                    }
                   }
                 }
               }
@@ -137,9 +196,9 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive, 
               // Ignore NotFoundException from ZXing (normal when no barcode in frame)
             }
           }
-        } catch (e) {
-           console.error(e);
         }
+      } catch (e) {
+         // Silently ignore frame processing errors
       }
     }
     
@@ -148,6 +207,8 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive, 
 
   useEffect(() => {
     if (isScanning) {
+      lastScanTime.current = 0;
+      jsQrFailCount.current = 0;
       requestRef.current = requestAnimationFrame(scanLoop);
     } else if (requestRef.current) {
       cancelAnimationFrame(requestRef.current);
@@ -162,8 +223,8 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive, 
     if (!code) return;
     
     const now = Date.now();
-    // Debounce 2 seconds for same code
-    if (code === lastScanned.current.code && now - lastScanned.current.time < 2000) {
+    // Debounce 1.2 seconds for same code (reduced from 2s for faster re-scan)
+    if (code === lastScanned.current.code && now - lastScanned.current.time < 1200) {
       return;
     }
     
@@ -185,14 +246,14 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive, 
   const startScanning = async () => {
     setError(null);
     try {
-      // Build constraints - prefer back camera, fallback gracefully
+      // Build constraints — prefer back camera, lower resolution for faster processing
       let constraints: MediaStreamConstraints;
       if (selectedCamera) {
         constraints = {
           video: {
             deviceId: { exact: selectedCamera },
-            width: { ideal: 1280 },
-            height: { ideal: 960 }
+            width: { ideal: 640 },
+            height: { ideal: 480 }
           }
         };
       } else {
@@ -200,8 +261,8 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive, 
         constraints = {
           video: {
             facingMode: 'environment',
-            width: { ideal: 1280 },
-            height: { ideal: 960 }
+            width: { ideal: 640 },
+            height: { ideal: 480 }
           }
         };
       }
@@ -221,7 +282,7 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive, 
       setIsScanning(true);
       
       // Wait a tick for React to render the video element
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 50));
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -269,8 +330,6 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive, 
   useEffect(() => {
     if (isActive && !isScanning && !error && selectedCamera) {
       // Auto start if active and not scanning
-      // We don't auto start immediately to prevent annoying camera prompts on first load sometimes,
-      // but if the component is mounted to be active, we can.
     }
     if (!isActive && isScanning) {
       stopScanning();

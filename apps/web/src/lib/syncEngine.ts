@@ -6,6 +6,9 @@
  * - Process queue when online (auto-retry with exponential backoff)
  * - Emit events for UI updates (sync progress, completion)
  * - Register Background Sync via Service Worker
+ * 
+ * Performance: Uses in-memory student index for instant offline lookups,
+ * fire-and-forget log writes, and non-blocking queue operations.
  */
 
 import { syncQueue, cachedData, offlineLog, type SyncItemType, type SyncQueueItem } from './offlineDb';
@@ -35,6 +38,16 @@ const ENDPOINT_MAP: Record<SyncItemType, { url: string; method: string }> = {
   jurnal_attachment: { url: '/jurnal/attachments', method: 'POST' },
 };
 
+// ── In-Memory Student Index for Instant Lookups ──
+let studentIndex: Map<string, { id: string; nis: string; fullName: string; className?: string }> | null = null;
+
+function buildStudentIndex(students: Array<{ id: string; nis: string; fullName: string; className?: string }>) {
+  studentIndex = new Map();
+  for (const s of students) {
+    studentIndex.set(s.nis, s);
+  }
+}
+
 // ── Smart Send (core function) ──
 export interface SmartSendResult {
   success: boolean;
@@ -50,6 +63,8 @@ export interface SmartSendResult {
  * 1. Save to IndexedDB queue (instant, always works)
  * 2. If online, attempt immediate sync
  * 3. If offline or sync fails, leave in queue for background sync
+ * 
+ * Performance: offlineLog.add is fire-and-forget to avoid blocking the scan response.
  */
 export async function smartSend(
   type: SyncItemType,
@@ -63,17 +78,17 @@ export async function smartSend(
   });
   emit('queue-changed');
 
-  // Add to offline log for UI display
+  // Fire-and-forget: add to offline log (don't await — non-critical for scan response)
   if (logSummary) {
-    await offlineLog.add(type, logSummary);
+    offlineLog.add(type, logSummary).catch(() => {});
   }
 
   // 2. Try immediate sync if online
   if (navigator.onLine) {
     try {
       const result = await sendToServer(type, payload);
-      await syncQueue.markSynced(queueId);
-      emit('queue-changed');
+      // Fire-and-forget: mark synced
+      syncQueue.markSynced(queueId).then(() => emit('queue-changed')).catch(() => {});
       return { success: true, result, fromCache: false, queueId };
     } catch (error) {
       // Failed to send — leave in queue, will retry later
@@ -82,8 +97,8 @@ export async function smartSend(
     }
   }
 
-  // 3. Offline — register for background sync
-  await registerBackgroundSync(type);
+  // 3. Offline — register for background sync (fire-and-forget)
+  registerBackgroundSync(type).catch(() => {});
   return { success: true, result: null, fromCache: true, queueId };
 }
 
@@ -232,16 +247,29 @@ export function initSyncListeners() {
 
 // ── Cache Helpers for Offline Data ──
 export const offlineCache = {
-  /** Cache student list for offline NIS lookup */
+  /** Cache student list for offline NIS lookup — also builds in-memory index */
   async cacheStudents(students: Array<{ id: string; nis: string; fullName: string; className?: string }>): Promise<void> {
+    // Build in-memory index first (instant lookups)
+    buildStudentIndex(students);
+    // Then persist to IndexedDB (for next session reload)
     await cachedData.set('students', students, 7 * 24 * 60 * 60 * 1000); // 7 days TTL
   },
 
-  /** Look up student by NIS from cache */
+  /** Look up student by NIS — uses in-memory index (O(1)) with IndexedDB fallback */
   async lookupStudent(nis: string): Promise<{ id: string; nis: string; fullName: string; className?: string } | null> {
+    // 1. Check in-memory index first (instant)
+    if (studentIndex) {
+      const found = studentIndex.get(nis);
+      if (found) return found;
+    }
+
+    // 2. Fallback: load from IndexedDB and rebuild index
     const students = await cachedData.get<Array<{ id: string; nis: string; fullName: string; className?: string }>>('students');
     if (!students) return null;
-    return students.find(s => s.nis === nis) || null;
+    
+    // Rebuild index for next time
+    buildStudentIndex(students);
+    return studentIndex?.get(nis) || null;
   },
 
   /** Cache today's schedule */

@@ -5,6 +5,8 @@
  * - syncQueue: pending API calls to sync when online
  * - cachedData: reference data (students, schedules) for offline lookup
  * - offlineLog: local activity log for UI display
+ * 
+ * Performance: Uses singleton DB connection to avoid repeated open/close overhead.
  */
 
 const DB_NAME = 'simanda-offline';
@@ -39,9 +41,26 @@ export interface OfflineLogItem {
   synced: boolean;
 }
 
-// ── Database Init ──
+// ── Singleton Database Connection ──
+let dbInstance: IDBDatabase | null = null;
+let dbPromise: Promise<IDBDatabase> | null = null;
+
 function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  if (dbInstance) {
+    // Verify the connection is still alive
+    try {
+      // A lightweight check: objectStoreNames access throws if connection is dead
+      if (dbInstance.objectStoreNames.length >= 0) {
+        return Promise.resolve(dbInstance);
+      }
+    } catch {
+      dbInstance = null;
+      dbPromise = null;
+    }
+  }
+  if (dbPromise) return dbPromise;
+
+  dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     
     request.onupgradeneeded = (event) => {
@@ -70,12 +89,23 @@ function openDb(): Promise<IDBDatabase> {
       }
     };
     
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      dbInstance = request.result;
+      // If connection is closed externally, reset singleton
+      dbInstance.onclose = () => { dbInstance = null; dbPromise = null; };
+      dbInstance.onerror = () => { dbInstance = null; dbPromise = null; };
+      resolve(dbInstance);
+    };
+    request.onerror = () => {
+      dbPromise = null;
+      reject(request.error);
+    };
   });
+
+  return dbPromise;
 }
 
-// ── Generic transaction helper ──
+// ── Generic transaction helper (NO db.close() — singleton) ──
 async function withStore<T>(
   storeName: string,
   mode: IDBTransactionMode,
@@ -88,7 +118,6 @@ async function withStore<T>(
     const request = callback(store);
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
-    tx.oncomplete = () => db.close();
   });
 }
 
@@ -104,7 +133,6 @@ async function withStoreAll<T>(
     const request = callback(store);
     request.onsuccess = () => resolve(request.result || []);
     request.onerror = () => reject(request.error);
-    tx.oncomplete = () => db.close();
   });
 }
 
@@ -131,7 +159,6 @@ export const syncQueue = {
       const request = index.getAll('pending');
       request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => reject(request.error);
-      tx.oncomplete = () => db.close();
     });
   },
 
@@ -144,7 +171,6 @@ export const syncQueue = {
       const request = index.getAll('failed');
       request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => reject(request.error);
-      tx.oncomplete = () => db.close();
     });
   },
 
@@ -163,7 +189,6 @@ export const syncQueue = {
         resolve();
       };
       getReq.onerror = () => reject(getReq.error);
-      tx.oncomplete = () => db.close();
     });
   },
 
@@ -183,7 +208,6 @@ export const syncQueue = {
         resolve();
       };
       getReq.onerror = () => reject(getReq.error);
-      tx.oncomplete = () => db.close();
     });
   },
 
@@ -204,7 +228,6 @@ export const syncQueue = {
         resolve();
       };
       getReq.onerror = () => reject(getReq.error);
-      tx.oncomplete = () => db.close();
     });
   },
 
@@ -228,7 +251,7 @@ export const syncQueue = {
           cursor.continue();
         }
       };
-      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.oncomplete = () => { resolve(); };
       tx.onerror = () => reject(tx.error);
     });
   },
@@ -254,7 +277,7 @@ export const syncQueue = {
           cursor.continue();
         }
       };
-      tx.oncomplete = () => { db.close(); resolve(purged); };
+      tx.oncomplete = () => { resolve(purged); };
       tx.onerror = () => reject(tx.error);
     });
   },
@@ -321,7 +344,7 @@ export const offlineLog = {
           cursor.continue();
         }
       };
-      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.oncomplete = () => { resolve(); };
       tx.onerror = () => reject(tx.error);
     });
   },
@@ -342,7 +365,7 @@ export const offlineLog = {
           cursor.continue();
         }
       };
-      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.oncomplete = () => { resolve(); };
       tx.onerror = () => reject(tx.error);
     });
   },
