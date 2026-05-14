@@ -371,8 +371,7 @@ export const PrintableStudentCard = ({
           <div style={{ 
             fontSize: '22px', 
             fontWeight: 900, 
-            color: bgUrl ? '#ffffff' : headerColor, 
-            textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.5)' : 'none',
+            color: textColor, 
             marginBottom: '10px', 
             textTransform: 'uppercase', 
             letterSpacing: '1px',
