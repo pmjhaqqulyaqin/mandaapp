@@ -13,6 +13,7 @@ interface BatchPrintData {
     birthPlace: string;
     birthDate: string;
     gender: string;
+    address?: string;
     photoUrl?: string;
   }>;
   settings: {
@@ -308,6 +309,7 @@ export const BatchPrintPage = () => {
                 birthPlace: students[0].birthPlace,
                 birthDate: students[0].birthDate,
                 gender: students[0].gender,
+                address: students[0].address,
                 photoUrl: students[0].photoUrl,
               }}
               template={template}
@@ -371,6 +373,7 @@ export const BatchPrintPage = () => {
                           birthPlace: s.birthPlace,
                           birthDate: s.birthDate,
                           gender: s.gender,
+                          address: s.address,
                           photoUrl: s.photoUrl,
                         }}
                         template={template}

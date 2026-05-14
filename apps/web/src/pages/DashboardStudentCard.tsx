@@ -317,6 +317,7 @@ export const DashboardStudentCard = () => {
         birthPlace: s.birthPlace,
         birthDate: s.birthDate,
         gender: s.gender,
+        address: s.address,
         photoUrl: s.photoUrl,
       })),
       settings: {
