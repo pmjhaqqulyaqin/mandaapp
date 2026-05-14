@@ -317,99 +317,122 @@ export const PrintableStudentCard = ({
   };
 
   const VerticalFront = () => {
-    const headerColor = template?.primaryColor || '#3b1c9e'; // Default to deep purple if classic
+    const headerColor = template?.primaryColor || '#3b1c9e';
     const textColor = '#111827';
-    const kemenagLogoUrl = settings.kemenagLogoUrl || "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Lambang_Kementerian_Agama.svg/300px-Lambang_Kementerian_Agama.svg.png";
-
-    const DotsMatrix = ({ color }: { color: string }) => (
-      <svg width="40" height="40" viewBox="0 0 40 40" fill={color}>
-        {[0, 10, 20, 30].map(x => [0, 10, 20, 30].map(y => (
-          <circle key={`${x}-${y}`} cx={x+4} cy={y+4} r="2.5" />
-        )))}
-      </svg>
-    );
 
     const bgUrl = settings.customTemplateFrontUrl;
+
+    // SVG Icons for info rows (matching reference image style)
+    const IconNIS = () => (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={headerColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="18" rx="2" /><line x1="2" y1="8" x2="22" y2="8" /><line x1="7" y1="3" x2="7" y2="8" />
+      </svg>
+    );
+    const IconCalendar = () => (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={headerColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+      </svg>
+    );
+    const IconLocation = () => (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={headerColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+      </svg>
+    );
 
     return (
       <div style={{ width: '100%', height: '100%', position: 'relative', backgroundColor: bgUrl ? 'transparent' : '#fcfcfc' }}>
         {bgUrl && <img src={bgUrl} alt="Background" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }} />}
         
-        <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-          {/* HEADER */}
-          <div style={{ width: '100%', height: '180px', backgroundColor: bgUrl ? 'transparent' : headerColor, borderBottomLeftRadius: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-             {/* Yellow Top Pill */}
-             {!bgUrl && <div style={{ position: 'absolute', top: 0, left: 0, width: '140px', height: '24px', backgroundColor: '#facc15', borderBottomRightRadius: '12px' }}></div>}
-             
-             {/* Yellow Dots Top Right */}
-             {!bgUrl && (
-               <div style={{ position: 'absolute', top: '15px', right: '15px', opacity: 0.8 }}>
-                 <DotsMatrix color="#facc15" />
-               </div>
-             )}
-
-             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '0 50px', width: '100%', marginTop: '10px' }}>
-                <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '65px', height: '65px', objectFit: 'contain' }} />
-                <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.5px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
-                  <div style={{ fontSize: '19px', fontWeight: 800, margin: '4px 0', letterSpacing: '0.5px' }}>{settings.schoolName || 'MADRASAH ALIYAH NEGERI'}</div>
-                  <div style={{ fontSize: '10px', fontWeight: 400, opacity: 0.9 }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
-                </div>
-                {settings.schoolLogoUrl ? (
-                  <img src={settings.schoolLogoUrl} alt="Logo" style={{ width: '70px', height: '70px', objectFit: 'contain' }} />
-                ) : <div style={{ width: '70px' }} />}
-             </div>
+        <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          
+          {/* 1. LOGO SEKOLAH - paling atas, centered */}
+          <div style={{ marginTop: '28px', marginBottom: '8px', display: 'flex', justifyContent: 'center' }}>
+            {settings.schoolLogoUrl ? (
+              <img src={settings.schoolLogoUrl} alt="Logo Sekolah" style={{ width: '72px', height: '72px', objectFit: 'contain' }} />
+            ) : (
+              <div style={{ width: '72px', height: '72px', borderRadius: '50%', backgroundColor: bgUrl ? 'rgba(255,255,255,0.3)' : '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#94a3b8' }}>Logo</div>
+            )}
           </div>
 
-          {/* BODY */}
-          <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-             
-             {/* Title Area with Dots */}
-             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '15px' }}>
-                <div style={{ opacity: bgUrl ? 0 : 0.8 }}><DotsMatrix color={headerColor} /></div>
-                <h2 style={{ fontSize: '26px', color: textColor, fontWeight: 900, textAlign: 'center', lineHeight: 1.1, flex: 1 }}>
-                  KARTU IDENTITAS<br/>PELAJAR
-                </h2>
-             </div>
+          {/* 2. NAMA SEKOLAH & ALAMAT */}
+          <div style={{ textAlign: 'center', marginBottom: '18px', padding: '0 25px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: bgUrl ? '#ffffff' : textColor, textTransform: 'uppercase', letterSpacing: '0.5px', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.5)' : 'none', lineHeight: 1.3 }}>
+              KEMENTERIAN AGAMA RI
+            </div>
+            <div style={{ fontSize: '17px', fontWeight: 900, color: bgUrl ? '#ffffff' : textColor, textTransform: 'uppercase', letterSpacing: '0.3px', textShadow: bgUrl ? '0 1px 4px rgba(0,0,0,0.5)' : 'none', margin: '3px 0', lineHeight: 1.2 }}>
+              {settings.schoolName || 'MAN 2 LOMBOK TIMUR'}
+            </div>
+            <div style={{ fontSize: '11px', fontWeight: 400, color: bgUrl ? 'rgba(255,255,255,0.9)' : '#6b7280', textShadow: bgUrl ? '0 1px 2px rgba(0,0,0,0.4)' : 'none', lineHeight: 1.3 }}>
+              {settings.schoolAddress || 'Alamat Sekolah'}
+            </div>
+          </div>
 
-             {/* Photo */}
-             <div style={{ width: '170px', height: '230px', backgroundColor: bgUrl ? 'rgba(226,232,240,0.5)' : '#e2e8f0', borderRadius: '4px', border: bgUrl ? 'none' : `3px solid ${headerColor}`, overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', marginBottom: '20px' }}>
-               {student.photoUrl ? (
-                 <img src={student.photoUrl} alt="Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-               ) : (
-                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '48px', color: '#94a3b8' }}>
-                   {student.name.charAt(0)}
-                 </div>
-               )}
-             </div>
+          {/* 3. PHOTO SISWA - large, centered */}
+          <div style={{
+            width: '160px', height: '210px',
+            backgroundColor: bgUrl ? 'rgba(226,232,240,0.5)' : '#e2e8f0',
+            borderRadius: '8px',
+            border: bgUrl ? '3px solid rgba(255,255,255,0.6)' : `3px solid ${headerColor}`,
+            overflow: 'hidden',
+            boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
+            marginBottom: '18px',
+            flexShrink: 0,
+          }}>
+            {student.photoUrl ? (
+              <img src={student.photoUrl} alt="Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '48px', color: '#94a3b8', fontWeight: 700 }}>
+                {student.name.charAt(0)}
+              </div>
+            )}
+          </div>
 
-             {/* Data Grid */}
-             <div style={{ width: '85%', display: 'grid', gridTemplateColumns: '120px 15px 1fr', gap: '12px', fontSize: '16px', color: textColor, fontWeight: 700, marginBottom: '25px' }}>
-                <div>Nama</div><div>:</div><div style={{ fontWeight: 500 }}>{student.name}</div>
-                <div>NIS/NISN</div><div>:</div><div style={{ fontWeight: 500 }}>{student.nisn}</div>
-                <div>Tanggal Lahir</div><div>:</div><div style={{ fontWeight: 500 }}>{formatDate(student.birthDate)}</div>
-                <div>Alamat</div><div>:</div><div style={{ fontWeight: 500, lineHeight: 1.2 }}>{student.address || '-'}</div>
-             </div>
+          {/* 4. NAMA SISWA - huruf kapital, bold */}
+          <div style={{
+            fontSize: '18px', fontWeight: 900, textTransform: 'uppercase', textAlign: 'center',
+            color: bgUrl ? '#ffffff' : textColor,
+            textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.5)' : 'none',
+            marginBottom: '14px', padding: '0 20px', lineHeight: 1.2,
+            letterSpacing: '0.3px',
+          }}>
+            {student.name}
+          </div>
 
-             {/* QR Code */}
-             <div style={{ marginTop: 'auto', marginBottom: '10px', display: 'flex', justifyContent: 'center' }}>
-               <LocalQRCode data={student.nisn} size={55} style={{ borderRadius: '4px' }} />
-             </div>
+          {/* 5-7. INFO ROWS with icons */}
+          <div style={{ width: '85%', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+            {/* NIS/NISN */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
+              <IconNIS />
+              <span style={{ fontSize: '14px', fontWeight: 600, color: bgUrl ? '#ffffff' : textColor, textShadow: bgUrl ? '0 1px 2px rgba(0,0,0,0.4)' : 'none' }}>
+                NISN {student.nisn}
+              </span>
+            </div>
+            {/* Tempat & Tanggal Lahir */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
+              <IconCalendar />
+              <span style={{ fontSize: '14px', fontWeight: 600, color: bgUrl ? '#ffffff' : textColor, textShadow: bgUrl ? '0 1px 2px rgba(0,0,0,0.4)' : 'none' }}>
+                {student.birthPlace || '-'}, {formatDate(student.birthDate)}
+              </span>
+            </div>
+            {/* Alamat */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', justifyContent: 'center' }}>
+              <div style={{ flexShrink: 0, marginTop: '2px' }}><IconLocation /></div>
+              <span style={{ fontSize: '13px', fontWeight: 500, color: bgUrl ? '#ffffff' : textColor, textShadow: bgUrl ? '0 1px 2px rgba(0,0,0,0.4)' : 'none', textAlign: 'center', lineHeight: 1.3 }}>
+                {student.address || '-'}
+              </span>
+            </div>
+          </div>
+
+          {/* 8. QR CODE - centered at bottom */}
+          <div style={{ marginTop: 'auto', marginBottom: '25px', display: 'flex', justifyContent: 'center' }}>
+            <LocalQRCode data={student.nisn} size={75} style={{ borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
           </div>
         </div>
 
-        {/* FOOTER */}
+        {/* FOOTER DECORATIONS (only when no custom template) */}
         {!bgUrl && (
           <>
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '30px', backgroundColor: headerColor, zIndex: 1 }}></div>
-            <div style={{ position: 'absolute', bottom: '30px', right: '15px', opacity: 0.8, zIndex: 1 }}><DotsMatrix color={headerColor} /></div>
-            
-            {/* Yellow Diagonal Stripes Graphic */}
-            <div style={{ position: 'absolute', bottom: '30px', left: '15px', width: '120px', height: '40px', display: 'flex', gap: '4px', zIndex: 1 }}>
-               {[1,2,3,4].map(i => (
-                 <div key={i} style={{ width: '25px', height: '100%', backgroundColor: '#facc15', transform: 'skewX(-30deg)' }}></div>
-               ))}
-            </div>
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '25px', backgroundColor: headerColor, zIndex: 1 }}></div>
           </>
         )}
       </div>
