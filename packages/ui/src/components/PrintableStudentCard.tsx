@@ -166,7 +166,7 @@ export const PrintableStudentCard = ({
         
         <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
           {/* HEADER */}
-          <div style={{ width: '100%', height: '130px', backgroundColor: bgUrl ? 'transparent' : headerColor, display: 'flex', alignItems: 'center', padding: '0 30px', justifyContent: 'space-between' }}>
+          <div style={{ width: '100%', height: '130px', backgroundColor: bgUrl ? 'transparent' : headerColor, display: 'flex', alignItems: 'center', padding: '0 45px', justifyContent: 'space-between' }}>
             <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
             <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
               <div style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '1px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
@@ -211,9 +211,6 @@ export const PrintableStudentCard = ({
               </div>
             </div>
 
-            {/* Vertical Divider */}
-            <div style={{ width: '3px', backgroundColor: '#dc2626', alignSelf: 'stretch', marginTop: '8px', marginBottom: '8px', borderRadius: '2px', flexShrink: 0 }}></div>
-
             {/* Right Column: Large QR Code for Presensi */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginLeft: '15px', marginTop: '8px', flexShrink: 0 }}>
               <LocalQRCode data={student.nisn} size={180} style={{ width: '180px', height: '180px', borderRadius: '8px' }} />
@@ -253,7 +250,7 @@ export const PrintableStudentCard = ({
         
         <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
           {/* HEADER (Identical to Front) */}
-          <div style={{ width: '100%', height: '130px', backgroundColor: bgUrl ? 'transparent' : headerColor, display: 'flex', alignItems: 'center', padding: '0 30px', justifyContent: 'space-between' }}>
+          <div style={{ width: '100%', height: '130px', backgroundColor: bgUrl ? 'transparent' : headerColor, display: 'flex', alignItems: 'center', padding: '0 45px', justifyContent: 'space-between' }}>
             <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
             <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
               <div style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '1px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
@@ -265,26 +262,21 @@ export const PrintableStudentCard = ({
             ) : <div style={{ width: '85px' }} />}
           </div>
 
-          {/* BODY - Terms + QR Left + Pengesahan Right */}
+          {/* BODY - Terms + Pengesahan Right */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '12px 30px 10px 30px' }}>
             {/* Title */}
-            <h3 style={{ fontSize: '22px', fontWeight: 800, fontStyle: 'italic', letterSpacing: '1px', textAlign: 'center', marginBottom: '8px', margin: '0 0 8px 0', color: textColor }}>
+            <h3 style={{ fontSize: '30px', fontWeight: 800, fontStyle: 'italic', letterSpacing: '1px', textAlign: 'center', marginBottom: '15px', margin: '0 0 15px 0', color: textColor }}>
               SYARAT & KETENTUAN:
             </h3>
-            {/* Terms List - Compact */}
-            <ul style={{ fontSize: '13px', lineHeight: 1.4, color: textColor, margin: '0 0 12px 0', paddingLeft: '18px', fontWeight: 500 }}>
+            {/* Terms List */}
+            <ul style={{ fontSize: '17px', lineHeight: 1.5, color: textColor, margin: '0 0 12px 0', paddingLeft: '20px', fontWeight: 500 }}>
                {termsLines.map((line, i) => (
-                 <li key={i} style={{ marginBottom: '2px' }}>{line}</li>
+                 <li key={i} style={{ marginBottom: '4px' }}>{line}</li>
                ))}
             </ul>
 
-            {/* Bottom Section: QR Left + Pengesahan Right */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flex: 1, marginTop: 'auto' }}>
-              {/* QR Code - Left Side */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                 <LocalQRCode data={qrPayload} size={160} style={{ borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
-                 <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.5px', color: textColor, textAlign: 'center' }}>SCAN UNTUK PRESENSI</div>
-              </div>
+            {/* Bottom Section: Pengesahan Right */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', flex: 1, marginTop: 'auto' }}>
 
               {/* Pengesahan - Kepala Madrasah - Right Side */}
               <div style={{ textAlign: 'center', width: '240px', position: 'relative', zIndex: 5, flexShrink: 0 }}>
@@ -356,7 +348,7 @@ export const PrintableStudentCard = ({
                </div>
              )}
 
-             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '0 25px', width: '100%', marginTop: '10px' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '0 35px', width: '100%', marginTop: '10px' }}>
                 <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '65px', height: '65px', objectFit: 'contain' }} />
                 <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
                   <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.5px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
@@ -463,7 +455,7 @@ export const PrintableStudentCard = ({
                </div>
              )}
 
-             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '0 25px', width: '100%', marginTop: '10px' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '0 35px', width: '100%', marginTop: '10px' }}>
                 <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '65px', height: '65px', objectFit: 'contain' }} />
                 <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
                   <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.5px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
@@ -494,12 +486,6 @@ export const PrintableStudentCard = ({
                   <li key={i} style={{ marginBottom: '12px' }}>{line}</li>
                 ))}
              </ul>
-
-             {/* Central QR Code */}
-             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginTop: 'auto', marginBottom: '8px' }}>
-                <LocalQRCode data={qrPayload} size={130} style={{ borderRadius: '4px' }} />
-                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: textColor }}>SCAN UNTUK PRESENSI</div>
-             </div>
 
              {/* Center Text Blob */}
              <div style={{ textAlign: 'center', fontSize: '14px', lineHeight: 1.4, fontWeight: 500, textTransform: 'uppercase', color: textColor }}>
