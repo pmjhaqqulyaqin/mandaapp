@@ -510,10 +510,8 @@ export const PrintableStudentCard = ({
           </div>
 
           {/* AUTHORIZATION BLOCK (Pengesahan) */}
-          <div style={{ marginTop: 'auto', marginBottom: '25px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', width: '100%', padding: '0 30px' }}>
+          <div style={{ marginTop: 'auto', marginBottom: '35px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', width: '100%', padding: '0 30px' }}>
              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', fontSize: '12px', fontWeight: 600, color: textColor, zIndex: 10 }}>
-                {/* Try to extract city from address, otherwise default to a reasonable value */}
-                <span style={{ marginBottom: '2px' }}>{settings.schoolAddress ? settings.schoolAddress.split(',').pop()?.split('Kec.')[0].trim() || 'Tempat' : 'Tempat'}, {formatDate(new Date().toISOString())}</span>
                 <span>Kepala Madrasah,</span>
                 
                 <div style={{ height: '70px', width: '140px', position: 'relative', margin: '2px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
