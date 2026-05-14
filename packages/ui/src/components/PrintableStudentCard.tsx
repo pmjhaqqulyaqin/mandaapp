@@ -510,13 +510,13 @@ export const PrintableStudentCard = ({
           </div>
 
           {/* AUTHORIZATION BLOCK (Pengesahan) */}
-          <div style={{ marginTop: 'auto', marginBottom: '35px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', width: '100%', padding: '0 30px' }}>
-             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', fontSize: '12px', fontWeight: 600, color: textColor, zIndex: 10 }}>
+          <div style={{ marginTop: 'auto', marginBottom: '35px', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', padding: '0 30px' }}>
+             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', fontWeight: 600, color: textColor, zIndex: 10, textAlign: 'center' }}>
                 <span>Kepala Madrasah,</span>
                 
                 <div style={{ height: '70px', width: '140px', position: 'relative', margin: '2px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {settings.schoolStampUrl && (
-                    <img src={settings.schoolStampUrl} alt="Stempel" style={{ position: 'absolute', width: '85px', height: '85px', left: '-20px', top: '-5px', opacity: 0.85, mixBlendMode: 'multiply' }} />
+                    <img src={settings.schoolStampUrl} alt="Stempel" style={{ position: 'absolute', width: '85px', height: '85px', left: '-10px', top: '-5px', opacity: 0.85, mixBlendMode: 'multiply' }} />
                   )}
                   {settings.headmasterSignatureUrl ? (
                     <img src={settings.headmasterSignatureUrl} alt="TTD" style={{ position: 'relative', width: '100%', height: '100%', objectFit: 'contain', zIndex: 2, mixBlendMode: 'multiply' }} />
