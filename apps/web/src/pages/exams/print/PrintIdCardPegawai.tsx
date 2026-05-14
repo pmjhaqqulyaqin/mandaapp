@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../../../lib/api';
 
@@ -11,9 +11,10 @@ export const PrintIdCardPegawai = () => {
   const [ujian, setUjian] = useState<any>(null);
   const [pegawaiList, setPegawaiList] = useState<any[]>([]);
   const [schoolName, setSchoolName] = useState<string>('MAN 2 LOMBOK TIMUR');
+  const [imagesReady, setImagesReady] = useState(false);
 
   useEffect(() => {
-    // Inject print styles to hide headers and page marign
+    // Inject print styles to hide headers and page margin
     const style = document.createElement('style');
     style.innerHTML = `
       @page { size: A4; margin: 0; }
@@ -72,7 +73,64 @@ export const PrintIdCardPegawai = () => {
     if (ujianId) fetchData();
   }, [ujianId, type]);
 
-  if (loading) return <div className="p-8 text-center print:hidden">Menyiapkan dokumen cetak...</div>;
+  // Pre-load critical images (template, logos) to avoid blank cards on print
+  useEffect(() => {
+    if (loading || !ujian) return;
+
+    const config = ujian.pengaturan?.kartuPeserta || {};
+    const templateUrl = type === 'panitia' ? config.templatePanitiaUrl : config.templatePengawasUrl;
+    
+    const imagesToLoad: string[] = [];
+    if (templateUrl) imagesToLoad.push(templateUrl);
+    if (config.logoPegawaiUrl) imagesToLoad.push(config.logoPegawaiUrl);
+
+    // Also preload unique photo URLs (but limit to avoid overloading)
+    const photoUrls = new Set<string>();
+    pegawaiList.forEach(item => {
+      const p = item.pegawai || item;
+      if (p.photoUrl) photoUrls.add(p.photoUrl);
+    });
+    photoUrls.forEach(url => imagesToLoad.push(url));
+
+    if (imagesToLoad.length === 0) {
+      setImagesReady(true);
+      return;
+    }
+
+    let loaded = 0;
+    const total = imagesToLoad.length;
+    const onLoad = () => {
+      loaded++;
+      if (loaded >= total) setImagesReady(true);
+    };
+    const onError = () => {
+      loaded++;
+      if (loaded >= total) setImagesReady(true);
+    };
+
+    // Set a maximum wait time of 5 seconds
+    const timeout = setTimeout(() => setImagesReady(true), 5000);
+
+    imagesToLoad.forEach(url => {
+      const img = new Image();
+      img.onload = onLoad;
+      img.onerror = onError;
+      img.src = url;
+    });
+
+    return () => clearTimeout(timeout);
+  }, [loading, ujian, pegawaiList, type]);
+
+  if (loading || !imagesReady) {
+    return (
+      <div className="p-8 text-center print:hidden flex flex-col items-center gap-2">
+        <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+        <span className="text-sm text-gray-500">
+          {loading ? 'Memuat data...' : 'Memuat gambar...'}
+        </span>
+      </div>
+    );
+  }
   if (!ujian) return <div className="p-8 text-center text-red-500 print:hidden">Gagal memuat data ujian.</div>;
 
   const config = ujian.pengaturan?.kartuPeserta || {};
@@ -96,10 +154,9 @@ export const PrintIdCardPegawai = () => {
       >
         {/* Background Layer */}
         {templateUrl ? (
-          <img src={templateUrl} className="absolute inset-0 w-full h-full object-cover z-0" alt="template" />
+          <img src={templateUrl} className="absolute inset-0 w-full h-full object-cover z-0" alt="template" loading="eager" />
         ) : (
           <div className="absolute inset-0 z-0 bg-white border-2 border-gray-800">
-            {/* Minimal Monochrome Fallback Decorative (matches "hitam putih" requirement if they want literal black and white, but standard fallback should be decent) */}
             <div className="absolute top-0 left-0 w-full h-[3.5cm] bg-gray-100 border-b-2 border-gray-800" />
           </div>
         )}
@@ -107,11 +164,10 @@ export const PrintIdCardPegawai = () => {
         {/* Content Layer */}
         <div className="relative z-10 w-full h-full flex flex-col items-center pt-3 pb-2 px-2">
           
-          {/* Header section: Always render over the template, template should be a clean background */}
+          {/* Header section */}
           <div className="w-full flex-col items-center justify-center">
-            {/* Header section: Always render text whether template exists or not */}
             {config.logoPegawaiUrl && (
-              <img src={config.logoPegawaiUrl} className="w-8 h-8 object-contain mx-auto mb-1" alt="Logo Instansi" />
+              <img src={config.logoPegawaiUrl} className="w-8 h-8 object-contain mx-auto mb-1" alt="Logo Instansi" loading="eager" />
             )}
             
             <div className="text-[7px] font-bold mt-1 text-gray-800 tracking-wider uppercase text-center w-full bg-white/40">{schoolName}</div>
@@ -122,9 +178,9 @@ export const PrintIdCardPegawai = () => {
 
           <div className="flex-1 mt-1 mb-1"></div>
 
-          {/* Photo Frame (3:4 ratio standard passport size equivalent) */}
+          {/* Photo Frame */}
           <div className="w-[2.8cm] h-[3.6cm] bg-gray-200 mt-2 mb-2 rounded-[8px] overflow-hidden border-[3px] border-white shadow-md relative z-20">
-            <img src={photoSrc} className="w-full h-full object-cover" alt="Pegawai" />
+            <img src={photoSrc} className="w-full h-full object-cover" alt="Pegawai" loading="eager" />
           </div>
 
           {/* Nama Pegawai */}
@@ -165,11 +221,6 @@ export const PrintIdCardPegawai = () => {
       </div>
 
       {/* A4 Sheet Viewer */}
-      {/* We use an explicit width that matches A4 slightly scaled, or just auto-flow.
-          For A4 grid, grid-cols-4 means 4 cards per row. 4 * 5.4cm = 21.6cm, which is exactly A4 width!
-          Wait, A4 width minus margins (10mm each side) leaves 190mm = 19cm.
-          19cm / 5.4cm = 3.5. So maximum 3 cards per row safely.
-          Let's use grid-cols-3 and center it. */}
       <div className="w-[21cm] mx-auto bg-white print:bg-transparent shadow-md print:shadow-none p-[1cm] print:p-0">
         <div className="grid grid-cols-3 gap-x-3 gap-y-4 justify-items-center">
           {pegawaiList.map((item, idx) => (

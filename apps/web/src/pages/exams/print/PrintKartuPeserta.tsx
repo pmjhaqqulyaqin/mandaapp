@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../../../lib/api';
 import { Loader2 } from 'lucide-react';
@@ -13,28 +13,20 @@ function formatDate(dateStr: string): string {
   }
 }
 
-/** Komponen QR Code yang di-render client-side via canvas */
-const QrCodeImage = ({ data, size = 44 }: { data: string; size?: number }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    if (canvasRef.current) {
-      QRCode.toCanvas(canvasRef.current, data, {
-        width: size * 2,
-        margin: 0,
-        errorCorrectionLevel: 'M',
-      }).catch(console.error);
-    }
-  }, [data, size]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{ width: size, height: size }}
-      className="mix-blend-multiply"
-    />
-  );
-};
+/**
+ * QR Code rendered as a pre-generated data URL image (much faster than per-component canvas).
+ * The data URL is computed once and reused across duplicate card renders.
+ */
+const QrCodeImg = ({ dataUrl, size = 44 }: { dataUrl: string; size?: number }) => (
+  <img
+    src={dataUrl}
+    alt="QR"
+    width={size}
+    height={size}
+    style={{ width: size, height: size, imageRendering: 'pixelated' }}
+    className="mix-blend-multiply"
+  />
+);
 
 export const PrintKartuPeserta = () => {
   const { ujianId } = useParams();
@@ -45,6 +37,8 @@ export const PrintKartuPeserta = () => {
   const [ujian, setUjian] = useState<any>(null);
   const [distribusi, setDistribusi] = useState<any[]>([]);
   const [globalSettings, setGlobalSettings] = useState<any>(null);
+  const [qrMap, setQrMap] = useState<Map<string, string>>(new Map());
+  const [qrReady, setQrReady] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -84,16 +78,82 @@ export const PrintKartuPeserta = () => {
     fetchData();
   }, [ujianId, ruangId]);
 
+  // ── Batch QR Code Generation ──
+  // Generate all QR codes in a single batch pass using toDataURL (no DOM canvases needed).
+  // This runs once after data is loaded, producing a Map<key, dataUrl>.
   useEffect(() => {
-    if (!loading && ujian && searchParams.get('preview') !== 'true') {
-      setTimeout(() => {
-         window.print();
-      }, 1500);
-    }
-  }, [loading, ujian, searchParams]);
+    if (loading || !ujian || distribusi.length === 0) return;
 
-  if (loading) {
-    return <div className="flex h-screen items-center justify-center bg-gray-100"><Loader2 className="animate-spin text-violet-500" size={32} /></div>;
+    const tahunAjaran = ujian.tahunAjaran || new Date().getFullYear().toString();
+    const lastYearStr = tahunAjaran.length >= 2 ? tahunAjaran.slice(-2) : '00';
+    const semesterLower = (ujian?.semester || '').toLowerCase();
+    const semCode = semesterLower.includes('ganjil') ? '01' : semesterLower.includes('genap') ? '02' : '00';
+
+    const generateAll = async () => {
+      const map = new Map<string, string>();
+      // Process in chunks of 20 to avoid blocking the main thread
+      const chunkSize = 20;
+      for (let i = 0; i < distribusi.length; i += chunkSize) {
+        const chunk = distribusi.slice(i, i + chunkSize);
+        await Promise.all(chunk.map(async (item) => {
+          const s = item.siswa || {};
+          const ruang = item.ruang?.namaRuang || item.ruangId || '-';
+          
+          const kelasStr = (s.fullClassName || s.className || '').toUpperCase();
+          let gradeCode = '00';
+          if (kelasStr.includes('XII') || kelasStr.includes('12')) gradeCode = '12';
+          else if (kelasStr.includes('XI') || kelasStr.includes('11')) gradeCode = '11';
+          else if (kelasStr.includes('X') || kelasStr.includes('10')) gradeCode = '10';
+          
+          const ruangMatch = ruang.match(/\d+/);
+          const ruangNumber = ruangMatch ? parseInt(ruangMatch[0], 10) : 0;
+          const ruangCode = ruangNumber.toString().padStart(2, '0');
+          const urutCode = (item.urutRuang || 1).toString().padStart(3, '0');
+          const nomorPeserta = `${lastYearStr}-${semCode}-${gradeCode}-${ruangCode}-${urutCode}`;
+
+          const qrData = `Nama: ${s.fullName}\nNo. Peserta: ${nomorPeserta}\nNIS: ${s.nis}\nNISN: ${s.nisn}\nKelas: ${s.fullClassName || s.className}\nRuang: ${ruang}`;
+          
+          try {
+            const url = await QRCode.toDataURL(qrData, {
+              width: 88, // 44 * 2 for retina
+              margin: 0,
+              errorCorrectionLevel: 'L', // L is fastest, still reliable
+            });
+            map.set(item.id || `${i}-${s.id}`, url);
+          } catch {
+            // Skip failed QR
+          }
+        }));
+        // Yield to main thread between chunks
+        if (i + chunkSize < distribusi.length) {
+          await new Promise(r => setTimeout(r, 0));
+        }
+      }
+      setQrMap(map);
+      setQrReady(true);
+    };
+
+    generateAll();
+  }, [loading, ujian, distribusi]);
+
+  // Auto-print after QR codes are ready
+  useEffect(() => {
+    if (!qrReady || !ujian || searchParams.get('preview') === 'true') return;
+    const timer = setTimeout(() => {
+       window.print();
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [qrReady, ujian, searchParams]);
+
+  if (loading || !qrReady) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-100 flex-col gap-3">
+        <Loader2 className="animate-spin text-violet-500" size={32} />
+        <p className="text-sm text-gray-500">
+          {loading ? 'Memuat data...' : `Generating QR Code (${qrMap.size}/${distribusi.length})...`}
+        </p>
+      </div>
+    );
   }
 
   if (!ujian) {
@@ -148,13 +208,12 @@ export const PrintKartuPeserta = () => {
     const urutCode = (item.urutRuang || 1).toString().padStart(3, '0');
     const nomorPesertaKustom = `${lastYearStr}-${semCode}-${gradeCode}-${ruangCode}-${urutCode}`;
 
-    // QR Code data
-    const qrData = `Nama: ${s.fullName}\nNo. Peserta: ${nomorPesertaKustom}\nNIS: ${s.nis}\nNISN: ${s.nisn}\nKelas: ${s.fullClassName || s.className}\nRuang: ${ruang}`;
+    // Get pre-generated QR data URL
+    const qrDataUrl = qrMap.get(item.id || `${item.id}-${s.id}`) || '';
 
     // Penentuan foto avatar
     let photoSrc = s.photoUrl;
     if (!photoSrc) {
-       // Buat avatar fallback berdasarkan L/P menggunakan gambar lokal
        const genderLower = (s.gender || '').toLowerCase();
        const isFemale = genderLower === 'p' || genderLower === 'perempuan';
        photoSrc = isFemale ? '/avatar-female.png' : '/avatar-male.png';
@@ -241,7 +300,7 @@ export const PrintKartuPeserta = () => {
             {/* QR CODE */}
             <div className="flex flex-col justify-start items-end w-[44px] h-full flex-shrink-0">
                <div className="border border-gray-200 overflow-hidden" style={{ width: 44, height: 44 }}>
-                  <QrCodeImage data={qrData} size={44} />
+                  {qrDataUrl && <QrCodeImg dataUrl={qrDataUrl} size={44} />}
                </div>
             </div>
           </div>
