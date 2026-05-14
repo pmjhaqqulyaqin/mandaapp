@@ -369,7 +369,7 @@ export const PrintableStudentCard = ({
 
           {/* 3. PHOTO SISWA - large, centered */}
           <div style={{
-            width: '160px', height: '210px',
+            width: '140px', height: '180px',
             backgroundColor: bgUrl ? 'rgba(226,232,240,0.5)' : '#e2e8f0',
             borderRadius: '8px',
             border: bgUrl ? '3px solid rgba(255,255,255,0.6)' : `3px solid ${headerColor}`,
@@ -424,7 +424,7 @@ export const PrintableStudentCard = ({
           </div>
 
           {/* 8. QR CODE - centered at bottom */}
-          <div style={{ marginTop: 'auto', marginBottom: '25px', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ marginTop: 'auto', marginBottom: '35px', display: 'flex', justifyContent: 'center' }}>
             <LocalQRCode data={student.nisn} size={75} style={{ borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
           </div>
         </div>
