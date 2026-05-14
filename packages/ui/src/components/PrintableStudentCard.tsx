@@ -168,10 +168,10 @@ export const PrintableStudentCard = ({
           {/* HEADER */}
           <div style={{ width: '100%', height: '130px', backgroundColor: bgUrl ? 'transparent' : headerColor, display: 'flex', alignItems: 'center', padding: '0 65px', justifyContent: 'space-between' }}>
             <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
-            <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
+            <div style={{ flex: 1, textAlign: 'center', color: textColor }}>
               <div style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '1px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
               <div style={{ fontSize: '26px', fontWeight: 800, margin: '4px 0', letterSpacing: '0.5px' }}>{settings.schoolName || 'MADRASAH ALIYAH NEGERI'}</div>
-              <div style={{ fontSize: '13px', fontWeight: 400, opacity: 0.9 }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
+              <div style={{ fontSize: '13px', fontWeight: 400, color: '#6b7280' }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
             </div>
             {settings.schoolLogoUrl ? (
               <img src={settings.schoolLogoUrl} alt="Logo Sekolah" style={{ width: '85px', height: '85px', objectFit: 'contain' }} />
@@ -180,7 +180,7 @@ export const PrintableStudentCard = ({
 
           {/* TITLE - Centered */}
           <div style={{ textAlign: 'center', padding: '8px 30px 0 30px' }}>
-            <h2 style={{ fontSize: '44px', color: textColor, fontWeight: 900, fontStyle: 'italic', letterSpacing: '3px', margin: 0 }}>
+            <h2 style={{ fontSize: '52px', color: textColor, fontWeight: 900, fontStyle: 'italic', letterSpacing: '3px', margin: 0 }}>
               KARTU PELAJAR
             </h2>
           </div>
@@ -252,10 +252,10 @@ export const PrintableStudentCard = ({
           {/* HEADER (Identical to Front) */}
           <div style={{ width: '100%', height: '130px', backgroundColor: bgUrl ? 'transparent' : headerColor, display: 'flex', alignItems: 'center', padding: '0 65px', justifyContent: 'space-between' }}>
             <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
-            <div style={{ flex: 1, textAlign: 'center', color: '#ffffff', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
+            <div style={{ flex: 1, textAlign: 'center', color: textColor }}>
               <div style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '1px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
               <div style={{ fontSize: '26px', fontWeight: 800, margin: '4px 0', letterSpacing: '0.5px' }}>{settings.schoolName || 'MADRASAH ALIYAH NEGERI'}</div>
-              <div style={{ fontSize: '13px', fontWeight: 400, opacity: 0.9 }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
+              <div style={{ fontSize: '13px', fontWeight: 400, color: '#6b7280' }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
             </div>
             {settings.schoolLogoUrl ? (
               <img src={settings.schoolLogoUrl} alt="Logo Sekolah" style={{ width: '85px', height: '85px', objectFit: 'contain' }} />
@@ -265,7 +265,7 @@ export const PrintableStudentCard = ({
           {/* BODY - Terms + Pengesahan Right */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '12px 30px 10px 30px' }}>
             {/* Title */}
-            <h3 style={{ fontSize: '30px', fontWeight: 800, fontStyle: 'italic', letterSpacing: '1px', textAlign: 'center', marginBottom: '15px', margin: '0 0 15px 0', color: textColor }}>
+            <h3 style={{ fontSize: '36px', fontWeight: 800, fontStyle: 'italic', letterSpacing: '1px', textAlign: 'center', marginBottom: '15px', margin: '0 0 15px 0', color: textColor }}>
               SYARAT & KETENTUAN:
             </h3>
             {/* Terms List */}
