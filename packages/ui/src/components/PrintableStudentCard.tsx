@@ -171,7 +171,7 @@ export const PrintableStudentCard = ({
             <div style={{ flex: 1, textAlign: 'center', color: textColor }}>
               <div style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '1px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
               <div style={{ fontSize: '26px', fontWeight: 800, margin: '4px 0', letterSpacing: '0.5px' }}>{settings.schoolName || 'MADRASAH ALIYAH NEGERI'}</div>
-              <div style={{ fontSize: '13px', fontWeight: 400, color: '#6b7280' }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
+              <div style={{ fontSize: '14px', fontWeight: 500, color: '#374151' }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
             </div>
             {settings.schoolLogoUrl ? (
               <img src={settings.schoolLogoUrl} alt="Logo Sekolah" style={{ width: '85px', height: '85px', objectFit: 'contain' }} />
@@ -255,7 +255,7 @@ export const PrintableStudentCard = ({
             <div style={{ flex: 1, textAlign: 'center', color: textColor }}>
               <div style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '1px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
               <div style={{ fontSize: '26px', fontWeight: 800, margin: '4px 0', letterSpacing: '0.5px' }}>{settings.schoolName || 'MADRASAH ALIYAH NEGERI'}</div>
-              <div style={{ fontSize: '13px', fontWeight: 400, color: '#6b7280' }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
+              <div style={{ fontSize: '14px', fontWeight: 500, color: '#374151' }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
             </div>
             {settings.schoolLogoUrl ? (
               <img src={settings.schoolLogoUrl} alt="Logo Sekolah" style={{ width: '85px', height: '85px', objectFit: 'contain' }} />
@@ -362,7 +362,7 @@ export const PrintableStudentCard = ({
             <div style={{ fontSize: '17px', fontWeight: 900, color: textColor, textTransform: 'uppercase', letterSpacing: '0.3px', margin: '3px 0', lineHeight: 1.2 }}>
               {settings.schoolName || 'MAN 2 LOMBOK TIMUR'}
             </div>
-            <div style={{ fontSize: '11px', fontWeight: 400, color: '#6b7280', lineHeight: 1.3 }}>
+            <div style={{ fontSize: '12px', fontWeight: 500, color: '#374151', lineHeight: 1.3 }}>
               {settings.schoolAddress || 'Alamat Sekolah'}
             </div>
           </div>
@@ -484,7 +484,7 @@ export const PrintableStudentCard = ({
             <div style={{ fontSize: '17px', fontWeight: 900, color: textColor, textTransform: 'uppercase', letterSpacing: '0.3px', margin: '3px 0', lineHeight: 1.2 }}>
               {settings.schoolName || 'MAN 2 LOMBOK TIMUR'}
             </div>
-            <div style={{ fontSize: '11px', fontWeight: 400, color: '#6b7280', lineHeight: 1.3 }}>
+            <div style={{ fontSize: '12px', fontWeight: 500, color: '#374151', lineHeight: 1.3 }}>
               {settings.schoolAddress || 'Alamat Sekolah'}
             </div>
           </div>
