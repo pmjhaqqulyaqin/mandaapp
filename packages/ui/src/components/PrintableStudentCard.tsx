@@ -185,10 +185,10 @@ export const PrintableStudentCard = ({
             </h2>
           </div>
 
-          {/* BODY */}
-          <div style={{ display: 'flex', padding: '10px 30px 0 30px', gap: '30px', flex: 1 }}>
-            {/* Left Column: Photo + Barcode */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+          {/* BODY - 3 columns: Photo | Identity Text | QR Code */}
+          <div style={{ display: 'flex', padding: '10px 30px 15px 30px', flex: 1, alignItems: 'flex-start' }}>
+            {/* Left Column: Photo */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '8px', flexShrink: 0 }}>
               {/* Foto */}
               <div style={{ width: '160px', height: '190px', backgroundColor: bgUrl ? 'rgba(226,232,240,0.5)' : '#e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
                 {student.photoUrl ? (
@@ -199,43 +199,25 @@ export const PrintableStudentCard = ({
                   </div>
                 )}
               </div>
-              {/* QR Code - below photo */}
-              <div style={{ height: '75px', width: '75px', marginTop: '10px' }}>
-                <LocalQRCode data={student.nisn} size={75} style={{ width: '100%', height: '100%', borderRadius: '4px' }} />
-              </div>
             </div>
 
-            {/* Right Column: Data + Pengesahan */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '120px 15px 1fr', gap: '12px', fontSize: '18px', color: textColor, fontWeight: 700, marginTop: '8px' }}>
+            {/* Middle Column: Identity Data */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '0 20px', marginTop: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '100px 15px 1fr', gap: '10px', fontSize: '16px', color: textColor, fontWeight: 700 }}>
                 <div>NAMA</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.name}</div>
                 <div>NIS/NISN</div><div>:</div><div style={{ fontWeight: 500 }}>{student.nisn}</div>
                 <div>T.T.L</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.birthPlace}, {formatDate(student.birthDate)}</div>
-                <div>ALAMAT</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase', lineHeight: 1.3 }}>{student.address || '-'}</div>
+                <div>ALAMAT</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase', lineHeight: 1.3, fontSize: '14px' }}>{student.address || '-'}</div>
               </div>
+            </div>
 
-              {/* Pengesahan - Kepala Madrasah */}
-              <div style={{ marginTop: '25px', textAlign: 'center', alignSelf: 'flex-end', width: '220px', position: 'relative', zIndex: 5 }}>
-                {settings.schoolStampUrl && (
-                  <img src={settings.schoolStampUrl} alt="Stempel Sekolah" style={{ position: 'absolute', top: '-10px', left: '-15px', width: '90px', height: '90px', objectFit: 'contain', opacity: 0.85, zIndex: 0 }} />
-                )}
-                <div style={{ fontSize: '11px', fontWeight: 800, marginBottom: '1px', position: 'relative', zIndex: 1, color: textColor }}>KEPALA MADRASAH</div>
-                <div style={{ height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2 }}>
-                   {settings.headmasterSignatureUrl ? (
-                     <img src={settings.headmasterSignatureUrl} alt="Tanda Tangan" style={{ maxHeight: '50px', maxWidth: '100%', objectFit: 'contain', transform: 'scale(1.1)' }} />
-                   ) : (
-                     <svg width="100" height="35" viewBox="0 0 200 60" fill="none">
-                       <path d="M20 50 C40 30, 60 10, 80 40 S 120 70, 160 30" stroke={textColor} strokeWidth="3" fill="none" strokeLinecap="round" />
-                     </svg>
-                   )}
-                </div>
-                <div style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', color: textColor, textDecoration: 'underline' }}>
-                   {settings.headmasterName || 'NAMA KEPALA SEKOLAH'}
-                </div>
-                <div style={{ fontSize: '10px', fontWeight: 500, color: textColor }}>
-                   NIP. {settings.headmasterNip || '-'}
-                </div>
-              </div>
+            {/* Vertical Divider */}
+            <div style={{ width: '3px', backgroundColor: '#dc2626', alignSelf: 'stretch', marginTop: '8px', marginBottom: '8px', borderRadius: '2px', flexShrink: 0 }}></div>
+
+            {/* Right Column: Large QR Code for Presensi */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginLeft: '15px', marginTop: '8px', flexShrink: 0 }}>
+              <LocalQRCode data={student.nisn} size={180} style={{ width: '180px', height: '180px', borderRadius: '8px' }} />
+              <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.5px', color: textColor, marginTop: '4px', textAlign: 'center' }}>SCAN PRESENSI</div>
             </div>
           </div>
         </div>
@@ -283,25 +265,50 @@ export const PrintableStudentCard = ({
             ) : <div style={{ width: '85px' }} />}
           </div>
 
-          {/* BODY (Terms and Conditions) */}
-          <div style={{ padding: '20px 60px' }}>
-             <h3 style={{ fontSize: '30px', fontWeight: 800, fontStyle: 'italic', letterSpacing: '1px', textAlign: 'center', marginBottom: '15px', color: textColor }}>
-               SYARAT & KETENTUAN:
-             </h3>
-             <ul style={{ fontSize: '17px', lineHeight: 1.5, color: textColor, margin: 0, paddingLeft: '20px', fontWeight: 500 }}>
-                {termsLines.map((line, i) => (
-                  <li key={i} style={{ marginBottom: '4px' }}>{line}</li>
-                ))}
-             </ul>
-          </div>
+          {/* BODY - Terms + QR Left + Pengesahan Right */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '12px 30px 10px 30px' }}>
+            {/* Title */}
+            <h3 style={{ fontSize: '22px', fontWeight: 800, fontStyle: 'italic', letterSpacing: '1px', textAlign: 'center', marginBottom: '8px', margin: '0 0 8px 0', color: textColor }}>
+              SYARAT & KETENTUAN:
+            </h3>
+            {/* Terms List - Compact */}
+            <ul style={{ fontSize: '13px', lineHeight: 1.4, color: textColor, margin: '0 0 12px 0', paddingLeft: '18px', fontWeight: 500 }}>
+               {termsLines.map((line, i) => (
+                 <li key={i} style={{ marginBottom: '2px' }}>{line}</li>
+               ))}
+            </ul>
 
-          {/* BOTTOM AREA (QR Code - Centered) */}
-          <div style={{ position: 'absolute', bottom: '75px', left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10 }}>
-             {/* QR Section - Centered */}
-             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                <LocalQRCode data={qrPayload} size={130} style={{ border: '4px solid #ffffff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
-                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#111827', backgroundColor: 'rgba(255,255,255,0.7)', padding: '2px 6px', borderRadius: '4px' }}>SCAN UNTUK PRESENSI</div>
-             </div>
+            {/* Bottom Section: QR Left + Pengesahan Right */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flex: 1, marginTop: 'auto' }}>
+              {/* QR Code - Left Side */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                 <LocalQRCode data={qrPayload} size={160} style={{ borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
+                 <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.5px', color: textColor, textAlign: 'center' }}>SCAN UNTUK PRESENSI</div>
+              </div>
+
+              {/* Pengesahan - Kepala Madrasah - Right Side */}
+              <div style={{ textAlign: 'center', width: '240px', position: 'relative', zIndex: 5, flexShrink: 0 }}>
+                {settings.schoolStampUrl && (
+                  <img src={settings.schoolStampUrl} alt="Stempel Sekolah" style={{ position: 'absolute', top: '-5px', left: '10px', width: '90px', height: '90px', objectFit: 'contain', opacity: 0.85, zIndex: 0 }} />
+                )}
+                <div style={{ fontSize: '11px', fontWeight: 800, marginBottom: '1px', position: 'relative', zIndex: 1, color: textColor }}>KEPALA MADRASAH</div>
+                <div style={{ height: '45px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2 }}>
+                   {settings.headmasterSignatureUrl ? (
+                     <img src={settings.headmasterSignatureUrl} alt="Tanda Tangan" style={{ maxHeight: '50px', maxWidth: '100%', objectFit: 'contain', transform: 'scale(1.1)' }} />
+                   ) : (
+                     <svg width="100" height="35" viewBox="0 0 200 60" fill="none">
+                       <path d="M20 50 C40 30, 60 10, 80 40 S 120 70, 160 30" stroke={textColor} strokeWidth="3" fill="none" strokeLinecap="round" />
+                     </svg>
+                   )}
+                </div>
+                <div style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', color: textColor, textDecoration: 'underline' }}>
+                   {settings.headmasterName || 'NAMA KEPALA SEKOLAH'}
+                </div>
+                <div style={{ fontSize: '10px', fontWeight: 500, color: textColor }}>
+                   NIP. {settings.headmasterNip || '-'}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
