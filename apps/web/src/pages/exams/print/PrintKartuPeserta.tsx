@@ -342,10 +342,11 @@ export const PrintKartuPeserta = () => {
         @media print {
           .page-container {
             margin: 0;
-            padding: 7mm 8mm;
+            padding: 0;
             box-shadow: none;
-            width: 100%;
-            height: 100%;
+            width: auto;
+            min-height: 0;
+            height: auto;
           }
         }
       `}} />
