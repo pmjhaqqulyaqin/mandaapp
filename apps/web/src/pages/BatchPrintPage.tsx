@@ -340,6 +340,7 @@ export const BatchPrintPage = () => {
                           birthPlace: s.birthPlace,
                           birthDate: s.birthDate,
                           gender: s.gender,
+                          address: s.address,
                           photoUrl: s.photoUrl,
                         }}
                         template={template}
