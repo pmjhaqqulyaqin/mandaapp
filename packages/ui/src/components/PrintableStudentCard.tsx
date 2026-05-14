@@ -356,13 +356,13 @@ export const PrintableStudentCard = ({
 
           {/* 2. NAMA SEKOLAH & ALAMAT */}
           <div style={{ textAlign: 'center', marginBottom: '18px', padding: '0 25px' }}>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: bgUrl ? '#ffffff' : textColor, textTransform: 'uppercase', letterSpacing: '0.5px', textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.5)' : 'none', lineHeight: 1.3 }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: textColor, textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: 1.3 }}>
               KEMENTERIAN AGAMA RI
             </div>
-            <div style={{ fontSize: '17px', fontWeight: 900, color: bgUrl ? '#ffffff' : textColor, textTransform: 'uppercase', letterSpacing: '0.3px', textShadow: bgUrl ? '0 1px 4px rgba(0,0,0,0.5)' : 'none', margin: '3px 0', lineHeight: 1.2 }}>
+            <div style={{ fontSize: '17px', fontWeight: 900, color: textColor, textTransform: 'uppercase', letterSpacing: '0.3px', margin: '3px 0', lineHeight: 1.2 }}>
               {settings.schoolName || 'MAN 2 LOMBOK TIMUR'}
             </div>
-            <div style={{ fontSize: '11px', fontWeight: 400, color: bgUrl ? 'rgba(255,255,255,0.9)' : '#6b7280', textShadow: bgUrl ? '0 1px 2px rgba(0,0,0,0.4)' : 'none', lineHeight: 1.3 }}>
+            <div style={{ fontSize: '11px', fontWeight: 400, color: '#6b7280', lineHeight: 1.3 }}>
               {settings.schoolAddress || 'Alamat Sekolah'}
             </div>
           </div>
@@ -390,8 +390,7 @@ export const PrintableStudentCard = ({
           {/* 4. NAMA SISWA - huruf kapital, bold */}
           <div style={{
             fontSize: '18px', fontWeight: 900, textTransform: 'uppercase', textAlign: 'center',
-            color: bgUrl ? '#ffffff' : textColor,
-            textShadow: bgUrl ? '0 1px 3px rgba(0,0,0,0.5)' : 'none',
+            color: textColor,
             marginBottom: '14px', padding: '0 20px', lineHeight: 1.2,
             letterSpacing: '0.3px',
           }}>
@@ -403,21 +402,21 @@ export const PrintableStudentCard = ({
             {/* NIS/NISN */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
               <IconNIS />
-              <span style={{ fontSize: '14px', fontWeight: 600, color: bgUrl ? '#ffffff' : textColor, textShadow: bgUrl ? '0 1px 2px rgba(0,0,0,0.4)' : 'none' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: textColor }}>
                 NISN {student.nisn}
               </span>
             </div>
             {/* Tempat & Tanggal Lahir */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
               <IconCalendar />
-              <span style={{ fontSize: '14px', fontWeight: 600, color: bgUrl ? '#ffffff' : textColor, textShadow: bgUrl ? '0 1px 2px rgba(0,0,0,0.4)' : 'none' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: textColor }}>
                 {student.birthPlace || '-'}, {formatDate(student.birthDate)}
               </span>
             </div>
             {/* Alamat */}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', justifyContent: 'center' }}>
               <div style={{ flexShrink: 0, marginTop: '2px' }}><IconLocation /></div>
-              <span style={{ fontSize: '13px', fontWeight: 500, color: bgUrl ? '#ffffff' : textColor, textShadow: bgUrl ? '0 1px 2px rgba(0,0,0,0.4)' : 'none', textAlign: 'center', lineHeight: 1.3 }}>
+              <span style={{ fontSize: '13px', fontWeight: 500, color: textColor, textAlign: 'center', lineHeight: 1.3 }}>
                 {student.address || '-'}
               </span>
             </div>
