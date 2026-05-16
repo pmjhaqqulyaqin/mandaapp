@@ -265,9 +265,9 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
 
           {/* Link RPP */}
           <div className="mt-3">
-            <label className="text-sm text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1"><LinkIcon size={14} /> Link RPP (opsional)</label>
+            <label className="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1"><LinkIcon size={14} /> Link RPP (opsional)</label>
             <input type="url" placeholder="https://drive.google.com/..." value={form.linkRpp} onChange={e => setForm(f => ({ ...f, linkRpp: e.target.value }))}
-              className="w-full mt-1 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-gray-50 dark:bg-[#111] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" />
+              className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs bg-gray-50 dark:bg-[#111] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" />
           </div>
         </div>
 
@@ -279,19 +279,19 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
           </h3>
           <div className="space-y-3">
             <div>
-              <label className="text-sm text-gray-500 dark:text-gray-400 font-medium">Materi Pokok <span className="text-red-400">*</span></label>
-              <textarea className="w-full mt-1 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-gray-50 dark:bg-[#111] focus:border-emerald-500 outline-none resize-none"
+              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Materi Pokok <span className="text-red-400">*</span></label>
+              <textarea className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs bg-gray-50 dark:bg-[#111] focus:border-emerald-500 outline-none resize-none"
                 rows={2} placeholder="Contoh: Perubahan Wujud Benda" value={form.materiPembelajaran}
                 onChange={e => setForm(f => ({ ...f, materiPembelajaran: e.target.value }))} />
             </div>
             <div>
-              <label className="text-sm text-gray-500 dark:text-gray-400 font-medium">Tujuan Pembelajaran</label>
-              <textarea className="w-full mt-1 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-gray-50 dark:bg-[#111] focus:border-emerald-500 outline-none resize-none"
+              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Tujuan Pembelajaran</label>
+              <textarea className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs bg-gray-50 dark:bg-[#111] focus:border-emerald-500 outline-none resize-none"
                 rows={2} placeholder="Siswa dapat menjelaskan..." value={form.capaianPembelajaran}
                 onChange={e => setForm(f => ({ ...f, capaianPembelajaran: e.target.value }))} />
             </div>
             <div>
-              <label className="text-sm text-gray-500 dark:text-gray-400 font-medium">Metode Pembelajaran</label>
+              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Metode Pembelajaran</label>
               <div className="flex flex-wrap gap-2 mt-2">
                 {methods.query.data?.map((m: any) => (
                   <button key={m.id} onClick={() => toggleMethod(m.name)}
@@ -388,13 +388,13 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
           </h3>
           <div className="space-y-3">
             <div>
-              <label className="text-sm text-gray-500 dark:text-gray-400 font-medium">Catatan Guru</label>
-              <textarea className="w-full mt-1 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-gray-50 dark:bg-[#111] focus:border-emerald-500 outline-none resize-none"
+              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Catatan Guru</label>
+              <textarea className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs bg-gray-50 dark:bg-[#111] focus:border-emerald-500 outline-none resize-none"
                 rows={3} placeholder="Kendala, perilaku khusus siswa, atau hal penting..." value={form.catatan}
                 onChange={e => setForm(f => ({ ...f, catatan: e.target.value }))} />
             </div>
             <div>
-              <label className="text-sm text-gray-500 dark:text-gray-400 font-medium">Foto Kegiatan</label>
+              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Foto Kegiatan</label>
               <div className="flex gap-2 mt-2 flex-wrap">
                 <label className="w-16 h-16 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:border-emerald-400 hover:text-emerald-500 transition-colors shrink-0">
                   <Camera size={16} />
