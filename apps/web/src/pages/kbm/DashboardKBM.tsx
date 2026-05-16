@@ -26,7 +26,7 @@ export const DashboardKBM = () => {
 
   // Load academic years
   useEffect(() => {
-    apiClient<any[]>('/events/academic-years').then(data => {
+    apiClient<any[]>('/nis/academic-years').then(data => {
       setAcademicYears(data);
       const active = data.find((a: any) => a.isActive);
       if (active) {
