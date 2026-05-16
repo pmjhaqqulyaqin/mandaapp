@@ -174,8 +174,8 @@ export const PrintableStudentCard = ({
               <div style={{ fontSize: '14px', fontWeight: 500, color: '#374151' }}>{settings.schoolAddress || 'Alamat Sekolah Belum Diatur'}</div>
             </div>
             {settings.schoolLogoUrl ? (
-              <img src={settings.schoolLogoUrl} alt="Logo Sekolah" style={{ width: '85px', height: '85px', objectFit: 'contain' }} />
-            ) : <div style={{ width: '85px' }} />}
+              <img src={settings.schoolLogoUrl} alt="Logo Sekolah" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
+            ) : <div style={{ width: '80px' }} />}
           </div>
 
           {/* TITLE - Centered */}
