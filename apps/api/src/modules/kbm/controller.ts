@@ -622,6 +622,121 @@ export class KbmController {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
 
+  // ═══ Jadwal (Phase 2) ═══════════════════════════════════════
+
+  static async getJadwal(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester, kelasId, guruId } = req.query;
+      if (!academicYearId || !semester) return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      const results = await KbmService.getJadwal(academicYearId as string, semester as string, { kelasId: kelasId as string, guruId: guruId as string });
+      res.json(results);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async generateJadwal(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester, clearExisting } = req.body;
+      if (!academicYearId || !semester) return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      const result = await KbmService.generateJadwal(academicYearId, semester, clearExisting !== false);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async moveSlot(req: Request, res: Response) {
+    try {
+      const { dayOfWeek, jamKe, ruanganId } = req.body;
+      if (dayOfWeek === undefined || jamKe === undefined) return res.status(400).json({ error: "dayOfWeek dan jamKe diperlukan" });
+      const result = await KbmService.moveSlot(req.params.id, Number(dayOfWeek), Number(jamKe), ruanganId);
+      res.json(result);
+    } catch (err: any) { res.status(400).json({ error: err.message }); }
+  }
+
+  static async deleteJadwalSlot(req: Request, res: Response) {
+    try {
+      const result = await KbmService.deleteJadwalSlot(req.params.id);
+      if (!result) return res.status(404).json({ error: "Tidak ditemukan" });
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async clearJadwal(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester } = req.body;
+      if (!academicYearId || !semester) return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      const result = await KbmService.clearJadwal(academicYearId, semester);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async checkConflicts(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester } = req.query;
+      if (!academicYearId || !semester) return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      const result = await KbmService.checkConflicts(academicYearId as string, semester as string);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async syncToJurnal(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester } = req.body;
+      if (!academicYearId || !semester) return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      const result = await KbmService.syncToJurnal(academicYearId, semester);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async exportJadwal(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester, groupBy } = req.query;
+      if (!academicYearId || !semester) return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      const jadwal = await KbmService.getJadwal(academicYearId as string, semester as string);
+
+      const wb = xlsx.utils.book_new();
+      const dayNames: Record<number, string> = { 1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis', 5: 'Jumat', 6: 'Sabtu' };
+
+      if (groupBy === 'guru') {
+        // Group by guru
+        const guruMap = new Map<string, any[]>();
+        for (const j of jadwal) {
+          const key = j.guruName || 'Unknown';
+          if (!guruMap.has(key)) guruMap.set(key, []);
+          guruMap.get(key)!.push(j);
+        }
+        for (const [guruName, items] of guruMap) {
+          const rows: any[][] = [['Jadwal: ' + guruName], ['Hari', 'Jam Ke', 'Kelas', 'Mapel', 'Ruangan']];
+          items.sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.jamKe - b.jamKe);
+          items.forEach(j => rows.push([dayNames[j.dayOfWeek], j.jamKe, j.kelasName, j.subjectNama, j.ruanganNama || '-']));
+          const ws = xlsx.utils.aoa_to_sheet(rows);
+          ws['!cols'] = [{ wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 20 }, { wch: 15 }];
+          const sheetName = guruName.substring(0, 31);
+          xlsx.utils.book_append_sheet(wb, ws, sheetName);
+        }
+      } else {
+        // Group by kelas (default)
+        const kelasMap = new Map<string, any[]>();
+        for (const j of jadwal) {
+          const key = j.kelasName || 'Unknown';
+          if (!kelasMap.has(key)) kelasMap.set(key, []);
+          kelasMap.get(key)!.push(j);
+        }
+        for (const [kelasName, items] of kelasMap) {
+          const rows: any[][] = [['Jadwal Kelas: ' + kelasName], ['Hari', 'Jam Ke', 'Mapel', 'Guru', 'Ruangan']];
+          items.sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.jamKe - b.jamKe);
+          items.forEach(j => rows.push([dayNames[j.dayOfWeek], j.jamKe, j.subjectNama, j.guruName, j.ruanganNama || '-']));
+          const ws = xlsx.utils.aoa_to_sheet(rows);
+          ws['!cols'] = [{ wch: 10 }, { wch: 8 }, { wch: 20 }, { wch: 25 }, { wch: 15 }];
+          xlsx.utils.book_append_sheet(wb, ws, kelasName.substring(0, 31));
+        }
+      }
+
+      const buf = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      res.setHeader('Content-Disposition', 'attachment; filename=jadwal_pelajaran.xlsx');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(Buffer.from(buf));
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
   // ═══ Dashboard ══════════════════════════════════════════════
 
   static async getDashboard(req: Request, res: Response) {

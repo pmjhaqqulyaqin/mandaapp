@@ -49,6 +49,16 @@ router.put("/ruangan/:id", requireStaff, KbmController.updateRuangan);
 router.delete("/ruangan/:id", requireStaff, KbmController.deleteRuangan);
 router.post("/ruangan/seed", requireStaff, KbmController.seedRuangan);
 
+// Jadwal (Phase 2 — Auto Scheduler)
+router.get("/jadwal", requireStaff, KbmController.getJadwal);
+router.post("/jadwal/generate", requireStaff, KbmController.generateJadwal);
+router.put("/jadwal/:id", requireStaff, KbmController.moveSlot);
+router.delete("/jadwal/:id", requireStaff, KbmController.deleteJadwalSlot);
+router.post("/jadwal/clear", requireStaff, KbmController.clearJadwal);
+router.get("/jadwal/conflicts", requireStaff, KbmController.checkConflicts);
+router.post("/jadwal/sync", requireStaff, KbmController.syncToJurnal);
+router.get("/jadwal/export", requireStaff, KbmController.exportJadwal);
+
 // Dashboard
 router.get("/dashboard", requireStaff, KbmController.getDashboard);
 

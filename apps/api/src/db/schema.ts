@@ -657,6 +657,7 @@ export const teachingSubjects = pgTable("teaching_subjects", {
   semester: varchar("semester", { length: 10 }).default("ganjil"), // ganjil, genap
   tahunAjaran: varchar("tahun_ajaran", { length: 20 }), // "2025/2026"
   isActive: boolean("is_active").default(true),
+  kbmGenerated: boolean("kbm_generated").default(false), // true if auto-generated from KBM scheduler
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
@@ -838,6 +839,22 @@ export const ruangan = pgTable("ruangan", {
   tipe: varchar("tipe", { length: 50 }).default("reguler"), // reguler, lab_ipa, lab_agama, lab_komputer, perpustakaan
   kapasitas: integer("kapasitas").default(40),
   isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ═══ KBM Jadwal (Phase 2 — Auto Scheduler) ══════════════════════════════════
+
+export const kbmJadwal = pgTable("kbm_jadwal", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  academicYearId: uuid("academic_year_id").references(() => academicYears.id).notNull(),
+  semester: varchar("semester", { length: 10 }).notNull(),
+  guruId: uuid("guru_id").references(() => employees.id, { onDelete: "cascade" }).notNull(),
+  kelasId: uuid("kelas_id").references(() => classes.id).notNull(),
+  subjectId: uuid("subject_id").references(() => kbmSubjects.id).notNull(),
+  ruanganId: uuid("ruangan_id").references(() => ruangan.id),
+  dayOfWeek: integer("day_of_week").notNull(), // 1=Senin..6=Sabtu
+  jamKe: integer("jam_ke").notNull(), // 1, 2, 3, ...
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

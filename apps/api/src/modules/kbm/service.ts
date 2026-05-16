@@ -2,6 +2,7 @@ import { db } from "../../db";
 import {
   kbmSubjects, distribusiJam, tugasTambahanMaster, tugasTambahan,
   ruangan, employees, classes, academicYears, jurnalMapelCodes,
+  kbmJadwal, teachingSubjects,
 } from "../../db/schema";
 import { eq, and, sql, desc, asc } from "drizzle-orm";
 
@@ -416,6 +417,301 @@ export class KbmService {
     const masterList = await db.select({ id: tugasTambahanMaster.id, namaTugas: tugasTambahanMaster.namaTugas, kategori: tugasTambahanMaster.kategori, defaultSetaraJam: tugasTambahanMaster.defaultSetaraJam })
       .from(tugasTambahanMaster);
     return { guruList, masterList };
+  }
+
+  // ═══ Jadwal (Phase 2 — Auto Scheduler) ═════════════════════
+
+  static async getJadwal(academicYearId: string, semester: string, filters?: { kelasId?: string; guruId?: string }) {
+    const conditions: any[] = [
+      eq(kbmJadwal.academicYearId, academicYearId),
+      eq(kbmJadwal.semester, semester),
+    ];
+    if (filters?.kelasId) conditions.push(eq(kbmJadwal.kelasId, filters.kelasId));
+    if (filters?.guruId) conditions.push(eq(kbmJadwal.guruId, filters.guruId));
+
+    return db.select({
+      id: kbmJadwal.id,
+      guruId: kbmJadwal.guruId,
+      guruName: employees.name,
+      kelasId: kbmJadwal.kelasId,
+      kelasName: classes.name,
+      subjectId: kbmJadwal.subjectId,
+      subjectKode: kbmSubjects.kode,
+      subjectNama: kbmSubjects.nama,
+      ruanganId: kbmJadwal.ruanganId,
+      ruanganNama: ruangan.nama,
+      dayOfWeek: kbmJadwal.dayOfWeek,
+      jamKe: kbmJadwal.jamKe,
+    })
+      .from(kbmJadwal)
+      .leftJoin(employees, eq(kbmJadwal.guruId, employees.id))
+      .leftJoin(classes, eq(kbmJadwal.kelasId, classes.id))
+      .leftJoin(kbmSubjects, eq(kbmJadwal.subjectId, kbmSubjects.id))
+      .leftJoin(ruangan, eq(kbmJadwal.ruanganId, ruangan.id))
+      .where(and(...conditions))
+      .orderBy(kbmJadwal.dayOfWeek, kbmJadwal.jamKe);
+  }
+
+  static async generateJadwal(academicYearId: string, semester: string, clearExisting = true) {
+    // 1. Clear existing jadwal if requested
+    if (clearExisting) {
+      await db.delete(kbmJadwal).where(
+        and(eq(kbmJadwal.academicYearId, academicYearId), eq(kbmJadwal.semester, semester))
+      );
+    }
+
+    // 2. Load distribusi jam
+    const distribusi = await db.select({
+      guruId: distribusiJam.guruId,
+      kelasId: distribusiJam.kelasId,
+      subjectId: distribusiJam.subjectId,
+      jumlahJam: distribusiJam.jumlahJam,
+    })
+      .from(distribusiJam)
+      .where(and(eq(distribusiJam.academicYearId, academicYearId), eq(distribusiJam.semester, semester)));
+
+    if (distribusi.length === 0) return { generated: 0, failed: 0, message: 'Tidak ada distribusi jam' };
+
+    // 3. Load time slots to know how many jam per day
+    const timeSlots = await db.execute(sql`
+      SELECT DISTINCT day_of_week, jam_ke FROM jurnal_time_slots 
+      WHERE is_active = true ORDER BY day_of_week, jam_ke
+    `);
+    
+    // Build available slots: day -> [jamKe list]
+    const availableDays = new Map<number, number[]>();
+    for (const ts of (timeSlots as any).rows || timeSlots) {
+      const day = Number(ts.day_of_week);
+      const jam = Number(ts.jam_ke);
+      if (!availableDays.has(day)) availableDays.set(day, []);
+      availableDays.get(day)!.push(jam);
+    }
+
+    // Fallback if no time slots configured: Senin-Sabtu, 8 jam/hari
+    if (availableDays.size === 0) {
+      for (let d = 1; d <= 6; d++) {
+        availableDays.set(d, [1, 2, 3, 4, 5, 6, 7, 8]);
+      }
+    }
+
+    // 4. Load ruangan
+    const rooms = await db.select({ id: ruangan.id, nama: ruangan.nama })
+      .from(ruangan).where(eq(ruangan.isActive, true));
+
+    // 5. Build slot assignments
+    // Track occupied: guruSlots[guruId][day-jam] = true, kelasSlots[kelasId][day-jam] = true
+    const guruSlots = new Map<string, Set<string>>();
+    const kelasSlots = new Map<string, Set<string>>();
+    const roomSlots = new Map<string, Set<string>>();
+
+    const slotKey = (day: number, jam: number) => `${day}-${jam}`;
+
+    // 6. Expand distribusi into individual slot requests, sorted by jumlahJam DESC (hardest first)
+    interface SlotRequest { guruId: string; kelasId: string; subjectId: string; }
+    const requests: SlotRequest[] = [];
+    const sorted = [...distribusi].sort((a, b) => b.jumlahJam - a.jumlahJam);
+    for (const d of sorted) {
+      for (let i = 0; i < d.jumlahJam; i++) {
+        requests.push({ guruId: d.guruId, kelasId: d.kelasId, subjectId: d.subjectId });
+      }
+    }
+
+    // 7. Track subject-per-day-per-class to spread (max 2 same subject per day per class)
+    const classSubjectDayCount = new Map<string, number>(); // "kelasId-subjectId-day" -> count
+
+    const toInsert: any[] = [];
+    const failed: SlotRequest[] = [];
+
+    for (const req of requests) {
+      if (!guruSlots.has(req.guruId)) guruSlots.set(req.guruId, new Set());
+      if (!kelasSlots.has(req.kelasId)) kelasSlots.set(req.kelasId, new Set());
+
+      let assigned = false;
+      // Try each day (shuffle days to spread load)
+      const days = Array.from(availableDays.keys()).sort(() => Math.random() - 0.5);
+
+      for (const day of days) {
+        const jams = availableDays.get(day)!;
+        for (const jam of jams) {
+          const sk = slotKey(day, jam);
+          const spreadKey = `${req.kelasId}-${req.subjectId}-${day}`;
+          const currentSpread = classSubjectDayCount.get(spreadKey) || 0;
+
+          // Check constraints
+          if (guruSlots.get(req.guruId)!.has(sk)) continue; // Guru busy
+          if (kelasSlots.get(req.kelasId)!.has(sk)) continue; // Kelas busy
+          if (currentSpread >= 2) continue; // Max 2 same subject per day per class
+
+          // Find available room
+          let assignedRoom: string | null = null;
+          for (const room of rooms) {
+            if (!roomSlots.has(room.id)) roomSlots.set(room.id, new Set());
+            if (!roomSlots.get(room.id)!.has(sk)) {
+              assignedRoom = room.id;
+              roomSlots.get(room.id)!.add(sk);
+              break;
+            }
+          }
+
+          // Assign
+          guruSlots.get(req.guruId)!.add(sk);
+          kelasSlots.get(req.kelasId)!.add(sk);
+          classSubjectDayCount.set(spreadKey, currentSpread + 1);
+
+          toInsert.push({
+            academicYearId, semester,
+            guruId: req.guruId, kelasId: req.kelasId, subjectId: req.subjectId,
+            ruanganId: assignedRoom, dayOfWeek: day, jamKe: jam,
+          });
+          assigned = true;
+          break;
+        }
+        if (assigned) break;
+      }
+
+      if (!assigned) failed.push(req);
+    }
+
+    // 8. Bulk insert
+    if (toInsert.length > 0) {
+      // Insert in batches of 100
+      for (let i = 0; i < toInsert.length; i += 100) {
+        await db.insert(kbmJadwal).values(toInsert.slice(i, i + 100));
+      }
+    }
+
+    return {
+      generated: toInsert.length,
+      failed: failed.length,
+      total: requests.length,
+      message: `${toInsert.length} slot berhasil di-generate${failed.length > 0 ? `, ${failed.length} gagal (slot penuh)` : ''}`,
+    };
+  }
+
+  static async moveSlot(id: string, dayOfWeek: number, jamKe: number, ruanganId?: string) {
+    const [slot] = await db.select().from(kbmJadwal).where(eq(kbmJadwal.id, id));
+    if (!slot) throw new Error('Slot tidak ditemukan');
+
+    // Check conflicts at new position
+    const sk = `${dayOfWeek}-${jamKe}`;
+    const conflicts = await db.select({ id: kbmJadwal.id }).from(kbmJadwal).where(and(
+      eq(kbmJadwal.academicYearId, slot.academicYearId),
+      eq(kbmJadwal.semester, slot.semester),
+      eq(kbmJadwal.dayOfWeek, dayOfWeek),
+      eq(kbmJadwal.jamKe, jamKe),
+      sql`(${kbmJadwal.guruId} = ${slot.guruId} OR ${kbmJadwal.kelasId} = ${slot.kelasId})`,
+      sql`${kbmJadwal.id} != ${id}`,
+    ));
+
+    if (conflicts.length > 0) throw new Error('Konflik: guru atau kelas sudah terisi di slot tujuan');
+
+    const updateData: any = { dayOfWeek, jamKe, updatedAt: new Date() };
+    if (ruanganId !== undefined) updateData.ruanganId = ruanganId || null;
+
+    const [updated] = await db.update(kbmJadwal).set(updateData).where(eq(kbmJadwal.id, id)).returning();
+    return updated;
+  }
+
+  static async checkConflicts(academicYearId: string, semester: string) {
+    const jadwal = await this.getJadwal(academicYearId, semester);
+    const guruConflicts: any[] = [];
+    const kelasConflicts: any[] = [];
+
+    // Group by day+jam and check for duplicates
+    const guruMap = new Map<string, any[]>();
+    const kelasMap = new Map<string, any[]>();
+
+    for (const j of jadwal) {
+      const sk = `${j.dayOfWeek}-${j.jamKe}`;
+      const gk = `${j.guruId}-${sk}`;
+      const kk = `${j.kelasId}-${sk}`;
+
+      if (!guruMap.has(gk)) guruMap.set(gk, []);
+      guruMap.get(gk)!.push(j);
+
+      if (!kelasMap.has(kk)) kelasMap.set(kk, []);
+      kelasMap.get(kk)!.push(j);
+    }
+
+    for (const [, items] of guruMap) {
+      if (items.length > 1) guruConflicts.push(items);
+    }
+    for (const [, items] of kelasMap) {
+      if (items.length > 1) kelasConflicts.push(items);
+    }
+
+    return { guruConflicts, kelasConflicts, hasConflicts: guruConflicts.length > 0 || kelasConflicts.length > 0 };
+  }
+
+  static async syncToJurnal(academicYearId: string, semester: string) {
+    // Smart merge: only remove teaching_subjects that were KBM-generated
+    const jadwal = await this.getJadwal(academicYearId, semester);
+    if (jadwal.length === 0) throw new Error('Tidak ada jadwal untuk di-sync');
+
+    // Get academic year info for tahunAjaran string
+    const [ay] = await db.select().from(academicYears).where(eq(academicYears.id, academicYearId));
+    const tahunAjaran = ay?.tahunAjaran || '';
+
+    // Load time slots for waktu
+    const timeSlotRows = await db.execute(sql`
+      SELECT day_of_week, jam_ke, waktu_mulai, waktu_selesai FROM jurnal_time_slots
+      WHERE is_active = true
+    `);
+    const timeMap = new Map<string, { waktuMulai: string; waktuSelesai: string }>();
+    for (const ts of (timeSlotRows as any).rows || timeSlotRows) {
+      timeMap.set(`${ts.day_of_week}-${ts.jam_ke}`, {
+        waktuMulai: ts.waktu_mulai || '',
+        waktuSelesai: ts.waktu_selesai || '',
+      });
+    }
+
+    // Delete only KBM-generated teaching_subjects for this semester
+    await db.execute(sql`
+      DELETE FROM teaching_subjects 
+      WHERE kbm_generated = true 
+        AND semester = ${semester}
+        AND tahun_ajaran = ${tahunAjaran}
+    `);
+
+    // Insert new teaching_subjects from jadwal
+    const inserts: any[] = [];
+    for (const j of jadwal) {
+      const ts = timeMap.get(`${j.dayOfWeek}-${j.jamKe}`);
+      inserts.push({
+        employeeId: j.guruId,
+        classId: j.kelasId,
+        subjectName: j.subjectNama || '',
+        dayOfWeek: j.dayOfWeek,
+        jamKe: String(j.jamKe),
+        waktuMulai: ts?.waktuMulai || null,
+        waktuSelesai: ts?.waktuSelesai || null,
+        semester,
+        tahunAjaran,
+        isActive: true,
+        kbmGenerated: true,
+      });
+    }
+
+    // Bulk insert
+    if (inserts.length > 0) {
+      for (let i = 0; i < inserts.length; i += 100) {
+        await db.insert(teachingSubjects).values(inserts.slice(i, i + 100));
+      }
+    }
+
+    return { synced: inserts.length, message: `${inserts.length} jadwal berhasil di-sync ke Jurnal Mengajar` };
+  }
+
+  static async clearJadwal(academicYearId: string, semester: string) {
+    const result = await db.delete(kbmJadwal).where(
+      and(eq(kbmJadwal.academicYearId, academicYearId), eq(kbmJadwal.semester, semester))
+    ).returning();
+    return { deleted: result.length, message: `${result.length} slot jadwal dihapus` };
+  }
+
+  static async deleteJadwalSlot(id: string) {
+    const [deleted] = await db.delete(kbmJadwal).where(eq(kbmJadwal.id, id)).returning();
+    return deleted;
   }
 
   // ═══ Dashboard ══════════════════════════════════════════════

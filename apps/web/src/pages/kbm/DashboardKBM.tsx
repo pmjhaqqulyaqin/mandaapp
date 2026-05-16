@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
-import { BarChart3, BookOpen, ClipboardList, Settings, Users } from 'lucide-react';
+import { BarChart3, BookOpen, Calendar, ClipboardList, Settings, Users } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../lib/api';
 import { SemesterSelector } from './components/SemesterSelector';
@@ -8,8 +8,9 @@ import { KBMDashboardTab } from './tabs/KBMDashboardTab';
 import { DistribusiJamTab } from './tabs/DistribusiJamTab';
 import { TugasTambahanTab } from './tabs/TugasTambahanTab';
 import { KBMSettingsTab } from './tabs/KBMSettingsTab';
+import { JadwalTab } from './tabs/JadwalTab';
 
-type TabKey = 'dashboard' | 'distribusi' | 'tugas' | 'settings';
+type TabKey = 'dashboard' | 'distribusi' | 'tugas' | 'jadwal' | 'settings';
 
 export const DashboardKBM = () => {
   const { user } = useAuth();
@@ -47,6 +48,7 @@ export const DashboardKBM = () => {
     { key: 'dashboard', icon: <BarChart3 size={15} />, label: 'Dashboard' },
     { key: 'distribusi', icon: <BookOpen size={15} />, label: 'Distribusi Jam' },
     { key: 'tugas', icon: <Users size={15} />, label: 'Tugas Tambahan' },
+    { key: 'jadwal', icon: <Calendar size={15} />, label: 'Jadwal' },
     ...(canEdit ? [{ key: 'settings' as TabKey, icon: <Settings size={15} />, label: 'Pengaturan' }] : []),
   ];
 
@@ -113,6 +115,13 @@ export const DashboardKBM = () => {
           )}
           {activeTab === 'tugas' && (
             <TugasTambahanTab
+              academicYearId={academicYearId}
+              semester={semester}
+              canEdit={canEdit}
+            />
+          )}
+          {activeTab === 'jadwal' && (
+            <JadwalTab
               academicYearId={academicYearId}
               semester={semester}
               canEdit={canEdit}

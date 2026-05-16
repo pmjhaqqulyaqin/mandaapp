@@ -590,6 +590,27 @@ async function runAutoMigration() {
       await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_tugas_guru ON tugas_tambahan(guru_id);`);
       await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_distribusi_unique ON distribusi_jam(academic_year_id, semester, guru_id, kelas_id, subject_id);`);
     } catch (idxErr) { /* indexes may already exist */ }
+
+    // Phase 2: kbm_jadwal staging table
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "kbm_jadwal" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "academic_year_id" uuid NOT NULL REFERENCES "academic_years"("id"),
+        "semester" varchar(10) NOT NULL,
+        "guru_id" uuid NOT NULL REFERENCES "employees"("id") ON DELETE CASCADE,
+        "kelas_id" uuid NOT NULL REFERENCES "classes"("id"),
+        "subject_id" uuid NOT NULL REFERENCES "kbm_subjects"("id"),
+        "ruangan_id" uuid REFERENCES "ruangan"("id"),
+        "day_of_week" integer NOT NULL,
+        "jam_ke" integer NOT NULL,
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `);
+    try {
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_kbm_jadwal_ay ON kbm_jadwal(academic_year_id, semester);`);
+      await db.execute(sql`ALTER TABLE "teaching_subjects" ADD COLUMN IF NOT EXISTS "kbm_generated" boolean DEFAULT false;`);
+    } catch (e) { /* column/index may already exist */ }
     logger.info("KBM tables ready.");
 
   } catch (err) {
