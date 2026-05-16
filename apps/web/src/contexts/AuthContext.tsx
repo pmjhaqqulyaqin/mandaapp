@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { authClient } from '../lib/auth-client';
 import { cacheCredentials, offlineLogin, clearCachedCredentials } from '../lib/offlineAuth';
 
@@ -59,93 +59,194 @@ const STAFF_ROLES: UserRole[] = [
   'wali_kelas', 'pembina_ekstra', 'guru', 'kepala_tu', 'pegawai_tu'
 ];
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    // Optimistically load user from localStorage to prevent logout on refresh
-    const savedUser = localStorage.getItem('mandualotim_user');
-    if (savedUser) {
-      try {
-        return JSON.parse(savedUser);
-      } catch (e) {
-        console.error('Failed to parse saved user:', e);
-        return null;
-      }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PERSISTENT USER STORAGE
+// Triple-backup strategy: localStorage + IndexedDB + persist request
+// Mobile browsers (especially iOS Safari ITP) can silently delete
+// localStorage after 7 days without visits. IndexedDB is more durable.
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const IDB_NAME = 'simanda-auth';
+const IDB_STORE = 'session';
+const IDB_KEY = 'current_user';
+const LS_KEY = 'mandualotim_user';
+
+/** Write user to both localStorage AND IndexedDB */
+async function persistUser(user: User): Promise<void> {
+  // 1. localStorage (synchronous, fast)
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(user));
+  } catch {}
+  
+  // 2. IndexedDB (async, more durable on mobile)
+  try {
+    const db = await openAuthDb();
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put({ key: IDB_KEY, user, updatedAt: Date.now() });
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) {
+    console.warn('[Auth] IndexedDB write failed:', e);
+  }
+}
+
+/** Clear user from both localStorage AND IndexedDB */
+async function clearPersistedUser(): Promise<void> {
+  try { localStorage.removeItem(LS_KEY); } catch {}
+  try {
+    const db = await openAuthDb();
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).delete(IDB_KEY);
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {}
+}
+
+/** Read user from localStorage first (fast), then IndexedDB as fallback */
+function readUserSync(): User | null {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+
+async function readUserFromIdb(): Promise<User | null> {
+  try {
+    const db = await openAuthDb();
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(IDB_KEY);
+    const result = await new Promise<any>((resolve, reject) => {
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    if (result?.user) return result.user as User;
+  } catch (e) {
+    console.warn('[Auth] IndexedDB read failed:', e);
+  }
+  return null;
+}
+
+/** Open auth-specific IndexedDB (separate from main app DB to avoid version conflicts) */
+let authDbInstance: IDBDatabase | null = null;
+function openAuthDb(): Promise<IDBDatabase> {
+  if (authDbInstance) {
+    try {
+      // Quick health check
+      authDbInstance.objectStoreNames;
+      return Promise.resolve(authDbInstance);
+    } catch {
+      authDbInstance = null;
     }
-    return null;
-  });
-  const [isLoading, setIsLoading] = useState(() => {
-    // If we have a saved user, we can show the UI immediately while verifying in background
-    return !localStorage.getItem('mandualotim_user');
-  });
-
-  // Fetch current session on mount
-  // STRATEGY (inspired by lapkin): Trust localStorage as the source of truth for "am I logged in?".
-  // The server session check is a BONUS — if it succeeds, we refresh user data.
-  // If it fails (cookie lost on mobile PWA, network error, etc.), we keep the cached user.
-  // The user is ONLY cleared on explicit logout (never on passive session check).
-  useEffect(() => {
-    const fetchSession = async () => {
-      try {
-        // If offline, skip session fetch entirely — trust localStorage
-        if (!navigator.onLine) {
-          console.log('[Auth] Offline — skipping session fetch, using cached user');
-          return;
-        }
-
-        const { data, error } = await authClient.getSession();
-        
-        if (error) {
-          console.error('[Auth] Session fetch error (non-fatal, keeping cached user):', error);
-          // Don't log out on error - could be temporary network issue on mobile
-          // Keep the saved user from localStorage
-          return;
-        }
-
-        if (data?.user) {
-          const parsedUser = parseUser(data.user);
-          setUser(parsedUser);
-          localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
-        } else {
-          // Server says no session — but DON'T clear localStorage!
-          // On mobile PWA, cookies (SameSite=None; Secure) are frequently purged
-          // by the OS while localStorage persists. Clearing here would force
-          // re-login every time the app is opened.
-          // Only clear if there was never a saved user (fresh visitor).
-          if (!localStorage.getItem('mandualotim_user')) {
-            setUser(null);
-          } else {
-            console.log('[Auth] Server returned no session, but localStorage has user — keeping login state (mobile PWA cookie loss is expected)');
-            // Keep existing user state — don't logout
-          }
-        }
-      } catch (error) {
-        console.error('[Auth] Session fetch exception (non-fatal, keeping cached user):', error);
-        // Network error - keep existing user state (don't logout on mobile)
-      } finally {
-        setIsLoading(false);
+  }
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) {
+        db.createObjectStore(IDB_STORE, { keyPath: 'key' });
       }
     };
+    req.onsuccess = () => {
+      authDbInstance = req.result;
+      authDbInstance.onclose = () => { authDbInstance = null; };
+      resolve(authDbInstance);
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
 
-    fetchSession();
+/** Request persistent storage so browser doesn't evict our data */
+async function requestPersistentStorage(): Promise<void> {
+  try {
+    if (navigator.storage?.persist) {
+      const granted = await navigator.storage.persist();
+      console.log('[Auth] Persistent storage:', granted ? 'granted ✓' : 'denied');
+    }
+  } catch {}
+}
 
-    // Silently refresh session every 14 minutes to keep it alive on mobile
-    // (more frequent than before to prevent cookie expiry)
-    const refreshInterval = setInterval(async () => {
-      if (!navigator.onLine) return; // Don't attempt when offline
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(() => {
+    // Optimistically load from localStorage (synchronous, fast)
+    return readUserSync();
+  });
+  const [isLoading, setIsLoading] = useState(() => {
+    // If localStorage has user, show UI immediately. But also need to check IDB.
+    return !readUserSync();
+  });
+  const idbChecked = useRef(false);
+
+  // On mount: check IndexedDB as fallback if localStorage was empty
+  // Also request persistent storage to prevent data eviction
+  useEffect(() => {
+    const init = async () => {
+      // Request persistent storage
+      requestPersistentStorage();
+
+      // If localStorage had no user, check IndexedDB
+      if (!user && !idbChecked.current) {
+        idbChecked.current = true;
+        const idbUser = await readUserFromIdb();
+        if (idbUser) {
+          console.log('[Auth] Restored user from IndexedDB (localStorage was empty!)');
+          setUser(idbUser);
+          // Re-populate localStorage from IDB
+          try { localStorage.setItem(LS_KEY, JSON.stringify(idbUser)); } catch {}
+          setIsLoading(false);
+          return; // Skip server session check — we already recovered the user
+        }
+      }
+
+      // Background session check (non-blocking, never causes logout)
+      if (navigator.onLine) {
+        try {
+          const { data, error } = await authClient.getSession();
+          if (error) {
+            console.log('[Auth] Session fetch error (non-fatal):', error);
+          } else if (data?.user) {
+            const parsedUser = parseUser(data.user);
+            setUser(parsedUser);
+            persistUser(parsedUser); // Dual-write
+          } else {
+            // Server says no session — DON'T clear anything!
+            // On mobile PWA, cookies get purged but our local storage persists.
+            console.log('[Auth] Server returned no session — keeping local user state');
+          }
+        } catch (e) {
+          console.log('[Auth] Session fetch exception (non-fatal):', e);
+        }
+      } else {
+        console.log('[Auth] Offline — skipping session fetch, using cached user');
+      }
+
+      setIsLoading(false);
+    };
+
+    init();
+  }, []);
+
+  // Silent session refresh every 14 minutes
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (!navigator.onLine) return;
       try {
         const { data } = await authClient.getSession();
         if (data?.user) {
           const parsedUser = parseUser(data.user);
           setUser(parsedUser);
-          localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
+          persistUser(parsedUser);
         }
-        // If no session returned, DON'T clear — same logic as mount
-      } catch (e) {
-        // Ignore - don't disrupt user on network issues
-      }
-    }, 14 * 60 * 1000); // 14 minutes
-
-    return () => clearInterval(refreshInterval);
+        // If no session, DON'T clear — same as mount logic
+      } catch {}
+    }, 14 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
@@ -159,7 +260,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('[Auth] Offline login result:', result);
         if (result.success) {
           setUser(result.user);
-          localStorage.setItem('mandualotim_user', JSON.stringify(result.user));
+          persistUser(result.user);
           return;
         }
         throw new Error(`OFFLINE_${result.reason.toUpperCase()}`);
@@ -187,7 +288,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const offResult = await offlineLogin(email, password);
         if (offResult.success) {
           setUser(offResult.user);
-          localStorage.setItem('mandualotim_user', JSON.stringify(offResult.user));
+          persistUser(offResult.user);
           return;
         }
         throw new Error(`OFFLINE_${offResult.reason.toUpperCase()}`);
@@ -200,7 +301,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const offResult = await offlineLogin(email, password);
           if (offResult.success) {
             setUser(offResult.user);
-            localStorage.setItem('mandualotim_user', JSON.stringify(offResult.user));
+            persistUser(offResult.user);
             return;
           }
           throw new Error(`OFFLINE_${offResult.reason.toUpperCase()}`);
@@ -211,7 +312,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data?.user) {
         const parsedUser = parseUser(data.user);
         setUser(parsedUser);
-        localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
+        persistUser(parsedUser); // Dual-write to localStorage + IndexedDB
         
         // Cache credentials for offline login — with verification
         try {
@@ -236,7 +337,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Logout error:', error);
     } finally {
       setUser(null);
-      localStorage.removeItem('mandualotim_user');
+      clearPersistedUser(); // Clear both localStorage + IndexedDB
       // NOTE: Do NOT clear offline credentials here!
       // They must persist across logouts so the user can log back in offline.
       // clearCachedCredentials() is only for "forget this device" scenarios.
@@ -250,7 +351,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const parsedUser = parseUser(data.user);
         // If the server still returns a stale role (e.g. 'student' due to cookie cache),
         // but localStorage has an optimistically-updated role, prefer localStorage
-        const savedUserRaw = localStorage.getItem('mandualotim_user');
+        const savedUserRaw = localStorage.getItem(LS_KEY);
         if (savedUserRaw) {
           try {
             const savedUser = JSON.parse(savedUserRaw);
@@ -260,7 +361,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } catch {}
         }
         setUser(parsedUser);
-        localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
+        persistUser(parsedUser);
       } else {
         // Server returned no session — DON'T clear user (mobile PWA cookie loss)
         console.log('[Auth] refreshSession: server returned no session, keeping cached user');
