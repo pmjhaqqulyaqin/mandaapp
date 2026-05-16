@@ -29,19 +29,34 @@ export const LandingPage = () => {
   const { isAuthenticated, user, isLoading } = useAuth();
 
   // ━━ AUTO-REDIRECT for logged-in users in PWA/standalone mode ━━
-  // When user opens PWA from home screen and lands on "/",
-  // redirect them to dashboard if they're already logged in
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+    || (window.navigator as any).standalone === true;
+  const shouldRedirect = isStandalone && !isLoading && isAuthenticated && user;
+
   useEffect(() => {
-    if (!isLoading && isAuthenticated && user) {
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
-        || (window.navigator as any).standalone === true;
-      if (isStandalone) {
-        // PWA mode: always redirect to appropriate page
-        const dest = user.role === 'orang_tua' ? '/portal-ortu' : '/dashboard';
-        navigate(dest, { replace: true });
-      }
+    if (shouldRedirect && user) {
+      const dest = user.role === 'orang_tua' ? '/portal-ortu' : '/dashboard';
+      navigate(dest, { replace: true });
     }
-  }, [isLoading, isAuthenticated, user, navigate]);
+  }, [shouldRedirect, user, navigate]);
+
+  // While redirect is pending, show a clean branded spinner (not the landing page)
+  if (isStandalone && (isLoading || (isAuthenticated && user))) {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        minHeight: '100vh', background: '#f9fafb',
+        fontFamily: "'Inter', system-ui, sans-serif",
+      }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: '50%',
+          border: '3px solid #e5e7eb', borderTopColor: '#16a34a',
+          animation: 'spin 0.7s linear infinite',
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   // Use lightweight summary endpoint (~5KB instead of 7.3MB)
   const { data: newsSummary = [] } = useQuery({
