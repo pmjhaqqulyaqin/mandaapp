@@ -466,6 +466,121 @@ export class KbmController {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
 
+  static async downloadTugasTemplate(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester } = req.query;
+      if (!academicYearId || !semester) {
+        return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      }
+      const data = await KbmService.getTemplateTugasData(academicYearId as string, semester as string);
+      const wb = xlsx.utils.book_new();
+
+      // Template sheet: NIP | Nama Guru | Nama Tugas | Keterangan | Setara Jam
+      const header = ['NIP', 'Nama Guru', 'Nama Tugas', 'Keterangan', 'Setara Jam'];
+      const rows: any[][] = [header];
+
+      // Pre-fill with existing assignments
+      for (const t of data.tugas) {
+        rows.push([t.guruNip || '', t.guruName || '', t.namaTugas || '', t.keterangan || '', t.setaraJam]);
+      }
+
+      // Add empty rows
+      for (let i = 0; i < 15; i++) {
+        rows.push(['', '', '', '', '']);
+      }
+
+      const ws = xlsx.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{ wch: 20 }, { wch: 30 }, { wch: 25 }, { wch: 20 }, { wch: 10 }];
+      xlsx.utils.book_append_sheet(wb, ws, 'Template Tugas');
+
+      // Ref Guru
+      const guruRows: any[][] = [['NIP', 'Nama Guru']];
+      data.guruList.forEach(g => guruRows.push([g.nip, g.name]));
+      const wsGuru = xlsx.utils.aoa_to_sheet(guruRows);
+      wsGuru['!cols'] = [{ wch: 20 }, { wch: 30 }];
+      xlsx.utils.book_append_sheet(wb, wsGuru, 'Ref Guru');
+
+      // Ref Tugas Master
+      const tugasRows: any[][] = [['Nama Tugas', 'Kategori', 'Default Jam']];
+      data.masterList.forEach(m => tugasRows.push([m.namaTugas, m.kategori, m.defaultSetaraJam]));
+      const wsTugas = xlsx.utils.aoa_to_sheet(tugasRows);
+      wsTugas['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 10 }];
+      xlsx.utils.book_append_sheet(wb, wsTugas, 'Ref Tugas');
+
+      const buf = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      res.setHeader('Content-Disposition', 'attachment; filename=template_tugas_tambahan.xlsx');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(Buffer.from(buf));
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async importTugas(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester } = req.body;
+      if (!academicYearId || !semester) {
+        return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      }
+      if (!req.file) {
+        return res.status(400).json({ error: "File Excel diperlukan" });
+      }
+
+      const wb = xlsx.read(req.file.buffer, { type: 'buffer' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rawRows: any[][] = xlsx.utils.sheet_to_json(ws, { header: 1 });
+
+      if (rawRows.length < 2) {
+        return res.status(400).json({ error: "File kosong atau format tidak valid" });
+      }
+
+      const lookups = await KbmService.getImportTugasLookups();
+      const nipMap = new Map(lookups.guruList.map(g => [String(g.nip || '').trim(), g.id]));
+      const nameMap = new Map(lookups.guruList.map(g => [g.name.toLowerCase().trim(), g.id]));
+      const tugasMap = new Map(lookups.masterList.map(m => [m.namaTugas.toLowerCase().trim(), m]));
+
+      const errors: string[] = [];
+      let imported = 0;
+
+      for (let i = 1; i < rawRows.length; i++) {
+        const row = rawRows[i];
+        if (!row || row.length < 3) continue;
+
+        const nip = String(row[0] || '').trim();
+        const nama = String(row[1] || '').trim();
+        const namaTugas = String(row[2] || '').trim();
+        const keterangan = String(row[3] || '').trim();
+        const setaraJam = parseInt(String(row[4] || '0')) || 0;
+
+        if (!nip && !nama) continue;
+        if (!namaTugas) { errors.push(`Baris ${i + 1}: Nama tugas kosong`); continue; }
+
+        const guruId = nipMap.get(nip) || nameMap.get(nama.toLowerCase());
+        if (!guruId) { errors.push(`Baris ${i + 1}: Guru "${nama}" (NIP: ${nip}) tidak ditemukan`); continue; }
+
+        const master = tugasMap.get(namaTugas.toLowerCase());
+        if (!master) { errors.push(`Baris ${i + 1}: Tugas "${namaTugas}" tidak ada di master`); continue; }
+
+        try {
+          await KbmService.createTugas({
+            academicYearId, semester, guruId,
+            masterId: master.id,
+            keterangan: keterangan || undefined,
+            setaraJam: setaraJam || master.defaultSetaraJam,
+          });
+          imported++;
+        } catch (err: any) {
+          errors.push(`Baris ${i + 1}: ${err.message}`);
+        }
+      }
+
+      res.json({
+        success: true,
+        imported,
+        errors: errors.length > 0 ? errors.slice(0, 20) : [],
+        message: `${imported} tugas berhasil diimport${errors.length > 0 ? `, ${errors.length} error` : ''}`,
+      });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
   // ═══ Ruangan ════════════════════════════════════════════════
 
   static async getRuangan(_req: Request, res: Response) {

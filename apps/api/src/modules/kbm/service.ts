@@ -402,6 +402,22 @@ export class KbmService {
     return { guruList, subjectList, classList };
   }
 
+  static async getTemplateTugasData(academicYearId: string, semester: string) {
+    const tugas = await this.getTugas(academicYearId, semester);
+    const guruList = await db.select({ id: employees.id, name: employees.name, nip: employees.nip })
+      .from(employees).where(eq(employees.type, 'Guru')).orderBy(employees.name);
+    const masterList = await db.select().from(tugasTambahanMaster).orderBy(tugasTambahanMaster.kategori, tugasTambahanMaster.namaTugas);
+    return { tugas, guruList, masterList };
+  }
+
+  static async getImportTugasLookups() {
+    const guruList = await db.select({ id: employees.id, name: employees.name, nip: employees.nip })
+      .from(employees).where(eq(employees.type, 'Guru'));
+    const masterList = await db.select({ id: tugasTambahanMaster.id, namaTugas: tugasTambahanMaster.namaTugas, kategori: tugasTambahanMaster.kategori, defaultSetaraJam: tugasTambahanMaster.defaultSetaraJam })
+      .from(tugasTambahanMaster);
+    return { guruList, masterList };
+  }
+
   // ═══ Dashboard ══════════════════════════════════════════════
 
   static async getDashboardStats(academicYearId: string, semester: string) {

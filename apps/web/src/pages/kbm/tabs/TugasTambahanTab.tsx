@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiClient } from '../../../lib/api';
-import { Plus, Trash2, Download, Pencil } from 'lucide-react';
+import { Plus, Trash2, Download, Pencil, Upload, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TugasAssignModal } from '../components/TugasAssignModal';
 
@@ -40,6 +40,8 @@ export const TugasTambahanTab = ({ academicYearId, semester, canEdit }: Props) =
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [editJam, setEditJam] = useState('');
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadData = () => {
     if (!academicYearId) return;
@@ -74,6 +76,46 @@ export const TugasTambahanTab = ({ academicYearId, semester, canEdit }: Props) =
     window.open(`/api/kbm/tugas/export?academicYearId=${academicYearId}&semester=${semester}`, '_blank');
   };
 
+  const handleDownloadTemplate = () => {
+    window.open(`/api/kbm/tugas/template?academicYearId=${academicYearId}&semester=${semester}`, '_blank');
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    setImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('academicYearId', academicYearId);
+      formData.append('semester', semester);
+
+      const res = await fetch('/api/kbm/tugas/import', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || 'Gagal import');
+        return;
+      }
+
+      toast.success(data.message);
+      if (data.errors?.length > 0) {
+        data.errors.forEach((err: string) => toast.warning(err, { duration: 5000 }));
+      }
+      loadData();
+    } catch {
+      toast.error('Gagal import file');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   if (!academicYearId) {
     return <div className="flex items-center justify-center py-20 text-gray-400 text-sm">Pilih Tahun Ajaran terlebih dahulu</div>;
   }
@@ -96,6 +138,18 @@ export const TugasTambahanTab = ({ academicYearId, semester, canEdit }: Props) =
         )}
         <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold rounded-lg border border-gray-200 dark:border-[#333] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] active:scale-95 transition-all">
           <Download size={14} /> Export Excel
+        </button>
+        <button onClick={handleDownloadTemplate} className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold rounded-lg border border-gray-200 dark:border-[#333] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] active:scale-95 transition-all">
+          <FileSpreadsheet size={14} /> Template
+        </button>
+        <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={importing}
+          className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-50"
+        >
+          {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+          {importing ? 'Importing...' : 'Import Excel'}
         </button>
       </div>
 

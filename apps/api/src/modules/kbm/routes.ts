@@ -39,6 +39,8 @@ router.post("/tugas", requireStaff, KbmController.createTugas);
 router.put("/tugas/:id", requireStaff, KbmController.updateTugas);
 router.delete("/tugas/:id", requireStaff, KbmController.deleteTugas);
 router.get("/tugas/export", requireStaff, KbmController.exportTugas);
+router.get("/tugas/template", requireStaff, KbmController.downloadTugasTemplate);
+router.post("/tugas/import", requireStaff, upload.single('file'), KbmController.importTugas);
 
 // Ruangan
 router.get("/ruangan", requireStaff, KbmController.getRuangan);
