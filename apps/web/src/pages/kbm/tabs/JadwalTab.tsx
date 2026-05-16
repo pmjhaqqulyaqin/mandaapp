@@ -55,6 +55,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [showConfirmGenerate, setShowConfirmGenerate] = useState(false);
   const [showConfirmSync, setShowConfirmSync] = useState(false);
   const [showConfirmClear, setShowConfirmClear] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [conflicts, setConflicts] = useState<any>(null);
 
   const loadData = useCallback(() => {
@@ -214,30 +215,39 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
         )}
 
         {/* More actions dropdown */}
-        <div className="relative group">
-          <button className="flex items-center gap-1 px-3 py-2 text-[12px] font-semibold rounded-lg border border-gray-200 dark:border-[#333] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a]">
+        <div className="relative">
+          <button onClick={() => setShowMenu(!showMenu)} className="flex items-center gap-1 px-3 py-2 text-[12px] font-semibold rounded-lg border border-gray-200 dark:border-[#333] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a]">
             <ChevronDown size={14} /> Lainnya
           </button>
-          <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-[#333] shadow-lg z-30 hidden group-hover:block">
-            <button onClick={() => handleExport('kelas')} className="w-full text-left px-3 py-2 text-[12px] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#222] flex items-center gap-2">
-              <Download size={12} /> Export per Kelas
-            </button>
-            <button onClick={() => handleExport('guru')} className="w-full text-left px-3 py-2 text-[12px] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#222] flex items-center gap-2">
-              <Download size={12} /> Export per Guru
-            </button>
-            <button onClick={handleCheckConflicts} className="w-full text-left px-3 py-2 text-[12px] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#222] flex items-center gap-2">
-              <AlertTriangle size={12} /> Cek Konflik
-            </button>
-            <div className="border-t border-gray-100 dark:border-[#333] my-1" />
-            <button onClick={handleExportGrid} className="w-full text-left px-3 py-2 text-[12px] text-amber-700 dark:text-amber-400 font-semibold hover:bg-amber-50 dark:hover:bg-amber-500/10 flex items-center gap-2">
-              <FileSpreadsheet size={12} /> Export Grid Kode
-            </button>
-            {canEdit && (
-              <button onClick={() => setShowConfirmClear(true)} className="w-full text-left px-3 py-2 text-[12px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center gap-2">
-                <Trash2 size={12} /> Hapus Semua Jadwal
-              </button>
-            )}
-          </div>
+          {showMenu && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={() => setShowMenu(false)} />
+              <div className="absolute right-0 mt-1 w-52 bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-[#333] shadow-xl z-30 py-1">
+                <button onClick={() => { handleExport('kelas'); setShowMenu(false); }} className="w-full text-left px-3 py-2.5 text-[12px] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#222] flex items-center gap-2">
+                  <Download size={13} /> Export per Kelas
+                </button>
+                <button onClick={() => { handleExport('guru'); setShowMenu(false); }} className="w-full text-left px-3 py-2.5 text-[12px] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#222] flex items-center gap-2">
+                  <Download size={13} /> Export per Guru
+                </button>
+                <div className="border-t border-gray-100 dark:border-[#333] my-1" />
+                <button onClick={() => { handleExportGrid(); setShowMenu(false); }} className="w-full text-left px-3 py-2.5 text-[12px] text-amber-700 dark:text-amber-400 font-semibold hover:bg-amber-50 dark:hover:bg-amber-500/10 flex items-center gap-2">
+                  <FileSpreadsheet size={13} /> Export Grid Kode
+                </button>
+                <div className="border-t border-gray-100 dark:border-[#333] my-1" />
+                <button onClick={() => { handleCheckConflicts(); setShowMenu(false); }} className="w-full text-left px-3 py-2.5 text-[12px] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#222] flex items-center gap-2">
+                  <AlertTriangle size={13} /> Cek Konflik
+                </button>
+                {canEdit && (
+                  <>
+                    <div className="border-t border-gray-100 dark:border-[#333] my-1" />
+                    <button onClick={() => { setShowConfirmClear(true); setShowMenu(false); }} className="w-full text-left px-3 py-2.5 text-[12px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center gap-2">
+                      <Trash2 size={13} /> Hapus Semua Jadwal
+                    </button>
+                  </>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
