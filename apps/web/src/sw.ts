@@ -25,8 +25,11 @@ const navigationRoute = new NavigationRoute(
 );
 registerRoute(navigationRoute);
 
-// Take control immediately on install/activate
-self.skipWaiting();
+// ━━ Activation Strategy ━━
+// skipWaiting() is called via message from the app (not automatically)
+// This prevents chunk loading errors when a new SW activates while the old
+// app is still running with old chunk references.
+// clientsClaim() ensures the new SW takes over existing tabs after activation.
 clientsClaim();
 
 // ━━ Handle messages from the app ━━

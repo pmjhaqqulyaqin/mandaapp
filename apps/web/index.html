@@ -68,17 +68,43 @@
         window.__pwaInstallCallbacks.forEach(function(cb) { cb(e); });
       });
 
-      // Service Worker Registration
+      // Service Worker Registration — Smart Update Strategy
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
           navigator.serviceWorker.register('/sw.js')
             .then(function(reg) {
               console.log('[PWA] Service Worker registered, scope:', reg.scope);
+
+              // Check for updates periodically (every 60 minutes)
               setInterval(function() { reg.update(); }, 60 * 60 * 1000);
+
+              // When a new SW is found, tell it to skip waiting so it activates
+              reg.addEventListener('updatefound', function() {
+                var newSW = reg.installing;
+                if (!newSW) return;
+                console.log('[PWA] New service worker installing...');
+                newSW.addEventListener('statechange', function() {
+                  if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New SW installed while old one still controls — tell it to activate
+                    console.log('[PWA] New SW installed, sending SKIP_WAITING');
+                    newSW.postMessage({ type: 'SKIP_WAITING' });
+                  }
+                });
+              });
             })
             .catch(function(err) {
               console.warn('[PWA] Service Worker registration failed:', err);
             });
+
+          // When the new SW takes control, reload ONCE to pick up new assets
+          // This prevents chunk load errors from old code referencing new hashes
+          var refreshing = false;
+          navigator.serviceWorker.addEventListener('controllerchange', function() {
+            if (refreshing) return;
+            refreshing = true;
+            console.log('[PWA] New SW activated — reloading for fresh assets');
+            window.location.reload();
+          });
         });
       }
     </script>

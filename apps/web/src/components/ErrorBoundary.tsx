@@ -9,6 +9,7 @@ interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
+  isAutoReloading: boolean;
 }
 
 /**
@@ -24,15 +25,61 @@ function isChunkLoadError(error: Error): boolean {
     msg.includes('dynamically imported module') ||
     msg.includes('loading module') ||
     msg.includes('importing a module') ||
+    msg.includes('failed to fetch') ||
     name === 'chunkerror' ||
     name === 'chunkloaderror'
   );
 }
 
+/**
+ * Silently clear all SW caches and unregister workers, then hard reload.
+ * Returns true if reload was triggered.
+ */
+async function silentClearAndReload(): Promise<boolean> {
+  const RELOAD_KEY = 'simanda_eb_reload';
+  const RELOAD_COUNT_KEY = 'simanda_eb_reload_count';
+  const MAX_RELOADS = 2; // Max auto-reloads within the time window
+  const WINDOW_MS = 120_000; // 2-minute window
+
+  const now = Date.now();
+  const lastReload = parseInt(sessionStorage.getItem(RELOAD_KEY) || '0', 10);
+  const reloadCount = parseInt(sessionStorage.getItem(RELOAD_COUNT_KEY) || '0', 10);
+
+  // Reset count if outside the window
+  if (now - lastReload > WINDOW_MS) {
+    sessionStorage.setItem(RELOAD_COUNT_KEY, '1');
+    sessionStorage.setItem(RELOAD_KEY, now.toString());
+  } else if (reloadCount >= MAX_RELOADS) {
+    // Too many reloads — give up auto-reloading
+    return false;
+  } else {
+    sessionStorage.setItem(RELOAD_COUNT_KEY, (reloadCount + 1).toString());
+    sessionStorage.setItem(RELOAD_KEY, now.toString());
+  }
+
+  try {
+    // 1. Delete all SW caches
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map(name => caches.delete(name)));
+
+    // 2. Unregister all service workers
+    const registrations = await navigator.serviceWorker?.getRegistrations();
+    if (registrations) {
+      await Promise.all(registrations.map(r => r.unregister()));
+    }
+  } catch (e) {
+    console.warn('[ErrorBoundary] Failed to clear SW caches:', e);
+  }
+
+  // 3. Hard reload (bypass cache)
+  window.location.reload();
+  return true;
+}
+
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = { hasError: false, error: null, errorInfo: null, isAutoReloading: false };
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
@@ -43,56 +90,72 @@ export class ErrorBoundary extends Component<Props, State> {
     this.setState({ errorInfo });
     console.error('[ErrorBoundary] Caught error:', error, errorInfo);
 
-    // Auto-reload on chunk load errors ONLY when online
-    // (offline chunk errors are expected — don't reload, it'll fail anyway)
+    // ━━ CHUNK LOAD ERROR + ONLINE ━━
+    // This is the "Pembaruan Tersedia" scenario.
+    // Strategy: auto-reload SILENTLY — no white screen, no scary UI.
+    // Show a branded loading spinner during the process.
     if (isChunkLoadError(error) && navigator.onLine) {
-      const reloadKey = 'simanda_chunk_reload';
-      const lastReload = sessionStorage.getItem(reloadKey);
-      const now = Date.now();
-
-      // Prevent infinite reload loop — only auto-reload once per 60 seconds
-      if (!lastReload || now - parseInt(lastReload) > 60000) {
-        sessionStorage.setItem(reloadKey, now.toString());
-        console.log('[ErrorBoundary] Chunk load error detected — clearing SW caches and reloading...');
-
-        // Clear ALL service worker caches and unregister SW to force fresh fetch
-        const clearAndReload = async () => {
-          try {
-            // 1. Delete all SW caches
-            const cacheNames = await caches.keys();
-            await Promise.all(cacheNames.map(name => caches.delete(name)));
-            console.log('[ErrorBoundary] Cleared', cacheNames.length, 'SW caches');
-
-            // 2. Unregister all service workers
-            const registrations = await navigator.serviceWorker?.getRegistrations();
-            if (registrations) {
-              await Promise.all(registrations.map(r => r.unregister()));
-              console.log('[ErrorBoundary] Unregistered', registrations.length, 'service workers');
-            }
-          } catch (e) {
-            console.warn('[ErrorBoundary] Failed to clear SW caches:', e);
-          }
-          // 3. Hard reload (bypass cache)
-          window.location.reload();
-        };
-
-        clearAndReload();
-        return;
-      }
+      this.setState({ isAutoReloading: true });
+      silentClearAndReload().then((reloaded) => {
+        if (!reloaded) {
+          // Exhausted auto-reload attempts — show manual UI
+          this.setState({ isAutoReloading: false });
+        }
+        // If reloaded === true, page will reload, state doesn't matter
+      });
+      return;
     }
   }
 
   handleReset = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null });
+    this.setState({ hasError: false, error: null, errorInfo: null, isAutoReloading: false });
   };
 
   handleGoHome = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null });
+    this.setState({ hasError: false, error: null, errorInfo: null, isAutoReloading: false });
     window.location.href = '/dashboard';
+  };
+
+  handleForceReload = () => {
+    // User explicitly clicked reload — reset counters and force
+    sessionStorage.removeItem('simanda_eb_reload');
+    sessionStorage.removeItem('simanda_eb_reload_count');
+    this.setState({ isAutoReloading: true });
+    silentClearAndReload();
   };
 
   render() {
     if (this.state.hasError) {
+      // ━━ AUTO-RELOADING: show subtle branded spinner instead of blank white ━━
+      if (this.state.isAutoReloading) {
+        return (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '100vh',
+            background: '#f9fafb',
+            fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+          }}>
+            <style>{`
+              @keyframes eb-spin { to { transform: rotate(360deg); } }
+              @keyframes eb-pulse { 0%,100%{opacity:.6} 50%{opacity:1} }
+            `}</style>
+            <div style={{
+              width: 40, height: 40, borderRadius: '50%',
+              border: '3px solid #e5e7eb', borderTopColor: '#16a34a',
+              animation: 'eb-spin 0.8s linear infinite',
+              marginBottom: 16,
+            }} />
+            <p style={{
+              color: '#6b7280', fontSize: 14, fontWeight: 500,
+              animation: 'eb-pulse 1.5s ease-in-out infinite',
+            }}>Memperbarui aplikasi…</p>
+          </div>
+        );
+      }
+
       if (this.props.fallback) {
         return this.props.fallback;
       }
@@ -104,13 +167,13 @@ export class ErrorBoundary extends Component<Props, State> {
       const title = isChunkErr && isOffline 
         ? 'Halaman Tidak Tersedia Offline'
         : isChunkErr 
-          ? 'Pembaruan Tersedia' 
+          ? 'Perlu Muat Ulang' 
           : 'Terjadi Kesalahan';
 
       const description = isChunkErr && isOffline
         ? 'Halaman ini belum di-cache untuk mode offline. Kembali ke Dashboard atau hubungkan internet untuk memuat halaman ini.'
         : isChunkErr
-          ? 'Aplikasi telah diperbarui. Muat ulang halaman untuk menggunakan versi terbaru.'
+          ? 'Versi terbaru tersedia namun gagal dimuat otomatis. Ketuk tombol di bawah untuk memuat ulang.'
           : 'Aplikasi mengalami masalah yang tidak terduga. Silakan coba muat ulang halaman.';
 
       const iconColor = isChunkErr && isOffline 
@@ -187,7 +250,7 @@ export class ErrorBoundary extends Component<Props, State> {
                     </button>
                   )}
                   <button
-                    onClick={() => window.location.reload()}
+                    onClick={this.handleForceReload}
                     className="px-5 py-2.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shadow-sm"
                   >
                     {isChunkErr ? '🔄 Muat Ulang Sekarang' : 'Muat Ulang Halaman'}
