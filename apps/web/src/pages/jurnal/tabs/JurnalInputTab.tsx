@@ -360,7 +360,7 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
                       {s.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{s.name}</p>
+                      <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{s.name}</p>
                     </div>
                     <div className="flex gap-1 shrink-0">
                       {['Hadir', 'Sakit', 'Izin', 'Alpa'].map(st => (
