@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../../../lib/api';
-import { Plus, Trash2, Pencil, Database, Copy, Check, X } from 'lucide-react';
+import { Plus, Trash2, Pencil, Database, Copy, Check, X, Clock, Hash } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -10,13 +10,15 @@ interface Props {
 }
 
 export const KBMSettingsTab = ({ academicYearId, semester, academicYears }: Props) => {
-  const [activeSection, setActiveSection] = useState<'mapel' | 'tugas' | 'ruangan' | 'copy'>('mapel');
+  const [activeSection, setActiveSection] = useState<'mapel' | 'kodeGuru' | 'waktu' | 'tugas' | 'ruangan' | 'copy'>('mapel');
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-1.5">
         {[
           { key: 'mapel', label: 'Master Mapel' },
+          { key: 'kodeGuru', label: 'Kode Guru' },
+          { key: 'waktu', label: 'Waktu Pelajaran' },
           { key: 'tugas', label: 'Master Tugas' },
           { key: 'ruangan', label: 'Ruangan' },
           { key: 'copy', label: 'Copy Semester' },
@@ -36,6 +38,8 @@ export const KBMSettingsTab = ({ academicYearId, semester, academicYears }: Prop
       </div>
 
       {activeSection === 'mapel' && <MapelSection />}
+      {activeSection === 'kodeGuru' && <KodeGuruSection />}
+      {activeSection === 'waktu' && <WaktuPelajaranSection />}
       {activeSection === 'tugas' && <TugasMasterSection />}
       {activeSection === 'ruangan' && <RuanganSection />}
       {activeSection === 'copy' && <CopySemesterSection academicYearId={academicYearId} semester={semester} academicYears={academicYears} />}
@@ -127,6 +131,230 @@ const MapelSection = () => {
                         <Trash2 size={12} />
                       </button>
                     )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ═══ Kode Guru Section ═══════════════════════════════════════
+
+const KodeGuruSection = () => {
+  const [gurus, setGurus] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editKode, setEditKode] = useState('');
+
+  const load = () => {
+    setLoading(true);
+    apiClient<any[]>('/kbm/guru-kode').then(setGurus).catch(() => {}).finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
+
+  const handleSave = async (id: string) => {
+    try {
+      await apiClient(`/kbm/guru-kode/${id}`, { method: 'PUT', data: { kodeGuru: editKode } });
+      setEditId(null);
+      load();
+      toast.success('Kode diperbarui');
+    } catch (err: any) { toast.error(err.message || 'Gagal'); }
+  };
+
+  const handleAutoAssign = async () => {
+    if (!confirm('Assign kode otomatis (1, 2, 3, ...) untuk semua guru?')) return;
+    try {
+      const res = await apiClient<any>('/kbm/guru-kode/auto', { method: 'POST' });
+      toast.success(res.message);
+      load();
+    } catch (err: any) { toast.error(err.message || 'Gagal'); }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200">Kode Guru</h3>
+          <p className="text-[10px] text-gray-400 mt-0.5">Kode singkat untuk format jadwal Excel (misal: 1, 2, 3...)</p>
+        </div>
+        <button onClick={handleAutoAssign} className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 dark:border-[#333] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a]">
+          <Hash size={12} /> Auto Assign
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="py-10 text-center"><div className="h-6 w-6 mx-auto animate-spin rounded-full border-3 border-amber-500 border-t-transparent" /></div>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-[#222]">
+          <table className="w-full text-[12px]">
+            <thead><tr className="bg-gray-50 dark:bg-[#161616]">
+              <th className="px-3 py-2 text-center font-semibold text-gray-500 w-16">Kode</th>
+              <th className="px-3 py-2 text-left font-semibold text-gray-500">Nama Guru</th>
+              <th className="px-3 py-2 text-left font-semibold text-gray-500 hidden md:table-cell">NIP</th>
+              <th className="px-3 py-2 text-center font-semibold text-gray-500 w-14">Aksi</th>
+            </tr></thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
+              {gurus.map((g, i) => (
+                <tr key={g.id}>
+                  <td className="px-3 py-1.5 text-center">
+                    {editId === g.id ? (
+                      <input
+                        type="text"
+                        value={editKode}
+                        onChange={e => setEditKode(e.target.value)}
+                        className="w-12 h-7 text-center text-[12px] rounded border border-amber-400 bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none"
+                        autoFocus
+                        onKeyDown={e => { if (e.key === 'Enter') handleSave(g.id); if (e.key === 'Escape') setEditId(null); }}
+                      />
+                    ) : (
+                      <span
+                        className="font-bold text-amber-600 dark:text-amber-400 cursor-pointer hover:underline"
+                        onClick={() => { setEditId(g.id); setEditKode(g.kodeGuru || ''); }}
+                      >
+                        {g.kodeGuru || <span className="text-gray-300 dark:text-gray-600">—</span>}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-1.5 text-gray-700 dark:text-gray-300 font-medium">{g.name}</td>
+                  <td className="px-3 py-1.5 text-gray-400 hidden md:table-cell text-[11px]">{g.nip}</td>
+                  <td className="px-3 py-1.5 text-center">
+                    {editId === g.id ? (
+                      <div className="flex items-center justify-center gap-1">
+                        <button onClick={() => handleSave(g.id)} className="p-0.5 rounded text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"><Check size={12} /></button>
+                        <button onClick={() => setEditId(null)} className="p-0.5 rounded text-gray-400 hover:bg-gray-100 dark:hover:bg-[#222]"><X size={12} /></button>
+                      </div>
+                    ) : (
+                      <button onClick={() => { setEditId(g.id); setEditKode(g.kodeGuru || ''); }} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-amber-500">
+                        <Pencil size={12} />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ═══ Waktu Pelajaran Section ═════════════════════════════════
+
+const DAY_NAMES: Record<number, string> = { 1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis', 5: 'Jumat', 6: 'Sabtu' };
+
+const WaktuPelajaranSection = () => {
+  const [slots, setSlots] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDay, setSelectedDay] = useState(1);
+  const [newJam, setNewJam] = useState('');
+  const [newMulai, setNewMulai] = useState('');
+  const [newSelesai, setNewSelesai] = useState('');
+
+  const load = () => {
+    setLoading(true);
+    apiClient<any[]>('/jurnal/time-slots').then(setSlots).catch(() => {}).finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
+
+  const daySlots = slots.filter(s => s.dayOfWeek === selectedDay).sort((a, b) => a.jamKe - b.jamKe);
+
+  const handleSave = async () => {
+    if (!newJam || !newMulai || !newSelesai) return toast.error('Lengkapi semua field');
+    try {
+      await apiClient('/jurnal/time-slots', {
+        method: 'POST',
+        data: { slots: [{ dayOfWeek: selectedDay, jamKe: Number(newJam), waktuMulai: newMulai, waktuSelesai: newSelesai }] },
+      });
+      setNewJam(''); setNewMulai(''); setNewSelesai('');
+      load();
+      toast.success('Waktu disimpan');
+    } catch (err: any) { toast.error(err.message || 'Gagal'); }
+  };
+
+  const handleCopyDay = async (fromDay: number) => {
+    try {
+      await apiClient('/jurnal/time-slots/copy', { method: 'POST', data: { fromDay, toDay: selectedDay } });
+      load();
+      toast.success(`Berhasil copy dari ${DAY_NAMES[fromDay]}`);
+    } catch (err: any) { toast.error(err.message || 'Gagal'); }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await apiClient(`/jurnal/time-slots/${id}`, { method: 'DELETE' });
+      load();
+      toast.success('Dihapus');
+    } catch { toast.error('Gagal'); }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200">Kelola Waktu Pelajaran</h3>
+        <p className="text-[10px] text-gray-400 mt-0.5">Atur jam pelajaran per hari. Digunakan oleh auto-scheduler dan Jurnal Mengajar.</p>
+      </div>
+
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5, 6].map(d => (
+          <button
+            key={d}
+            onClick={() => setSelectedDay(d)}
+            className={`px-2.5 py-1.5 text-[11px] font-semibold rounded-lg transition-all ${
+              selectedDay === d ? 'bg-amber-500 text-white' : 'bg-gray-100 dark:bg-[#1a1a1a] text-gray-500 hover:bg-gray-200 dark:hover:bg-[#222]'
+            }`}
+          >{DAY_NAMES[d]}</button>
+        ))}
+      </div>
+
+      {/* Copy from another day */}
+      <div className="flex items-center gap-2 text-[11px] text-gray-400">
+        <span>Copy dari:</span>
+        {[1, 2, 3, 4, 5, 6].filter(d => d !== selectedDay).map(d => (
+          <button key={d} onClick={() => handleCopyDay(d)} className="px-2 py-0.5 rounded border border-gray-200 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] text-[10px]">
+            {DAY_NAMES[d]}
+          </button>
+        ))}
+      </div>
+
+      {/* Add slot */}
+      <div className="flex items-center gap-2">
+        <input type="number" value={newJam} onChange={e => setNewJam(e.target.value)} placeholder="Jam Ke" className="w-16 px-2 py-1.5 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none" />
+        <input type="time" value={newMulai} onChange={e => setNewMulai(e.target.value)} className="px-2 py-1.5 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none" />
+        <span className="text-gray-400">—</span>
+        <input type="time" value={newSelesai} onChange={e => setNewSelesai(e.target.value)} className="px-2 py-1.5 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none" />
+        <button onClick={handleSave} className="p-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 active:scale-95"><Plus size={14} /></button>
+      </div>
+
+      {loading ? (
+        <div className="py-10 text-center"><div className="h-6 w-6 mx-auto animate-spin rounded-full border-3 border-amber-500 border-t-transparent" /></div>
+      ) : daySlots.length === 0 ? (
+        <p className="text-[12px] text-gray-400 py-6 text-center">Belum ada waktu untuk {DAY_NAMES[selectedDay]}</p>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-[#222]">
+          <table className="w-full text-[12px]">
+            <thead><tr className="bg-gray-50 dark:bg-[#161616]">
+              <th className="px-3 py-2 text-center font-semibold text-gray-500 w-16">Jam Ke</th>
+              <th className="px-3 py-2 text-center font-semibold text-gray-500">Mulai</th>
+              <th className="px-3 py-2 text-center font-semibold text-gray-500">Selesai</th>
+              <th className="px-3 py-2 text-center font-semibold text-gray-500 w-14">Aksi</th>
+            </tr></thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
+              {daySlots.map(s => (
+                <tr key={s.id}>
+                  <td className="px-3 py-1.5 text-center font-bold text-amber-600 dark:text-amber-400">{s.jamKe}</td>
+                  <td className="px-3 py-1.5 text-center text-gray-700 dark:text-gray-300">
+                    <Clock size={11} className="inline mr-1 opacity-40" />{s.waktuMulai}
+                  </td>
+                  <td className="px-3 py-1.5 text-center text-gray-700 dark:text-gray-300">{s.waktuSelesai}</td>
+                  <td className="px-3 py-1.5 text-center">
+                    <button onClick={() => handleDelete(s.id)} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 hover:text-red-500">
+                      <Trash2 size={12} />
+                    </button>
                   </td>
                 </tr>
               ))}

@@ -59,6 +59,12 @@ router.get("/jadwal/conflicts", requireStaff, KbmController.checkConflicts);
 router.post("/jadwal/sync", requireStaff, KbmController.syncToJurnal);
 router.get("/jadwal/export", requireStaff, KbmController.exportJadwal);
 
+// Kode Guru
+router.get("/guru-kode", requireStaff, KbmController.getGuruKode);
+router.put("/guru-kode/:id", requireStaff, KbmController.updateGuruKode);
+router.post("/guru-kode/bulk", requireStaff, KbmController.bulkUpdateGuruKode);
+router.post("/guru-kode/auto", requireStaff, KbmController.autoAssignGuruKode);
+
 // Dashboard
 router.get("/dashboard", requireStaff, KbmController.getDashboard);
 

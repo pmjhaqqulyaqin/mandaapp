@@ -716,6 +716,50 @@ export class KbmService {
 
   // ═══ Dashboard ══════════════════════════════════════════════
 
+  // ═══ Kode Guru ═════════════════════════════════════════════
+
+  static async getGuruWithKode() {
+    return db.select({
+      id: employees.id,
+      name: employees.name,
+      nip: employees.nip,
+      kodeGuru: employees.kodeGuru,
+    }).from(employees).where(eq(employees.type, 'Guru')).orderBy(employees.name);
+  }
+
+  static async updateGuruKode(guruId: string, kodeGuru: string) {
+    const [updated] = await db.update(employees)
+      .set({ kodeGuru: kodeGuru.trim() || null, updatedAt: new Date() })
+      .where(eq(employees.id, guruId)).returning();
+    return updated;
+  }
+
+  static async bulkUpdateGuruKode(updates: { guruId: string; kodeGuru: string }[]) {
+    let count = 0;
+    for (const u of updates) {
+      await db.update(employees)
+        .set({ kodeGuru: u.kodeGuru.trim() || null, updatedAt: new Date() })
+        .where(eq(employees.id, u.guruId));
+      count++;
+    }
+    return { updated: count, message: `${count} kode guru diperbarui` };
+  }
+
+  static async autoAssignGuruKode() {
+    const gurus = await db.select({ id: employees.id, name: employees.name })
+      .from(employees).where(eq(employees.type, 'Guru')).orderBy(employees.name);
+    let count = 0;
+    for (let i = 0; i < gurus.length; i++) {
+      await db.update(employees)
+        .set({ kodeGuru: String(i + 1), updatedAt: new Date() })
+        .where(eq(employees.id, gurus[i].id));
+      count++;
+    }
+    return { updated: count, message: `${count} kode guru di-assign otomatis (1, 2, 3, ...)` };
+  }
+
+  // ═══ Dashboard ══════════════════════════════════════════════
+
   static async getDashboardStats(academicYearId: string, semester: string) {
     const [guruCount] = await db.select({ count: sql<number>`count(*)` })
       .from(employees).where(eq(employees.type, 'Guru'));

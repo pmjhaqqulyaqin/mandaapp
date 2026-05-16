@@ -737,6 +737,39 @@ export class KbmController {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
 
+  // ═══ Kode Guru ══════════════════════════════════════════════
+
+  static async getGuruKode(_req: Request, res: Response) {
+    try {
+      const results = await KbmService.getGuruWithKode();
+      res.json(results);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async updateGuruKode(req: Request, res: Response) {
+    try {
+      const { kodeGuru } = req.body;
+      const result = await KbmService.updateGuruKode(req.params.id, kodeGuru || '');
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async bulkUpdateGuruKode(req: Request, res: Response) {
+    try {
+      const { updates } = req.body;
+      if (!updates || !Array.isArray(updates)) return res.status(400).json({ error: "updates array diperlukan" });
+      const result = await KbmService.bulkUpdateGuruKode(updates);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async autoAssignGuruKode(_req: Request, res: Response) {
+    try {
+      const result = await KbmService.autoAssignGuruKode();
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
   // ═══ Dashboard ══════════════════════════════════════════════
 
   static async getDashboard(req: Request, res: Response) {
