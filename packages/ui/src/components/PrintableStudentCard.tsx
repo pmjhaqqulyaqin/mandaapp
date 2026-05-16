@@ -166,7 +166,7 @@ export const PrintableStudentCard = ({
         
         <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
           {/* HEADER */}
-          <div style={{ width: '100%', height: '130px', backgroundColor: bgUrl ? 'transparent' : headerColor, display: 'flex', alignItems: 'center', padding: '0 65px', justifyContent: 'space-between' }}>
+          <div style={{ width: '100%', height: '130px', backgroundColor: bgUrl ? 'transparent' : headerColor, display: 'flex', alignItems: 'center', padding: '0 85px', justifyContent: 'space-between' }}>
             <img src={kemenagLogoUrl} alt="Kemenag" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
             <div style={{ flex: 1, textAlign: 'center', color: textColor }}>
               <div style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '1px' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
@@ -202,18 +202,18 @@ export const PrintableStudentCard = ({
             </div>
 
             {/* Middle Column: Identity Data */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '0 20px', marginTop: '8px' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '0 10px', marginTop: '8px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '110px 12px 1fr', rowGap: '8px', columnGap: '4px', fontSize: '18px', color: textColor, fontWeight: 700 }}>
                 <div>NAMA</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.name}</div>
                 <div>NIS/NISN</div><div>:</div><div style={{ fontWeight: 500 }}>{student.nisn}</div>
                 <div>T.T.L</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.birthPlace}, {formatDate(student.birthDate)}</div>
-                <div>JEN. KELAMIN</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.gender || '-'}</div>
+                <div>J.K.</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.gender || '-'}</div>
                 <div>ALAMAT</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase', lineHeight: 1.3, fontSize: '16px' }}>{student.address || '-'}</div>
               </div>
             </div>
 
             {/* Right Column: Large QR Code for Presensi */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginLeft: '15px', marginTop: '8px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginLeft: '5px', marginTop: '8px', flexShrink: 0 }}>
               <LocalQRCode data={student.nisn} size={140} style={{ width: '140px', height: '140px', borderRadius: '8px' }} />
               <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.5px', color: textColor, marginTop: '4px', textAlign: 'center' }}>SCAN PRESENSI</div>
             </div>
