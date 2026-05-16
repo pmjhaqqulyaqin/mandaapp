@@ -546,15 +546,17 @@ export const JurnalSettingsTab = () => {
           <div className="px-3 pb-3 border-t border-gray-100 dark:border-gray-800">
             <p className="text-[10px] text-gray-500 py-2">Atur kode huruf untuk setiap mata pelajaran. Kode ini digunakan di template Excel jadwal (misal: A=Al-Quran Hadits).</p>
             {/* Add new */}
-            <div className="flex gap-2 mb-3">
-              <input type="text" placeholder="Kode" maxLength={3} value={newMapelKode}
-                onChange={e => setNewMapelKode(e.target.value.toUpperCase())}
-                className="w-14 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-xs text-center font-bold" />
-              <input type="text" placeholder="Nama Mata Pelajaran" value={newMapelName}
-                onChange={e => setNewMapelName(e.target.value)}
-                className="flex-1 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs" />
+            <div className="flex flex-wrap gap-2 mb-3">
+              <div className="flex gap-2 flex-1 min-w-0">
+                <input type="text" placeholder="Kode" maxLength={3} value={newMapelKode}
+                  onChange={e => setNewMapelKode(e.target.value.toUpperCase())}
+                  className="w-14 shrink-0 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-xs text-center font-bold" />
+                <input type="text" placeholder="Nama Mata Pelajaran" value={newMapelName}
+                  onChange={e => setNewMapelName(e.target.value)}
+                  className="flex-1 min-w-0 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs" />
+              </div>
               <button onClick={handleAddMapel} disabled={savingMapel}
-                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 active:scale-95 flex items-center gap-1 disabled:opacity-50">
+                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 active:scale-95 flex items-center gap-1 disabled:opacity-50 shrink-0 w-full sm:w-auto">
                 <Plus size={12} /> Tambah
               </button>
             </div>
@@ -564,12 +566,12 @@ export const JurnalSettingsTab = () => {
                 <div key={m.id} className="flex items-center gap-2 py-1 group">
                   <input type="text" maxLength={3} value={m.kode}
                     onChange={e => handleEditMapel(m.id, 'kode', e.target.value.toUpperCase())}
-                    className="w-14 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-xs text-center font-bold" />
+                    className="w-14 shrink-0 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-xs text-center font-bold" />
                   <input type="text" value={m.subjectName}
                     onChange={e => handleEditMapel(m.id, 'subjectName', e.target.value)}
-                    className="flex-1 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs" />
+                    className="flex-1 min-w-0 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs" />
                   <button onClick={() => handleDeleteMapel(m.id)}
-                    className="p-1 opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-opacity">
+                    className="p-1 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-opacity shrink-0">
                     <Trash2 size={12} className="text-red-400" />
                   </button>
                 </div>
