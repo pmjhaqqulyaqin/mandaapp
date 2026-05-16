@@ -1,6 +1,6 @@
 import { db } from "../../db";
 import { employees, user as userTable } from "../../db/schema";
-import { eq, sql, ilike } from "drizzle-orm";
+import { eq, sql, ilike, and, isNull, ne } from "drizzle-orm";
 
 export class EmployeeService {
   static async getAllEmployees(filters?: { type?: string }) {
@@ -13,6 +13,61 @@ export class EmployeeService {
   static async getEmployeeById(id: string) {
     const results = await db.select().from(employees).where(eq(employees.id, id));
     return results[0] || null;
+  }
+
+  /** Find an employee by NIP (exact match, trimmed) */
+  static async findByNip(nip: string) {
+    const trimmed = nip.trim();
+    if (!trimmed) return null;
+    const results = await db.select().from(employees).where(eq(employees.nip, trimmed)).limit(1);
+    return results[0] || null;
+  }
+
+  /**
+   * Link a user account to an employee record via NIP.
+   * Validates:
+   * - Employee with that NIP exists
+   * - Employee is not already linked to a DIFFERENT user
+   * Returns the updated employee or throws an error.
+   */
+  static async linkUserToEmployee(nip: string, userId: string) {
+    const employee = await this.findByNip(nip);
+    if (!employee) {
+      throw new Error("NIP_NOT_FOUND");
+    }
+
+    // Check if already linked to a different user
+    if (employee.userId && employee.userId !== userId) {
+      throw new Error("NIP_ALREADY_LINKED");
+    }
+
+    // Already linked to this user — no-op
+    if (employee.userId === userId) {
+      return employee;
+    }
+
+    // Link it
+    const results = await db.update(employees)
+      .set({ userId, updatedAt: new Date() })
+      .where(eq(employees.id, employee.id))
+      .returning();
+    return results[0];
+  }
+
+  /** Update employee photo URL */
+  static async updatePhoto(employeeId: string, photoUrl: string) {
+    const results = await db.update(employees)
+      .set({ photoUrl, updatedAt: new Date() })
+      .where(eq(employees.id, employeeId))
+      .returning();
+    return results[0] || null;
+  }
+
+  /** Update user.image (better-auth user table) */
+  static async updateUserImage(userId: string, imageUrl: string) {
+    await db.update(userTable)
+      .set({ image: imageUrl, updatedAt: new Date() })
+      .where(eq(userTable.id, userId));
   }
 
   /**

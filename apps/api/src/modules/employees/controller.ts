@@ -26,6 +26,101 @@ export class EmployeeController {
     }
   }
 
+  /** Preview employee data by NIP (no linking, just lookup) */
+  static async lookupByNip(req: Request, res: Response) {
+    try {
+      const nip = req.params.nip?.trim();
+      if (!nip) return res.status(400).json({ error: "NIP diperlukan" });
+
+      const employee = await EmployeeService.findByNip(nip);
+      if (!employee) return res.json(null);
+
+      // Return safe preview data (no sensitive fields)
+      res.json({
+        id: employee.id,
+        name: employee.name,
+        nip: employee.nip,
+        type: employee.type,
+        rank: employee.rank,
+        grade: employee.grade,
+        position: employee.position,
+        gender: employee.gender,
+        photoUrl: employee.photoUrl,
+        isLinked: !!employee.userId,
+        isLinkedToCurrentUser: employee.userId === req.authUser?.id,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  /** Link the current user's account to an employee record via NIP */
+  static async linkByNip(req: Request, res: Response) {
+    try {
+      const user = req.authUser;
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+      const { nip } = req.body;
+      if (!nip?.trim()) return res.status(400).json({ error: "NIP diperlukan" });
+
+      const employee = await EmployeeService.linkUserToEmployee(nip.trim(), user.id);
+      res.json(employee);
+    } catch (error: any) {
+      if (error.message === "NIP_NOT_FOUND") {
+        return res.status(404).json({ error: "NIP tidak ditemukan dalam data pegawai" });
+      }
+      if (error.message === "NIP_ALREADY_LINKED") {
+        return res.status(409).json({ error: "NIP ini sudah terhubung dengan akun lain. Hubungi admin jika ini kesalahan." });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  /** Upload profile photo for the current user's employee record */
+  static async uploadPhoto(req: Request, res: Response) {
+    try {
+      const user = req.authUser;
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      if (!req.file) return res.status(400).json({ error: "Tidak ada file yang diunggah" });
+
+      // Get the employee linked to this user
+      const employee = await EmployeeService.resolveEmployeeForUser(user.id, user.name, user.email);
+
+      // Process image with sharp (resize for profile photos)
+      const sharp = require("sharp");
+      const path = require("path");
+      const fs = require("fs");
+
+      const uploadDir = path.join(process.cwd(), "uploads", "profiles");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      const filename = `profile_${user.id}_${Date.now()}.webp`;
+      const outputPath = path.join(uploadDir, filename);
+
+      await sharp(req.file.buffer)
+        .resize(400, 400, { fit: "cover", position: "centre" })
+        .webp({ quality: 85 })
+        .toFile(outputPath);
+
+      const photoUrl = `/uploads/profiles/${filename}`;
+
+      // Update employee photo if linked
+      if (employee) {
+        await EmployeeService.updatePhoto(employee.id, photoUrl);
+      }
+
+      // Always update user.image (avatar)
+      await EmployeeService.updateUserImage(user.id, photoUrl);
+
+      res.json({ photoUrl, employeeLinked: !!employee });
+    } catch (error: any) {
+      console.error("Profile photo upload error:", error);
+      res.status(500).json({ error: "Gagal mengunggah foto", details: error?.message });
+    }
+  }
+
   static async getById(req: Request, res: Response) {
     try {
       const data = await EmployeeService.getEmployeeById(req.params.id);
