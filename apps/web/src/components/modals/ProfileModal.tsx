@@ -66,7 +66,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, onL
             <div className="w-1/2 flex flex-col overflow-y-auto">
               {view === 'photo' && <PhotoView user={user} avatarUrl={avatarUrl} employee={employee} goBack={goBack} onDone={() => { refetchEmployee(); refreshSession(); }} />}
               {view === 'info' && <InfoView user={user} roleLabel={roleLabel} employee={employee} goBack={goBack} />}
-              {view === 'link-nip' && <LinkNipView user={user} employee={employee} goBack={goBack} onLinked={() => { refetchEmployee(); goBack(); }} />}
+              {view === 'link-nip' && <LinkNipView user={user} employee={employee} goBack={goBack} onLinked={() => { refetchEmployee(); refreshSession(); goBack(); }} />}
               {view === 'password' && <PasswordView goBack={goBack} />}
             </div>
           </div>
@@ -198,7 +198,7 @@ function PhotoView({ user, avatarUrl, employee, goBack, onDone }: any) {
           )}
         </div>
 
-        <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
         <button onClick={() => fileRef.current?.click()} className="px-5 py-2.5 bg-gray-100 dark:bg-gray-800 rounded-xl text-[13px] font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 active:scale-[0.98]">
           <Camera size={16} /> Ambil Foto / Pilih dari Galeri

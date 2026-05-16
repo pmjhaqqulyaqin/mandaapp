@@ -2,6 +2,11 @@ import { db } from "../../db";
 import { employees, user as userTable } from "../../db/schema";
 import { eq, sql, ilike, and, isNull, ne } from "drizzle-orm";
 
+/** Strip all non-alphanumeric chars for flexible NIP matching */
+function normalizeNip(nip: string): string {
+  return nip.replace(/[^a-zA-Z0-9]/g, '').trim();
+}
+
 export class EmployeeService {
   static async getAllEmployees(filters?: { type?: string }) {
     if (filters?.type) {
@@ -15,12 +20,21 @@ export class EmployeeService {
     return results[0] || null;
   }
 
-  /** Find an employee by NIP (exact match, trimmed) */
+  /** Find employee by NIP — tries exact match first, then normalized (stripped) match */
   static async findByNip(nip: string) {
     const trimmed = nip.trim();
     if (!trimmed) return null;
-    const results = await db.select().from(employees).where(eq(employees.nip, trimmed)).limit(1);
-    return results[0] || null;
+
+    // 1. Exact match
+    const exact = await db.select().from(employees).where(eq(employees.nip, trimmed)).limit(1);
+    if (exact.length > 0) return exact[0];
+
+    // 2. Normalized match (strip dashes, spaces, dots)
+    const normalized = normalizeNip(trimmed);
+    if (!normalized) return null;
+    const all = await db.select().from(employees);
+    const found = all.find(e => normalizeNip(e.nip) === normalized);
+    return found || null;
   }
 
   /**
@@ -51,6 +65,12 @@ export class EmployeeService {
       .set({ userId, updatedAt: new Date() })
       .where(eq(employees.id, employee.id))
       .returning();
+
+    // Sync: if employee has a photo, also set it as user avatar
+    if (employee.photoUrl) {
+      await this.updateUserImage(userId, employee.photoUrl);
+    }
+
     return results[0];
   }
 
