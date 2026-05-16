@@ -753,18 +753,31 @@ export class KbmController {
       const tahunAjaran = ay?.tahunAjaran || '';
       const semLabel = semester === 'ganjil' ? 'GANJIL' : 'GENAP';
 
-      // Fetch time slots for "Keterangan Waktu"
+      // Fetch time slots for "Keterangan Waktu" - group by 3 categories
       const timeSlots = await db.select().from(jurnalTimeSlots).orderBy(jurnalTimeSlots.dayOfWeek, jurnalTimeSlots.jamKe);
-      // Get unique slots (use day 1 as default, or collect all unique jamKe)
-      const uniqueJamSlots = new Map<number, { waktuMulai: string; waktuSelesai: string }>();
-      for (const ts of timeSlots) {
-        if (!uniqueJamSlots.has(ts.jamKe)) {
-          uniqueJamSlots.set(ts.jamKe, { waktuMulai: ts.waktuMulai, waktuSelesai: ts.waktuSelesai });
+
+      // Group: Senin(1), Selasa-Kamis+Sabtu(2), Jumat(5)
+      const getSlotsForDay = (day: number) => timeSlots
+        .filter(ts => ts.dayOfWeek === day)
+        .sort((a, b) => a.jamKe - b.jamKe)
+        .map(ts => ({ jamKe: ts.jamKe, waktu: `${ts.waktuMulai} - ${ts.waktuSelesai}` }));
+
+      const waktuGroups: { label: string; slots: { jamKe: number; waktu: string }[] }[] = [
+        { label: 'Senin', slots: getSlotsForDay(1) },
+        { label: 'Selasa-Kamis, Sabtu', slots: getSlotsForDay(2).length ? getSlotsForDay(2) : getSlotsForDay(3) },
+        { label: 'Jumat', slots: getSlotsForDay(5) },
+      ].filter(g => g.slots.length > 0);
+
+      // Flatten waktu groups into rows: [label-row, slot-rows...]
+      const waktuRows: { type: 'label' | 'slot'; label?: string; jamKe?: number; waktu?: string }[] = [];
+      for (const group of waktuGroups) {
+        waktuRows.push({ type: 'label', label: group.label });
+        waktuRows.push({ type: 'label', label: 'Jam Ke    Waktu' });
+        for (const s of group.slots) {
+          waktuRows.push({ type: 'slot', jamKe: s.jamKe, waktu: s.waktu });
         }
+        waktuRows.push({ type: 'label', label: '' }); // spacer
       }
-      const waktuRefs = Array.from(uniqueJamSlots.entries())
-        .sort((a, b) => a[0] - b[0])
-        .map(([jamKe, v]) => ({ jamKe, waktuMulai: v.waktuMulai, waktuSelesai: v.waktuSelesai }));
 
       // Get unique classes sorted
       const classMap = new Map<string, string>();
@@ -832,8 +845,6 @@ export class KbmController {
 
       // Row 4: sub header
       const subHeaderRow = makeRow();
-      subHeaderRow[WAKTU_REF_COL] = 'Jam Ke';
-      subHeaderRow[WAKTU_REF_COL + 1] = 'Waktu';
       rows.push(subHeaderRow);
 
       let refIdx = 0;
@@ -848,9 +859,15 @@ export class KbmController {
           row[MAPEL_REF_COL] = (subjectRefs[refIdx] as any).kode;
           row[MAPEL_REF_COL + 1] = (subjectRefs[refIdx] as any).nama;
         }
-        if (waktuIdx < waktuRefs.length) {
-          row[WAKTU_REF_COL] = waktuRefs[waktuIdx].jamKe;
-          row[WAKTU_REF_COL + 1] = `${waktuRefs[waktuIdx].waktuMulai} - ${waktuRefs[waktuIdx].waktuSelesai}`;
+        if (waktuIdx < waktuRows.length) {
+          const wr = waktuRows[waktuIdx];
+          if (wr.type === 'label') {
+            row[WAKTU_REF_COL] = wr.label || '';
+            row[WAKTU_REF_COL + 1] = '';
+          } else {
+            row[WAKTU_REF_COL] = wr.jamKe;
+            row[WAKTU_REF_COL + 1] = wr.waktu;
+          }
           waktuIdx++;
         }
         refIdx++;
@@ -881,7 +898,7 @@ export class KbmController {
       }
 
       // Write remaining refs
-      while (refIdx < guruRefs.length || refIdx < subjectRefs.length || waktuIdx < waktuRefs.length) {
+      while (refIdx < guruRefs.length || refIdx < subjectRefs.length || waktuIdx < waktuRows.length) {
         const row = makeRow();
         writeRef(row);
         rows.push(row);
