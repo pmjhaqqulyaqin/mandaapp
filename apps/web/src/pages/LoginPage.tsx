@@ -15,11 +15,22 @@ export const LoginPage = () => {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [hasOfflineLogin, setHasOfflineLogin] = useState(false);
   
-  const { login, isLoading: authLoading } = useAuth();
+  const { login, isLoading: authLoading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { get } = useSiteSettings();
+
+  // ━━ AUTO-REDIRECT if already logged in ━━
+  // This prevents showing login form to users who are already authenticated
+  // (e.g. when PWA opens to "/" → user clicks "Login" → already has session)
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const defaultDest = user.role === 'orang_tua' ? '/portal-ortu' : '/dashboard';
+      const from = location.state?.from?.pathname || defaultDest;
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate, location.state]);
 
   // Get dynamic hero background from settings, same as landing page
   const heroImageRaw = get('hero_background_url');

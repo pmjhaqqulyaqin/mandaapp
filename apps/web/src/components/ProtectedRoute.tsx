@@ -34,8 +34,10 @@ export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) 
   // Role-based access check
   if (allowedRoles && allowedRoles.length > 0 && user) {
     if (!allowedRoles.includes(user.role)) {
-      // orang_tua goes to portal, others go to dashboard
-      const fallback = user.role === 'orang_tua' ? '/portal-ortu' : '/dashboard';
+      // orang_tua goes to portal, students go to home, others stay on dashboard
+      const fallback = user.role === 'orang_tua' ? '/portal-ortu' 
+        : user.role === 'student' ? '/' 
+        : '/dashboard';
       return <Navigate to={fallback} replace />;
     }
   }

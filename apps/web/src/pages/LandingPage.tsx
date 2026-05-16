@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { HeroSection } from '@mandaapp/ui/src/components/HeroSection';
 import type { NewsItem as UINewsItem } from '@mandaapp/ui/src/components/NewsSection';
 
@@ -19,12 +19,29 @@ import { HeaderWithSettings } from '../components/HeaderWithSettings';
 import { API_BASE_URL } from '../lib/api';
 import { SEO } from '../components/SEO';
 import { PPDBPopupModal } from './ppdb/components/PPDBPopupModal';
+import { useAuth } from '../contexts/AuthContext';
 
 const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
 
 export const LandingPage = () => {
   const navigate = useNavigate();
   const { get } = useSiteSettings();
+  const { isAuthenticated, user, isLoading } = useAuth();
+
+  // ━━ AUTO-REDIRECT for logged-in users in PWA/standalone mode ━━
+  // When user opens PWA from home screen and lands on "/",
+  // redirect them to dashboard if they're already logged in
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user) {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+        || (window.navigator as any).standalone === true;
+      if (isStandalone) {
+        // PWA mode: always redirect to appropriate page
+        const dest = user.role === 'orang_tua' ? '/portal-ortu' : '/dashboard';
+        navigate(dest, { replace: true });
+      }
+    }
+  }, [isLoading, isAuthenticated, user, navigate]);
 
   // Use lightweight summary endpoint (~5KB instead of 7.3MB)
   const { data: newsSummary = [] } = useQuery({
