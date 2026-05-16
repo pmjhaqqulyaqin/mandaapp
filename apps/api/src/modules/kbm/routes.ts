@@ -1,8 +1,10 @@
 import { Router } from "express";
 import { KbmController } from "./controller";
 import { requireStaff } from "../auth/middleware";
+import multer from "multer";
 
 const router = Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 // All KBM routes require staff authentication
 
@@ -20,6 +22,8 @@ router.post("/distribusi/bulk", requireStaff, KbmController.bulkUpsertDistribusi
 router.delete("/distribusi/:id", requireStaff, KbmController.deleteDistribusi);
 router.get("/distribusi/summary", requireStaff, KbmController.getJtmSummary);
 router.get("/distribusi/export", requireStaff, KbmController.exportDistribusi);
+router.get("/distribusi/template", requireStaff, KbmController.downloadTemplate);
+router.post("/distribusi/import", requireStaff, upload.single('file'), KbmController.importDistribusi);
 router.post("/distribusi/copy", requireStaff, KbmController.copyDistribusi);
 
 // Tugas Tambahan Master

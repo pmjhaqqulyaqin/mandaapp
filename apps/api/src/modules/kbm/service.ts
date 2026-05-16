@@ -361,6 +361,47 @@ export class KbmService {
     return { seeded: newRooms.length, message: `${newRooms.length} ruangan ditambahkan dari data kelas` };
   }
 
+  // ═══ Template & Import ══════════════════════════════════════
+
+  static async getTemplateData(academicYearId: string, semester: string) {
+    const distribusi = await this.getDistribusi(academicYearId, semester);
+    const classList = await db.select({ id: classes.id, name: classes.name }).from(classes).orderBy(classes.name);
+    const guruList = await db.select({ id: employees.id, name: employees.name, nip: employees.nip })
+      .from(employees).where(eq(employees.type, 'Guru')).orderBy(employees.name);
+    const subjectList = await db.select({ id: kbmSubjects.id, kode: kbmSubjects.kode, nama: kbmSubjects.nama })
+      .from(kbmSubjects).where(eq(kbmSubjects.isActive, true)).orderBy(kbmSubjects.kode);
+
+    // Build rows grouped by guru+mapel with cells per class
+    const rowMap = new Map<string, { guruNip: string; guruName: string; subjectKode: string; subjectNama: string; cells: Record<string, number> }>();
+    for (const d of distribusi) {
+      const key = `${d.guruId}::${d.subjectId}`;
+      if (!rowMap.has(key)) {
+        rowMap.set(key, {
+          guruNip: d.guruNip || '', guruName: d.guruName || '',
+          subjectKode: d.subjectKode || '', subjectNama: d.subjectNama || '',
+          cells: {},
+        });
+      }
+      rowMap.get(key)!.cells[d.kelasName || ''] = d.jumlahJam;
+    }
+
+    return {
+      classList,
+      guruList,
+      subjectList,
+      rows: Array.from(rowMap.values()),
+    };
+  }
+
+  static async getImportLookups() {
+    const guruList = await db.select({ id: employees.id, name: employees.name, nip: employees.nip })
+      .from(employees).where(eq(employees.type, 'Guru'));
+    const subjectList = await db.select({ id: kbmSubjects.id, kode: kbmSubjects.kode, nama: kbmSubjects.nama })
+      .from(kbmSubjects).where(eq(kbmSubjects.isActive, true));
+    const classList = await db.select({ id: classes.id, name: classes.name }).from(classes);
+    return { guruList, subjectList, classList };
+  }
+
   // ═══ Dashboard ══════════════════════════════════════════════
 
   static async getDashboardStats(academicYearId: string, semester: string) {

@@ -106,6 +106,144 @@ export class KbmController {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
 
+  static async downloadTemplate(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester } = req.query;
+      if (!academicYearId || !semester) {
+        return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      }
+      const data = await KbmService.getTemplateData(academicYearId as string, semester as string);
+      const wb = xlsx.utils.book_new();
+
+      // Header row
+      const classNames = data.classList.map(c => c.name).sort();
+      const header = ['NIP', 'Nama Guru', 'Kode Mapel', 'Nama Mapel', ...classNames];
+      const rows: any[][] = [header];
+
+      // Pre-fill rows with existing guru+mapel combos (with current values)
+      for (const row of data.rows) {
+        const r: any[] = [row.guruNip, row.guruName, row.subjectKode, row.subjectNama];
+        for (const cn of classNames) {
+          r.push(row.cells[cn] || '');
+        }
+        rows.push(r);
+      }
+
+      // Add some empty rows for new entries
+      for (let i = 0; i < 10; i++) {
+        rows.push(['', '', '', '', ...classNames.map(() => '')]);
+      }
+
+      const ws = xlsx.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [
+        { wch: 20 }, { wch: 30 }, { wch: 10 }, { wch: 25 },
+        ...classNames.map(() => ({ wch: 6 })),
+      ];
+      xlsx.utils.book_append_sheet(wb, ws, 'Template Distribusi');
+
+      // Add reference sheets
+      // Guru list
+      const guruRows: any[][] = [['NIP', 'Nama Guru']];
+      data.guruList.forEach(g => guruRows.push([g.nip, g.name]));
+      const wsGuru = xlsx.utils.aoa_to_sheet(guruRows);
+      wsGuru['!cols'] = [{ wch: 20 }, { wch: 30 }];
+      xlsx.utils.book_append_sheet(wb, wsGuru, 'Ref Guru');
+
+      // Mapel list
+      const mapelRows: any[][] = [['Kode', 'Nama Mapel']];
+      data.subjectList.forEach(s => mapelRows.push([s.kode, s.nama]));
+      const wsMapel = xlsx.utils.aoa_to_sheet(mapelRows);
+      wsMapel['!cols'] = [{ wch: 10 }, { wch: 30 }];
+      xlsx.utils.book_append_sheet(wb, wsMapel, 'Ref Mapel');
+
+      const buf = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      res.setHeader('Content-Disposition', 'attachment; filename=template_distribusi_jam.xlsx');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(Buffer.from(buf));
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async importDistribusi(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester } = req.body;
+      if (!academicYearId || !semester) {
+        return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      }
+      if (!req.file) {
+        return res.status(400).json({ error: "File Excel diperlukan" });
+      }
+
+      const wb = xlsx.read(req.file.buffer, { type: 'buffer' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rawRows: any[][] = xlsx.utils.sheet_to_json(ws, { header: 1 });
+
+      if (rawRows.length < 2) {
+        return res.status(400).json({ error: "File kosong atau format tidak valid" });
+      }
+
+      const headerRow = rawRows[0] as string[];
+      // Find class columns (after 'Nama Mapel' column, index 4+)
+      const classColumns = headerRow.slice(4);
+
+      // Load lookup data
+      const lookups = await KbmService.getImportLookups();
+      const nipMap = new Map(lookups.guruList.map(g => [String(g.nip || '').trim(), g.id]));
+      const nameMap = new Map(lookups.guruList.map(g => [g.name.toLowerCase().trim(), g.id]));
+      const kodeMap = new Map(lookups.subjectList.map(s => [s.kode.toLowerCase().trim(), s.id]));
+      const classMap = new Map(lookups.classList.map(c => [c.name.toLowerCase().trim(), c.id]));
+
+      const records: any[] = [];
+      const errors: string[] = [];
+
+      for (let i = 1; i < rawRows.length; i++) {
+        const row = rawRows[i];
+        if (!row || row.length < 3) continue;
+
+        const nip = String(row[0] || '').trim();
+        const nama = String(row[1] || '').trim();
+        const kodeMapel = String(row[2] || '').trim();
+
+        if (!nip && !nama) continue; // Skip empty rows
+        if (!kodeMapel) { errors.push(`Baris ${i + 1}: Kode mapel kosong`); continue; }
+
+        // Match guru
+        let guruId = nipMap.get(nip) || nameMap.get(nama.toLowerCase());
+        if (!guruId) { errors.push(`Baris ${i + 1}: Guru "${nama}" (NIP: ${nip}) tidak ditemukan`); continue; }
+
+        // Match mapel
+        let subjectId = kodeMap.get(kodeMapel.toLowerCase());
+        if (!subjectId) { errors.push(`Baris ${i + 1}: Mapel kode "${kodeMapel}" tidak ditemukan`); continue; }
+
+        // Parse class columns
+        for (let j = 0; j < classColumns.length; j++) {
+          const className = String(classColumns[j] || '').trim();
+          const kelasId = classMap.get(className.toLowerCase());
+          if (!kelasId) continue;
+
+          const jam = parseInt(String(row[4 + j] || '0')) || 0;
+          if (jam > 0) {
+            records.push({ academicYearId, semester, guruId, kelasId, subjectId, jumlahJam: jam });
+          }
+        }
+      }
+
+      // Bulk upsert
+      let imported = 0;
+      if (records.length > 0) {
+        const results = await KbmService.bulkUpsertDistribusi(records);
+        imported = results.filter(r => r.action !== 'skipped').length;
+      }
+
+      res.json({
+        success: true,
+        imported,
+        total: records.length,
+        errors: errors.length > 0 ? errors.slice(0, 20) : [],
+        message: `${imported} data berhasil diimport${errors.length > 0 ? `, ${errors.length} error` : ''}`,
+      });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
   static async copyDistribusi(req: Request, res: Response) {
     try {
       const { sourceAYId, sourceSem, targetAYId, targetSem } = req.body;

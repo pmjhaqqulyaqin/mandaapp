@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiClient } from '../../../lib/api';
-import { Download, Plus, Search, Loader2 } from 'lucide-react';
+import { Download, Plus, Search, Loader2, Upload, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -32,6 +32,8 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
   const [addGuruId, setAddGuruId] = useState('');
   const [addSubjectId, setAddSubjectId] = useState('');
   const [guruList, setGuruList] = useState<any[]>([]);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const saveTimerRef = useRef<any>(null);
   const pendingChanges = useRef<Map<string, any>>(new Map());
 
@@ -147,6 +149,46 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
     window.open(`/api/kbm/distribusi/export?academicYearId=${academicYearId}&semester=${semester}`, '_blank');
   };
 
+  const handleDownloadTemplate = () => {
+    window.open(`/api/kbm/distribusi/template?academicYearId=${academicYearId}&semester=${semester}`, '_blank');
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = ''; // Reset so same file can be re-selected
+
+    setImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('academicYearId', academicYearId);
+      formData.append('semester', semester);
+
+      const res = await fetch('/api/kbm/distribusi/import', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || 'Gagal import');
+        return;
+      }
+
+      toast.success(data.message);
+      if (data.errors?.length > 0) {
+        data.errors.forEach((err: string) => toast.warning(err, { duration: 5000 }));
+      }
+      loadData(); // Refresh grid
+    } catch (err: any) {
+      toast.error('Gagal import file');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const filteredRows = searchTerm
     ? rows.filter(r => r.guruName.toLowerCase().includes(searchTerm.toLowerCase()) || r.subjectNama.toLowerCase().includes(searchTerm.toLowerCase()))
     : rows;
@@ -189,6 +231,18 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
         )}
         <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold rounded-lg border border-gray-200 dark:border-[#333] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] active:scale-95 transition-all">
           <Download size={14} /> Export Excel
+        </button>
+        <button onClick={handleDownloadTemplate} className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold rounded-lg border border-gray-200 dark:border-[#333] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] active:scale-95 transition-all">
+          <FileSpreadsheet size={14} /> Template
+        </button>
+        <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={importing}
+          className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-50"
+        >
+          {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+          {importing ? 'Importing...' : 'Import Excel'}
         </button>
         {saving && (
           <span className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
