@@ -9,20 +9,20 @@ import { SettingsService } from "../settings/service";
 // All available menu keys
 const ALL_MENU_KEYS = [
   "overview", "news", "calendar", "student-card", "students", "classes", "employees", "nis",
-  "gallery", "contacts", "pages", "menus", "settings", "users", "updates", "e-office", "ptsp", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal"
+  "gallery", "contacts", "pages", "menus", "settings", "users", "updates", "e-office", "ptsp", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm"
 ];
 
 const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
   admin: ALL_MENU_KEYS,
-  kepala_madrasah: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal"],
-  wakil_kepala: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal"],
+  kepala_madrasah: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm"],
+  wakil_kepala: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm"],
   kepala_unit: ["overview", "news", "calendar", "student-card", "gallery", "contacts", "exams", "penilaian-pmb", "attendance"],
   wali_kelas: ["overview", "news", "calendar", "student-card", "students", "gallery", "penilaian-pmb", "ijazah", "attendance", "jurnal"],
   pembina_ekstra: ["overview", "news", "calendar", "student-card", "gallery", "penilaian-pmb"],
   guru: ["overview", "news", "calendar", "student-card", "exams", "penilaian-pmb", "attendance", "jurnal"],
   student: ["overview", "calendar", "student-card"],
-  kepala_tu: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal"],
-  pegawai_tu: ["overview", "news", "calendar", "student-card", "students", "employees", "e-office", "ppdb", "penilaian-pmb", "ijazah", "attendance"],
+  kepala_tu: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm"],
+  pegawai_tu: ["overview", "news", "calendar", "student-card", "students", "employees", "e-office", "ppdb", "penilaian-pmb", "ijazah", "attendance", "kbm"],
 };
 
 export async function getAuditLogsHandler(req: Request, res: Response) {
