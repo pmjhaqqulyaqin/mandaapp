@@ -79,6 +79,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   // Fetch current session on mount
+  // STRATEGY (inspired by lapkin): Trust localStorage as the source of truth for "am I logged in?".
+  // The server session check is a BONUS — if it succeeds, we refresh user data.
+  // If it fails (cookie lost on mobile PWA, network error, etc.), we keep the cached user.
+  // The user is ONLY cleared on explicit logout (never on passive session check).
   useEffect(() => {
     const fetchSession = async () => {
       try {
@@ -91,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data, error } = await authClient.getSession();
         
         if (error) {
-          console.error('Failed to fetch session (error):', error);
+          console.error('[Auth] Session fetch error (non-fatal, keeping cached user):', error);
           // Don't log out on error - could be temporary network issue on mobile
           // Keep the saved user from localStorage
           return;
@@ -102,19 +106,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(parsedUser);
           localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
         } else {
-          // Server explicitly says no session exists
-          // Only clear if we don't have a saved user, or if the server clearly responded
+          // Server says no session — but DON'T clear localStorage!
+          // On mobile PWA, cookies (SameSite=None; Secure) are frequently purged
+          // by the OS while localStorage persists. Clearing here would force
+          // re-login every time the app is opened.
+          // Only clear if there was never a saved user (fresh visitor).
           if (!localStorage.getItem('mandualotim_user')) {
             setUser(null);
           } else {
-            // We have a saved user but server says no session
-            // This means the session truly expired - clear it
-            setUser(null);
-            localStorage.removeItem('mandualotim_user');
+            console.log('[Auth] Server returned no session, but localStorage has user — keeping login state (mobile PWA cookie loss is expected)');
+            // Keep existing user state — don't logout
           }
         }
       } catch (error) {
-        console.error('Failed to fetch session (exception):', error);
+        console.error('[Auth] Session fetch exception (non-fatal, keeping cached user):', error);
         // Network error - keep existing user state (don't logout on mobile)
       } finally {
         setIsLoading(false);
@@ -123,8 +128,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     fetchSession();
 
-    // Silently refresh session every 30 minutes to keep it alive on mobile
+    // Silently refresh session every 14 minutes to keep it alive on mobile
+    // (more frequent than before to prevent cookie expiry)
     const refreshInterval = setInterval(async () => {
+      if (!navigator.onLine) return; // Don't attempt when offline
       try {
         const { data } = await authClient.getSession();
         if (data?.user) {
@@ -132,10 +139,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(parsedUser);
           localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
         }
+        // If no session returned, DON'T clear — same logic as mount
       } catch (e) {
         // Ignore - don't disrupt user on network issues
       }
-    }, 30 * 60 * 1000); // 30 minutes
+    }, 14 * 60 * 1000); // 14 minutes
 
     return () => clearInterval(refreshInterval);
   }, []);
@@ -254,11 +262,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(parsedUser);
         localStorage.setItem('mandualotim_user', JSON.stringify(parsedUser));
       } else {
-        setUser(null);
-        localStorage.removeItem('mandualotim_user');
+        // Server returned no session — DON'T clear user (mobile PWA cookie loss)
+        console.log('[Auth] refreshSession: server returned no session, keeping cached user');
       }
     } catch (error) {
-      console.error('Failed to refresh session:', error);
+      console.error('[Auth] refreshSession error (non-fatal):', error);
     }
   }, []);
 
