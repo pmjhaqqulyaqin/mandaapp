@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTeachingSubjects, useTimeSlots } from '../../../hooks/api/useJurnal';
 import { apiClient, API_BASE_URL } from '../../../lib/api';
-import { jurnalService } from '../../../lib/services/jurnal';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Upload, Download, X, Save, FileSpreadsheet, AlertTriangle, Hash, BookOpen, Clock, Copy } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Download, X, Save, FileSpreadsheet, AlertTriangle } from 'lucide-react';
 
 const MAX_JAM = 12;
 
@@ -21,22 +20,6 @@ export const JurnalSettingsTab = () => {
   const [importResult, setImportResult] = useState<{ imported: number; errors: string[]; total: number } | null>(null);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showKodeGuru, setShowKodeGuru] = useState(false);
-  const [teacherCodes, setTeacherCodes] = useState<any[]>([]);
-  const [editedCodes, setEditedCodes] = useState<Record<string, string>>({});
-  const [savingCodes, setSavingCodes] = useState(false);
-  const [showKodeMapel, setShowKodeMapel] = useState(false);
-  const [mapelCodes, setMapelCodes] = useState<any[]>([]);
-  const [newMapelKode, setNewMapelKode] = useState('');
-  const [newMapelName, setNewMapelName] = useState('');
-  const [savingMapel, setSavingMapel] = useState(false);
-
-  // Time Slots state
-  const [showWaktu, setShowWaktu] = useState(false);
-  const [waktuDay, setWaktuDay] = useState(1); // active day tab
-  const [waktuEdits, setWaktuEdits] = useState<Record<number, { mulai: string; selesai: string }>>({}); // jamKe -> {mulai, selesai}
-  const [savingWaktu, setSavingWaktu] = useState(false);
-  const [copyFromDay, setCopyFromDay] = useState(0);
 
   // Build a time slot lookup map: "dayOfWeek-jamKe" -> {waktuMulai, waktuSelesai}
   const timeSlotsMap = useMemo(() => {
@@ -54,80 +37,6 @@ export const JurnalSettingsTab = () => {
     apiClient<any[]>('/classes').then(setClasses).catch(() => {});
   }, []);
 
-  // Populate waktu edits when day tab changes or data loads
-  useEffect(() => {
-    if (!timeSlots.query.data) return;
-    const edits: Record<number, { mulai: string; selesai: string }> = {};
-    for (let j = 1; j <= MAX_JAM; j++) {
-      const slot = timeSlots.query.data.find((s: any) => s.dayOfWeek === waktuDay && s.jamKe === j);
-      edits[j] = { mulai: slot?.waktuMulai || '', selesai: slot?.waktuSelesai || '' };
-    }
-    setWaktuEdits(edits);
-  }, [waktuDay, timeSlots.query.data]);
-
-  const loadTeacherCodes = async () => {
-    try {
-      const data = await jurnalService.getTeacherCodes();
-      setTeacherCodes(data);
-      const codes: Record<string, string> = {};
-      data.forEach((t: any) => { codes[t.id] = t.kodeGuru || ''; });
-      setEditedCodes(codes);
-    } catch { toast.error('Gagal memuat kode guru'); }
-  };
-
-  const handleSaveCodes = async () => {
-    setSavingCodes(true);
-    try {
-      const codes = Object.entries(editedCodes).map(([employeeId, kodeGuru]) => ({ employeeId, kodeGuru }));
-      await jurnalService.updateTeacherCodes(codes);
-      toast.success('Kode guru tersimpan');
-      await loadTeacherCodes();
-    } catch { toast.error('Gagal menyimpan'); }
-    setSavingCodes(false);
-  };
-
-  const loadMapelCodes = async () => {
-    try {
-      const data = await jurnalService.getMapelCodes();
-      setMapelCodes(data);
-    } catch { toast.error('Gagal memuat kode mapel'); }
-  };
-
-  const handleEditMapel = (id: string, field: 'kode' | 'subjectName', value: string) => {
-    setMapelCodes(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
-  };
-
-  const handleSaveMapelCodes = async () => {
-    setSavingMapel(true);
-    try {
-      await jurnalService.upsertMapelCodes(mapelCodes.map(m => ({ id: m.id, kode: m.kode, subjectName: m.subjectName })));
-      toast.success('Kode mapel tersimpan');
-      await loadMapelCodes();
-    } catch { toast.error('Gagal menyimpan'); }
-    setSavingMapel(false);
-  };
-
-  const handleAddMapel = async () => {
-    if (!newMapelKode || !newMapelName) { toast.error('Isi kode dan nama mapel'); return; }
-    setSavingMapel(true);
-    try {
-      await jurnalService.upsertMapelCodes([{ kode: newMapelKode.toUpperCase(), subjectName: newMapelName }]);
-      setNewMapelKode(''); setNewMapelName('');
-      toast.success('Mapel ditambahkan');
-      await loadMapelCodes();
-    } catch { toast.error('Gagal menambah'); }
-    setSavingMapel(false);
-  };
-
-  const handleDeleteMapel = async (id: string) => {
-    if (!confirm('Hapus kode mapel ini?')) return;
-    try {
-      await jurnalService.deleteMapelCode(id);
-      toast.success('Dihapus');
-      await loadMapelCodes();
-    } catch { toast.error('Gagal menghapus'); }
-  };
-
   const resetForm = () => { setForm({ employeeId: '', classId: '', subjectName: '', dayOfWeek: 1, jamKe: '', waktuMulai: '', waktuSelesai: '' }); setEditId(''); setShowForm(false); };
 
   // Parse jamKe string like "3", "1-2", "1-3" into {first, last}
@@ -142,7 +51,6 @@ export const JurnalSettingsTab = () => {
     return { first, last };
   };
 
-  // Auto-fill waktu when jamKe or dayOfWeek changes in form
   const handleJamKeChange = (jamKe: string) => {
     const updated = { ...form, jamKe };
     const range = parseJamRange(jamKe);
@@ -181,28 +89,6 @@ export const JurnalSettingsTab = () => {
     } catch (err: any) { toast.error(err.message || 'Gagal menyimpan'); }
   };
 
-  // Time slots handlers
-  const handleSaveWaktu = async () => {
-    setSavingWaktu(true);
-    try {
-      const slots = Object.entries(waktuEdits)
-        .filter(([_, v]) => v.mulai && v.selesai)
-        .map(([k, v]) => ({ dayOfWeek: waktuDay, jamKe: Number(k), waktuMulai: v.mulai, waktuSelesai: v.selesai }));
-      if (!slots.length) { toast.error('Isi minimal 1 jam pelajaran'); setSavingWaktu(false); return; }
-      await timeSlots.upsertMut.mutateAsync(slots);
-      toast.success(`Waktu hari ${DAYS[waktuDay]} tersimpan`);
-    } catch { toast.error('Gagal menyimpan waktu'); }
-    setSavingWaktu(false);
-  };
-
-  const handleCopyWaktu = async () => {
-    if (!copyFromDay) { toast.error('Pilih hari sumber'); return; }
-    try {
-      await timeSlots.copyMut.mutateAsync({ fromDay: copyFromDay, toDay: waktuDay });
-      toast.success(`Waktu disalin dari ${DAYS[copyFromDay]} ke ${DAYS[waktuDay]}`);
-      setCopyFromDay(0);
-    } catch { toast.error('Gagal menyalin waktu'); }
-  };
 
   const handleEdit = (item: any) => {
     setForm({ employeeId: item.employeeId, classId: item.classId, subjectName: item.subjectName, dayOfWeek: item.dayOfWeek, jamKe: item.jamKe || '', waktuMulai: item.waktuMulai || '', waktuSelesai: item.waktuSelesai || '' });
@@ -408,187 +294,7 @@ export const JurnalSettingsTab = () => {
         </div>
       </div>
 
-      {/* Kelola Waktu Pelajaran */}
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <button onClick={() => setShowWaktu(!showWaktu)}
-          className="w-full flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-[#222] transition-colors">
-          <span className="text-xs font-bold text-orange-700 dark:text-orange-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Clock size={14} /> Kelola Waktu Pelajaran
-          </span>
-          <span className="text-[10px] text-gray-400">{showWaktu ? '▲' : '▼'}</span>
-        </button>
-        {showWaktu && (
-          <div className="px-3 pb-3 border-t border-gray-100 dark:border-gray-800">
-            <p className="text-[10px] text-gray-500 py-2">Atur waktu mulai & selesai setiap jam pelajaran per hari. Waktu ini akan otomatis terisi saat menambah jadwal mengajar.</p>
-
-            {/* Day Tabs */}
-            <div className="flex gap-1 mb-3 overflow-x-auto pb-1">
-              {DAYS.slice(1).map((d, i) => {
-                const dayNum = i + 1;
-                const count = timeSlots.query.data?.filter((s: any) => s.dayOfWeek === dayNum).length || 0;
-                return (
-                  <button key={dayNum} onClick={() => setWaktuDay(dayNum)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                      waktuDay === dayNum
-                        ? 'bg-orange-600 text-white shadow-md'
-                        : 'bg-gray-100 dark:bg-[#222] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#333]'
-                    }`}>
-                    {d}
-                    {count > 0 && <span className="ml-1 text-[9px] opacity-70">({count})</span>}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Copy from day */}
-            <div className="flex items-center gap-2 mb-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg px-3 py-2">
-              <Copy size={12} className="text-blue-600 shrink-0" />
-              <span className="text-[10px] text-blue-700 dark:text-blue-400 font-semibold shrink-0">Salin dari:</span>
-              <select value={copyFromDay} onChange={e => setCopyFromDay(Number(e.target.value))}
-                className="bg-white dark:bg-[#111] border border-blue-200 dark:border-blue-700 rounded-lg px-2 py-1 text-xs flex-1">
-                <option value={0}>Pilih hari...</option>
-                {DAYS.slice(1).map((d, i) => {
-                  const dayNum = i + 1;
-                  if (dayNum === waktuDay) return null;
-                  const count = timeSlots.query.data?.filter((s: any) => s.dayOfWeek === dayNum).length || 0;
-                  return <option key={dayNum} value={dayNum} disabled={!count}>{d} {count ? `(${count} jam)` : '(kosong)'}</option>;
-                })}
-              </select>
-              <button onClick={handleCopyWaktu} disabled={!copyFromDay || timeSlots.copyMut.isPending}
-                className="px-3 py-1 bg-blue-600 text-white rounded-lg text-[10px] font-semibold hover:bg-blue-700 active:scale-95 disabled:opacity-50 shrink-0">
-                {timeSlots.copyMut.isPending ? '...' : 'Salin'}
-              </button>
-            </div>
-
-            {/* Time Grid */}
-            <div className="space-y-1.5 max-h-[420px] overflow-y-auto">
-              {Array.from({ length: MAX_JAM }, (_, i) => i + 1).map(jam => (
-                <div key={jam} className="flex items-center gap-2">
-                  <span className="w-10 text-center text-xs font-bold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-[#222] rounded-lg py-2 shrink-0">
-                    {jam}
-                  </span>
-                  <input
-                    type="time" placeholder="Mulai"
-                    value={waktuEdits[jam]?.mulai || ''}
-                    onChange={e => setWaktuEdits(prev => ({ ...prev, [jam]: { ...prev[jam], mulai: e.target.value } }))}
-                    className="flex-1 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-2 text-xs font-mono text-center"
-                  />
-                  <span className="text-gray-400 text-xs">—</span>
-                  <input
-                    type="time" placeholder="Selesai"
-                    value={waktuEdits[jam]?.selesai || ''}
-                    onChange={e => setWaktuEdits(prev => ({ ...prev, [jam]: { ...prev[jam], selesai: e.target.value } }))}
-                    className="flex-1 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-2 text-xs font-mono text-center"
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-end pt-3">
-              <button onClick={handleSaveWaktu} disabled={savingWaktu}
-                className="px-4 py-2 bg-orange-600 text-white rounded-lg text-xs font-semibold hover:bg-orange-700 active:scale-95 flex items-center gap-1 disabled:opacity-50">
-                <Save size={14} /> {savingWaktu ? 'Menyimpan...' : `Simpan Waktu ${DAYS[waktuDay]}`}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Kode Guru Management */}
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <button onClick={() => { setShowKodeGuru(!showKodeGuru); if (!showKodeGuru && teacherCodes.length === 0) loadTeacherCodes(); }}
-          className="w-full flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-[#222] transition-colors">
-          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Hash size={14} /> Kelola Kode Guru
-          </span>
-          <span className="text-[10px] text-gray-400">{showKodeGuru ? '▲' : '▼'}</span>
-        </button>
-        {showKodeGuru && (
-          <div className="px-3 pb-3 border-t border-gray-100 dark:border-gray-800">
-            <p className="text-[10px] text-gray-500 py-2">Atur kode singkat guru untuk digunakan di template Excel jadwal. Kode ini akan tampil di sheet "Kode Guru".</p>
-            <div className="max-h-72 overflow-y-auto space-y-1">
-              {teacherCodes.filter((t: any) => t.type === 'Guru').map((t: any) => (
-                <div key={t.id} className="flex items-center gap-2 py-1">
-                  <input
-                    type="text" placeholder="-" maxLength={5}
-                    value={editedCodes[t.id] || ''}
-                    onChange={e => setEditedCodes(c => ({ ...c, [t.id]: e.target.value }))}
-                    className="w-14 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-xs text-center font-bold"
-                  />
-                  <span className="text-xs text-gray-700 dark:text-gray-300 truncate flex-1">{t.name}</span>
-                  <span className="text-[10px] text-gray-400 shrink-0">{t.nip}</span>
-                </div>
-              ))}
-              {teacherCodes.filter((t: any) => t.type === 'Guru').length === 0 && (
-                <p className="text-xs text-gray-400 text-center py-4">Memuat...</p>
-              )}
-            </div>
-            <div className="flex justify-end pt-2">
-              <button onClick={handleSaveCodes} disabled={savingCodes}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 active:scale-95 flex items-center gap-1 disabled:opacity-50">
-                <Save size={14} /> {savingCodes ? 'Menyimpan...' : 'Simpan Kode'}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Kode Mapel Management */}
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <button onClick={() => { setShowKodeMapel(!showKodeMapel); if (!showKodeMapel && mapelCodes.length === 0) loadMapelCodes(); }}
-          className="w-full flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-[#222] transition-colors">
-          <span className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
-            <BookOpen size={14} /> Kelola Kode Mapel
-          </span>
-          <span className="text-[10px] text-gray-400">{showKodeMapel ? '▲' : '▼'}</span>
-        </button>
-        {showKodeMapel && (
-          <div className="px-3 pb-3 border-t border-gray-100 dark:border-gray-800">
-            <p className="text-[10px] text-gray-500 py-2">Atur kode huruf untuk setiap mata pelajaran. Kode ini digunakan di template Excel jadwal (misal: A=Al-Quran Hadits).</p>
-            {/* Add new */}
-            <div className="flex flex-wrap gap-2 mb-3">
-              <div className="flex gap-2 flex-1 min-w-0">
-                <input type="text" placeholder="Kode" maxLength={3} value={newMapelKode}
-                  onChange={e => setNewMapelKode(e.target.value.toUpperCase())}
-                  className="w-14 shrink-0 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-xs text-center font-bold" />
-                <input type="text" placeholder="Nama Mata Pelajaran" value={newMapelName}
-                  onChange={e => setNewMapelName(e.target.value)}
-                  className="flex-1 min-w-0 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs" />
-              </div>
-              <button onClick={handleAddMapel} disabled={savingMapel}
-                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 active:scale-95 flex items-center gap-1 disabled:opacity-50 shrink-0 w-full sm:w-auto">
-                <Plus size={12} /> Tambah
-              </button>
-            </div>
-            {/* List */}
-            <div className="max-h-72 overflow-y-auto space-y-1">
-              {mapelCodes.map((m: any) => (
-                <div key={m.id} className="flex items-center gap-2 py-1 group">
-                  <input type="text" maxLength={3} value={m.kode}
-                    onChange={e => handleEditMapel(m.id, 'kode', e.target.value.toUpperCase())}
-                    className="w-14 shrink-0 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-xs text-center font-bold" />
-                  <input type="text" value={m.subjectName}
-                    onChange={e => handleEditMapel(m.id, 'subjectName', e.target.value)}
-                    className="flex-1 min-w-0 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs" />
-                  <button onClick={() => handleDeleteMapel(m.id)}
-                    className="p-1 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-opacity shrink-0">
-                    <Trash2 size={12} className="text-red-400" />
-                  </button>
-                </div>
-              ))}
-              {mapelCodes.length === 0 && (
-                <p className="text-xs text-gray-400 text-center py-4">Memuat...</p>
-              )}
-            </div>
-            <div className="flex justify-end pt-2">
-              <button onClick={handleSaveMapelCodes} disabled={savingMapel}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 active:scale-95 flex items-center gap-1 disabled:opacity-50">
-                <Save size={14} /> {savingMapel ? 'Menyimpan...' : 'Simpan Kode Mapel'}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Note: Kelola Waktu Pelajaran, Kode Guru, dan Kode Mapel telah dipindahkan ke Pembagian Tugas KBM > Pengaturan */}
     </div>
   );
 };
