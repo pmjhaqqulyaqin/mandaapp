@@ -180,7 +180,7 @@ export const PrintableStudentCard = ({
 
           {/* TITLE - Centered */}
           <div style={{ textAlign: 'center', padding: '8px 30px 0 30px' }}>
-            <h2 style={{ fontSize: '52px', color: textColor, fontWeight: 900, fontStyle: 'italic', letterSpacing: '3px', margin: 0 }}>
+            <h2 style={{ fontSize: '36px', color: textColor, fontWeight: 900, fontStyle: 'italic', letterSpacing: '3px', margin: 0 }}>
               KARTU PELAJAR
             </h2>
           </div>
@@ -203,17 +203,18 @@ export const PrintableStudentCard = ({
 
             {/* Middle Column: Identity Data */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '0 20px', marginTop: '8px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '100px 15px 1fr', gap: '10px', fontSize: '16px', color: textColor, fontWeight: 700 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '110px 12px 1fr', rowGap: '8px', columnGap: '4px', fontSize: '18px', color: textColor, fontWeight: 700 }}>
                 <div>NAMA</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.name}</div>
                 <div>NIS/NISN</div><div>:</div><div style={{ fontWeight: 500 }}>{student.nisn}</div>
                 <div>T.T.L</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.birthPlace}, {formatDate(student.birthDate)}</div>
-                <div>ALAMAT</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase', lineHeight: 1.3, fontSize: '14px' }}>{student.address || '-'}</div>
+                <div>JEN. KELAMIN</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.gender || '-'}</div>
+                <div>ALAMAT</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase', lineHeight: 1.3, fontSize: '16px' }}>{student.address || '-'}</div>
               </div>
             </div>
 
             {/* Right Column: Large QR Code for Presensi */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginLeft: '15px', marginTop: '8px', flexShrink: 0 }}>
-              <LocalQRCode data={student.nisn} size={180} style={{ width: '180px', height: '180px', borderRadius: '8px' }} />
+              <LocalQRCode data={student.nisn} size={140} style={{ width: '140px', height: '140px', borderRadius: '8px' }} />
               <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.5px', color: textColor, marginTop: '4px', textAlign: 'center' }}>SCAN PRESENSI</div>
             </div>
           </div>
@@ -369,7 +370,7 @@ export const PrintableStudentCard = ({
 
           {/* 2.5 TITLE KARTU PELAJAR */}
           <div style={{ 
-            fontSize: '22px', 
+            fontSize: '17px', 
             fontWeight: 900, 
             color: textColor, 
             marginBottom: '10px', 
@@ -411,25 +412,34 @@ export const PrintableStudentCard = ({
           </div>
 
           {/* 5-7. INFO ROWS with icons */}
-          <div style={{ width: '85%', display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
+          <div style={{ width: '85%', display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '10px' }}>
             {/* NIS/NISN */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
               <IconNIS />
-              <span style={{ fontSize: '14px', fontWeight: 600, color: textColor }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: textColor }}>
                 NISN {student.nisn}
               </span>
             </div>
             {/* Tempat & Tanggal Lahir */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
               <IconCalendar />
-              <span style={{ fontSize: '14px', fontWeight: 600, color: textColor }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: textColor }}>
                 {student.birthPlace || '-'}, {formatDate(student.birthDate)}
+              </span>
+            </div>
+            {/* Jenis Kelamin */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={headerColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="4" /><path d="M20 21a8 8 0 1 0-16 0" />
+              </svg>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: textColor }}>
+                {student.gender || '-'}
               </span>
             </div>
             {/* Alamat */}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', justifyContent: 'center' }}>
               <div style={{ flexShrink: 0, marginTop: '2px' }}><IconLocation /></div>
-              <span style={{ fontSize: '13px', fontWeight: 500, color: textColor, textAlign: 'center', lineHeight: 1.3 }}>
+              <span style={{ fontSize: '12px', fontWeight: 500, color: textColor, textAlign: 'center', lineHeight: 1.3 }}>
                 {student.address || '-'}
               </span>
             </div>
