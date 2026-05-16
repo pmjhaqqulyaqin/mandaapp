@@ -746,12 +746,25 @@ export class KbmController {
       const guruList = await KbmService.getGuruWithKode();
       const subjectsList = await KbmService.getSubjects();
 
-      const { academicYears } = await import('../../db/schema');
+      const { academicYears, jurnalTimeSlots } = await import('../../db/schema');
       const { eq } = await import('drizzle-orm');
       const { db } = await import('../../db');
       const [ay] = await db.select().from(academicYears).where(eq(academicYears.id, academicYearId as string));
       const tahunAjaran = ay?.tahunAjaran || '';
       const semLabel = semester === 'ganjil' ? 'GANJIL' : 'GENAP';
+
+      // Fetch time slots for "Keterangan Waktu"
+      const timeSlots = await db.select().from(jurnalTimeSlots).orderBy(jurnalTimeSlots.dayOfWeek, jurnalTimeSlots.jamKe);
+      // Get unique slots (use day 1 as default, or collect all unique jamKe)
+      const uniqueJamSlots = new Map<number, { waktuMulai: string; waktuSelesai: string }>();
+      for (const ts of timeSlots) {
+        if (!uniqueJamSlots.has(ts.jamKe)) {
+          uniqueJamSlots.set(ts.jamKe, { waktuMulai: ts.waktuMulai, waktuSelesai: ts.waktuSelesai });
+        }
+      }
+      const waktuRefs = Array.from(uniqueJamSlots.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([jamKe, v]) => ({ jamKe, waktuMulai: v.waktuMulai, waktuSelesai: v.waktuSelesai }));
 
       // Get unique classes sorted
       const classMap = new Map<string, string>();
@@ -779,6 +792,8 @@ export class KbmController {
       const REF_GAP = 2;
       const GURU_REF_COL = 2 + classCount + REF_GAP;
       const MAPEL_REF_COL = GURU_REF_COL + 3;
+      const WAKTU_REF_COL = MAPEL_REF_COL + 3;
+      const TOTAL_COLS = WAKTU_REF_COL + 3;
 
       // Reference data
       const guruRefs = guruList.filter(g => g.kodeGuru).sort((a, b) => {
@@ -789,40 +804,42 @@ export class KbmController {
       });
       const subjectRefs = subjectsList.filter((s: any) => s.isActive !== false).sort((a: any, b: any) => (a.kode || '').localeCompare(b.kode || ''));
 
+      const makeRow = () => new Array(TOTAL_COLS).fill('');
       const rows: any[][] = [];
 
       // Row 0: Title
-      const titleRow: any[] = new Array(MAPEL_REF_COL + 2).fill('');
+      const titleRow = makeRow();
       titleRow[0] = `JADWAL PELAJARAN SEMESTER ${semLabel}`;
       rows.push(titleRow);
 
       // Row 1: Subtitle
-      const subRow: any[] = new Array(MAPEL_REF_COL + 2).fill('');
+      const subRow = makeRow();
       subRow[0] = `TAHUN AJARAN  ${tahunAjaran}`;
       rows.push(subRow);
 
       // Row 2: empty
-      rows.push([]);
+      rows.push(makeRow());
 
       // Row 3: Header
-      const headerRow: any[] = new Array(MAPEL_REF_COL + 2).fill('');
+      const headerRow = makeRow();
       headerRow[0] = 'HARI';
       headerRow[1] = 'JAM';
       classList.forEach((c, i) => { headerRow[2 + i] = c.name; });
       headerRow[GURU_REF_COL] = 'Kode & Nama Guru';
       headerRow[MAPEL_REF_COL] = 'Kode & Mata Pelajaran';
+      headerRow[WAKTU_REF_COL] = 'Keterangan Waktu';
       rows.push(headerRow);
 
-      // Row 4: sub header "KELAS/KODE GURU/KODE MAPEL"
-      const subHeaderRow: any[] = new Array(MAPEL_REF_COL + 2).fill('');
-      subHeaderRow[0] = '';
-      subHeaderRow[1] = '';
+      // Row 4: sub header
+      const subHeaderRow = makeRow();
+      subHeaderRow[WAKTU_REF_COL] = 'Jam Ke';
+      subHeaderRow[WAKTU_REF_COL + 1] = 'Waktu';
       rows.push(subHeaderRow);
 
       let refIdx = 0;
+      let waktuIdx = 0;
 
       const writeRef = (row: any[]) => {
-        while (row.length <= MAPEL_REF_COL + 1) row.push('');
         if (refIdx < guruRefs.length) {
           row[GURU_REF_COL] = guruRefs[refIdx].kodeGuru;
           row[GURU_REF_COL + 1] = guruRefs[refIdx].name;
@@ -830,6 +847,11 @@ export class KbmController {
         if (refIdx < subjectRefs.length) {
           row[MAPEL_REF_COL] = (subjectRefs[refIdx] as any).kode;
           row[MAPEL_REF_COL + 1] = (subjectRefs[refIdx] as any).nama;
+        }
+        if (waktuIdx < waktuRefs.length) {
+          row[WAKTU_REF_COL] = waktuRefs[waktuIdx].jamKe;
+          row[WAKTU_REF_COL + 1] = `${waktuRefs[waktuIdx].waktuMulai} - ${waktuRefs[waktuIdx].waktuSelesai}`;
+          waktuIdx++;
         }
         refIdx++;
       };
@@ -840,7 +862,7 @@ export class KbmController {
         if (maxJam === 0) continue;
 
         for (let jam = 1; jam <= maxJam; jam++) {
-          const row: any[] = new Array(MAPEL_REF_COL + 2).fill('');
+          const row = makeRow();
           row[0] = jam === 1 ? dayNames[day] : '';
           row[1] = jam;
 
@@ -859,8 +881,8 @@ export class KbmController {
       }
 
       // Write remaining refs
-      while (refIdx < guruRefs.length || refIdx < subjectRefs.length) {
-        const row: any[] = new Array(MAPEL_REF_COL + 2).fill('');
+      while (refIdx < guruRefs.length || refIdx < subjectRefs.length || waktuIdx < waktuRefs.length) {
+        const row = makeRow();
         writeRef(row);
         rows.push(row);
       }
@@ -871,8 +893,9 @@ export class KbmController {
       const cols: any[] = [{ wch: 10 }, { wch: 5 }];
       classList.forEach(() => cols.push({ wch: 9 }));
       for (let i = 0; i < REF_GAP; i++) cols.push({ wch: 2 });
-      cols.push({ wch: 6 }, { wch: 32 }, { wch: 2 });
-      cols.push({ wch: 5 }, { wch: 30 });
+      cols.push({ wch: 6 }, { wch: 32 }, { wch: 2 }); // guru ref
+      cols.push({ wch: 5 }, { wch: 28 }, { wch: 2 }); // mapel ref
+      cols.push({ wch: 7 }, { wch: 16 }); // waktu ref
       ws['!cols'] = cols;
 
       const wb = xlsx.utils.book_new();
