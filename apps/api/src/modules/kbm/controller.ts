@@ -362,6 +362,13 @@ export class KbmController {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
 
+  static async seedRuangan(_req: Request, res: Response) {
+    try {
+      const result = await KbmService.seedRuanganFromClasses();
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
   // ═══ Dashboard ══════════════════════════════════════════════
 
   static async getDashboard(req: Request, res: Response) {

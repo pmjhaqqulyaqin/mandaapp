@@ -274,12 +274,24 @@ const RuanganSection = () => {
     } catch { toast.error('Gagal'); }
   };
 
+  const handleSeedFromClasses = async () => {
+    try {
+      const res = await apiClient<any>('/kbm/ruangan/seed', { method: 'POST' });
+      toast.success(res.message);
+      load();
+    } catch (err: any) { toast.error(err.message || 'Gagal'); }
+  };
+
   const tipeLabels: Record<string, string> = { reguler: 'Reguler', lab_ipa: 'Lab IPA', lab_agama: 'Lab Agama', lab_komputer: 'Lab Komputer', perpustakaan: 'Perpustakaan' };
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200">Manajemen Ruangan</h3>
-
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200">Manajemen Ruangan</h3>
+        <button onClick={handleSeedFromClasses} className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 dark:border-[#333] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a]">
+          <Database size={12} /> Seed dari Kelas
+        </button>
+      </div>
       <div className="flex items-center gap-2 flex-wrap">
         <input type="text" value={newNama} onChange={e => setNewNama(e.target.value)} placeholder="Nama Ruangan" className="flex-1 min-w-[150px] px-2 py-1.5 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none focus:ring-1 focus:ring-amber-500" />
         <select value={newTipe} onChange={e => setNewTipe(e.target.value)} className="px-2 py-1.5 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none">

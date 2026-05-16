@@ -41,6 +41,7 @@ router.get("/ruangan", requireStaff, KbmController.getRuangan);
 router.post("/ruangan", requireStaff, KbmController.createRuangan);
 router.put("/ruangan/:id", requireStaff, KbmController.updateRuangan);
 router.delete("/ruangan/:id", requireStaff, KbmController.deleteRuangan);
+router.post("/ruangan/seed", requireStaff, KbmController.seedRuangan);
 
 // Dashboard
 router.get("/dashboard", requireStaff, KbmController.getDashboard);

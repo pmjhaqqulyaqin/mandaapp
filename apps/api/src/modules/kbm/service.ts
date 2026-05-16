@@ -339,6 +339,28 @@ export class KbmService {
     return results[0] || null;
   }
 
+  static async seedRuanganFromClasses() {
+    const classList = await db.select({ id: classes.id, name: classes.name }).from(classes).orderBy(classes.name);
+    if (classList.length === 0) return { seeded: 0, message: "Tidak ada data kelas" };
+
+    const existingRooms = await db.select({ nama: ruangan.nama }).from(ruangan);
+    const existingNames = new Set(existingRooms.map(r => r.nama));
+
+    const newRooms: { nama: string; tipe: string; kapasitas: number }[] = [];
+    for (const cls of classList) {
+      const roomName = `Ruang ${cls.name}`;
+      if (!existingNames.has(roomName)) {
+        newRooms.push({ nama: roomName, tipe: 'reguler', kapasitas: 40 });
+        existingNames.add(roomName);
+      }
+    }
+
+    if (newRooms.length === 0) return { seeded: 0, message: "Semua kelas sudah ada di ruangan" };
+
+    await db.insert(ruangan).values(newRooms);
+    return { seeded: newRooms.length, message: `${newRooms.length} ruangan ditambahkan dari data kelas` };
+  }
+
   // ═══ Dashboard ══════════════════════════════════════════════
 
   static async getDashboardStats(academicYearId: string, semester: string) {
