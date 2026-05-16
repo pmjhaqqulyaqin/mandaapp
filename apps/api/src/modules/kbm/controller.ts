@@ -737,6 +737,154 @@ export class KbmController {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
 
+  static async exportJadwalGrid(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester } = req.query;
+      if (!academicYearId || !semester) return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+
+      const jadwal = await KbmService.getJadwal(academicYearId as string, semester as string);
+      const guruList = await KbmService.getGuruWithKode();
+      const subjectsList = await KbmService.getSubjects();
+
+      const { academicYears } = await import('../../db/schema');
+      const { eq } = await import('drizzle-orm');
+      const { db } = await import('../../db');
+      const [ay] = await db.select().from(academicYears).where(eq(academicYears.id, academicYearId as string));
+      const tahunAjaran = ay?.tahunAjaran || '';
+      const semLabel = semester === 'ganjil' ? 'GANJIL' : 'GENAP';
+
+      // Get unique classes sorted
+      const classMap = new Map<string, string>();
+      jadwal.forEach((j: any) => { if (j.kelasId && j.kelasName) classMap.set(j.kelasId, j.kelasName); });
+      const classList = Array.from(classMap.entries())
+        .sort((a, b) => a[1].localeCompare(b[1]))
+        .map(([id, name]) => ({ id, name }));
+
+      // Lookups
+      const guruKodeMap = new Map<string, string>();
+      guruList.forEach(g => { if (g.kodeGuru) guruKodeMap.set(g.id, g.kodeGuru); });
+      const subjectKodeMap = new Map<string, string>();
+      subjectsList.forEach((s: any) => { subjectKodeMap.set(s.id, s.kode); });
+      const jadwalMap = new Map<string, any>();
+      jadwal.forEach((j: any) => jadwalMap.set(`${j.dayOfWeek}-${j.jamKe}-${j.kelasId}`, j));
+
+      const dayNames: Record<number, string> = { 1: 'SENIN', 2: 'SELASA', 3: 'RABU', 4: 'KAMIS', 5: 'JUMAT', 6: 'SABTU' };
+      const maxJamPerDay = new Map<number, number>();
+      jadwal.forEach((j: any) => {
+        const cur = maxJamPerDay.get(j.dayOfWeek) || 0;
+        if (j.jamKe > cur) maxJamPerDay.set(j.dayOfWeek, j.jamKe);
+      });
+
+      const classCount = classList.length;
+      const REF_GAP = 2;
+      const GURU_REF_COL = 2 + classCount + REF_GAP;
+      const MAPEL_REF_COL = GURU_REF_COL + 3;
+
+      // Reference data
+      const guruRefs = guruList.filter(g => g.kodeGuru).sort((a, b) => {
+        const aNum = parseInt(a.kodeGuru || '999');
+        const bNum = parseInt(b.kodeGuru || '999');
+        if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+        return (a.kodeGuru || '').localeCompare(b.kodeGuru || '');
+      });
+      const subjectRefs = subjectsList.filter((s: any) => s.isActive !== false).sort((a: any, b: any) => (a.kode || '').localeCompare(b.kode || ''));
+
+      const rows: any[][] = [];
+
+      // Row 0: Title
+      const titleRow: any[] = new Array(MAPEL_REF_COL + 2).fill('');
+      titleRow[0] = `JADWAL PELAJARAN SEMESTER ${semLabel}`;
+      rows.push(titleRow);
+
+      // Row 1: Subtitle
+      const subRow: any[] = new Array(MAPEL_REF_COL + 2).fill('');
+      subRow[0] = `TAHUN AJARAN  ${tahunAjaran}`;
+      rows.push(subRow);
+
+      // Row 2: empty
+      rows.push([]);
+
+      // Row 3: Header
+      const headerRow: any[] = new Array(MAPEL_REF_COL + 2).fill('');
+      headerRow[0] = 'HARI';
+      headerRow[1] = 'JAM';
+      classList.forEach((c, i) => { headerRow[2 + i] = c.name; });
+      headerRow[GURU_REF_COL] = 'Kode & Nama Guru';
+      headerRow[MAPEL_REF_COL] = 'Kode & Mata Pelajaran';
+      rows.push(headerRow);
+
+      // Row 4: sub header "KELAS/KODE GURU/KODE MAPEL"
+      const subHeaderRow: any[] = new Array(MAPEL_REF_COL + 2).fill('');
+      subHeaderRow[0] = '';
+      subHeaderRow[1] = '';
+      rows.push(subHeaderRow);
+
+      let refIdx = 0;
+
+      const writeRef = (row: any[]) => {
+        while (row.length <= MAPEL_REF_COL + 1) row.push('');
+        if (refIdx < guruRefs.length) {
+          row[GURU_REF_COL] = guruRefs[refIdx].kodeGuru;
+          row[GURU_REF_COL + 1] = guruRefs[refIdx].name;
+        }
+        if (refIdx < subjectRefs.length) {
+          row[MAPEL_REF_COL] = (subjectRefs[refIdx] as any).kode;
+          row[MAPEL_REF_COL + 1] = (subjectRefs[refIdx] as any).nama;
+        }
+        refIdx++;
+      };
+
+      // Data rows per day
+      for (const day of [1, 2, 3, 4, 5, 6]) {
+        const maxJam = maxJamPerDay.get(day) || 0;
+        if (maxJam === 0) continue;
+
+        for (let jam = 1; jam <= maxJam; jam++) {
+          const row: any[] = new Array(MAPEL_REF_COL + 2).fill('');
+          row[0] = jam === 1 ? dayNames[day] : '';
+          row[1] = jam;
+
+          for (let ci = 0; ci < classList.length; ci++) {
+            const entry = jadwalMap.get(`${day}-${jam}-${classList[ci].id}`);
+            if (entry) {
+              const gK = guruKodeMap.get(entry.guruId) || '?';
+              const sK = subjectKodeMap.get(entry.subjectId) || '?';
+              row[2 + ci] = `${gK}${sK}`;
+            }
+          }
+
+          writeRef(row);
+          rows.push(row);
+        }
+      }
+
+      // Write remaining refs
+      while (refIdx < guruRefs.length || refIdx < subjectRefs.length) {
+        const row: any[] = new Array(MAPEL_REF_COL + 2).fill('');
+        writeRef(row);
+        rows.push(row);
+      }
+
+      const ws = xlsx.utils.aoa_to_sheet(rows);
+
+      // Column widths
+      const cols: any[] = [{ wch: 10 }, { wch: 5 }];
+      classList.forEach(() => cols.push({ wch: 9 }));
+      for (let i = 0; i < REF_GAP; i++) cols.push({ wch: 2 });
+      cols.push({ wch: 6 }, { wch: 32 }, { wch: 2 });
+      cols.push({ wch: 5 }, { wch: 30 });
+      ws['!cols'] = cols;
+
+      const wb = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(wb, ws, 'Jadwal Grid');
+
+      const buf = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      res.setHeader('Content-Disposition', `attachment; filename=jadwal_grid_${semLabel.toLowerCase()}_${tahunAjaran.replace('/', '-')}.xlsx`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(Buffer.from(buf));
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
   // ═══ Kode Guru ══════════════════════════════════════════════
 
   static async getGuruKode(_req: Request, res: Response) {

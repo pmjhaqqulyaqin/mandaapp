@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../../../lib/api';
-import { Download, RefreshCw, Zap, Trash2, AlertTriangle, Loader2, ChevronDown } from 'lucide-react';
+import { Download, FileSpreadsheet, RefreshCw, Zap, Trash2, AlertTriangle, Loader2, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -150,6 +150,10 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
     window.open(`/api/kbm/jadwal/export?academicYearId=${academicYearId}&semester=${semester}&groupBy=${groupBy}`, '_blank');
   };
 
+  const handleExportGrid = () => {
+    window.open(`/api/kbm/jadwal/export-grid?academicYearId=${academicYearId}&semester=${semester}`, '_blank');
+  };
+
   if (!academicYearId) {
     return <div className="flex items-center justify-center py-20 text-gray-400 text-sm">Pilih Tahun Ajaran terlebih dahulu</div>;
   }
@@ -223,6 +227,10 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
             </button>
             <button onClick={handleCheckConflicts} className="w-full text-left px-3 py-2 text-[12px] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#222] flex items-center gap-2">
               <AlertTriangle size={12} /> Cek Konflik
+            </button>
+            <div className="border-t border-gray-100 dark:border-[#333] my-1" />
+            <button onClick={handleExportGrid} className="w-full text-left px-3 py-2 text-[12px] text-amber-700 dark:text-amber-400 font-semibold hover:bg-amber-50 dark:hover:bg-amber-500/10 flex items-center gap-2">
+              <FileSpreadsheet size={12} /> Export Grid Kode
             </button>
             {canEdit && (
               <button onClick={() => setShowConfirmClear(true)} className="w-full text-left px-3 py-2 text-[12px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center gap-2">
