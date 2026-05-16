@@ -12,6 +12,7 @@ export const DashboardEmployees = () => {
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ show: false, percent: 0 });
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Add Employee State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -268,7 +269,12 @@ export const DashboardEmployees = () => {
 
       <div className="bg-white dark:bg-[#111] rounded-2xl shadow-sm border border-gray-200 dark:border-[#222] overflow-hidden">
         <div className="p-4 border-b border-gray-100 dark:border-[#2a2a2a] flex items-center justify-between">
-          <Input placeholder="Cari NIP atau Nama..." className="max-w-xs" />
+          <Input 
+            placeholder="Cari NIP atau Nama..." 
+            className="max-w-xs" 
+            value={searchQuery}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+          />
         </div>
         <div className="min-h-[300px] flex items-center justify-center text-gray-500">
           {loading ? 'Memuat data...' : (
@@ -285,7 +291,13 @@ export const DashboardEmployees = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {employees.map((emp, idx) => (
+                  {employees
+                    .filter(emp => {
+                      if (!searchQuery.trim()) return true;
+                      const q = searchQuery.toLowerCase();
+                      return (emp.name?.toLowerCase().includes(q) || emp.nip?.toLowerCase().includes(q));
+                    })
+                    .map((emp, idx) => (
                     <tr key={emp.id} className="border-b border-gray-50 dark:border-[#222] group hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors">
                       <td className="py-3 px-4 text-center text-text-secondary">{idx + 1}</td>
                       <td className="py-3 px-4">

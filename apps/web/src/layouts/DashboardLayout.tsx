@@ -519,9 +519,13 @@ export const DashboardLayout = () => {
               </div>
             </div>
             <div className="hidden md:flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold uppercase shrink-0">
-                {user?.name?.charAt(0) || '?'}
-              </div>
+              {user?.image ? (
+                <img src={user.image.startsWith('http') ? user.image : `${SERVER_BASE}${user.image}`} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold uppercase shrink-0">
+                  {user?.name?.charAt(0) || '?'}
+                </div>
+              )}
               <div className="min-w-0">
                 <h3 className="text-[13px] font-semibold text-text-primary dark:text-text-darkPrimary truncate leading-tight">{user?.name}</h3>
                 <p className="text-[11px] font-medium text-primary truncate leading-tight">
@@ -536,9 +540,15 @@ export const DashboardLayout = () => {
             {/* Mobile: Avatar button → opens ProfileModal directly */}
             <button
               onClick={() => setIsProfileModalOpen(true)}
-              className="md:hidden w-9 h-9 rounded-full bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-center text-sm font-bold uppercase shrink-0 shadow-sm active:scale-95 transition-transform"
+              className="md:hidden w-9 h-9 rounded-full overflow-hidden shadow-sm active:scale-95 transition-transform shrink-0"
             >
-              {user?.name?.charAt(0) || '?'}
+              {user?.image ? (
+                <img src={user.image.startsWith('http') ? user.image : `${SERVER_BASE}${user.image}`} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-center text-sm font-bold uppercase">
+                  {user?.name?.charAt(0) || '?'}
+                </div>
+              )}
             </button>
             {/* Desktop: Dropdown menu */}
             <div id="profile-dropdown-container" className="relative hidden md:block">
