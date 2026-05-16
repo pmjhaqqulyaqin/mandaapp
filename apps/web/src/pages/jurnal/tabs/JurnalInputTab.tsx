@@ -237,7 +237,7 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
       <div className="px-4 py-4 space-y-4">
         {/* Section 1: Pilih Jadwal */}
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-          <h3 className="font-semibold text-base text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+          <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3 flex items-center gap-2">
             <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-xs flex items-center justify-center font-bold">1</span>
             Pilih Jadwal
           </h3>
@@ -253,8 +253,8 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
                 }`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-semibold text-base text-gray-900 dark:text-white">{item.subjectName}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{item.className} • Jam ke {item.jamKe || '-'}</p>
+                    <p className="font-semibold text-sm text-gray-900 dark:text-white">{item.subjectName}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{item.className} • Jam ke {item.jamKe || '-'}</p>
                   </div>
                   {item.alreadyFilled && <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-full">Sudah Diisi</span>}
                   {form.teachingSubjectId === item.id && <Check size={18} className="text-emerald-600" />}
@@ -273,7 +273,7 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
 
         {/* Section 2: Materi & Kegiatan */}
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-          <h3 className="font-semibold text-base text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+          <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3 flex items-center gap-2">
             <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-xs flex items-center justify-center font-bold">2</span>
             Materi & Kegiatan
           </h3>
@@ -314,7 +314,7 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
           <div className="p-4">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="font-semibold text-base text-gray-800 dark:text-white flex items-center gap-2">
+              <h3 className="font-semibold text-sm text-gray-800 dark:text-white flex items-center gap-2">
                 <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-xs flex items-center justify-center font-bold">3</span>
                 Absensi Siswa
               </h3>
@@ -382,7 +382,7 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
 
         {/* Section 4: Evaluasi & Lampiran */}
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-          <h3 className="font-semibold text-base text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+          <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3 flex items-center gap-2">
             <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-xs flex items-center justify-center font-bold">4</span>
             Evaluasi & Lampiran
           </h3>

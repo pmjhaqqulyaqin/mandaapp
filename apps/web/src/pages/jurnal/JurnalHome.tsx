@@ -133,7 +133,7 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
       <div className="px-4 mt-4">
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
           <div className="flex justify-between items-center mb-3">
-            <h3 className="font-semibold text-base text-gray-800 dark:text-white">
+            <h3 className="font-semibold text-sm text-gray-800 dark:text-white">
               {today.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
             </h3>
           </div>
@@ -159,7 +159,7 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
 
       {/* Jadwal Hari Ini */}
       <div className="px-4 mt-4">
-        <h3 className="font-semibold text-base text-gray-800 dark:text-white mb-3">Jadwal Hari Ini</h3>
+        <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3">Jadwal Hari Ini</h3>
         {schedule.isLoading && (
           <div className="space-y-3">
             {[1, 2, 3].map(i => <div key={i} className="bg-white dark:bg-[#1a1a1a] rounded-xl h-20 animate-pulse border border-gray-100 dark:border-gray-800" />)}
@@ -180,11 +180,11 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
               }`}>
               <div className="flex justify-between items-start">
                 <div>
-                  <p className={`text-sm font-medium ${item.alreadyFilled ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                  <p className={`text-xs font-medium ${item.alreadyFilled ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
                     {item.waktuMulai || '--:--'} - {item.waktuSelesai || '--:--'} • Jam ke {item.jamKe || '-'}
                   </p>
-                  <h4 className="font-semibold text-base text-gray-800 dark:text-white mt-0.5">{item.subjectName}</h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{item.className}</p>
+                  <h4 className="font-semibold text-sm text-gray-800 dark:text-white mt-0.5">{item.subjectName}</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.className}</p>
                 </div>
                 <span className={`px-2.5 py-1 text-xs font-medium rounded-full shrink-0 ${
                   item.alreadyFilled
@@ -199,7 +199,7 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
 
       {/* Quick Access */}
       <div className="px-4 mt-4">
-        <h3 className="font-semibold text-base text-gray-800 dark:text-white mb-3">Akses Cepat</h3>
+        <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3">Akses Cepat</h3>
         <div className={`grid ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'} gap-3`}>
           <button onClick={() => onNavigate('create')}
             className="bg-white dark:bg-[#1a1a1a] rounded-xl p-3 shadow-sm flex flex-col items-center gap-2 hover:shadow-md transition border border-gray-100 dark:border-gray-800 active:scale-95">
