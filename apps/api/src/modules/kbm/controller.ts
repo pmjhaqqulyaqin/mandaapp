@@ -564,7 +564,7 @@ export class KbmController {
             academicYearId, semester, guruId,
             masterId: master.id,
             keterangan: keterangan || undefined,
-            setaraJam: setaraJam || master.defaultSetaraJam,
+            setaraJam: setaraJam || master.defaultSetaraJam || 0,
           });
           imported++;
         } catch (err: any) {
