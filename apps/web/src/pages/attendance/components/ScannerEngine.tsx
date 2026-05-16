@@ -360,7 +360,8 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive, 
       )}
 
       <div 
-        className={`relative w-full ${compact ? 'min-h-[45vh]' : 'min-h-[50vh]'} md:min-h-0 md:aspect-[4/3] bg-black rounded-xl overflow-hidden shadow-inner flex items-center justify-center cursor-pointer active:scale-[0.99] transition-transform`}
+        className={`relative w-full ${compact ? 'min-h-[45vh]' : 'min-h-[50vh]'} md:min-h-0 md:aspect-[4/3] rounded-xl overflow-hidden shadow-inner flex items-center justify-center cursor-pointer active:scale-[0.99] transition-transform`}
+        style={{ background: isScanning ? '#000' : 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)' }}
         onClick={() => isScanning ? stopScanning() : startScanning()}
       >
         {/* Flash Effect */}
@@ -370,11 +371,25 @@ export const ScannerEngine: React.FC<ScannerEngineProps> = ({ onScan, isActive, 
           style={{ opacity: 0 }}
         />
 
+        {/* Subtle grid pattern overlay for idle state */}
+        {!isScanning && (
+          <div className="absolute inset-0 opacity-[0.04]" style={{
+            backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+            backgroundSize: '24px 24px',
+          }} />
+        )}
+
         {!isScanning ? (
-          <div className="flex flex-col items-center justify-center text-white/50 p-4 text-center">
-            <Camera size={48} className="mb-3 opacity-60" />
-            <p className="text-sm font-semibold">Tap untuk aktifkan kamera</p>
-            <p className="text-[10px] mt-1 max-w-[200px] opacity-70">Tap lagi untuk mematikan</p>
+          <div className="flex flex-col items-center justify-center p-6 text-center relative z-10">
+            {/* Animated ring */}
+            <div className="relative mb-4">
+              <div className="absolute inset-0 rounded-full border-2 border-emerald-500/20 animate-ping" style={{ animationDuration: '2s' }} />
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 flex items-center justify-center backdrop-blur-sm">
+                <Camera size={32} className="text-emerald-400" />
+              </div>
+            </div>
+            <p className="text-[14px] font-semibold text-white/80">Tap untuk aktifkan kamera</p>
+            <p className="text-[10px] mt-1.5 text-white/40 max-w-[200px]">Tap lagi untuk mematikan</p>
           </div>
         ) : (
           <>
