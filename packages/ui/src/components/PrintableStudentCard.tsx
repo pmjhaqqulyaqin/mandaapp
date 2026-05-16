@@ -203,7 +203,7 @@ export const PrintableStudentCard = ({
 
             {/* Middle Column: Identity Data */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '0 10px', marginTop: '8px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '110px 12px 1fr', rowGap: '8px', columnGap: '4px', fontSize: '18px', color: textColor, fontWeight: 700 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '110px 12px 1fr', rowGap: '8px', columnGap: '4px', fontSize: '19px', color: textColor, fontWeight: 700 }}>
                 <div>NAMA</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.name}</div>
                 <div>NIS/NISN</div><div>:</div><div style={{ fontWeight: 500 }}>{student.nisn}</div>
                 <div>T.T.L</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.birthPlace}, {formatDate(student.birthDate)}</div>
