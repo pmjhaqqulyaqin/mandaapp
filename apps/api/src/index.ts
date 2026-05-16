@@ -35,6 +35,7 @@ import { attendanceRoutes } from './modules/attendance/routes';
 import { jurnalRoutes } from './modules/jurnal/routes';
 import analyticsRoutes from './modules/analytics/routes';
 import { parentPortalRoutes } from './modules/parent-portal/routes';
+import { kbmRoutes } from './modules/kbm/routes';
 
 dotenv.config();
 
@@ -189,6 +190,7 @@ app.use("/api/attendance", attendanceRoutes);
 app.use("/api/jurnal", jurnalRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/parent-portal", parentPortalRoutes);
+app.use("/api/kbm", kbmRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -519,6 +521,76 @@ async function runAutoMigration() {
       );
     `);
     logger.info("Parent portal tables ready.");
+
+    // ─── KBM (Pembagian Tugas Mengajar) tables ──────────────────
+    logger.info("Checking KBM tables...");
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "kbm_subjects" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "kode" varchar(10) NOT NULL UNIQUE,
+        "nama" varchar(150) NOT NULL,
+        "is_active" boolean DEFAULT true,
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "distribusi_jam" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "academic_year_id" uuid NOT NULL REFERENCES "academic_years"("id"),
+        "semester" varchar(10) NOT NULL,
+        "guru_id" uuid NOT NULL REFERENCES "employees"("id") ON DELETE CASCADE,
+        "kelas_id" uuid NOT NULL REFERENCES "classes"("id"),
+        "subject_id" uuid NOT NULL REFERENCES "kbm_subjects"("id"),
+        "jumlah_jam" integer NOT NULL DEFAULT 0,
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "tugas_tambahan_master" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "nama_tugas" varchar(150) NOT NULL,
+        "kategori" varchar(50) NOT NULL,
+        "default_setara_jam" integer DEFAULT 0,
+        "is_active" boolean DEFAULT true,
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "tugas_tambahan" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "academic_year_id" uuid NOT NULL REFERENCES "academic_years"("id"),
+        "semester" varchar(10) NOT NULL,
+        "guru_id" uuid NOT NULL REFERENCES "employees"("id") ON DELETE CASCADE,
+        "master_id" uuid NOT NULL REFERENCES "tugas_tambahan_master"("id"),
+        "keterangan" text,
+        "setara_jam" integer NOT NULL,
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "ruangan" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "nama" varchar(100) NOT NULL,
+        "tipe" varchar(50) DEFAULT 'reguler',
+        "kapasitas" integer DEFAULT 40,
+        "is_active" boolean DEFAULT true,
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `);
+    // Indexes for distribusi_jam
+    try {
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_distribusi_ay ON distribusi_jam(academic_year_id, semester);`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_distribusi_guru ON distribusi_jam(guru_id);`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_tugas_ay ON tugas_tambahan(academic_year_id, semester);`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_tugas_guru ON tugas_tambahan(guru_id);`);
+      await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_distribusi_unique ON distribusi_jam(academic_year_id, semester, guru_id, kelas_id, subject_id);`);
+    } catch (idxErr) { /* indexes may already exist */ }
+    logger.info("KBM tables ready.");
 
   } catch (err) {
     logger.error({ err }, "Auto-migration failed");

@@ -30,6 +30,7 @@ import {
   LayoutGrid,
   BookOpen,
   NotebookPen,
+  ClipboardList,
   Wifi,
   WifiOff,
   Loader2,
@@ -133,6 +134,13 @@ const ALL_MENU_ITEMS = [
     label: 'Jurnal Mengajar',
     href: '/dashboard/jurnal',
     icon: <NotebookPen size={16} />,
+    group: 'main',
+  },
+  {
+    key: 'kbm',
+    label: 'Pembagian Tugas KBM',
+    href: '/dashboard/kbm',
+    icon: <ClipboardList size={16} />,
     group: 'main',
   },
   {
@@ -247,6 +255,7 @@ const MENU_ICON_COLORS: Record<string, { bg: string; text: string }> = {
   'employees':     { bg: 'bg-gradient-to-br from-teal-400 to-teal-500',       text: 'text-white' },
   'attendance':    { bg: 'bg-gradient-to-br from-emerald-400 to-emerald-500', text: 'text-white' },
   'jurnal':        { bg: 'bg-gradient-to-br from-lime-500 to-green-500',      text: 'text-white' },
+  'kbm':           { bg: 'bg-gradient-to-br from-amber-500 to-orange-500',    text: 'text-white' },
   'nis':           { bg: 'bg-gradient-to-br from-violet-400 to-violet-500',   text: 'text-white' },
   'students':      { bg: 'bg-gradient-to-br from-indigo-400 to-indigo-500',   text: 'text-white' },
   'e-office':      { bg: 'bg-gradient-to-br from-amber-400 to-amber-500',     text: 'text-white' },
@@ -285,6 +294,7 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'employees': 'employees',
   'attendance': 'attendance',
   'jurnal': 'jurnal',
+  'kbm': 'kbm',
   'exams': 'exams',
   'ppdb': 'ppdb',
   'ppdb/penilaian': 'penilaian-pmb',
@@ -428,7 +438,7 @@ export const DashboardLayout = () => {
   const systemMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'system' && finalAllowedMenusForRender.includes(item.key));
 
   // ── Categorized menu sections for unified grid ──
-  const frequentKeys = ['jurnal', 'attendance', 'employees', 'e-office'];
+  const frequentKeys = ['jurnal', 'kbm', 'attendance', 'employees', 'e-office'];
   const infoKeys = ['news', 'gallery', 'contacts', 'calendar'];
   const siswaKeys = ['students', 'student-card', 'nis', 'ijazah', 'ppdb', 'penilaian-pmb'];
   const layananKeys = ['ptsp', 'exams'];

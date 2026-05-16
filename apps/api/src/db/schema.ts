@@ -779,3 +779,65 @@ export const parentLinks = pgTable("parent_links", {
   notificationWa: boolean("notification_wa").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// ═══════════════════════════════════════════════════════════════
+// Manajemen Pembagian Tugas KBM Guru
+// ═══════════════════════════════════════════════════════════════
+
+// Master mata pelajaran untuk KBM
+export const kbmSubjects = pgTable("kbm_subjects", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  kode: varchar("kode", { length: 10 }).notNull().unique(),
+  nama: varchar("nama", { length: 150 }).notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Distribusi jam mengajar (guru × kelas × mapel per semester)
+export const distribusiJam = pgTable("distribusi_jam", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  academicYearId: uuid("academic_year_id").references(() => academicYears.id).notNull(),
+  semester: varchar("semester", { length: 10 }).notNull(), // 'ganjil' | 'genap'
+  guruId: uuid("guru_id").references(() => employees.id, { onDelete: "cascade" }).notNull(),
+  kelasId: uuid("kelas_id").references(() => classes.id).notNull(),
+  subjectId: uuid("subject_id").references(() => kbmSubjects.id).notNull(),
+  jumlahJam: integer("jumlah_jam").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Template jenis tugas tambahan
+export const tugasTambahanMaster = pgTable("tugas_tambahan_master", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  namaTugas: varchar("nama_tugas", { length: 150 }).notNull(),
+  kategori: varchar("kategori", { length: 50 }).notNull(), // 'struktural' | 'kurikulum' | 'kesiswaan'
+  defaultSetaraJam: integer("default_setara_jam").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Assignment tugas tambahan per guru per semester
+export const tugasTambahan = pgTable("tugas_tambahan", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  academicYearId: uuid("academic_year_id").references(() => academicYears.id).notNull(),
+  semester: varchar("semester", { length: 10 }).notNull(),
+  guruId: uuid("guru_id").references(() => employees.id, { onDelete: "cascade" }).notNull(),
+  masterId: uuid("master_id").references(() => tugasTambahanMaster.id).notNull(),
+  keterangan: text("keterangan"),
+  setaraJam: integer("setara_jam").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Master ruangan (persiapan Fase 2 scheduler)
+export const ruangan = pgTable("ruangan", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  nama: varchar("nama", { length: 100 }).notNull(),
+  tipe: varchar("tipe", { length: 50 }).default("reguler"), // reguler, lab_ipa, lab_agama, lab_komputer, perpustakaan
+  kapasitas: integer("kapasitas").default(40),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});

@@ -49,6 +49,7 @@ const SystemUpdateCenter = React.lazy(() => import('./pages/dashboard/SystemUpda
 const PublicScannerPage = React.lazy(() => import('./pages/attendance/PublicScannerPage').then(m => ({ default: m.PublicScannerPage })));
 const DashboardAttendance = React.lazy(() => import('./pages/attendance/DashboardAttendance').then(m => ({ default: m.DashboardAttendance })));
 const DashboardJurnal = React.lazy(() => import('./pages/jurnal/DashboardJurnal').then(m => ({ default: m.DashboardJurnal })));
+const DashboardKBM = React.lazy(() => import('./pages/kbm/DashboardKBM').then(m => ({ default: m.DashboardKBM })));
 const ParentPortal = React.lazy(() => import('./pages/parent/ParentPortal').then(m => ({ default: m.ParentPortal })));
 const BatchPrintPage = React.lazy(() => import('./pages/BatchPrintPage').then(m => ({ default: m.BatchPrintPage })));
 const PrintAcademicCalendar = React.lazy(() => import('./pages/PrintAcademicCalendar').then(m => ({ default: m.PrintAcademicCalendar })));
@@ -174,6 +175,7 @@ function App() {
               <Route path="exams" element={<ExamManagementPage />} />
               <Route path="attendance" element={<DashboardAttendance />} />
               <Route path="jurnal" element={<DashboardJurnal />} />
+              <Route path="kbm" element={<DashboardKBM />} />
               <Route path="updates" element={<ProtectedRoute allowedRoles={['admin']}><SystemUpdateCenter /></ProtectedRoute>} />
               <Route path="services" element={<DashboardServices />} />
               <Route path="ppdb" element={<PPDBAdminPage />} />
