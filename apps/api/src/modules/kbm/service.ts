@@ -794,6 +794,108 @@ export class KbmService {
       if (bestAttempt.failed.length === 0) break;
     }
 
+    // --- Post-processing: COMPACTION + RETRY ---
+    // Compact each class-day schedule to remove gaps (shift blocks toward jam 1)
+    // Then retry failed blocks in the newly freed slots
+    if (bestAttempt.failed.length > 0) {
+      // Build a mutable schedule from placed slots
+      const schedule = bestAttempt.placed.map((s: any, idx: number) => ({ ...s, _idx: idx }));
+
+      // Group by kelasId + dayOfWeek
+      const classDayMap = new Map<string, typeof schedule>();
+      for (const s of schedule) {
+        const key = `${s.kelasId}-${s.dayOfWeek}`;
+        if (!classDayMap.has(key)) classDayMap.set(key, []);
+        classDayMap.get(key)!.push(s);
+      }
+
+      // For each class-day, compact: sort by jamKe, then reassign jamKe sequentially
+      // But we must also update guruSlots tracking
+      const newGuruSlots = new Map<string, Set<string>>();
+      const newKelasSlots = new Map<string, Set<string>>();
+      const cSlotKey = (d: number, j: number) => `${d}-${j}`;
+      const cEnsureSet = (map: Map<string, Set<string>>, key: string) => { if (!map.has(key)) map.set(key, new Set()); return map.get(key)!; };
+
+      for (const [_cdKey, slots] of classDayMap) {
+        slots.sort((a: any, b: any) => a.jamKe - b.jamKe);
+        const day = slots[0].dayOfWeek;
+        const dayJams = availableDays.get(day) || [];
+
+        // Map occupied jam positions to their slot data
+        let writeIdx = 0;
+        for (const slot of slots) {
+          if (writeIdx < dayJams.length) {
+            slot.jamKe = dayJams[writeIdx]; // compact: assign sequential jam
+            writeIdx++;
+          }
+        }
+      }
+
+      // Rebuild guru/kelas slot tracking from compacted schedule
+      for (const s of schedule) {
+        const sk = cSlotKey(s.dayOfWeek, s.jamKe);
+        cEnsureSet(newGuruSlots, s.guruId).add(sk);
+        cEnsureSet(newKelasSlots, s.kelasId).add(sk);
+      }
+
+      // Now check if compaction created guru conflicts (same guru, same day, same jam in different classes)
+      // If so, revert that specific compaction
+      let hasConflict = false;
+      const guruJamCheck = new Map<string, string>(); // "guruId-day-jam" -> kelasId
+      for (const s of schedule) {
+        const gKey = `${s.guruId}-${s.dayOfWeek}-${s.jamKe}`;
+        if (guruJamCheck.has(gKey) && guruJamCheck.get(gKey) !== s.kelasId) {
+          hasConflict = true;
+          break;
+        }
+        guruJamCheck.set(gKey, s.kelasId);
+      }
+
+      if (!hasConflict) {
+        // Compaction is safe! Now retry failed blocks
+        bestAttempt.placed = schedule.map(({ _idx, ...rest }: any) => rest);
+
+        let retryPlaced = 0;
+        const stillFailed: typeof bestAttempt.failed = [];
+        for (const block of bestAttempt.failed) {
+          // Find free slot for this block
+          let found = false;
+          for (const day of dayList) {
+            if (guruUnavailDays.get(block.guruId)?.has(day)) continue;
+            const jams = availableDays.get(day)!;
+            for (let si = 0; si <= jams.length - block.size; si++) {
+              let consecutive = true;
+              for (let o = 1; o < block.size; o++) { if (jams[si + o] !== jams[si] + o) { consecutive = false; break; } }
+              if (!consecutive) continue;
+              const startJam = jams[si];
+              let allFree = true;
+              for (let j = startJam; j < startJam + block.size; j++) {
+                const sk = cSlotKey(day, j);
+                if (cEnsureSet(newGuruSlots, block.guruId).has(sk) || cEnsureSet(newKelasSlots, block.kelasId).has(sk)) { allFree = false; break; }
+              }
+              if (!allFree) continue;
+              // Place it
+              for (let j = startJam; j < startJam + block.size; j++) {
+                const sk = cSlotKey(day, j);
+                cEnsureSet(newGuruSlots, block.guruId).add(sk);
+                cEnsureSet(newKelasSlots, block.kelasId).add(sk);
+                bestAttempt.placed.push({ academicYearId, semester, guruId: block.guruId, kelasId: block.kelasId, subjectId: block.subjectId, ruanganId: null, dayOfWeek: day, jamKe: j });
+              }
+              retryPlaced++;
+              found = true;
+              break;
+            }
+            if (found) break;
+          }
+          if (!found) { block.failReason = 'no_slot_after_compact'; stillFailed.push(block); }
+        }
+        if (retryPlaced > 0) {
+          bestAttempt.passResults.push({ pass: 7, label: `Kompaksi + retry (defrag gap)`, placed: retryPlaced });
+        }
+        bestAttempt.failed = stillFailed;
+      }
+    }
+
     // Insert best attempt
     if (bestAttempt.placed.length > 0) {
       for (let i = 0; i < bestAttempt.placed.length; i += 100) {
@@ -804,7 +906,7 @@ export class KbmService {
     const totalSlots = blocks0.reduce((s, b) => s + b.size, 0);
     return {
       generated: bestAttempt.placed.length,
-      failed: bestAttempt.failed.reduce((s, b) => s + b.size, 0),
+      failed: bestAttempt.failed.reduce((s: number, b: any) => s + b.size, 0),
       total: totalSlots,
       blocks: blocks0.length,
       failedBlocks: bestAttempt.failed.length,
@@ -812,7 +914,7 @@ export class KbmService {
       report: {
         passResults: bestAttempt.passResults,
         attempts: 3,
-        failedDetails: bestAttempt.failed.map(b => {
+        failedDetails: bestAttempt.failed.map((b: any) => {
           const subj = subjectMap.get(b.subjectId);
           return { subject: subj?.nama || b.subjectId, kode: subj?.kode || '?', size: b.size, guruId: b.guruId, kelasId: b.kelasId, reason: b.failReason || 'no_slot' };
         }),
