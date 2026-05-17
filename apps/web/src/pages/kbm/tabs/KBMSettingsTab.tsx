@@ -109,6 +109,7 @@ const MapelSection = () => {
       {loading ? (
         <div className="py-10 text-center"><div className="h-6 w-6 mx-auto animate-spin rounded-full border-3 border-amber-500 border-t-transparent" /></div>
       ) : (
+        <>
         <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-[#222]">
           <table className="w-full text-[12px]">
             <thead><tr className="bg-gray-50 dark:bg-[#161616]">
@@ -135,7 +136,7 @@ const MapelSection = () => {
                       }}
                       className={`w-6 h-6 rounded-md text-[10px] font-bold transition-all ${s.isHeavy ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-[#222] text-gray-400'}`}
                       title="Mapel berat: tidak boleh ada di hari yang sama dalam 1 kelas dengan mapel berat lain"
-                    >{s.isHeavy ? '\u{1F525}' : '\u2014'}</button>
+                    >{s.isHeavy ? '\u2022' : '\u2014'}</button>
                   </td>
                   <td className="px-3 py-1.5 text-center">
                     <button
@@ -183,7 +184,8 @@ const MapelSection = () => {
             </tbody>
           </table>
         </div>
-        <p className="text-[10px] text-gray-400 mt-1">{'\u{1F4A1}'} <strong>Berat</strong> = tidak boleh ada bersamaan di 1 hari 1 kelas. <strong>Split 1</strong> = boleh dipecah ke 1 JP. <strong>Maks Jam</strong> = pembatasan jam siang.</p>
+        <p className="text-[10px] text-gray-400 mt-1"><strong>Berat</strong> = tidak boleh ada bersamaan di 1 hari 1 kelas. <strong>Split 1</strong> = boleh dipecah ke 1 JP. <strong>Maks Jam</strong> = pembatasan jam siang.</p>
+        </>
       )}
     </div>
   );
