@@ -66,6 +66,8 @@ router.put("/jadwal/:id", requireStaff, KbmController.moveSlot);
 router.delete("/jadwal/:id", requireStaff, KbmController.deleteJadwalSlot);
 router.post("/jadwal/clear", requireStaff, KbmController.clearJadwal);
 router.get("/jadwal/conflicts", requireStaff, KbmController.checkConflicts);
+router.get("/jadwal/available-slots", requireStaff, KbmController.findAvailableSlots);
+router.post("/jadwal/manual-place", requireStaff, KbmController.manualPlaceBlock);
 router.post("/jadwal/sync", requireStaff, KbmController.syncToJurnal);
 router.get("/jadwal/export", requireStaff, KbmController.exportJadwal);
 router.get("/jadwal/export-grid", requireStaff, KbmController.exportJadwalGrid);

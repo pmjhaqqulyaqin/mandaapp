@@ -718,6 +718,26 @@ export class KbmController {
     } catch (err: any) { res.status(400).json({ error: err.message }); }
   }
 
+  static async findAvailableSlots(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester, guruId, kelasId } = req.query;
+      if (!academicYearId || !semester || !guruId || !kelasId) return res.status(400).json({ error: "academicYearId, semester, guruId, kelasId diperlukan" });
+      const result = await KbmService.findAvailableSlots(academicYearId as string, semester as string, guruId as string, kelasId as string);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async manualPlaceBlock(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester, guruId, kelasId, subjectId, dayOfWeek, jamKe } = req.body;
+      if (!academicYearId || !semester || !guruId || !kelasId || !subjectId || dayOfWeek === undefined || jamKe === undefined)
+        return res.status(400).json({ error: "Semua field diperlukan" });
+      const result = await KbmService.manualPlaceBlock(academicYearId, semester, guruId, kelasId, subjectId, Number(dayOfWeek), Number(jamKe));
+      res.json(result);
+    } catch (err: any) { res.status(400).json({ error: err.message }); }
+  }
+
+
   static async deleteJadwalSlot(req: Request, res: Response) {
     try {
       const result = await KbmService.deleteJadwalSlot(req.params.id);

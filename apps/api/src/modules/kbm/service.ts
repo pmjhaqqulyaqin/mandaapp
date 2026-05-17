@@ -926,13 +926,40 @@ export class KbmService {
         attempts: 3,
         failedDetails: bestAttempt.failed.map((b: any) => {
           const subj = subjectMap.get(b.subjectId);
-          return { subject: subj?.nama || b.subjectId, kode: subj?.kode || '?', size: b.size, guruId: b.guruId, kelasId: b.kelasId, reason: b.failReason || 'no_slot' };
+          return { subject: subj?.nama || b.subjectId, kode: subj?.kode || '?', size: b.size, guruId: b.guruId, kelasId: b.kelasId, subjectId: b.subjectId, reason: b.failReason || 'no_slot' };
         }),
       },
     };
   }
 
-  static async moveSlot(id: string, dayOfWeek: number, jamKe: number, ruanganId?: string) {
+  // Find available slots for a guru+kelas combo (for manual placement)
+  static async findAvailableSlots(academicYearId: string, semester: string, guruId: string, kelasId: string) {
+    const existing = await db.select({ guruId: kbmJadwal.guruId, kelasId: kbmJadwal.kelasId, dayOfWeek: kbmJadwal.dayOfWeek, jamKe: kbmJadwal.jamKe })
+      .from(kbmJadwal).where(and(eq(kbmJadwal.academicYearId, academicYearId), eq(kbmJadwal.semester, semester)));
+    const guruBusy = new Set(existing.filter(e => e.guruId === guruId).map(e => `${e.dayOfWeek}-${e.jamKe}`));
+    const kelasBusy = new Set(existing.filter(e => e.kelasId === kelasId).map(e => `${e.dayOfWeek}-${e.jamKe}`));
+    const timeSlots = await db.execute(sql`SELECT DISTINCT day_of_week, jam_ke FROM jurnal_time_slots WHERE is_active = true ORDER BY day_of_week, jam_ke`);
+    const availableDays = new Map<number, number[]>();
+    for (const ts of (timeSlots as any).rows || timeSlots) { const d = Number(ts.day_of_week), j = Number(ts.jam_ke); if (!availableDays.has(d)) availableDays.set(d, []); availableDays.get(d)!.push(j); }
+    if (availableDays.size === 0) { for (let d = 1; d <= 6; d++) availableDays.set(d, [1,2,3,4,5,6,7,8]); }
+    const unavail = await db.select().from(guruUnavailability).where(and(eq(guruUnavailability.academicYearId, academicYearId), eq(guruUnavailability.semester, semester), eq(guruUnavailability.guruId, guruId)));
+    const guruUnavailSet = new Set(unavail.map(u => u.dayOfWeek));
+    const DAY_NAMES: Record<number, string> = { 1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis', 5: 'Jumat', 6: 'Sabtu' };
+    const available: { dayOfWeek: number; jamKe: number; dayName: string }[] = [];
+    for (const [day, jams] of availableDays) {
+      if (guruUnavailSet.has(day)) continue;
+      for (const jam of jams) { if (!guruBusy.has(`${day}-${jam}`) && !kelasBusy.has(`${day}-${jam}`)) available.push({ dayOfWeek: day, jamKe: jam, dayName: DAY_NAMES[day] || `Hari ${day}` }); }
+    }
+    return available;
+  }
+
+  static async manualPlaceBlock(academicYearId: string, semester: string, guruId: string, kelasId: string, subjectId: string, dayOfWeek: number, jamKe: number) {
+    const conflicts = await db.select({ id: kbmJadwal.id }).from(kbmJadwal).where(and(eq(kbmJadwal.academicYearId, academicYearId), eq(kbmJadwal.semester, semester), eq(kbmJadwal.dayOfWeek, dayOfWeek), eq(kbmJadwal.jamKe, jamKe), sql`(${kbmJadwal.guruId} = ${guruId} OR ${kbmJadwal.kelasId} = ${kelasId})`));
+    if (conflicts.length > 0) throw new Error('Konflik: guru atau kelas sudah terisi di slot ini');
+    const [inserted] = await db.insert(kbmJadwal).values({ academicYearId, semester, guruId, kelasId, subjectId, ruanganId: null, dayOfWeek, jamKe }).returning();
+    return inserted;
+  }
+    static async moveSlot(id: string, dayOfWeek: number, jamKe: number, ruanganId?: string) {
     const [slot] = await db.select().from(kbmJadwal).where(eq(kbmJadwal.id, id));
     if (!slot) throw new Error('Slot tidak ditemukan');
 
