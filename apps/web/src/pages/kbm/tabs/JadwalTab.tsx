@@ -266,22 +266,26 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
 
       {/* Generate Report */}
       {generateReport && (
-        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 space-y-2">
+        <div className={`p-3 rounded-xl border space-y-2 ${generateReport.failedBlocks > 0 ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20' : 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CheckCircle2 size={14} className="text-emerald-600" />
-              <p className="text-[12px] font-semibold text-emerald-700 dark:text-emerald-300">
-                Generate Selesai {"\u2014"} {generateReport.generated} slot ({generateReport.blocks} blok)
+              <p className="text-[12px] font-semibold text-gray-700 dark:text-gray-200">
+                {generateReport.generated} slot ({generateReport.blocks} blok)
               </p>
             </div>
             <button onClick={() => setGenerateReport(null)} className="text-gray-400 hover:text-gray-600 text-[10px]">{"\u2715"}</button>
           </div>
-          {generateReport.failedBlocks > 0 && (
-            <div className="flex items-center gap-1.5">
-              <XCircle size={12} className="text-red-500" />
-              <p className="text-[11px] text-red-600 dark:text-red-400">
-                {generateReport.failedBlocks} blok gagal ditempatkan ({generateReport.failed} JP)
-              </p>
+          {/* Pass Results */}
+          {generateReport.report?.passResults?.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {generateReport.report.passResults.filter((p: any) => p.placed > 0).map((p: any) => (
+                <span key={p.pass} className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${
+                  p.pass === 1 ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' :
+                  p.pass <= 3 ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300' :
+                  'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300'
+                }`}>Pass {p.pass}: {p.placed} blok {p.pass > 1 ? '(relaxed)' : ''}</span>
+              ))}
             </div>
           )}
           <div className="flex flex-wrap gap-3 text-[10px] text-gray-500 dark:text-gray-400">
@@ -289,15 +293,23 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
             <span>Berhasil: <strong className="text-emerald-600">{generateReport.generated}</strong></span>
             <span>Gagal: <strong className={generateReport.failed > 0 ? 'text-red-500' : 'text-emerald-600'}>{generateReport.failed}</strong></span>
           </div>
-          {generateReport.report?.failedDetails?.length > 0 && (
-            <details className="text-[10px]">
-              <summary className="cursor-pointer text-red-500 font-semibold">Detail Blok Gagal</summary>
-              <ul className="mt-1 space-y-0.5 text-gray-500 dark:text-gray-400">
-                {generateReport.report.failedDetails.map((f: any, i: number) => (
-                  <li key={i}>{"\u2022"} {f.subject} ({f.size} JP) {"\u2014"} tidak tersedia slot</li>
-                ))}
-              </ul>
-            </details>
+          {generateReport.failedBlocks > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <XCircle size={12} className="text-red-500" />
+                <p className="text-[11px] text-red-600 dark:text-red-400 font-semibold">
+                  {generateReport.failedBlocks} blok gagal ({generateReport.failed} JP)
+                </p>
+              </div>
+              <details className="text-[10px]">
+                <summary className="cursor-pointer text-red-500 font-semibold">Detail Blok Gagal</summary>
+                <ul className="mt-1 space-y-0.5 text-gray-500 dark:text-gray-400 max-h-40 overflow-y-auto">
+                  {generateReport.report?.failedDetails?.map((f: any, i: number) => (
+                    <li key={i}>{"\u2022"} {f.kode}. {f.subject} ({f.size} JP) {"\u2014"} {f.reason === 'guru_full' ? 'guru penuh' : f.reason === 'kelas_full' ? 'kelas penuh' : 'slot habis'}</li>
+                  ))}
+                </ul>
+              </details>
+            </div>
           )}
         </div>
       )}
