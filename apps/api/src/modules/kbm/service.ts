@@ -933,65 +933,48 @@ export class KbmService {
   }
 
   // Find available slots for a guru+kelas combo (for manual placement)
+  // Find available slots for a guru+kelas combo (for manual placement)
   static async findAvailableSlots(academicYearId: string, semester: string, guruId: string, kelasId: string) {
     const existing = await db.select({ guruId: kbmJadwal.guruId, kelasId: kbmJadwal.kelasId, dayOfWeek: kbmJadwal.dayOfWeek, jamKe: kbmJadwal.jamKe })
       .from(kbmJadwal).where(and(eq(kbmJadwal.academicYearId, academicYearId), eq(kbmJadwal.semester, semester)));
     const guruBusy = new Set(existing.filter(e => e.guruId === guruId).map(e => `${e.dayOfWeek}-${e.jamKe}`));
-    const kelasBusy = new Set(existing.filter(e => e.kelasId === kelasId).map(e => `${e.dayOfWeek}-${e.jamKe}`));
-
-    // Build guru busy lookup: "day-jam" -> kelasId (which class the guru is teaching)
     const guruBusyAt = new Map<string, string>();
-    for (const e of existing) {
-      if (e.guruId === guruId) guruBusyAt.set(`${e.dayOfWeek}-${e.jamKe}`, e.kelasId);
-    }
-
-    // Get kelas name lookup
-    const kelasRows = await db.execute(sql`SELECT id, nama FROM kelas`);
+    for (const e of existing) { if (e.guruId === guruId) guruBusyAt.set(`${e.dayOfWeek}-${e.jamKe}`, e.kelasId); }
+    const kelasBusyMap = new Map<string, Set<string>>();
+    for (const e of existing) { if (!kelasBusyMap.has(e.kelasId)) kelasBusyMap.set(e.kelasId, new Set()); kelasBusyMap.get(e.kelasId)!.add(`${e.dayOfWeek}-${e.jamKe}`); }
+    const kelasRows = await db.execute(sql`SELECT id, nama FROM kelas WHERE is_active = true ORDER BY nama`);
     const kelasNameMap = new Map<string, string>();
     for (const k of (kelasRows as any).rows || kelasRows) kelasNameMap.set(k.id, k.nama);
-
-    // Derive available slots from EXISTING jadwal (guarantees all generated slots are covered)
-    const availableDays = new Map<number, Set<number>>();
-    for (const e of existing) {
-      if (!availableDays.has(e.dayOfWeek)) availableDays.set(e.dayOfWeek, new Set());
-      availableDays.get(e.dayOfWeek)!.add(e.jamKe);
-    }
-    // Also add from jurnal_time_slots as backup
-    try {
-      const timeSlots = await db.execute(sql`SELECT DISTINCT day_of_week, jam_ke FROM jurnal_time_slots WHERE is_active = true`);
-      for (const ts of (timeSlots as any).rows || timeSlots) {
-        const d = Number(ts.day_of_week), j = Number(ts.jam_ke);
-        if (!availableDays.has(d)) availableDays.set(d, new Set());
-        availableDays.get(d)!.add(j);
-      }
-    } catch {}
-    if (availableDays.size === 0) { for (let d = 1; d <= 6; d++) availableDays.set(d, new Set([1,2,3,4,5,6,7,8,9,10])); }
-    // Convert Sets to sorted arrays
+    const allSlots = new Map<number, Set<number>>();
+    for (const e of existing) { if (!allSlots.has(e.dayOfWeek)) allSlots.set(e.dayOfWeek, new Set()); allSlots.get(e.dayOfWeek)!.add(e.jamKe); }
     const sortedDays = new Map<number, number[]>();
-    for (const [d, jams] of availableDays) sortedDays.set(d, Array.from(jams).sort((a, b) => a - b));
-
+    for (const [d, jams] of allSlots) sortedDays.set(d, Array.from(jams).sort((a, b) => a - b));
     const unavail = await db.select().from(guruUnavailability).where(and(eq(guruUnavailability.academicYearId, academicYearId), eq(guruUnavailability.semester, semester), eq(guruUnavailability.guruId, guruId)));
     const guruUnavailSet = new Set(unavail.map(u => u.dayOfWeek));
     const DAY_NAMES: Record<number, string> = { 1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis', 5: 'Jumat', 6: 'Sabtu' };
-
-    const direct: { dayOfWeek: number; jamKe: number; dayName: string }[] = [];
-    const needSwap: { dayOfWeek: number; jamKe: number; dayName: string; blockedByKelas: string; blockedByKelasName: string }[] = [];
-
+    const targetKelasBusy = kelasBusyMap.get(kelasId) || new Set();
+    const direct: any[] = [];
+    const needSwap: any[] = [];
+    const otherClasses: any[] = [];
     for (const [day, jams] of sortedDays) {
       if (guruUnavailSet.has(day)) continue;
       for (const jam of jams) {
         const sk = `${day}-${jam}`;
-        if (kelasBusy.has(sk)) continue; // class busy = can't use
         const dn = DAY_NAMES[day] || `Hari ${day}`;
-        if (!guruBusy.has(sk)) {
-          direct.push({ dayOfWeek: day, jamKe: jam, dayName: dn });
-        } else {
-          const blockingKelasId = guruBusyAt.get(sk) || '';
-          needSwap.push({ dayOfWeek: day, jamKe: jam, dayName: dn, blockedByKelas: blockingKelasId, blockedByKelasName: kelasNameMap.get(blockingKelasId) || blockingKelasId });
+        const guruFree = !guruBusy.has(sk);
+        if (!targetKelasBusy.has(sk)) {
+          if (guruFree) { direct.push({ dayOfWeek: day, jamKe: jam, dayName: dn }); }
+          else { const bk = guruBusyAt.get(sk) || ''; needSwap.push({ dayOfWeek: day, jamKe: jam, dayName: dn, blockedByKelas: bk, blockedByKelasName: kelasNameMap.get(bk) || bk }); }
+        }
+        if (guruFree) {
+          for (const [kId, kBusy] of kelasBusyMap) {
+            if (kId === kelasId) continue;
+            if (!kBusy.has(sk)) { otherClasses.push({ dayOfWeek: day, jamKe: jam, dayName: dn, kelasId: kId, kelasName: kelasNameMap.get(kId) || kId }); }
+          }
         }
       }
     }
-    return { direct, needSwap };
+    return { direct, needSwap, otherClasses: otherClasses.slice(0, 50) };
   }
 
   static async manualPlaceBlock(academicYearId: string, semester: string, guruId: string, kelasId: string, subjectId: string, dayOfWeek: number, jamKe: number) {

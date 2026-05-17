@@ -68,6 +68,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [manualBlock, setManualBlock] = useState<any>(null);
   const [availableSlots, setAvailableSlots] = useState<any[]>([]);
   const [swapSlots, setSwapSlots] = useState<any[]>([]);
+  const [otherSlots, setOtherSlots] = useState<any[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [placingBlock, setPlacingBlock] = useState(false);
 
@@ -328,7 +329,8 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
                             const res = await apiClient.get(`/kbm/jadwal/available-slots?${params}`);
                             setAvailableSlots(res.data.direct || []);
                             setSwapSlots(res.data.needSwap || []);
-                          } catch { setAvailableSlots([]); setSwapSlots([]); }
+                            setOtherSlots(res.data.otherClasses || []);
+                          } catch { setAvailableSlots([]); setSwapSlots([]); setOtherSlots([]); }
                           setLoadingSlots(false);
                         }}
                         className="shrink-0 text-[9px] px-2 py-0.5 rounded-full bg-blue-500 text-white font-semibold hover:bg-blue-600 flex items-center gap-1"
@@ -469,7 +471,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
             </div>
             {loadingSlots ? (
               <div className="flex items-center justify-center py-8 text-gray-400"><Loader2 size={20} className="animate-spin mr-2" /> Memuat slot...</div>
-            ) : availableSlots.length === 0 && swapSlots.length === 0 ? (
+            ) : availableSlots.length === 0 && swapSlots.length === 0 && otherSlots.length === 0 ? (
               <div className="text-center py-8 text-gray-400 text-[12px]">
                 <XCircle size={24} className="mx-auto mb-2 opacity-30" />
                 <p>Tidak ada slot tersedia</p>
@@ -523,6 +525,19 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
                       {swapSlots.slice(0, 20).map((s, i) => (
                         <div key={i} className="text-[10px] px-2 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/10 text-amber-800 dark:text-amber-300">
                           <span className="font-semibold">{s.dayName} jam {s.jamKe}</span> {"\u2014"} guru mengajar di <span className="font-semibold">{s.blockedByKelasName}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {otherSlots.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-bold text-purple-600 dark:text-purple-400 mb-1">{"\uD83D\uDCCB"} Slot Kosong di Kelas Lain (Guru Free)</p>
+                    <p className="text-[10px] text-gray-400 mb-2">Kelas-kelas lain yang punya jam kosong saat guru ini tersedia</p>
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {otherSlots.map((s: any, i: number) => (
+                        <div key={i} className="text-[10px] px-2 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-500/5 border border-purple-100 dark:border-purple-500/10 text-purple-800 dark:text-purple-300">
+                          <span className="font-semibold">{s.dayName} jam {s.jamKe}</span> {"\u2014"} <span className="font-semibold">{s.kelasName}</span> kosong
                         </div>
                       ))}
                     </div>
