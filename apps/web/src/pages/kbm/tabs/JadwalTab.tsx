@@ -60,6 +60,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [generateReport, setGenerateReport] = useState<any>(null);
   const [manualBlock, setManualBlock] = useState<any>(null);
   const [availableSlots, setAvailableSlots] = useState<any[]>([]);
+  const [swapSlots, setSwapSlots] = useState<any[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [placingBlock, setPlacingBlock] = useState(false);
 
@@ -318,8 +319,9 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
                           try {
                             const params = new URLSearchParams({ academicYearId, semester, guruId: f.guruId, kelasId: f.kelasId });
                             const res = await apiClient.get(`/kbm/jadwal/available-slots?${params}`);
-                            setAvailableSlots(res.data);
-                          } catch { setAvailableSlots([]); }
+                            setAvailableSlots(res.data.direct || []);
+                            setSwapSlots(res.data.needSwap || []);
+                          } catch { setAvailableSlots([]); setSwapSlots([]); }
                           setLoadingSlots(false);
                         }}
                         className="shrink-0 text-[9px] px-2 py-0.5 rounded-full bg-blue-500 text-white font-semibold hover:bg-blue-600 flex items-center gap-1"
@@ -460,57 +462,65 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
             </div>
             {loadingSlots ? (
               <div className="flex items-center justify-center py-8 text-gray-400"><Loader2 size={20} className="animate-spin mr-2" /> Memuat slot...</div>
-            ) : availableSlots.length === 0 ? (
+            ) : availableSlots.length === 0 && swapSlots.length === 0 ? (
               <div className="text-center py-8 text-gray-400 text-[12px]">
                 <XCircle size={24} className="mx-auto mb-2 opacity-30" />
                 <p>Tidak ada slot tersedia</p>
                 <p className="text-[10px] mt-1">Guru dan kelas sudah penuh di semua jam</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {[1,2,3,4,5,6].map(day => {
-                  const daySlots = availableSlots.filter((s: any) => s.dayOfWeek === day);
-                  if (daySlots.length === 0) return null;
-                  return (
-                    <div key={day}>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">{DAY_NAMES[day]}</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {daySlots.map((s: any) => (
-                          <button
-                            key={`${s.dayOfWeek}-${s.jamKe}`}
-                            disabled={placingBlock}
-                            onClick={async () => {
-                              setPlacingBlock(true);
-                              try {
-                                await apiClient.post('/kbm/jadwal/manual-place', {
-                                  academicYearId, semester,
-                                  guruId: manualBlock.guruId, kelasId: manualBlock.kelasId,
-                                  subjectId: manualBlock.subjectId || manualBlock.subject,
-                                  dayOfWeek: s.dayOfWeek, jamKe: s.jamKe,
-                                });
-                                toast.success(`${manualBlock.kode}. ${manualBlock.subject} ditempatkan di ${DAY_NAMES[s.dayOfWeek]} jam ${s.jamKe}`);
-                                if (generateReport) {
-                                  const newFailed = [...generateReport.report.failedDetails];
-                                  const idx = newFailed.findIndex((f: any) => f.guruId === manualBlock.guruId && f.kelasId === manualBlock.kelasId && f.subject === manualBlock.subject);
-                                  if (idx >= 0) newFailed.splice(idx, 1);
-                                  setGenerateReport({ ...generateReport, report: { ...generateReport.report, failedDetails: newFailed }, failedBlocks: newFailed.length, failed: newFailed.reduce((s: number, f: any) => s + f.size, 0), generated: generateReport.generated + 1 });
-                                }
-                                setManualBlock(null);
-                                loadData();
-                              } catch (err: any) {
-                                toast.error(err.response?.data?.error || 'Gagal menempatkan');
-                              }
-                              setPlacingBlock(false);
-                            }}
-                            className="px-2.5 py-1.5 text-[11px] font-semibold rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/20 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 active:scale-95 transition-all"
-                          >
-                            Jam {s.jamKe}
-                          </button>
-                        ))}
-                      </div>
+              <div className="space-y-4">
+                {availableSlots.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mb-2">{"\u2705"} Slot Langsung Tersedia</p>
+                    <div className="space-y-2">
+                      {[1,2,3,4,5,6].map(day => {
+                        const ds = availableSlots.filter((s) => s.dayOfWeek === day);
+                        if (ds.length === 0) return null;
+                        return (
+                          <div key={day}>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">{DAY_NAMES[day]}</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {ds.map((s) => (
+                                <button key={`${s.dayOfWeek}-${s.jamKe}`} disabled={placingBlock}
+                                  onClick={async () => {
+                                    setPlacingBlock(true);
+                                    try {
+                                      await apiClient.post('/kbm/jadwal/manual-place', { academicYearId, semester, guruId: manualBlock.guruId, kelasId: manualBlock.kelasId, subjectId: manualBlock.subjectId, dayOfWeek: s.dayOfWeek, jamKe: s.jamKe });
+                                      toast.success(`${manualBlock.kode}. ${manualBlock.subject} \u2192 ${DAY_NAMES[s.dayOfWeek]} jam ${s.jamKe}`);
+                                      if (generateReport) {
+                                        const nf = [...generateReport.report.failedDetails];
+                                        const idx = nf.findIndex((f) => f.guruId === manualBlock.guruId && f.kelasId === manualBlock.kelasId && f.subject === manualBlock.subject);
+                                        if (idx >= 0) nf.splice(idx, 1);
+                                        setGenerateReport({ ...generateReport, report: { ...generateReport.report, failedDetails: nf }, failedBlocks: nf.length, failed: nf.reduce((a, f) => a + f.size, 0), generated: generateReport.generated + 1 });
+                                      }
+                                      setManualBlock(null); loadData();
+                                    } catch (err) { toast.error((err as any).response?.data?.error || 'Gagal menempatkan'); }
+                                    setPlacingBlock(false);
+                                  }}
+                                  className="px-2.5 py-1.5 text-[11px] font-semibold rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/20 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 active:scale-95 transition-all"
+                                >Jam {s.jamKe}</button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  </div>
+                )}
+                {swapSlots.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400 mb-1">{"\u26A0\uFE0F"} Kelas Kosong, Tapi Guru Sibuk</p>
+                    <p className="text-[10px] text-gray-400 mb-2">Pindahkan jadwal guru di kelas lain terlebih dahulu, lalu tempatkan blok ini</p>
+                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                      {swapSlots.slice(0, 20).map((s, i) => (
+                        <div key={i} className="text-[10px] px-2 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/10 text-amber-800 dark:text-amber-300">
+                          <span className="font-semibold">{s.dayName} jam {s.jamKe}</span> {"\u2014"} guru mengajar di <span className="font-semibold">{s.blockedByKelasName}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

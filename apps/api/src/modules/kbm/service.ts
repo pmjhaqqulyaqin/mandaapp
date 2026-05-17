@@ -938,19 +938,45 @@ export class KbmService {
       .from(kbmJadwal).where(and(eq(kbmJadwal.academicYearId, academicYearId), eq(kbmJadwal.semester, semester)));
     const guruBusy = new Set(existing.filter(e => e.guruId === guruId).map(e => `${e.dayOfWeek}-${e.jamKe}`));
     const kelasBusy = new Set(existing.filter(e => e.kelasId === kelasId).map(e => `${e.dayOfWeek}-${e.jamKe}`));
+
+    // Build guru busy lookup: "day-jam" -> kelasId (which class the guru is teaching)
+    const guruBusyAt = new Map<string, string>();
+    for (const e of existing) {
+      if (e.guruId === guruId) guruBusyAt.set(`${e.dayOfWeek}-${e.jamKe}`, e.kelasId);
+    }
+
+    // Get kelas name lookup
+    const kelasRows = await db.execute(sql`SELECT id, nama FROM kelas`);
+    const kelasNameMap = new Map<string, string>();
+    for (const k of (kelasRows as any).rows || kelasRows) kelasNameMap.set(k.id, k.nama);
+
     const timeSlots = await db.execute(sql`SELECT DISTINCT day_of_week, jam_ke FROM jurnal_time_slots WHERE is_active = true ORDER BY day_of_week, jam_ke`);
     const availableDays = new Map<number, number[]>();
     for (const ts of (timeSlots as any).rows || timeSlots) { const d = Number(ts.day_of_week), j = Number(ts.jam_ke); if (!availableDays.has(d)) availableDays.set(d, []); availableDays.get(d)!.push(j); }
-    if (availableDays.size === 0) { for (let d = 1; d <= 6; d++) availableDays.set(d, [1,2,3,4,5,6,7,8]); }
+    if (availableDays.size === 0) { for (let d = 1; d <= 6; d++) availableDays.set(d, [1,2,3,4,5,6,7,8,9,10]); }
+
     const unavail = await db.select().from(guruUnavailability).where(and(eq(guruUnavailability.academicYearId, academicYearId), eq(guruUnavailability.semester, semester), eq(guruUnavailability.guruId, guruId)));
     const guruUnavailSet = new Set(unavail.map(u => u.dayOfWeek));
     const DAY_NAMES: Record<number, string> = { 1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis', 5: 'Jumat', 6: 'Sabtu' };
-    const available: { dayOfWeek: number; jamKe: number; dayName: string }[] = [];
+
+    const direct: { dayOfWeek: number; jamKe: number; dayName: string }[] = [];
+    const needSwap: { dayOfWeek: number; jamKe: number; dayName: string; blockedByKelas: string; blockedByKelasName: string }[] = [];
+
     for (const [day, jams] of availableDays) {
       if (guruUnavailSet.has(day)) continue;
-      for (const jam of jams) { if (!guruBusy.has(`${day}-${jam}`) && !kelasBusy.has(`${day}-${jam}`)) available.push({ dayOfWeek: day, jamKe: jam, dayName: DAY_NAMES[day] || `Hari ${day}` }); }
+      for (const jam of jams) {
+        const sk = `${day}-${jam}`;
+        if (kelasBusy.has(sk)) continue; // class busy = can't use
+        const dn = DAY_NAMES[day] || `Hari ${day}`;
+        if (!guruBusy.has(sk)) {
+          direct.push({ dayOfWeek: day, jamKe: jam, dayName: dn });
+        } else {
+          const blockingKelasId = guruBusyAt.get(sk) || '';
+          needSwap.push({ dayOfWeek: day, jamKe: jam, dayName: dn, blockedByKelas: blockingKelasId, blockedByKelasName: kelasNameMap.get(blockingKelasId) || blockingKelasId });
+        }
+      }
     }
-    return available;
+    return { direct, needSwap };
   }
 
   static async manualPlaceBlock(academicYearId: string, semester: string, guruId: string, kelasId: string, subjectId: string, dayOfWeek: number, jamKe: number) {
