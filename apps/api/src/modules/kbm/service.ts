@@ -905,6 +905,106 @@ export class KbmService {
         bestAttempt.failed = stillFailed;
     }
 
+    // --- SWAP RESCUE: bump-and-reinsert for remaining failures ---
+    if (bestAttempt.failed.length > 0) {
+      // Build lookup from placed slots
+      const swapSlots = bestAttempt.placed;
+      const guruAt = new Map<string, number>(); // "guruId-day-jam" -> index in swapSlots
+      const kelasAt = new Map<string, number>(); // "kelasId-day-jam" -> index
+      for (let i = 0; i < swapSlots.length; i++) {
+        const s = swapSlots[i];
+        guruAt.set(`${s.guruId}-${s.dayOfWeek}-${s.jamKe}`, i);
+        kelasAt.set(`${s.kelasId}-${s.dayOfWeek}-${s.jamKe}`, i);
+      }
+      const isGuruFree = (gId: string, day: number, jam: number) => !guruAt.has(`${gId}-${day}-${jam}`);
+      const isKelasFree = (kId: string, day: number, jam: number) => !kelasAt.has(`${kId}-${day}-${jam}`);
+
+      let swapPlaced = 0;
+      const finalFailed: typeof bestAttempt.failed = [];
+
+      for (const block of bestAttempt.failed) {
+        if (block.size > 2) { finalFailed.push(block); continue; } // swap 1-2 JP blocks
+        let rescued = false;
+
+        for (const day of dayList) {
+          if (guruUnavailDays.get(block.guruId)?.has(day)) continue;
+          const jams = availableDays.get(day)!;
+          for (let si = 0; si <= jams.length - block.size; si++) {
+            let consecutive = true;
+            for (let o = 1; o < block.size; o++) { if (jams[si + o] !== jams[si] + o) { consecutive = false; break; } }
+            if (!consecutive) continue;
+            const startJam = jams[si];
+
+            // Check all slots in block range: class must be free
+            let classFree = true;
+            for (let j = startJam; j < startJam + block.size; j++) {
+              if (!isKelasFree(block.kelasId, day, j)) { classFree = false; break; }
+            }
+            if (!classFree) continue;
+
+            // Check if guru is free in ALL slots
+            let allGuruFree = true;
+            for (let j = startJam; j < startJam + block.size; j++) {
+              if (!isGuruFree(block.guruId, day, j)) { allGuruFree = false; break; }
+            }
+            if (allGuruFree) {
+              // Direct placement
+              for (let j = startJam; j < startJam + block.size; j++) {
+                swapSlots.push({ academicYearId, semester, guruId: block.guruId, kelasId: block.kelasId, subjectId: block.subjectId, ruanganId: null, dayOfWeek: day, jamKe: j });
+                guruAt.set(`${block.guruId}-${day}-${j}`, swapSlots.length - 1);
+                kelasAt.set(`${block.kelasId}-${day}-${j}`, swapSlots.length - 1);
+              }
+              rescued = true;
+              break;
+            }
+
+            // Try to move blockers (only for 1JP blocks to keep it safe)
+            if (block.size === 1) {
+              const blockerIdx = guruAt.get(`${block.guruId}-${day}-${startJam}`);
+              if (blockerIdx === undefined) continue;
+              const blocker = swapSlots[blockerIdx];
+
+              for (const altDay of dayList) {
+                if (guruUnavailDays.get(blocker.guruId)?.has(altDay)) continue;
+                const altJams = availableDays.get(altDay)!;
+                for (const altJam of altJams) {
+                  if (altDay === day && altJam === startJam) continue;
+                  if (!isGuruFree(blocker.guruId, altDay, altJam)) continue;
+                  if (!isKelasFree(blocker.kelasId, altDay, altJam)) continue;
+
+                  // Move blocker
+                  guruAt.delete(`${blocker.guruId}-${day}-${startJam}`);
+                  kelasAt.delete(`${blocker.kelasId}-${day}-${startJam}`);
+                  blocker.dayOfWeek = altDay;
+                  blocker.jamKe = altJam;
+                  guruAt.set(`${blocker.guruId}-${altDay}-${altJam}`, blockerIdx);
+                  kelasAt.set(`${blocker.kelasId}-${altDay}-${altJam}`, blockerIdx);
+
+                  // Place failed block
+                  swapSlots.push({ academicYearId, semester, guruId: block.guruId, kelasId: block.kelasId, subjectId: block.subjectId, ruanganId: null, dayOfWeek: day, jamKe: startJam });
+                  guruAt.set(`${block.guruId}-${day}-${startJam}`, swapSlots.length - 1);
+                  kelasAt.set(`${block.kelasId}-${day}-${startJam}`, swapSlots.length - 1);
+                  rescued = true;
+                  break;
+                }
+                if (rescued) break;
+              }
+            }
+            if (rescued) break;
+          }
+          if (rescued) break;
+        }
+
+        if (rescued) { swapPlaced++; } else { finalFailed.push(block); }
+      }
+
+      if (swapPlaced > 0) {
+        bestAttempt.passResults.push({ pass: 8, label: `Swap rescue (bump & reinsert)`, placed: swapPlaced });
+      }
+      bestAttempt.placed = swapSlots;
+      bestAttempt.failed = finalFailed;
+    }
+
     // Insert best attempt
     if (bestAttempt.placed.length > 0) {
       for (let i = 0; i < bestAttempt.placed.length; i += 100) {
