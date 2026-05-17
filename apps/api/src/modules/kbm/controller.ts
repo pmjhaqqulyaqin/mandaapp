@@ -622,6 +622,67 @@ export class KbmController {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
 
+  // ═══ Guru Unavailability ═════════════════════════════════════
+
+  static async getGuruUnavailability(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester } = req.query;
+      if (!academicYearId || !semester) return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      const results = await KbmService.getGuruUnavailability(academicYearId as string, semester as string);
+      res.json(results);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async createGuruUnavailability(req: Request, res: Response) {
+    try {
+      const { guruId, academicYearId, semester, dayOfWeek, reason } = req.body;
+      if (!guruId || !academicYearId || !semester || dayOfWeek === undefined) {
+        return res.status(400).json({ error: "Data tidak lengkap" });
+      }
+      const result = await KbmService.createGuruUnavailability({ guruId, academicYearId, semester, dayOfWeek: Number(dayOfWeek), reason });
+      res.status(201).json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async deleteGuruUnavailability(req: Request, res: Response) {
+    try {
+      const result = await KbmService.deleteGuruUnavailability(req.params.id);
+      if (!result) return res.status(404).json({ error: "Tidak ditemukan" });
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async bulkSetGuruUnavailability(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester, entries } = req.body;
+      if (!academicYearId || !semester || !Array.isArray(entries)) {
+        return res.status(400).json({ error: "Data tidak lengkap" });
+      }
+      const result = await KbmService.bulkSetGuruUnavailability(academicYearId, semester, entries);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  // ═══ Schedule Config ════════════════════════════════════════
+
+  static async getScheduleConfig(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester } = req.query;
+      if (!academicYearId || !semester) return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      const result = await KbmService.getScheduleConfig(academicYearId as string, semester as string);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async upsertScheduleConfig(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester, ...data } = req.body;
+      if (!academicYearId || !semester) return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      const result = await KbmService.upsertScheduleConfig(academicYearId, semester, data);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
   // ═══ Jadwal (Phase 2) ═══════════════════════════════════════
 
   static async getJadwal(req: Request, res: Response) {

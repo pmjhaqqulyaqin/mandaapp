@@ -2,9 +2,9 @@ import { db } from "../../db";
 import {
   kbmSubjects, distribusiJam, tugasTambahanMaster, tugasTambahan,
   ruangan, employees, classes, academicYears, jurnalMapelCodes,
-  kbmJadwal, teachingSubjects,
+  kbmJadwal, teachingSubjects, guruUnavailability, scheduleConfig,
 } from "../../db/schema";
-import { eq, and, sql, desc, asc } from "drizzle-orm";
+import { eq, and, sql, desc, asc, inArray } from "drizzle-orm";
 
 const JTM_LIMIT = 40; // Default batas maksimal JTM per guru per semester
 
@@ -24,7 +24,7 @@ export class KbmService {
     return results[0];
   }
 
-  static async updateSubject(id: string, data: { kode?: string; nama?: string; isActive?: boolean }) {
+  static async updateSubject(id: string, data: { kode?: string; nama?: string; isActive?: boolean; maxJamKe?: number | null; allowSingleSplit?: boolean; isHeavy?: boolean; customSplitRule?: any }) {
     const results = await db.update(kbmSubjects)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(kbmSubjects.id, id)).returning();
@@ -452,6 +452,94 @@ export class KbmService {
       .orderBy(kbmJadwal.dayOfWeek, kbmJadwal.jamKe);
   }
 
+  // ═══ Guru Unavailability ═════════════════════════════════════
+
+  static async getGuruUnavailability(academicYearId: string, semester: string) {
+    return db.select({
+      id: guruUnavailability.id,
+      guruId: guruUnavailability.guruId,
+      guruName: employees.name,
+      dayOfWeek: guruUnavailability.dayOfWeek,
+      reason: guruUnavailability.reason,
+    })
+      .from(guruUnavailability)
+      .leftJoin(employees, eq(guruUnavailability.guruId, employees.id))
+      .where(and(
+        eq(guruUnavailability.academicYearId, academicYearId),
+        eq(guruUnavailability.semester, semester),
+      ))
+      .orderBy(employees.name, guruUnavailability.dayOfWeek);
+  }
+
+  static async createGuruUnavailability(data: {
+    guruId: string; academicYearId: string; semester: string; dayOfWeek: number; reason?: string;
+  }) {
+    const results = await db.insert(guruUnavailability).values(data).returning();
+    return results[0];
+  }
+
+  static async deleteGuruUnavailability(id: string) {
+    const results = await db.delete(guruUnavailability).where(eq(guruUnavailability.id, id)).returning();
+    return results[0] || null;
+  }
+
+  static async bulkSetGuruUnavailability(
+    academicYearId: string, semester: string,
+    entries: { guruId: string; dayOfWeek: number; reason?: string }[]
+  ) {
+    // Clear existing for this semester
+    await db.delete(guruUnavailability).where(and(
+      eq(guruUnavailability.academicYearId, academicYearId),
+      eq(guruUnavailability.semester, semester),
+    ));
+    if (entries.length === 0) return { count: 0 };
+    const values = entries.map(e => ({ ...e, academicYearId, semester }));
+    await db.insert(guruUnavailability).values(values);
+    return { count: entries.length };
+  }
+
+  // ═══ Schedule Config ════════════════════════════════════════
+
+  static async getScheduleConfig(academicYearId: string, semester: string) {
+    const [existing] = await db.select().from(scheduleConfig).where(and(
+      eq(scheduleConfig.academicYearId, academicYearId),
+      eq(scheduleConfig.semester, semester),
+    ));
+    if (existing) return existing;
+    // Return defaults
+    return {
+      id: null,
+      academicYearId, semester,
+      maxDailyJpThreshold: 20,
+      maxDailyJpLimit: 6,
+      afternoonStartJam: 7,
+      afternoonExcludeFriday: true,
+      defaultSplitRules: { '2': [2], '3': [3], '4': [2, 2], '5': [3, 2], '6': [3, 3] },
+    };
+  }
+
+  static async upsertScheduleConfig(academicYearId: string, semester: string, data: {
+    maxDailyJpThreshold?: number; maxDailyJpLimit?: number;
+    afternoonStartJam?: number; afternoonExcludeFriday?: boolean;
+    defaultSplitRules?: any;
+  }) {
+    const [existing] = await db.select().from(scheduleConfig).where(and(
+      eq(scheduleConfig.academicYearId, academicYearId),
+      eq(scheduleConfig.semester, semester),
+    ));
+    if (existing) {
+      const [updated] = await db.update(scheduleConfig)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(scheduleConfig.id, existing.id)).returning();
+      return updated;
+    }
+    const [created] = await db.insert(scheduleConfig)
+      .values({ academicYearId, semester, ...data }).returning();
+    return created;
+  }
+
+  // ═══ Jadwal (Phase 2 — Smart Constraint Scheduler) ═════════
+
   static async generateJadwal(academicYearId: string, semester: string, clearExisting = true) {
     // 1. Clear existing jadwal if requested
     if (clearExisting) {
@@ -460,7 +548,7 @@ export class KbmService {
       );
     }
 
-    // 2. Load distribusi jam
+    // 2. Load all data needed
     const distribusi = await db.select({
       guruId: distribusiJam.guruId,
       kelasId: distribusiJam.kelasId,
@@ -470,15 +558,32 @@ export class KbmService {
       .from(distribusiJam)
       .where(and(eq(distribusiJam.academicYearId, academicYearId), eq(distribusiJam.semester, semester)));
 
-    if (distribusi.length === 0) return { generated: 0, failed: 0, message: 'Tidak ada distribusi jam' };
+    if (distribusi.length === 0) return { generated: 0, failed: 0, total: 0, message: 'Tidak ada distribusi jam', report: null };
 
-    // 3. Load time slots to know how many jam per day
+    // Load subject constraints
+    const subjectList = await db.select().from(kbmSubjects).where(eq(kbmSubjects.isActive, true));
+    const subjectMap = new Map(subjectList.map(s => [s.id, s]));
+
+    // Load guru unavailability
+    const unavail = await db.select().from(guruUnavailability).where(and(
+      eq(guruUnavailability.academicYearId, academicYearId),
+      eq(guruUnavailability.semester, semester),
+    ));
+    const guruUnavailDays = new Map<string, Set<number>>();
+    for (const u of unavail) {
+      if (!guruUnavailDays.has(u.guruId)) guruUnavailDays.set(u.guruId, new Set());
+      guruUnavailDays.get(u.guruId)!.add(u.dayOfWeek);
+    }
+
+    // Load schedule config
+    const config = await this.getScheduleConfig(academicYearId, semester);
+    const splitRules: Record<string, number[]> = (config.defaultSplitRules as any) || { '2': [2], '3': [3], '4': [2, 2], '5': [3, 2], '6': [3, 3] };
+
+    // Load time slots
     const timeSlots = await db.execute(sql`
       SELECT DISTINCT day_of_week, jam_ke FROM jurnal_time_slots 
       WHERE is_active = true ORDER BY day_of_week, jam_ke
     `);
-    
-    // Build available slots: day -> [jamKe list]
     const availableDays = new Map<number, number[]>();
     for (const ts of (timeSlots as any).rows || timeSlots) {
       const day = Number(ts.day_of_week);
@@ -486,105 +591,286 @@ export class KbmService {
       if (!availableDays.has(day)) availableDays.set(day, []);
       availableDays.get(day)!.push(jam);
     }
-
-    // Fallback if no time slots configured: Senin-Sabtu, 8 jam/hari
     if (availableDays.size === 0) {
-      for (let d = 1; d <= 6; d++) {
-        availableDays.set(d, [1, 2, 3, 4, 5, 6, 7, 8]);
-      }
+      for (let d = 1; d <= 6; d++) availableDays.set(d, [1, 2, 3, 4, 5, 6, 7, 8]);
     }
 
-    // 4. Load ruangan
+    // Load rooms
     const rooms = await db.select({ id: ruangan.id, nama: ruangan.nama })
       .from(ruangan).where(eq(ruangan.isActive, true));
 
-    // 5. Build slot assignments
-    // Track occupied: guruSlots[guruId][day-jam] = true, kelasSlots[kelasId][day-jam] = true
-    const guruSlots = new Map<string, Set<string>>();
-    const kelasSlots = new Map<string, Set<string>>();
-    const roomSlots = new Map<string, Set<string>>();
+    // 3. Compute total JP per guru (for max daily limit rule)
+    const guruTotalJP = new Map<string, number>();
+    for (const d of distribusi) {
+      guruTotalJP.set(d.guruId, (guruTotalJP.get(d.guruId) || 0) + d.jumlahJam);
+    }
 
-    const slotKey = (day: number, jam: number) => `${day}-${jam}`;
+    // 4. Expand distribusi into BLOCKS based on split rules
+    interface Block {
+      guruId: string; kelasId: string; subjectId: string;
+      size: number; // how many consecutive JP in this block
+      isHeavy: boolean;
+      maxJamKe: number | null; // afternoon restriction
+      difficulty: number; // for sorting
+    }
+    const blocks: Block[] = [];
 
-    // 6. Expand distribusi into individual slot requests, sorted by jumlahJam DESC (hardest first)
-    interface SlotRequest { guruId: string; kelasId: string; subjectId: string; }
-    const requests: SlotRequest[] = [];
-    const sorted = [...distribusi].sort((a, b) => b.jumlahJam - a.jumlahJam);
-    for (const d of sorted) {
-      for (let i = 0; i < d.jumlahJam; i++) {
-        requests.push({ guruId: d.guruId, kelasId: d.kelasId, subjectId: d.subjectId });
+    for (const d of distribusi) {
+      const subject = subjectMap.get(d.subjectId);
+      const isHeavy = subject?.isHeavy || false;
+      const maxJamKe = subject?.maxJamKe || null;
+      const allowSingle = subject?.allowSingleSplit || false;
+      const customSplit = subject?.customSplitRule as Record<string, number[]> | null;
+
+      // Determine how to split this distribusi's JP
+      const jp = d.jumlahJam;
+      let blockSizes: number[];
+
+      // Priority: subject custom > global config > fallback
+      if (customSplit && customSplit[String(jp)]) {
+        blockSizes = customSplit[String(jp)];
+      } else if (splitRules[String(jp)]) {
+        blockSizes = [...splitRules[String(jp)]];
+      } else {
+        // Fallback: for JP not in rules, split into 2s and remainder
+        blockSizes = [];
+        let remaining = jp;
+        while (remaining > 0) {
+          if (remaining >= 3 && remaining !== 4) { blockSizes.push(3); remaining -= 3; }
+          else if (remaining >= 2) { blockSizes.push(2); remaining -= 2; }
+          else { blockSizes.push(1); remaining -= 1; }
+        }
+      }
+
+      // If allowSingleSplit and default split gives [3] for 3JP, change to [2,1]
+      if (allowSingle && jp === 3 && blockSizes.length === 1 && blockSizes[0] === 3) {
+        blockSizes = [2, 1];
+      }
+
+      // Compute difficulty score
+      const guruUnavailCount = guruUnavailDays.get(d.guruId)?.size || 0;
+      const availDaysCount = availableDays.size - guruUnavailCount;
+
+      for (const size of blockSizes) {
+        const difficulty =
+          size * 10 +                           // bigger blocks are harder
+          (isHeavy ? 50 : 0) +                 // heavy subjects need more restrictions
+          (maxJamKe ? 30 : 0) +                // afternoon-restricted subjects
+          guruUnavailCount * 15 +              // more unavail days = harder
+          (availDaysCount <= 2 ? 40 : 0);      // very few available days
+        blocks.push({ guruId: d.guruId, kelasId: d.kelasId, subjectId: d.subjectId, size, isHeavy, maxJamKe, difficulty });
       }
     }
 
-    // 7. Track subject-per-day-per-class to spread (max 2 same subject per day per class)
-    const classSubjectDayCount = new Map<string, number>(); // "kelasId-subjectId-day" -> count
+    // 5. Sort blocks by difficulty DESC (hardest first)
+    blocks.sort((a, b) => b.difficulty - a.difficulty);
+
+    // 6. Place blocks with constraint checking
+    const slotKey = (day: number, jam: number) => `${day}-${jam}`;
+    const guruSlots = new Map<string, Set<string>>();
+    const kelasSlots = new Map<string, Set<string>>();
+    const roomSlots = new Map<string, Set<string>>();
+    const guruDayJP = new Map<string, Map<number, number>>(); // guruId -> day -> JP count
+    const kelasHeavyDays = new Map<string, Set<number>>(); // kelasId -> days with heavy subjects
+    const kelasSubjectDays = new Map<string, Set<number>>(); // "kelasId-subjectId" -> days assigned
+
+    const ensureSet = (map: Map<string, Set<string>>, key: string) => {
+      if (!map.has(key)) map.set(key, new Set());
+      return map.get(key)!;
+    };
 
     const toInsert: any[] = [];
-    const failed: SlotRequest[] = [];
+    const failedBlocks: Block[] = [];
+    const constraintViolations: string[] = [];
 
-    for (const req of requests) {
-      if (!guruSlots.has(req.guruId)) guruSlots.set(req.guruId, new Set());
-      if (!kelasSlots.has(req.kelasId)) kelasSlots.set(req.kelasId, new Set());
+    // Deterministic day ordering: spread evenly by rotating start day
+    const dayList = Array.from(availableDays.keys()).sort((a, b) => a - b);
+    let dayRotation = 0;
 
+    for (const block of blocks) {
       let assigned = false;
-      // Try each day (shuffle days to spread load)
-      const days = Array.from(availableDays.keys()).sort(() => Math.random() - 0.5);
+      // Rotate through days for even distribution
+      const rotatedDays = [...dayList.slice(dayRotation % dayList.length), ...dayList.slice(0, dayRotation % dayList.length)];
 
-      for (const day of days) {
+      for (const day of rotatedDays) {
+        // --- Constraint 2: Guru unavailability ---
+        if (guruUnavailDays.get(block.guruId)?.has(day)) continue;
+
+        // --- Constraint 8: Heavy subjects not same day in same class ---
+        if (block.isHeavy) {
+          const kelasHeavyKey = block.kelasId;
+          if (kelasHeavyDays.get(kelasHeavyKey)?.has(day)) continue;
+        }
+
+        // --- Constraint 1: Afternoon restriction (not on Friday if configured) ---
+        const afternoonApplies = block.maxJamKe && !(config.afternoonExcludeFriday && day === 5);
+
+        // --- Constraint 7: Max daily JP for heavy-load teachers ---
+        const totalJP = guruTotalJP.get(block.guruId) || 0;
+        const threshold = config.maxDailyJpThreshold || 20;
+        const maxDailyLimit = config.maxDailyJpLimit || 6;
+        if (totalJP > threshold) {
+          const currentDayJP = guruDayJP.get(block.guruId)?.get(day) || 0;
+          if (currentDayJP + block.size > maxDailyLimit) continue;
+        }
+
+        // --- Constraint 6: Distribution (soft) - avoid overloading one day ---
+        const activeDaysForGuru = dayList.filter(d => !guruUnavailDays.get(block.guruId)?.has(d)).length;
+        const targetPerDay = activeDaysForGuru > 0 ? Math.ceil(totalJP / activeDaysForGuru) : 99;
+        const currentDayJPForDistrib = guruDayJP.get(block.guruId)?.get(day) || 0;
+        // Soft: skip this day if already at 150% of target (unless no other option)
+        const softOverload = currentDayJPForDistrib >= Math.ceil(targetPerDay * 1.5);
+
+        // Try to find consecutive slots in this day
         const jams = availableDays.get(day)!;
-        for (const jam of jams) {
-          const sk = slotKey(day, jam);
-          const spreadKey = `${req.kelasId}-${req.subjectId}-${day}`;
-          const currentSpread = classSubjectDayCount.get(spreadKey) || 0;
+        let bestStart = -1;
 
-          // Check constraints
-          if (guruSlots.get(req.guruId)!.has(sk)) continue; // Guru busy
-          if (kelasSlots.get(req.kelasId)!.has(sk)) continue; // Kelas busy
-          if (currentSpread >= 2) continue; // Max 2 same subject per day per class
+        for (let startIdx = 0; startIdx <= jams.length - block.size; startIdx++) {
+          // Check if consecutive
+          let consecutive = true;
+          for (let offset = 1; offset < block.size; offset++) {
+            if (jams[startIdx + offset] !== jams[startIdx] + offset) {
+              consecutive = false; break;
+            }
+          }
+          if (!consecutive) continue;
+
+          const startJam = jams[startIdx];
+          const endJam = startJam + block.size - 1;
+
+          // Constraint 1: Afternoon restriction
+          if (afternoonApplies && endJam > block.maxJamKe!) continue;
+
+          // Check all slots in the block are free
+          let allFree = true;
+          for (let j = startJam; j <= endJam; j++) {
+            const sk = slotKey(day, j);
+            if (ensureSet(guruSlots, block.guruId).has(sk)) { allFree = false; break; }
+            if (ensureSet(kelasSlots, block.kelasId).has(sk)) { allFree = false; break; }
+          }
+          if (!allFree) continue;
+
+          // Skip soft-overloaded days if we haven't tried all days
+          if (softOverload && bestStart === -1) {
+            bestStart = startJam; // remember as fallback
+            continue;
+          }
+
+          bestStart = startJam;
+          break;
+        }
+
+        if (bestStart === -1 && softOverload) {
+          // Retry without soft constraint
+          for (let startIdx = 0; startIdx <= jams.length - block.size; startIdx++) {
+            let consecutive = true;
+            for (let offset = 1; offset < block.size; offset++) {
+              if (jams[startIdx + offset] !== jams[startIdx] + offset) { consecutive = false; break; }
+            }
+            if (!consecutive) continue;
+            const startJam = jams[startIdx];
+            const endJam = startJam + block.size - 1;
+            if (afternoonApplies && endJam > block.maxJamKe!) continue;
+            let allFree = true;
+            for (let j = startJam; j <= endJam; j++) {
+              const sk = slotKey(day, j);
+              if (ensureSet(guruSlots, block.guruId).has(sk)) { allFree = false; break; }
+              if (ensureSet(kelasSlots, block.kelasId).has(sk)) { allFree = false; break; }
+            }
+            if (!allFree) continue;
+            bestStart = startJam;
+            break;
+          }
+        }
+
+        if (bestStart === -1) continue;
+
+        // --- Place the block ---
+        const endJam = bestStart + block.size - 1;
+        for (let j = bestStart; j <= endJam; j++) {
+          const sk = slotKey(day, j);
+          ensureSet(guruSlots, block.guruId).add(sk);
+          ensureSet(kelasSlots, block.kelasId).add(sk);
 
           // Find available room
           let assignedRoom: string | null = null;
           for (const room of rooms) {
-            if (!roomSlots.has(room.id)) roomSlots.set(room.id, new Set());
-            if (!roomSlots.get(room.id)!.has(sk)) {
+            if (!ensureSet(roomSlots, room.id).has(sk)) {
               assignedRoom = room.id;
               roomSlots.get(room.id)!.add(sk);
               break;
             }
           }
 
-          // Assign
-          guruSlots.get(req.guruId)!.add(sk);
-          kelasSlots.get(req.kelasId)!.add(sk);
-          classSubjectDayCount.set(spreadKey, currentSpread + 1);
-
           toInsert.push({
             academicYearId, semester,
-            guruId: req.guruId, kelasId: req.kelasId, subjectId: req.subjectId,
-            ruanganId: assignedRoom, dayOfWeek: day, jamKe: jam,
+            guruId: block.guruId, kelasId: block.kelasId, subjectId: block.subjectId,
+            ruanganId: assignedRoom, dayOfWeek: day, jamKe: j,
           });
-          assigned = true;
-          break;
         }
-        if (assigned) break;
+
+        // Update tracking
+        if (!guruDayJP.has(block.guruId)) guruDayJP.set(block.guruId, new Map());
+        const gdj = guruDayJP.get(block.guruId)!;
+        gdj.set(day, (gdj.get(day) || 0) + block.size);
+
+        if (block.isHeavy) {
+          if (!kelasHeavyDays.has(block.kelasId)) kelasHeavyDays.set(block.kelasId, new Set());
+          kelasHeavyDays.get(block.kelasId)!.add(day);
+        }
+
+        const ksKey = `${block.kelasId}-${block.subjectId}`;
+        if (!kelasSubjectDays.has(ksKey)) kelasSubjectDays.set(ksKey, new Set());
+        kelasSubjectDays.get(ksKey)!.add(day);
+
+        dayRotation++;
+        assigned = true;
+        break;
       }
 
-      if (!assigned) failed.push(req);
+      if (!assigned) failedBlocks.push(block);
     }
 
-    // 8. Bulk insert
+    // 7. Bulk insert
     if (toInsert.length > 0) {
-      // Insert in batches of 100
       for (let i = 0; i < toInsert.length; i += 100) {
         await db.insert(kbmJadwal).values(toInsert.slice(i, i + 100));
       }
     }
 
+    // 8. Build quality report
+    const report = {
+      constraintsSatisfied: {
+        afternoonRestriction: true,
+        guruUnavailability: true,
+        heavySubjectSeparation: true,
+        maxDailyJP: true,
+        blockIntegrity: true,
+      },
+      distribution: {} as Record<string, { days: Record<number, number>; total: number }>,
+      failedDetails: failedBlocks.map(b => {
+        const subj = subjectMap.get(b.subjectId);
+        return { subject: subj?.nama || b.subjectId, size: b.size, guruId: b.guruId, kelasId: b.kelasId };
+      }),
+    };
+
+    // Compute distribution stats per guru
+    for (const [guruId, dayMap] of guruDayJP) {
+      const days: Record<number, number> = {};
+      let total = 0;
+      for (const [day, jp] of dayMap) { days[day] = jp; total += jp; }
+      report.distribution[guruId] = { days, total };
+    }
+
+    const totalSlots = blocks.reduce((sum, b) => sum + b.size, 0);
     return {
       generated: toInsert.length,
-      failed: failed.length,
-      total: requests.length,
-      message: `${toInsert.length} slot berhasil di-generate${failed.length > 0 ? `, ${failed.length} gagal (slot penuh)` : ''}`,
+      failed: failedBlocks.reduce((sum, b) => sum + b.size, 0),
+      total: totalSlots,
+      blocks: blocks.length,
+      failedBlocks: failedBlocks.length,
+      message: `${toInsert.length} slot berhasil di-generate (${blocks.length} blok)${failedBlocks.length > 0 ? `, ${failedBlocks.length} blok gagal` : ''}`,
+      report,
     };
   }
 

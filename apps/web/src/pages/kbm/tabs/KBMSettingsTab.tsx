@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../../../lib/api';
-import { Plus, Trash2, Pencil, Database, Copy, Check, X, Clock, Hash } from 'lucide-react';
+import { Plus, Trash2, Pencil, Database, Copy, Check, X, Clock, Hash, Settings2, CalendarOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
 }
 
 export const KBMSettingsTab = ({ academicYearId, semester, academicYears }: Props) => {
-  const [activeSection, setActiveSection] = useState<'mapel' | 'kodeGuru' | 'waktu' | 'tugas' | 'ruangan' | 'copy'>('mapel');
+  const [activeSection, setActiveSection] = useState<'mapel' | 'kodeGuru' | 'waktu' | 'tugas' | 'ruangan' | 'scheduler' | 'copy'>('mapel');
 
   return (
     <div className="space-y-4">
@@ -21,6 +21,7 @@ export const KBMSettingsTab = ({ academicYearId, semester, academicYears }: Prop
           { key: 'waktu', label: 'Waktu Pelajaran' },
           { key: 'tugas', label: 'Master Tugas' },
           { key: 'ruangan', label: 'Ruangan' },
+          { key: 'scheduler', label: '⚡ Scheduler' },
           { key: 'copy', label: 'Copy Semester' },
         ].map(s => (
           <button
@@ -42,6 +43,7 @@ export const KBMSettingsTab = ({ academicYearId, semester, academicYears }: Prop
       {activeSection === 'waktu' && <WaktuPelajaranSection />}
       {activeSection === 'tugas' && <TugasMasterSection />}
       {activeSection === 'ruangan' && <RuanganSection />}
+      {activeSection === 'scheduler' && <SchedulerSection academicYearId={academicYearId} semester={semester} />}
       {activeSection === 'copy' && <CopySemesterSection academicYearId={academicYearId} semester={semester} academicYears={academicYears} />}
     </div>
   );
@@ -112,6 +114,9 @@ const MapelSection = () => {
             <thead><tr className="bg-gray-50 dark:bg-[#161616]">
               <th className="px-3 py-2 text-left font-semibold text-gray-500 w-16">Kode</th>
               <th className="px-3 py-2 text-left font-semibold text-gray-500">Nama</th>
+              <th className="px-3 py-2 text-center font-semibold text-gray-500 w-14">Berat</th>
+              <th className="px-3 py-2 text-center font-semibold text-gray-500 w-14">Split 1</th>
+              <th className="px-3 py-2 text-center font-semibold text-gray-500 w-20">Maks Jam</th>
               <th className="px-3 py-2 text-center font-semibold text-gray-500 w-16">Status</th>
               <th className="px-3 py-2 text-center font-semibold text-gray-500 w-14">Aksi</th>
             </tr></thead>
@@ -120,6 +125,47 @@ const MapelSection = () => {
                 <tr key={s.id} className={`${!s.isActive ? 'opacity-40' : ''}`}>
                   <td className="px-3 py-1.5 font-bold text-amber-600 dark:text-amber-400">{s.kode}</td>
                   <td className="px-3 py-1.5 text-gray-700 dark:text-gray-300">{s.nama}</td>
+                  <td className="px-3 py-1.5 text-center">
+                    <button
+                      onClick={async () => {
+                        try {
+                          await apiClient(`/kbm/subjects/${s.id}`, { method: 'PUT', data: { isHeavy: !s.isHeavy } });
+                          load(); toast.success(`${s.nama}: ${!s.isHeavy ? 'Mapel Berat' : 'Normal'}`);
+                        } catch { toast.error('Gagal'); }
+                      }}
+                      className={`w-6 h-6 rounded-md text-[10px] font-bold transition-all ${s.isHeavy ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-[#222] text-gray-400'}`}
+                      title="Mapel berat: tidak boleh ada di hari yang sama dalam 1 kelas dengan mapel berat lain"
+                    >{s.isHeavy ? '🔥' : '—'}</button>
+                  </td>
+                  <td className="px-3 py-1.5 text-center">
+                    <button
+                      onClick={async () => {
+                        try {
+                          await apiClient(`/kbm/subjects/${s.id}`, { method: 'PUT', data: { allowSingleSplit: !s.allowSingleSplit } });
+                          load(); toast.success(`${s.nama}: ${!s.allowSingleSplit ? 'Boleh pecah 1 JP' : 'Normal'}`);
+                        } catch { toast.error('Gagal'); }
+                      }}
+                      className={`w-6 h-6 rounded-md text-[10px] font-bold transition-all ${s.allowSingleSplit ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-[#222] text-gray-400'}`}
+                      title="Boleh dipecah ke 1 JP (misal 3 JP menjadi 2+1)"
+                    >{s.allowSingleSplit ? '✓' : '—'}</button>
+                  </td>
+                  <td className="px-3 py-1.5 text-center">
+                    <select
+                      value={s.maxJamKe || ''}
+                      onChange={async (e) => {
+                        try {
+                          const val = e.target.value ? Number(e.target.value) : null;
+                          await apiClient(`/kbm/subjects/${s.id}`, { method: 'PUT', data: { maxJamKe: val } });
+                          load(); toast.success(val ? `${s.nama}: Maks jam ke-${val}` : `${s.nama}: Tanpa batas`);
+                        } catch { toast.error('Gagal'); }
+                      }}
+                      className="w-16 text-[11px] px-1 py-0.5 rounded border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 outline-none"
+                      title="Hanya boleh ditempatkan sampai jam ke-N (pembatasan siang)"
+                    >
+                      <option value="">—</option>
+                      {[4,5,6,7,8].map(n => <option key={n} value={n}>≤ {n}</option>)}
+                    </select>
+                  </td>
                   <td className="px-3 py-1.5 text-center">
                     <span className={`text-[10px] font-semibold ${s.isActive ? 'text-emerald-600' : 'text-gray-400'}`}>
                       {s.isActive ? 'Aktif' : 'Nonaktif'}
@@ -137,6 +183,7 @@ const MapelSection = () => {
             </tbody>
           </table>
         </div>
+        <p className="text-[10px] text-gray-400 mt-1">💡 <strong>Berat</strong> = tidak boleh ada bersamaan di 1 hari 1 kelas. <strong>Split 1</strong> = boleh dipecah ke 1 JP. <strong>Maks Jam</strong> = pembatasan jam siang.</p>
       )}
     </div>
   );
@@ -622,6 +669,193 @@ const CopySemesterSection = ({ academicYearId, semester, academicYears }: { acad
       >
         <Copy size={14} /> {copying ? 'Menyalin...' : 'Copy Sekarang'}
       </button>
+    </div>
+  );
+};
+
+// ═══ Scheduler Section (Guru Unavailability + Config) ════════
+
+const SDAY_NAMES: Record<number, string> = { 1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis', 5: 'Jumat', 6: 'Sabtu' };
+
+const SchedulerSection = ({ academicYearId, semester }: { academicYearId: string; semester: string }) => {
+  const [unavail, setUnavail] = useState<any[]>([]);
+  const [config, setConfig] = useState<any>(null);
+  const [guruList, setGuruList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selGuru, setSelGuru] = useState('');
+  const [selDay, setSelDay] = useState(1);
+  const [selReason, setSelReason] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const load = () => {
+    if (!academicYearId) return;
+    setLoading(true);
+    Promise.all([
+      apiClient<any[]>(`/kbm/guru-unavailability?academicYearId=${academicYearId}&semester=${semester}`),
+      apiClient<any>(`/kbm/schedule-config?academicYearId=${academicYearId}&semester=${semester}`),
+      apiClient<any[]>('/employees?type=Guru'),
+    ]).then(([u, c, g]) => {
+      setUnavail(u);
+      setConfig(c);
+      setGuruList((g as any[]).sort((a: any, b: any) => a.name.localeCompare(b.name)));
+    }).catch(() => {}).finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, [academicYearId, semester]);
+
+  const handleAddUnavail = async () => {
+    if (!selGuru) return toast.error('Pilih guru');
+    try {
+      await apiClient('/kbm/guru-unavailability', {
+        method: 'POST',
+        data: { guruId: selGuru, academicYearId, semester, dayOfWeek: selDay, reason: selReason || undefined },
+      });
+      load();
+      toast.success('Hari kosong ditambahkan');
+      setSelReason('');
+    } catch (err: any) { toast.error(err.message || 'Gagal'); }
+  };
+
+  const handleDeleteUnavail = async (id: string) => {
+    try {
+      await apiClient(`/kbm/guru-unavailability/${id}`, { method: 'DELETE' });
+      load();
+      toast.success('Dihapus');
+    } catch { toast.error('Gagal'); }
+  };
+
+  const handleSaveConfig = async () => {
+    if (!config) return;
+    setSaving(true);
+    try {
+      await apiClient('/kbm/schedule-config', {
+        method: 'POST',
+        data: {
+          academicYearId, semester,
+          maxDailyJpThreshold: Number(config.maxDailyJpThreshold) || 20,
+          maxDailyJpLimit: Number(config.maxDailyJpLimit) || 6,
+          afternoonStartJam: Number(config.afternoonStartJam) || 7,
+          afternoonExcludeFriday: config.afternoonExcludeFriday !== false,
+          defaultSplitRules: config.defaultSplitRules,
+        },
+      });
+      toast.success('Konfigurasi disimpan');
+    } catch (err: any) { toast.error(err.message || 'Gagal'); }
+    finally { setSaving(false); }
+  };
+
+  if (!academicYearId) return <p className="text-sm text-gray-400 py-6 text-center">Pilih Tahun Ajaran terlebih dahulu</p>;
+  if (loading) return <div className="py-10 text-center"><div className="h-6 w-6 mx-auto animate-spin rounded-full border-3 border-amber-500 border-t-transparent" /></div>;
+
+  // Group unavail by guru
+  const unavailByGuru = new Map<string, any[]>();
+  for (const u of unavail) {
+    if (!unavailByGuru.has(u.guruId)) unavailByGuru.set(u.guruId, []);
+    unavailByGuru.get(u.guruId)!.push(u);
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Config Panel */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Settings2 size={14} className="text-amber-500" />
+          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200">Konfigurasi Scheduler</h3>
+        </div>
+        {config && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="block text-[10px] font-semibold text-gray-400">Threshold JP Harian (guru dengan JP &gt; ini kena batas)</label>
+              <input type="number" value={config.maxDailyJpThreshold || 20}
+                onChange={e => setConfig({ ...config, maxDailyJpThreshold: Number(e.target.value) })}
+                className="w-full px-2 py-1.5 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none" />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-semibold text-gray-400">Maks JP per Hari (untuk guru di atas threshold)</label>
+              <input type="number" value={config.maxDailyJpLimit || 6}
+                onChange={e => setConfig({ ...config, maxDailyJpLimit: Number(e.target.value) })}
+                className="w-full px-2 py-1.5 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none" />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-semibold text-gray-400">Jam Siang Dimulai (mapel berat tidak boleh &ge; jam ini)</label>
+              <input type="number" value={config.afternoonStartJam || 7}
+                onChange={e => setConfig({ ...config, afternoonStartJam: Number(e.target.value) })}
+                className="w-full px-2 py-1.5 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none" />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-semibold text-gray-400">Jumat dikecualikan dari aturan siang?</label>
+              <button
+                onClick={() => setConfig({ ...config, afternoonExcludeFriday: !config.afternoonExcludeFriday })}
+                className={`px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-all ${config.afternoonExcludeFriday ? 'bg-emerald-500 text-white' : 'bg-gray-200 dark:bg-[#222] text-gray-500'}`}
+              >{config.afternoonExcludeFriday ? 'Ya, Jumat Dikecualikan' : 'Tidak, Semua Hari'}</button>
+            </div>
+            <div className="md:col-span-2">
+              <button onClick={handleSaveConfig} disabled={saving}
+                className="px-4 py-2 text-[12px] font-semibold rounded-lg bg-amber-500 text-white hover:bg-amber-600 active:scale-95 disabled:opacity-50">
+                {saving ? 'Menyimpan...' : 'Simpan Konfigurasi'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <hr className="border-gray-200 dark:border-[#222]" />
+
+      {/* Guru Unavailability */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <CalendarOff size={14} className="text-red-500" />
+          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200">Hari Kosong Guru</h3>
+        </div>
+        <p className="text-[10px] text-gray-400">Atur hari dimana guru tidak bisa mengajar. Scheduler akan otomatis menghindari hari tersebut.</p>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <select value={selGuru} onChange={e => setSelGuru(e.target.value)}
+            className="min-w-[180px] px-2 py-1.5 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none">
+            <option value="">Pilih Guru...</option>
+            {guruList.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+          </select>
+          <select value={selDay} onChange={e => setSelDay(Number(e.target.value))}
+            className="px-2 py-1.5 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none">
+            {[1,2,3,4,5,6].map(d => <option key={d} value={d}>{SDAY_NAMES[d]}</option>)}
+          </select>
+          <input type="text" value={selReason} onChange={e => setSelReason(e.target.value)} placeholder="Alasan (opsional)"
+            className="flex-1 min-w-[120px] px-2 py-1.5 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none" />
+          <button onClick={handleAddUnavail} className="p-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 active:scale-95"><Plus size={14} /></button>
+        </div>
+
+        {unavail.length === 0 ? (
+          <p className="text-[12px] text-gray-400 py-4 text-center">Belum ada hari kosong yang diatur</p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-[#222]">
+            <table className="w-full text-[12px]">
+              <thead><tr className="bg-gray-50 dark:bg-[#161616]">
+                <th className="px-3 py-2 text-left font-semibold text-gray-500">Guru</th>
+                <th className="px-3 py-2 text-center font-semibold text-gray-500 w-24">Hari</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-500">Alasan</th>
+                <th className="px-3 py-2 text-center font-semibold text-gray-500 w-14">Aksi</th>
+              </tr></thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
+                {unavail.map(u => (
+                  <tr key={u.id}>
+                    <td className="px-3 py-1.5 text-gray-700 dark:text-gray-300 font-medium">{u.guruName}</td>
+                    <td className="px-3 py-1.5 text-center">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300">
+                        {SDAY_NAMES[u.dayOfWeek]}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1.5 text-gray-400 text-[11px]">{u.reason || '—'}</td>
+                    <td className="px-3 py-1.5 text-center">
+                      <button onClick={() => handleDeleteUnavail(u.id)} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 hover:text-red-500">
+                        <Trash2 size={12} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

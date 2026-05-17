@@ -49,6 +49,16 @@ router.put("/ruangan/:id", requireStaff, KbmController.updateRuangan);
 router.delete("/ruangan/:id", requireStaff, KbmController.deleteRuangan);
 router.post("/ruangan/seed", requireStaff, KbmController.seedRuangan);
 
+// Guru Unavailability (Hari Kosong Guru)
+router.get("/guru-unavailability", requireStaff, KbmController.getGuruUnavailability);
+router.post("/guru-unavailability", requireStaff, KbmController.createGuruUnavailability);
+router.delete("/guru-unavailability/:id", requireStaff, KbmController.deleteGuruUnavailability);
+router.post("/guru-unavailability/bulk", requireStaff, KbmController.bulkSetGuruUnavailability);
+
+// Schedule Config
+router.get("/schedule-config", requireStaff, KbmController.getScheduleConfig);
+router.post("/schedule-config", requireStaff, KbmController.upsertScheduleConfig);
+
 // Jadwal (Phase 2 — Auto Scheduler)
 router.get("/jadwal", requireStaff, KbmController.getJadwal);
 router.post("/jadwal/generate", requireStaff, KbmController.generateJadwal);

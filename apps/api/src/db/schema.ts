@@ -791,6 +791,11 @@ export const kbmSubjects = pgTable("kbm_subjects", {
   kode: varchar("kode", { length: 10 }).notNull().unique(),
   nama: varchar("nama", { length: 150 }).notNull(),
   isActive: boolean("is_active").default(true),
+  // Scheduler constraint fields
+  maxJamKe: integer("max_jam_ke"),                    // null = no restriction, e.g. 6 = only jam 1-6
+  allowSingleSplit: boolean("allow_single_split").default(false), // can be split to 1 JP (e.g. 3→2+1)
+  isHeavy: boolean("is_heavy").default(false),         // heavy subject (no same-day in same class with other heavy)
+  customSplitRule: jsonb("custom_split_rule"),          // override split: e.g. {"5": [3,2], "4": [2,2]}
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -855,6 +860,34 @@ export const kbmJadwal = pgTable("kbm_jadwal", {
   ruanganId: uuid("ruangan_id").references(() => ruangan.id),
   dayOfWeek: integer("day_of_week").notNull(), // 1=Senin..6=Sabtu
   jamKe: integer("jam_ke").notNull(), // 1, 2, 3, ...
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ═══ Guru Unavailability (Hari Kosong Guru) ══════════════════════════════════
+
+export const guruUnavailability = pgTable("guru_unavailability", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  guruId: uuid("guru_id").references(() => employees.id, { onDelete: "cascade" }).notNull(),
+  academicYearId: uuid("academic_year_id").references(() => academicYears.id).notNull(),
+  semester: varchar("semester", { length: 10 }).notNull(),
+  dayOfWeek: integer("day_of_week").notNull(), // 1=Senin..6=Sabtu
+  reason: text("reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ═══ Schedule Config (Konfigurasi Global Scheduler) ══════════════════════════
+
+export const scheduleConfig = pgTable("schedule_config", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  academicYearId: uuid("academic_year_id").references(() => academicYears.id).notNull(),
+  semester: varchar("semester", { length: 10 }).notNull(),
+  maxDailyJpThreshold: integer("max_daily_jp_threshold").default(20), // guru with JP > this gets daily limit
+  maxDailyJpLimit: integer("max_daily_jp_limit").default(6),          // max JP per day for those gurus
+  afternoonStartJam: integer("afternoon_start_jam").default(7),       // jam ke berapa mulai "siang"
+  afternoonExcludeFriday: boolean("afternoon_exclude_friday").default(true), // skip friday for afternoon rule
+  defaultSplitRules: jsonb("default_split_rules").default('{"2":[2],"3":[3],"4":[2,2],"5":[3,2],"6":[3,3]}'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

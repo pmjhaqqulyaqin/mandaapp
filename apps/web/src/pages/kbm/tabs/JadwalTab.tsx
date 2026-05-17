@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../../../lib/api';
-import { Download, FileSpreadsheet, RefreshCw, Zap, Trash2, AlertTriangle, Loader2, ChevronDown } from 'lucide-react';
+import { Download, FileSpreadsheet, RefreshCw, Zap, Trash2, AlertTriangle, Loader2, ChevronDown, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -57,6 +57,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [showConfirmClear, setShowConfirmClear] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [conflicts, setConflicts] = useState<any>(null);
+  const [generateReport, setGenerateReport] = useState<any>(null);
 
   const loadData = useCallback(() => {
     if (!academicYearId) return;
@@ -101,11 +102,13 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const handleGenerate = async () => {
     setShowConfirmGenerate(false);
     setGenerating(true);
+    setGenerateReport(null);
     try {
       const res = await apiClient<any>('/kbm/jadwal/generate', {
         method: 'POST', data: { academicYearId, semester, clearExisting: true },
       });
       toast.success(res.message);
+      setGenerateReport(res);
       loadData();
     } catch (err: any) { toast.error(err.message || 'Gagal generate'); }
     finally { setGenerating(false); }
@@ -258,6 +261,44 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
             ⚠️ Ditemukan {conflicts.guruConflicts.length} konflik guru dan {conflicts.kelasConflicts.length} konflik kelas
           </p>
           <p className="text-[11px] text-red-500 dark:text-red-400">Perbaiki konflik sebelum sync ke Jurnal Mengajar.</p>
+        </div>
+      )}
+
+      {/* Generate Report */}
+      {generateReport && (
+        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 size={14} className="text-emerald-600" />
+              <p className="text-[12px] font-semibold text-emerald-700 dark:text-emerald-300">
+                Generate Selesai — {generateReport.generated} slot ({generateReport.blocks} blok)
+              </p>
+            </div>
+            <button onClick={() => setGenerateReport(null)} className="text-gray-400 hover:text-gray-600 text-[10px]">✕</button>
+          </div>
+          {generateReport.failedBlocks > 0 && (
+            <div className="flex items-center gap-1.5">
+              <XCircle size={12} className="text-red-500" />
+              <p className="text-[11px] text-red-600 dark:text-red-400">
+                {generateReport.failedBlocks} blok gagal ditempatkan ({generateReport.failed} JP)
+              </p>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-3 text-[10px] text-gray-500 dark:text-gray-400">
+            <span>Total JP: <strong>{generateReport.total}</strong></span>
+            <span>Berhasil: <strong className="text-emerald-600">{generateReport.generated}</strong></span>
+            <span>Gagal: <strong className={generateReport.failed > 0 ? 'text-red-500' : 'text-emerald-600'}>{generateReport.failed}</strong></span>
+          </div>
+          {generateReport.report?.failedDetails?.length > 0 && (
+            <details className="text-[10px]">
+              <summary className="cursor-pointer text-red-500 font-semibold">Detail Blok Gagal</summary>
+              <ul className="mt-1 space-y-0.5 text-gray-500 dark:text-gray-400">
+                {generateReport.report.failedDetails.map((f: any, i: number) => (
+                  <li key={i}>• {f.subject} ({f.size} JP) — tidak tersedia slot</li>
+                ))}
+              </ul>
+            </details>
+          )}
         </div>
       )}
 
