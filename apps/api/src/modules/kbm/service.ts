@@ -777,25 +777,31 @@ export class KbmService {
       return { placed, failed: remaining, passResults };
     };
 
-    // --- Multiple attempts with shuffled ordering ---
-    const blocks0 = buildBlocks();
-    blocks0.sort((a, b) => b.difficulty - a.difficulty);
+    // --- Multiple attempts: try many orderings, pick best ---
+    const MAX_ATTEMPTS = 30;
+    const blocksNormal = buildBlocks(false);
+    const blocksAutoSplit = buildBlocks(true);
+    blocksNormal.sort((a, b) => b.difficulty - a.difficulty);
+    blocksAutoSplit.sort((a, b) => b.difficulty - a.difficulty);
 
-    // Attempt 1: sorted by difficulty (default)
-    const attempt1 = runAttempt([...blocks0]);
-    let bestAttempt = attempt1;
+    // Attempt 1: normal sorted, Attempt 2: auto-split sorted
+    let bestAttempt = runAttempt([...blocksNormal]);
+    if (bestAttempt.failed.length > 0) {
+      const r2 = runAttempt([...blocksAutoSplit]);
+      if (r2.failed.length < bestAttempt.failed.length) bestAttempt = r2;
+    }
 
-    // Attempt 2+3: shuffle with different seeds for variety
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const shuffled = [...blocks0];
-      // Fisher-Yates with bias towards difficulty (semi-random)
+    // Remaining attempts: full random shuffle, alternating normal/auto-split
+    for (let a = 2; a < MAX_ATTEMPTS && bestAttempt.failed.length > 0; a++) {
+      const base = a % 2 === 0 ? blocksAutoSplit : blocksNormal;
+      const shuffled = [...base];
+      // Full Fisher-Yates random shuffle
       for (let i = shuffled.length - 1; i > 0; i--) {
-        const jitter = Math.floor(Math.random() * Math.min(i + 1, 20)); // shuffle within window of 20
-        [shuffled[i], shuffled[i - jitter]] = [shuffled[i - jitter], shuffled[i]];
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
       const result = runAttempt(shuffled);
       if (result.failed.length < bestAttempt.failed.length) bestAttempt = result;
-      if (bestAttempt.failed.length === 0) break;
     }
 
     // --- Post-processing: COMPACTION + RETRY ---
@@ -906,14 +912,14 @@ export class KbmService {
       }
     }
 
-    const totalSlots = blocks0.reduce((s, b) => s + b.size, 0);
+    const totalSlots = blocksNormal.reduce((s, b) => s + b.size, 0);
     return {
       generated: bestAttempt.placed.length,
       failed: bestAttempt.failed.reduce((s: number, b: any) => s + b.size, 0),
       total: totalSlots,
-      blocks: blocks0.length,
+      blocks: blocksNormal.length,
       failedBlocks: bestAttempt.failed.length,
-      message: `${bestAttempt.placed.length} slot berhasil (${blocks0.length} blok)${bestAttempt.failed.length > 0 ? `, ${bestAttempt.failed.length} blok gagal` : ''}`,
+      message: `${bestAttempt.placed.length} slot berhasil (${blocksNormal.length} blok)${bestAttempt.failed.length > 0 ? `, ${bestAttempt.failed.length} blok gagal` : ''}`,
       report: {
         passResults: bestAttempt.passResults,
         attempts: 3,
