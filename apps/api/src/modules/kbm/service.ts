@@ -590,7 +590,7 @@ export class KbmService {
 
     // Expand distribusi into blocks
     interface Block { guruId: string; kelasId: string; subjectId: string; size: number; isHeavy: boolean; maxJamKe: number | null; difficulty: number; failReason?: string; passPlaced?: number; }
-    const buildBlocks = (): Block[] => {
+    const buildBlocks = (forceAutoSplit = false): Block[] => {
       const result: Block[] = [];
       for (const d of distribusi) {
         const subject = subjectMap.get(d.subjectId);
@@ -603,7 +603,11 @@ export class KbmService {
         if (customSplit && customSplit[String(jp)]) { blockSizes = customSplit[String(jp)]; }
         else if (splitRules[String(jp)]) { blockSizes = [...splitRules[String(jp)]]; }
         else { blockSizes = []; let rem = jp; while (rem > 0) { if (rem >= 3 && rem !== 4) { blockSizes.push(3); rem -= 3; } else if (rem >= 2) { blockSizes.push(2); rem -= 2; } else { blockSizes.push(1); rem -= 1; } } }
-        if (allowSingle && jp === 3 && blockSizes.length === 1 && blockSizes[0] === 3) blockSizes = [2, 1];
+        const shouldSplit = forceAutoSplit || allowSingle;
+        if (shouldSplit && !customSplit) {
+          if (jp === 3 && blockSizes.length === 1 && blockSizes[0] === 3) blockSizes = [2, 1];
+          else if (jp === 5 && blockSizes.length === 2 && blockSizes[0] === 3 && blockSizes[1] === 2) blockSizes = [2, 2, 1];
+        }
         const guruUnavailCount = guruUnavailDays.get(d.guruId)?.size || 0;
         for (const size of blockSizes) {
           const difficulty = size * 10 + (isHeavy ? 50 : 0) + (maxJamKe ? 30 : 0) + guruUnavailCount * 15 + (guruTotalJP.get(d.guruId)! > 20 ? 20 : 0);
