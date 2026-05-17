@@ -824,15 +824,28 @@ export class KbmService {
         slots.sort((a: any, b: any) => a.jamKe - b.jamKe);
         const day = slots[0].dayOfWeek;
         const dayJams = availableDays.get(day) || [];
+        const origJams = slots.map((s: any) => s.jamKe);
 
-        // Map occupied jam positions to their slot data
+        // Try compact: assign sequential jam positions
         let writeIdx = 0;
         for (const slot of slots) {
-          if (writeIdx < dayJams.length) {
-            slot.jamKe = dayJams[writeIdx]; // compact: assign sequential jam
-            writeIdx++;
-          }
+          if (writeIdx < dayJams.length) { slot.jamKe = dayJams[writeIdx]; writeIdx++; }
         }
+
+        // Check if this compaction creates guru conflict (guru in 2 classes at same time)
+        let conflict = false;
+        for (const s of slots) {
+          for (const other of schedule) {
+            if (other === s) continue;
+            if (other.guruId === s.guruId && other.dayOfWeek === s.dayOfWeek && other.jamKe === s.jamKe && other.kelasId !== s.kelasId) {
+              conflict = true; break;
+            }
+          }
+          if (conflict) break;
+        }
+
+        // Revert if conflict
+        if (conflict) { for (let i = 0; i < slots.length; i++) slots[i].jamKe = origJams[i]; }
       }
 
       // Rebuild guru/kelas slot tracking from compacted schedule
@@ -842,22 +855,9 @@ export class KbmService {
         cEnsureSet(newKelasSlots, s.kelasId).add(sk);
       }
 
-      // Now check if compaction created guru conflicts (same guru, same day, same jam in different classes)
-      // If so, revert that specific compaction
-      let hasConflict = false;
-      const guruJamCheck = new Map<string, string>(); // "guruId-day-jam" -> kelasId
-      for (const s of schedule) {
-        const gKey = `${s.guruId}-${s.dayOfWeek}-${s.jamKe}`;
-        if (guruJamCheck.has(gKey) && guruJamCheck.get(gKey) !== s.kelasId) {
-          hasConflict = true;
-          break;
-        }
-        guruJamCheck.set(gKey, s.kelasId);
-      }
 
-      if (!hasConflict) {
-        // Compaction is safe! Now retry failed blocks
-        bestAttempt.placed = schedule.map(({ _idx, ...rest }: any) => rest);
+      // Retry failed blocks in freed slots
+      bestAttempt.placed = schedule.map(({ _idx, ...rest }: any) => rest);
 
         let retryPlaced = 0;
         const stillFailed: typeof bestAttempt.failed = [];
@@ -897,7 +897,6 @@ export class KbmService {
           bestAttempt.passResults.push({ pass: 7, label: `Kompaksi + retry (defrag gap)`, placed: retryPlaced });
         }
         bestAttempt.failed = stillFailed;
-      }
     }
 
     // Insert best attempt
