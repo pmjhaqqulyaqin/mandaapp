@@ -950,10 +950,25 @@ export class KbmService {
     const kelasNameMap = new Map<string, string>();
     for (const k of (kelasRows as any).rows || kelasRows) kelasNameMap.set(k.id, k.nama);
 
-    const timeSlots = await db.execute(sql`SELECT DISTINCT day_of_week, jam_ke FROM jurnal_time_slots WHERE is_active = true ORDER BY day_of_week, jam_ke`);
-    const availableDays = new Map<number, number[]>();
-    for (const ts of (timeSlots as any).rows || timeSlots) { const d = Number(ts.day_of_week), j = Number(ts.jam_ke); if (!availableDays.has(d)) availableDays.set(d, []); availableDays.get(d)!.push(j); }
-    if (availableDays.size === 0) { for (let d = 1; d <= 6; d++) availableDays.set(d, [1,2,3,4,5,6,7,8,9,10]); }
+    // Derive available slots from EXISTING jadwal (guarantees all generated slots are covered)
+    const availableDays = new Map<number, Set<number>>();
+    for (const e of existing) {
+      if (!availableDays.has(e.dayOfWeek)) availableDays.set(e.dayOfWeek, new Set());
+      availableDays.get(e.dayOfWeek)!.add(e.jamKe);
+    }
+    // Also add from jurnal_time_slots as backup
+    try {
+      const timeSlots = await db.execute(sql`SELECT DISTINCT day_of_week, jam_ke FROM jurnal_time_slots WHERE is_active = true`);
+      for (const ts of (timeSlots as any).rows || timeSlots) {
+        const d = Number(ts.day_of_week), j = Number(ts.jam_ke);
+        if (!availableDays.has(d)) availableDays.set(d, new Set());
+        availableDays.get(d)!.add(j);
+      }
+    } catch {}
+    if (availableDays.size === 0) { for (let d = 1; d <= 6; d++) availableDays.set(d, new Set([1,2,3,4,5,6,7,8,9,10])); }
+    // Convert Sets to sorted arrays
+    const sortedDays = new Map<number, number[]>();
+    for (const [d, jams] of availableDays) sortedDays.set(d, Array.from(jams).sort((a, b) => a - b));
 
     const unavail = await db.select().from(guruUnavailability).where(and(eq(guruUnavailability.academicYearId, academicYearId), eq(guruUnavailability.semester, semester), eq(guruUnavailability.guruId, guruId)));
     const guruUnavailSet = new Set(unavail.map(u => u.dayOfWeek));
@@ -962,7 +977,7 @@ export class KbmService {
     const direct: { dayOfWeek: number; jamKe: number; dayName: string }[] = [];
     const needSwap: { dayOfWeek: number; jamKe: number; dayName: string; blockedByKelas: string; blockedByKelasName: string }[] = [];
 
-    for (const [day, jams] of availableDays) {
+    for (const [day, jams] of sortedDays) {
       if (guruUnavailSet.has(day)) continue;
       for (const jam of jams) {
         const sk = `${day}-${jam}`;
