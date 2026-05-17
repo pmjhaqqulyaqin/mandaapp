@@ -258,7 +258,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
       {conflicts?.hasConflicts && (
         <div className="p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
           <p className="text-[12px] font-semibold text-red-700 dark:text-red-300 mb-1">
-            ⚠️ Ditemukan {conflicts.guruConflicts.length} konflik guru dan {conflicts.kelasConflicts.length} konflik kelas
+            {"\u26A0\uFE0F"} Ditemukan {conflicts.guruConflicts.length} konflik guru dan {conflicts.kelasConflicts.length} konflik kelas
           </p>
           <p className="text-[11px] text-red-500 dark:text-red-400">Perbaiki konflik sebelum sync ke Jurnal Mengajar.</p>
         </div>
@@ -271,10 +271,10 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
             <div className="flex items-center gap-2">
               <CheckCircle2 size={14} className="text-emerald-600" />
               <p className="text-[12px] font-semibold text-emerald-700 dark:text-emerald-300">
-                Generate Selesai — {generateReport.generated} slot ({generateReport.blocks} blok)
+                Generate Selesai {"\u2014"} {generateReport.generated} slot ({generateReport.blocks} blok)
               </p>
             </div>
-            <button onClick={() => setGenerateReport(null)} className="text-gray-400 hover:text-gray-600 text-[10px]">✕</button>
+            <button onClick={() => setGenerateReport(null)} className="text-gray-400 hover:text-gray-600 text-[10px]">{"\u2715"}</button>
           </div>
           {generateReport.failedBlocks > 0 && (
             <div className="flex items-center gap-1.5">
@@ -294,7 +294,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
               <summary className="cursor-pointer text-red-500 font-semibold">Detail Blok Gagal</summary>
               <ul className="mt-1 space-y-0.5 text-gray-500 dark:text-gray-400">
                 {generateReport.report.failedDetails.map((f: any, i: number) => (
-                  <li key={i}>• {f.subject} ({f.size} JP) — tidak tersedia slot</li>
+                  <li key={i}>{"\u2022"} {f.subject} ({f.size} JP) {"\u2014"} tidak tersedia slot</li>
                 ))}
               </ul>
             </details>

@@ -135,7 +135,7 @@ const MapelSection = () => {
                       }}
                       className={`w-6 h-6 rounded-md text-[10px] font-bold transition-all ${s.isHeavy ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-[#222] text-gray-400'}`}
                       title="Mapel berat: tidak boleh ada di hari yang sama dalam 1 kelas dengan mapel berat lain"
-                    >{s.isHeavy ? '🔥' : '—'}</button>
+                    >{s.isHeavy ? '\u{1F525}' : '\u2014'}</button>
                   </td>
                   <td className="px-3 py-1.5 text-center">
                     <button
@@ -147,7 +147,7 @@ const MapelSection = () => {
                       }}
                       className={`w-6 h-6 rounded-md text-[10px] font-bold transition-all ${s.allowSingleSplit ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-[#222] text-gray-400'}`}
                       title="Boleh dipecah ke 1 JP (misal 3 JP menjadi 2+1)"
-                    >{s.allowSingleSplit ? '✓' : '—'}</button>
+                    >{s.allowSingleSplit ? '\u2713' : '\u2014'}</button>
                   </td>
                   <td className="px-3 py-1.5 text-center">
                     <select
@@ -162,8 +162,8 @@ const MapelSection = () => {
                       className="w-16 text-[11px] px-1 py-0.5 rounded border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 outline-none"
                       title="Hanya boleh ditempatkan sampai jam ke-N (pembatasan siang)"
                     >
-                      <option value="">—</option>
-                      {[4,5,6,7,8].map(n => <option key={n} value={n}>≤ {n}</option>)}
+                      <option value="">{"\u2014"}</option>
+                      {[4,5,6,7,8].map(n => <option key={n} value={n}>{"\u2264"} {n}</option>)}
                     </select>
                   </td>
                   <td className="px-3 py-1.5 text-center">
@@ -183,7 +183,7 @@ const MapelSection = () => {
             </tbody>
           </table>
         </div>
-        <p className="text-[10px] text-gray-400 mt-1">💡 <strong>Berat</strong> = tidak boleh ada bersamaan di 1 hari 1 kelas. <strong>Split 1</strong> = boleh dipecah ke 1 JP. <strong>Maks Jam</strong> = pembatasan jam siang.</p>
+        <p className="text-[10px] text-gray-400 mt-1">{'\u{1F4A1}'} <strong>Berat</strong> = tidak boleh ada bersamaan di 1 hari 1 kelas. <strong>Split 1</strong> = boleh dipecah ke 1 JP. <strong>Maks Jam</strong> = pembatasan jam siang.</p>
       )}
     </div>
   );
