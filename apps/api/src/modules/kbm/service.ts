@@ -777,30 +777,47 @@ export class KbmService {
       return { placed, failed: remaining, passResults };
     };
 
-    // --- Multiple attempts: try many orderings, pick best ---
+    // --- Multiple attempts: 1JP blocks ALWAYS placed last ---
     const MAX_ATTEMPTS = 100;
     const blocksNormal = buildBlocks(false);
     const blocksAutoSplit = buildBlocks(true);
-    blocksNormal.sort((a, b) => b.difficulty - a.difficulty);
-    blocksAutoSplit.sort((a, b) => b.difficulty - a.difficulty);
 
-    // Attempt 1: normal sorted, Attempt 2: auto-split sorted
+    // Smart shuffle: only shuffle ≥2JP blocks, 1JP fillers always at end
+    const smartShuffle = (blocks: Block[]): Block[] => {
+      const big = blocks.filter(b => b.size >= 2);
+      const small = blocks.filter(b => b.size === 1);
+      // Shuffle only the big blocks
+      for (let i = big.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [big[i], big[j]] = [big[j], big[i]];
+      }
+      // 1JP blocks sorted by difficulty (most constrained first)
+      small.sort((a, b) => b.difficulty - a.difficulty);
+      return [...big, ...small];
+    };
+
+    // Attempt 1: normal sorted by difficulty (big first, small last)
+    blocksNormal.sort((a, b) => {
+      if (a.size === 1 && b.size !== 1) return 1; // 1JP goes last
+      if (a.size !== 1 && b.size === 1) return -1;
+      return b.difficulty - a.difficulty;
+    });
+    blocksAutoSplit.sort((a, b) => {
+      if (a.size === 1 && b.size !== 1) return 1;
+      if (a.size !== 1 && b.size === 1) return -1;
+      return b.difficulty - a.difficulty;
+    });
+
     let bestAttempt = runAttempt([...blocksNormal]);
     if (bestAttempt.failed.length > 0) {
       const r2 = runAttempt([...blocksAutoSplit]);
       if (r2.failed.length < bestAttempt.failed.length) bestAttempt = r2;
     }
 
-    // Remaining attempts: full random shuffle, alternating normal/auto-split
+    // Remaining attempts: smart shuffle (big random, small last)
     for (let a = 2; a < MAX_ATTEMPTS && bestAttempt.failed.length > 0; a++) {
       const base = a % 2 === 0 ? blocksAutoSplit : blocksNormal;
-      const shuffled = [...base];
-      // Full Fisher-Yates random shuffle
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      const result = runAttempt(shuffled);
+      const result = runAttempt(smartShuffle(base));
       if (result.failed.length < bestAttempt.failed.length) bestAttempt = result;
     }
 
