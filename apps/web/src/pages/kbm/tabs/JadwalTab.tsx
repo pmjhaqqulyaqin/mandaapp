@@ -71,6 +71,8 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [otherSlots, setOtherSlots] = useState<any[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [placingBlock, setPlacingBlock] = useState(false);
+  const [draggingBlock, setDraggingBlock] = useState<any>(null);
+  const [dragOverCell, setDragOverCell] = useState<string | null>(null);
 
   const loadData = useCallback(() => {
     if (!academicYearId) return;
@@ -318,25 +320,20 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
                 <summary className="cursor-pointer text-red-500 font-semibold">Detail Blok Gagal — klik "Tempatkan" untuk menempatkan manual</summary>
                 <div className="mt-1 space-y-1 max-h-48 overflow-y-auto">
                   {generateReport.report?.failedDetails?.map((f: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between gap-2 py-0.5 px-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800">
+                    <div key={i}
+                      draggable
+                      onDragStart={(e) => {
+                        setDraggingBlock(f);
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/plain', JSON.stringify(f));
+                      }}
+                      onDragEnd={() => { setDraggingBlock(null); setDragOverCell(null); }}
+                      className="flex items-center justify-between gap-2 py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 cursor-grab active:cursor-grabbing border border-transparent hover:border-blue-200 dark:hover:border-blue-500/30"
+                    >
                       <span className="text-gray-500 dark:text-gray-400">{"\u2022"} {f.kode}. {f.subject} ({f.size} JP)</span>
-                      <button
-                        onClick={async () => {
-                          setManualBlock(f);
-                          setLoadingSlots(true);
-                          try {
-                            const params = new URLSearchParams({ academicYearId, semester, guruId: f.guruId, kelasId: f.kelasId });
-                            const res = await apiClient<any>(`/kbm/jadwal/available-slots?${params}`);
-                            setAvailableSlots(res.direct || []);
-                            setSwapSlots(res.needSwap || []);
-                            setOtherSlots(res.otherClasses || []);
-                          } catch { setAvailableSlots([]); setSwapSlots([]); setOtherSlots([]); }
-                          setLoadingSlots(false);
-                        }}
-                        className="shrink-0 text-[9px] px-2 py-0.5 rounded-full bg-blue-500 text-white font-semibold hover:bg-blue-600 flex items-center gap-1"
-                      >
-                        <MapPin size={9} /> Tempatkan
-                      </button>
+                      <span className="shrink-0 text-[9px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300 font-semibold flex items-center gap-1">
+                        <MapPin size={9} /> Drag ke slot kosong
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -383,7 +380,27 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
                     return (
                       <td key={day} className="px-0.5 py-0.5 border-r border-gray-100 dark:border-[#1a1a1a] align-top">
                         {slots.length === 0 ? (
-                          <div className="h-14 rounded-lg border border-dashed border-gray-100 dark:border-[#222]" />
+                          <div
+                            onDragOver={draggingBlock ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverCell(`${day}-${jam}`); } : undefined}
+                            onDragLeave={() => setDragOverCell(null)}
+                            onDrop={draggingBlock ? async (e) => {
+                              e.preventDefault(); setDragOverCell(null);
+                              const block = draggingBlock; setDraggingBlock(null);
+                              if (!block) return;
+                              try {
+                                await apiClient<any>('/kbm/jadwal/manual-place', { method: 'POST', data: { academicYearId, semester, guruId: block.guruId, kelasId: block.kelasId, subjectId: block.subjectId, dayOfWeek: day, jamKe: jam } });
+                                toast.success(`${block.kode}. ${block.subject} \u2192 ${DAY_NAMES[day]} jam ${jam}`);
+                                if (generateReport) {
+                                  const nf = [...(generateReport.report?.failedDetails || [])];
+                                  const idx = nf.findIndex((f: any) => f.guruId === block.guruId && f.kelasId === block.kelasId && f.subject === block.subject);
+                                  if (idx >= 0) nf.splice(idx, 1);
+                                  setGenerateReport({ ...generateReport, report: { ...generateReport.report, failedDetails: nf }, failedBlocks: nf.length, failed: nf.reduce((a: number, f: any) => a + f.size, 0), generated: (generateReport.generated || 0) + 1 });
+                                }
+                                loadData();
+                              } catch (err: any) { toast.error(err?.message || 'Konflik: slot sudah terisi'); }
+                            } : undefined}
+                            className={`h-14 rounded-lg border border-dashed transition-all ${draggingBlock ? (dragOverCell === `${day}-${jam}` ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 scale-105 shadow-lg' : 'border-blue-300 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/5') : 'border-gray-100 dark:border-[#222]'}`}
+                          />
                         ) : (
                           <div className="space-y-0.5">
                             {slots.map(slot => (
