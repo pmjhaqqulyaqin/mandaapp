@@ -778,275 +778,132 @@ export class KbmService {
     };
 
     // --- Multiple attempts: 1JP blocks ALWAYS placed last ---
+    // --- Multiple attempts: full random + per-attempt chain swap ---
     const MAX_ATTEMPTS = 100;
     const blocksNormal = buildBlocks(false);
     const blocksAutoSplit = buildBlocks(true);
+    blocksNormal.sort((a, b) => b.difficulty - a.difficulty);
+    blocksAutoSplit.sort((a, b) => b.difficulty - a.difficulty);
 
-    // Smart shuffle: only shuffle ≥2JP blocks, 1JP fillers always at end
-    const smartShuffle = (blocks: Block[]): Block[] => {
-      const big = blocks.filter(b => b.size >= 2);
-      const small = blocks.filter(b => b.size === 1);
-      // Shuffle only the big blocks
-      for (let i = big.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [big[i], big[j]] = [big[j], big[i]];
+    // Chain swap rescue function - applied to each attempt
+    const applyChainSwap = (attempt: { placed: any[]; failed: Block[]; passResults: any[] }) => {
+      if (attempt.failed.length === 0) return;
+      const ss = attempt.placed;
+      const gA = new Map<string, number>();
+      const kA = new Map<string, number>();
+      for (let i = 0; i < ss.length; i++) {
+        gA.set(`${ss[i].guruId}-${ss[i].dayOfWeek}-${ss[i].jamKe}`, i);
+        kA.set(`${ss[i].kelasId}-${ss[i].dayOfWeek}-${ss[i].jamKe}`, i);
       }
-      // 1JP blocks sorted by difficulty (most constrained first)
-      small.sort((a, b) => b.difficulty - a.difficulty);
-      return [...big, ...small];
+      const gF = (g: string, d: number, j: number) => !gA.has(`${g}-${d}-${j}`);
+      const kF = (k: string, d: number, j: number) => !kA.has(`${k}-${d}-${j}`);
+      const mv = (idx: number, nd: number, nj: number) => {
+        const s = ss[idx];
+        gA.delete(`${s.guruId}-${s.dayOfWeek}-${s.jamKe}`);
+        kA.delete(`${s.kelasId}-${s.dayOfWeek}-${s.jamKe}`);
+        s.dayOfWeek = nd; s.jamKe = nj;
+        gA.set(`${s.guruId}-${nd}-${nj}`, idx);
+        kA.set(`${s.kelasId}-${nd}-${nj}`, idx);
+      };
+      const pn = (b: any, d: number, j: number) => {
+        ss.push({ academicYearId, semester, guruId: b.guruId, kelasId: b.kelasId, subjectId: b.subjectId, ruanganId: null, dayOfWeek: d, jamKe: j });
+        gA.set(`${b.guruId}-${d}-${j}`, ss.length - 1);
+        kA.set(`${b.kelasId}-${d}-${j}`, ss.length - 1);
+      };
+
+      let rescued = 0;
+      let rem = [...attempt.failed];
+      let changed = true;
+      while (changed && rem.length > 0) {
+        changed = false;
+        const next: typeof rem = [];
+        for (const block of rem) {
+          if (block.size > 2) { next.push(block); continue; }
+          let ok = false;
+          for (const day of dayList) {
+            if (ok) break;
+            if (guruUnavailDays.get(block.guruId)?.has(day)) continue;
+            const jams = availableDays.get(day)!;
+            for (let si = 0; si <= jams.length - block.size; si++) {
+              let con = true;
+              for (let o = 1; o < block.size; o++) { if (jams[si+o] !== jams[si]+o) { con = false; break; } }
+              if (!con) continue;
+              const sj = jams[si];
+              let cf = true;
+              for (let j = sj; j < sj + block.size; j++) { if (!kF(block.kelasId, day, j)) { cf = false; break; } }
+              if (!cf) continue;
+              let af = true;
+              for (let j = sj; j < sj + block.size; j++) { if (!gF(block.guruId, day, j)) { af = false; break; } }
+              if (af) { for (let j = sj; j < sj + block.size; j++) pn(block, day, j); ok = true; break; }
+              if (block.size === 1) {
+                const bi = gA.get(`${block.guruId}-${day}-${sj}`);
+                if (bi === undefined) continue;
+                const b = ss[bi];
+                // 1-level swap
+                let m1 = false;
+                for (const ad of dayList) {
+                  if (guruUnavailDays.get(b.guruId)?.has(ad)) continue;
+                  for (const aj of availableDays.get(ad)!) {
+                    if (ad === day && aj === sj) continue;
+                    if (!gF(b.guruId, ad, aj) || !kF(b.kelasId, ad, aj)) continue;
+                    mv(bi, ad, aj); pn(block, day, sj); ok = true; m1 = true; break;
+                  }
+                  if (m1) break;
+                }
+                if (ok) break;
+                // 2-level chain swap
+                for (const ad of dayList) {
+                  if (ok) break;
+                  if (guruUnavailDays.get(b.guruId)?.has(ad)) continue;
+                  for (const aj of availableDays.get(ad)!) {
+                    if (ad === day && aj === sj) continue;
+                    if (!kF(b.kelasId, ad, aj) || gF(b.guruId, ad, aj)) continue;
+                    const b2i = gA.get(`${b.guruId}-${ad}-${aj}`);
+                    if (b2i === undefined || b2i === bi) continue;
+                    for (const ad2 of dayList) {
+                      if (ok) break;
+                      if (guruUnavailDays.get(ss[b2i].guruId)?.has(ad2)) continue;
+                      for (const aj2 of availableDays.get(ad2)!) {
+                        if (ad2 === ad && aj2 === aj) continue;
+                        if (!gF(ss[b2i].guruId, ad2, aj2) || !kF(ss[b2i].kelasId, ad2, aj2)) continue;
+                        mv(b2i, ad2, aj2); mv(bi, ad, aj); pn(block, day, sj); ok = true; break;
+                      }
+                    }
+                    if (ok) break;
+                  }
+                }
+              }
+              if (ok) break;
+            }
+          }
+          if (ok) { rescued++; changed = true; } else { next.push(block); }
+        }
+        rem = next;
+      }
+      if (rescued > 0) attempt.passResults.push({ pass: 8, label: `Swap rescue (${rescued} blok)`, placed: rescued });
+      attempt.failed = rem;
     };
 
-    // Attempt 1: normal sorted by difficulty (big first, small last)
-    blocksNormal.sort((a, b) => {
-      if (a.size === 1 && b.size !== 1) return 1; // 1JP goes last
-      if (a.size !== 1 && b.size === 1) return -1;
-      return b.difficulty - a.difficulty;
-    });
-    blocksAutoSplit.sort((a, b) => {
-      if (a.size === 1 && b.size !== 1) return 1;
-      if (a.size !== 1 && b.size === 1) return -1;
-      return b.difficulty - a.difficulty;
-    });
-
+    // Run attempts: each gets its own chain swap rescue
     let bestAttempt = runAttempt([...blocksNormal]);
+    applyChainSwap(bestAttempt);
+
     if (bestAttempt.failed.length > 0) {
       const r2 = runAttempt([...blocksAutoSplit]);
+      applyChainSwap(r2);
       if (r2.failed.length < bestAttempt.failed.length) bestAttempt = r2;
     }
 
-    // Remaining attempts: smart shuffle (big random, small last)
     for (let a = 2; a < MAX_ATTEMPTS && bestAttempt.failed.length > 0; a++) {
       const base = a % 2 === 0 ? blocksAutoSplit : blocksNormal;
-      const result = runAttempt(smartShuffle(base));
+      const shuffled = [...base];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      const result = runAttempt(shuffled);
+      applyChainSwap(result);
       if (result.failed.length < bestAttempt.failed.length) bestAttempt = result;
-    }
-
-    // --- Post-processing: COMPACTION + RETRY ---
-    // Compact each class-day schedule to remove gaps (shift blocks toward jam 1)
-    // Then retry failed blocks in the newly freed slots
-    if (bestAttempt.failed.length > 0) {
-      // Build a mutable schedule from placed slots
-      const schedule = bestAttempt.placed.map((s: any, idx: number) => ({ ...s, _idx: idx }));
-
-      // Group by kelasId + dayOfWeek
-      const classDayMap = new Map<string, typeof schedule>();
-      for (const s of schedule) {
-        const key = `${s.kelasId}-${s.dayOfWeek}`;
-        if (!classDayMap.has(key)) classDayMap.set(key, []);
-        classDayMap.get(key)!.push(s);
-      }
-
-      // For each class-day, compact: sort by jamKe, then reassign jamKe sequentially
-      // But we must also update guruSlots tracking
-      const newGuruSlots = new Map<string, Set<string>>();
-      const newKelasSlots = new Map<string, Set<string>>();
-      const cSlotKey = (d: number, j: number) => `${d}-${j}`;
-      const cEnsureSet = (map: Map<string, Set<string>>, key: string) => { if (!map.has(key)) map.set(key, new Set()); return map.get(key)!; };
-
-      for (const [_cdKey, slots] of classDayMap) {
-        slots.sort((a: any, b: any) => a.jamKe - b.jamKe);
-        const day = slots[0].dayOfWeek;
-        const dayJams = availableDays.get(day) || [];
-        const origJams = slots.map((s: any) => s.jamKe);
-
-        // Try compact: assign sequential jam positions
-        let writeIdx = 0;
-        for (const slot of slots) {
-          if (writeIdx < dayJams.length) { slot.jamKe = dayJams[writeIdx]; writeIdx++; }
-        }
-
-        // Check if this compaction creates guru conflict (guru in 2 classes at same time)
-        let conflict = false;
-        for (const s of slots) {
-          for (const other of schedule) {
-            if (other === s) continue;
-            if (other.guruId === s.guruId && other.dayOfWeek === s.dayOfWeek && other.jamKe === s.jamKe && other.kelasId !== s.kelasId) {
-              conflict = true; break;
-            }
-          }
-          if (conflict) break;
-        }
-
-        // Revert if conflict
-        if (conflict) { for (let i = 0; i < slots.length; i++) slots[i].jamKe = origJams[i]; }
-      }
-
-      // Rebuild guru/kelas slot tracking from compacted schedule
-      for (const s of schedule) {
-        const sk = cSlotKey(s.dayOfWeek, s.jamKe);
-        cEnsureSet(newGuruSlots, s.guruId).add(sk);
-        cEnsureSet(newKelasSlots, s.kelasId).add(sk);
-      }
-
-
-      // Retry failed blocks in freed slots
-      bestAttempt.placed = schedule.map(({ _idx, ...rest }: any) => rest);
-
-        let retryPlaced = 0;
-        const stillFailed: typeof bestAttempt.failed = [];
-        for (const block of bestAttempt.failed) {
-          // Find free slot for this block
-          let found = false;
-          for (const day of dayList) {
-            if (guruUnavailDays.get(block.guruId)?.has(day)) continue;
-            const jams = availableDays.get(day)!;
-            for (let si = 0; si <= jams.length - block.size; si++) {
-              let consecutive = true;
-              for (let o = 1; o < block.size; o++) { if (jams[si + o] !== jams[si] + o) { consecutive = false; break; } }
-              if (!consecutive) continue;
-              const startJam = jams[si];
-              let allFree = true;
-              for (let j = startJam; j < startJam + block.size; j++) {
-                const sk = cSlotKey(day, j);
-                if (cEnsureSet(newGuruSlots, block.guruId).has(sk) || cEnsureSet(newKelasSlots, block.kelasId).has(sk)) { allFree = false; break; }
-              }
-              if (!allFree) continue;
-              // Place it
-              for (let j = startJam; j < startJam + block.size; j++) {
-                const sk = cSlotKey(day, j);
-                cEnsureSet(newGuruSlots, block.guruId).add(sk);
-                cEnsureSet(newKelasSlots, block.kelasId).add(sk);
-                bestAttempt.placed.push({ academicYearId, semester, guruId: block.guruId, kelasId: block.kelasId, subjectId: block.subjectId, ruanganId: null, dayOfWeek: day, jamKe: j });
-              }
-              retryPlaced++;
-              found = true;
-              break;
-            }
-            if (found) break;
-          }
-          if (!found) { block.failReason = 'no_slot_after_compact'; stillFailed.push(block); }
-        }
-        if (retryPlaced > 0) {
-          bestAttempt.passResults.push({ pass: 7, label: `Kompaksi + retry (defrag gap)`, placed: retryPlaced });
-        }
-        bestAttempt.failed = stillFailed;
-    }
-
-    // --- SWAP RESCUE: iterative bump-and-reinsert with chain swaps ---
-    if (bestAttempt.failed.length > 0) {
-      const swapSlots = bestAttempt.placed;
-      const guruAt = new Map<string, number>();
-      const kelasAt = new Map<string, number>();
-      for (let i = 0; i < swapSlots.length; i++) {
-        const s = swapSlots[i];
-        guruAt.set(`${s.guruId}-${s.dayOfWeek}-${s.jamKe}`, i);
-        kelasAt.set(`${s.kelasId}-${s.dayOfWeek}-${s.jamKe}`, i);
-      }
-      const gFree = (g: string, d: number, j: number) => !guruAt.has(`${g}-${d}-${j}`);
-      const kFree = (k: string, d: number, j: number) => !kelasAt.has(`${k}-${d}-${j}`);
-
-      const moveSlot = (idx: number, newDay: number, newJam: number) => {
-        const s = swapSlots[idx];
-        guruAt.delete(`${s.guruId}-${s.dayOfWeek}-${s.jamKe}`);
-        kelasAt.delete(`${s.kelasId}-${s.dayOfWeek}-${s.jamKe}`);
-        s.dayOfWeek = newDay; s.jamKe = newJam;
-        guruAt.set(`${s.guruId}-${newDay}-${newJam}`, idx);
-        kelasAt.set(`${s.kelasId}-${newDay}-${newJam}`, idx);
-      };
-      const placeNew = (block: any, day: number, jam: number) => {
-        swapSlots.push({ academicYearId, semester, guruId: block.guruId, kelasId: block.kelasId, subjectId: block.subjectId, ruanganId: null, dayOfWeek: day, jamKe: jam });
-        guruAt.set(`${block.guruId}-${day}-${jam}`, swapSlots.length - 1);
-        kelasAt.set(`${block.kelasId}-${day}-${jam}`, swapSlots.length - 1);
-      };
-
-      let swapPlaced = 0;
-      let remaining = [...bestAttempt.failed];
-
-      // Iterative: keep trying until no more rescues possible
-      let changed = true;
-      while (changed && remaining.length > 0) {
-        changed = false;
-        const nextRemaining: typeof remaining = [];
-        for (const block of remaining) {
-          if (block.size > 2) { nextRemaining.push(block); continue; }
-          let rescued = false;
-
-          for (const day of dayList) {
-            if (rescued) break;
-            if (guruUnavailDays.get(block.guruId)?.has(day)) continue;
-            const jams = availableDays.get(day)!;
-            for (let si = 0; si <= jams.length - block.size; si++) {
-              let consec = true;
-              for (let o = 1; o < block.size; o++) { if (jams[si+o] !== jams[si]+o) { consec = false; break; } }
-              if (!consec) continue;
-              const sj = jams[si];
-
-              // Class must be free
-              let cf = true;
-              for (let j = sj; j < sj + block.size; j++) { if (!kFree(block.kelasId, day, j)) { cf = false; break; } }
-              if (!cf) continue;
-
-              // Check guru free
-              let gf = true;
-              for (let j = sj; j < sj + block.size; j++) { if (!gFree(block.guruId, day, j)) { gf = false; break; } }
-              if (gf) {
-                for (let j = sj; j < sj + block.size; j++) placeNew(block, day, j);
-                rescued = true; break;
-              }
-
-              // 1-level swap: move the blocker
-              if (block.size === 1) {
-                const bIdx = guruAt.get(`${block.guruId}-${day}-${sj}`);
-                if (bIdx === undefined) continue;
-                const b = swapSlots[bIdx];
-                let moved = false;
-                for (const ad of dayList) {
-                  if (guruUnavailDays.get(b.guruId)?.has(ad)) continue;
-                  for (const aj of availableDays.get(ad)!) {
-                    if (ad === day && aj === sj) continue;
-                    if (!gFree(b.guruId, ad, aj) || !kFree(b.kelasId, ad, aj)) continue;
-                    moveSlot(bIdx, ad, aj);
-                    placeNew(block, day, sj);
-                    rescued = true; moved = true; break;
-                  }
-                  if (moved) break;
-                }
-                if (rescued) break;
-
-                // 2-level chain swap: blocker can't move directly, but blocker's blocker can
-                for (const ad of dayList) {
-                  if (rescued) break;
-                  if (guruUnavailDays.get(b.guruId)?.has(ad)) continue;
-                  for (const aj of availableDays.get(ad)!) {
-                    if (ad === day && aj === sj) continue;
-                    if (!kFree(b.kelasId, ad, aj)) continue; // b's class must be free there
-                    if (gFree(b.guruId, ad, aj)) continue; // guru must be BUSY (1-level would have caught free)
-                    // Who blocks b's guru at (ad, aj)?
-                    const b2Idx = guruAt.get(`${b.guruId}-${ad}-${aj}`);
-                    if (b2Idx === undefined || b2Idx === bIdx) continue;
-                    const b2 = swapSlots[b2Idx];
-                    // Can b2 move somewhere else?
-                    for (const ad2 of dayList) {
-                      if (rescued) break;
-                      if (guruUnavailDays.get(b2.guruId)?.has(ad2)) continue;
-                      for (const aj2 of availableDays.get(ad2)!) {
-                        if (ad2 === ad && aj2 === aj) continue;
-                        if (!gFree(b2.guruId, ad2, aj2) || !kFree(b2.kelasId, ad2, aj2)) continue;
-                        // Chain: move b2 -> (ad2,aj2), then b -> (ad,aj), then place block at (day,sj)
-                        moveSlot(b2Idx, ad2, aj2);
-                        moveSlot(bIdx, ad, aj);
-                        placeNew(block, day, sj);
-                        rescued = true; break;
-                      }
-                    }
-                    if (rescued) break;
-                  }
-                }
-              }
-              if (rescued) break;
-            }
-          }
-
-          if (rescued) { swapPlaced++; changed = true; } else { nextRemaining.push(block); }
-        }
-        remaining = nextRemaining;
-      }
-
-      if (swapPlaced > 0) {
-        bestAttempt.passResults.push({ pass: 8, label: `Swap rescue (chain swap iteratif)`, placed: swapPlaced });
-      }
-      bestAttempt.placed = swapSlots;
-      bestAttempt.failed = remaining;
     }
 
     // Insert best attempt
