@@ -326,10 +326,10 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
                           setLoadingSlots(true);
                           try {
                             const params = new URLSearchParams({ academicYearId, semester, guruId: f.guruId, kelasId: f.kelasId });
-                            const res = await apiClient.get(`/kbm/jadwal/available-slots?${params}`);
-                            setAvailableSlots(res.data.direct || []);
-                            setSwapSlots(res.data.needSwap || []);
-                            setOtherSlots(res.data.otherClasses || []);
+                            const res = await apiClient<any>(`/kbm/jadwal/available-slots?${params}`);
+                            setAvailableSlots(res.direct || []);
+                            setSwapSlots(res.needSwap || []);
+                            setOtherSlots(res.otherClasses || []);
                           } catch { setAvailableSlots([]); setSwapSlots([]); setOtherSlots([]); }
                           setLoadingSlots(false);
                         }}
@@ -495,7 +495,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
                                   onClick={async () => {
                                     setPlacingBlock(true);
                                     try {
-                                      await apiClient.post('/kbm/jadwal/manual-place', { academicYearId, semester, guruId: manualBlock.guruId, kelasId: manualBlock.kelasId, subjectId: manualBlock.subjectId, dayOfWeek: s.dayOfWeek, jamKe: s.jamKe });
+                                      await apiClient<any>('/kbm/jadwal/manual-place', { method: 'POST', data: { academicYearId, semester, guruId: manualBlock.guruId, kelasId: manualBlock.kelasId, subjectId: manualBlock.subjectId, dayOfWeek: s.dayOfWeek, jamKe: s.jamKe } });
                                       toast.success(`${manualBlock.kode}. ${manualBlock.subject} \u2192 ${DAY_NAMES[s.dayOfWeek]} jam ${s.jamKe}`);
                                       if (generateReport) {
                                         const nf = [...generateReport.report.failedDetails];
