@@ -57,7 +57,14 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [showConfirmClear, setShowConfirmClear] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [conflicts, setConflicts] = useState<any>(null);
-  const [generateReport, setGenerateReport] = useState<any>(null);
+  const [generateReport, _setGenerateReport] = useState<any>(() => {
+    try { const s = localStorage.getItem(`jadwal-report-${academicYearId}-${semester}`); return s ? JSON.parse(s) : null; } catch { return null; }
+  });
+  const setGenerateReport = useCallback((v: any) => {
+    _setGenerateReport(v);
+    if (v && v.failedBlocks > 0) { try { localStorage.setItem(`jadwal-report-${academicYearId}-${semester}`, JSON.stringify(v)); } catch {} }
+    else { try { localStorage.removeItem(`jadwal-report-${academicYearId}-${semester}`); } catch {} }
+  }, [academicYearId, semester]);
   const [manualBlock, setManualBlock] = useState<any>(null);
   const [availableSlots, setAvailableSlots] = useState<any[]>([]);
   const [swapSlots, setSwapSlots] = useState<any[]>([]);
