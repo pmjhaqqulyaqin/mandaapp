@@ -944,11 +944,18 @@ export class KbmService {
     for (const e of existing) { if (!kelasBusyMap.has(e.kelasId)) kelasBusyMap.set(e.kelasId, new Set()); kelasBusyMap.get(e.kelasId)!.add(`${e.dayOfWeek}-${e.jamKe}`); }
     const kelasRows = await db.execute(sql`SELECT id, nama FROM kelas WHERE is_active = true ORDER BY nama`);
     const kelasNameMap = new Map<string, string>();
-    for (const k of (kelasRows as any).rows || kelasRows) kelasNameMap.set(k.id, k.nama);
-    const allSlots = new Map<number, Set<number>>();
-    for (const e of existing) { if (!allSlots.has(e.dayOfWeek)) allSlots.set(e.dayOfWeek, new Set()); allSlots.get(e.dayOfWeek)!.add(e.jamKe); }
+    for (const k of (kelasRows as any).rows || kelasRows) { kelasNameMap.set(k.id, k.nama); if (!kelasBusyMap.has(k.id)) kelasBusyMap.set(k.id, new Set()); }
+    // Use complete time grid — derive max jam per day from existing data, with sensible defaults
+    const maxJamPerDay = new Map<number, number>();
+    for (const e of existing) {
+      const cur = maxJamPerDay.get(e.dayOfWeek) || 0;
+      if (e.jamKe > cur) maxJamPerDay.set(e.dayOfWeek, e.jamKe);
+    }
+    // Ensure all 6 days exist with at minimum defaults: Senin-Kamis=9, Jumat=5, Sabtu=10
+    const defaults: Record<number, number> = { 1: 9, 2: 9, 3: 9, 4: 9, 5: 5, 6: 10 };
+    for (let d = 1; d <= 6; d++) maxJamPerDay.set(d, Math.max(maxJamPerDay.get(d) || 0, defaults[d] || 9));
     const sortedDays = new Map<number, number[]>();
-    for (const [d, jams] of allSlots) sortedDays.set(d, Array.from(jams).sort((a, b) => a - b));
+    for (const [d, mx] of maxJamPerDay) { const jams: number[] = []; for (let j = 1; j <= mx; j++) jams.push(j); sortedDays.set(d, jams); }
     const unavail = await db.select().from(guruUnavailability).where(and(eq(guruUnavailability.academicYearId, academicYearId), eq(guruUnavailability.semester, semester), eq(guruUnavailability.guruId, guruId)));
     const guruUnavailSet = new Set(unavail.map(u => u.dayOfWeek));
     const DAY_NAMES: Record<number, string> = { 1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis', 5: 'Jumat', 6: 'Sabtu' };
