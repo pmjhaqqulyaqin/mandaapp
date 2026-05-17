@@ -147,6 +147,14 @@ export class KbmService {
     return results[0] || null;
   }
 
+  static async deleteAllDistribusi(academicYearId: string, semester: string) {
+    const results = await db.delete(distribusiJam).where(and(
+      eq(distribusiJam.academicYearId, academicYearId),
+      eq(distribusiJam.semester, semester),
+    )).returning();
+    return results.length;
+  }
+
   // ═══ JTM Summary ═══════════════════════════════════════════
 
   static async getJtmSummary(academicYearId: string, semester: string) {
@@ -315,6 +323,14 @@ export class KbmService {
   static async deleteTugas(id: string) {
     const results = await db.delete(tugasTambahan).where(eq(tugasTambahan.id, id)).returning();
     return results[0] || null;
+  }
+
+  static async deleteAllTugas(academicYearId: string, semester: string) {
+    const results = await db.delete(tugasTambahan).where(and(
+      eq(tugasTambahan.academicYearId, academicYearId),
+      eq(tugasTambahan.semester, semester),
+    )).returning();
+    return results.length;
   }
 
   // ═══ Ruangan ════════════════════════════════════════════════

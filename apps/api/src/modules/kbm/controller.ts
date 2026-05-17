@@ -227,7 +227,10 @@ export class KbmController {
         }
       }
 
-      // Bulk upsert
+      // Delete existing distribusi for this semester first (full replace)
+      await KbmService.deleteAllDistribusi(academicYearId, semester);
+
+      // Bulk insert new data
       let imported = 0;
       if (records.length > 0) {
         const results = await KbmService.bulkUpsertDistribusi(records);
@@ -539,6 +542,9 @@ export class KbmController {
 
       const errors: string[] = [];
       let imported = 0;
+
+      // Delete existing tugas for this semester first (full replace)
+      await KbmService.deleteAllTugas(academicYearId, semester);
 
       for (let i = 1; i < rawRows.length; i++) {
         const row = rawRows[i];
