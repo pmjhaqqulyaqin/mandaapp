@@ -693,14 +693,14 @@ const SchedulerSection = ({ academicYearId, semester }: { academicYearId: string
     if (!academicYearId) return;
     setLoading(true);
     Promise.all([
-      apiClient<any[]>(`/kbm/guru-unavailability?academicYearId=${academicYearId}&semester=${semester}`),
-      apiClient<any>(`/kbm/schedule-config?academicYearId=${academicYearId}&semester=${semester}`),
-      apiClient<any[]>('/employees?type=Guru'),
+      apiClient<any[]>(`/kbm/guru-unavailability?academicYearId=${academicYearId}&semester=${semester}`).catch(() => []),
+      apiClient<any>(`/kbm/schedule-config?academicYearId=${academicYearId}&semester=${semester}`).catch(() => ({ maxDailyJpThreshold: 20, maxDailyJpLimit: 6, afternoonStartJam: 7, afternoonExcludeFriday: true })),
+      apiClient<any[]>('/employees?type=Guru').catch(() => []),
     ]).then(([u, c, g]) => {
-      setUnavail(u);
+      setUnavail(u || []);
       setConfig(c);
-      setGuruList((g as any[]).sort((a: any, b: any) => a.name.localeCompare(b.name)));
-    }).catch(() => {}).finally(() => setLoading(false));
+      setGuruList(Array.isArray(g) ? (g as any[]).sort((a: any, b: any) => a.name.localeCompare(b.name)) : []);
+    }).finally(() => setLoading(false));
   };
   useEffect(() => { load(); }, [academicYearId, semester]);
 
