@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../../../lib/api';
 import { Loader2 } from 'lucide-react';
@@ -50,7 +50,7 @@ export const PrintKartuPeserta = () => {
         ]);
         setUjian(uRes);
         
-        let dist = dRes;
+        let dist = dRes as any[];
         if (ruangId && ruangId !== 'ALL') {
           dist = dist.filter((x: any) => x.ruangId === ruangId);
         }
@@ -65,7 +65,7 @@ export const PrintKartuPeserta = () => {
         
         setDistribusi(dist);
         // Parse settings array into key-value map
-        const settingsArr = Array.isArray(sRes?.data || sRes) ? (sRes?.data || sRes) : [];
+        const settingsArr = Array.isArray((sRes as any)?.data || sRes) ? ((sRes as any)?.data || sRes) : [];
         const settingsMap: Record<string, string> = {};
         for (const s of settingsArr) { if (s.key && s.value) settingsMap[s.key] = s.value; }
         setGlobalSettings(settingsMap);
