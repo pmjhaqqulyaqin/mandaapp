@@ -926,8 +926,9 @@ export class KbmService {
         attempts: 3,
         failedDetails: await Promise.all(bestAttempt.failed.map(async (b: any) => {
           const subj = subjectMap.get(b.subjectId);
-          const [kelasRow] = await db.execute(sql`SELECT nama FROM kelas WHERE id = ${b.kelasId} LIMIT 1`);
-          const kelasName = ((kelasRow as any)?.rows?.[0] || kelasRow as any)?.nama || b.kelasId;
+          const kelasResult = await db.execute(sql`SELECT nama FROM kelas WHERE id = ${b.kelasId} LIMIT 1`);
+          const kelasRow = ((kelasResult as any).rows || kelasResult)?.[0];
+          const kelasName = (kelasRow as any)?.nama || b.kelasId;
           return { subject: subj?.nama || b.subjectId, kode: subj?.kode || '?', size: b.size, guruId: b.guruId, kelasId: b.kelasId, subjectId: b.subjectId, kelasName, reason: b.failReason || 'no_slot' };
         })),
       },
