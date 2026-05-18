@@ -3,7 +3,8 @@ import { employees, user as userTable } from "../../db/schema";
 import { eq, sql, ilike, and, isNull, ne } from "drizzle-orm";
 
 /** Strip all non-alphanumeric chars for flexible NIP matching */
-function normalizeNip(nip: string): string {
+function normalizeNip(nip: string | null | undefined): string {
+  if (!nip) return '';
   return nip.replace(/[^a-zA-Z0-9]/g, '').trim();
 }
 
