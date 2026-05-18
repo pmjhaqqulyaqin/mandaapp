@@ -276,9 +276,12 @@ function InfoRow({ icon, label, value }: { icon?: React.ReactNode; label: string
 /* ━━━━━━━━ LINK NIP VIEW ━━━━━━━━ */
 function LinkNipView({ user, employee, goBack, onLinked }: any) {
   const [nip, setNip] = useState('');
-  const { data: lookup, isLoading: lookingUp } = useLookupNip(nip);
+  const { data: lookup, isFetching, isTyping, error: lookupError } = useLookupNip(nip);
   const linkMut = useLinkNip();
   const [msg, setMsg] = useState('');
+
+  const isSearching = isFetching || isTyping;
+  const trimmedNip = nip.trim();
 
   // If already linked, show current link info
   if (employee) {
@@ -303,10 +306,10 @@ function LinkNipView({ user, employee, goBack, onLinked }: any) {
   }
 
   const handleLink = async () => {
-    if (!nip.trim()) return;
+    if (!trimmedNip) return;
     setMsg('');
     try {
-      await linkMut.mutateAsync(nip.trim());
+      await linkMut.mutateAsync(trimmedNip);
       setMsg('✅ Berhasil terhubung!');
       setTimeout(onLinked, 1000);
     } catch (err: any) {
@@ -333,14 +336,21 @@ function LinkNipView({ user, employee, goBack, onLinked }: any) {
               placeholder="Contoh: 198001012005011001"
               className="w-full px-3.5 py-2.5 bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-gray-700 rounded-xl text-[14px] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
             />
-            {lookingUp && <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" />}
+            {isSearching && <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" />}
           </div>
         </div>
 
-        {/* Lookup result */}
-        {nip.trim().length >= 5 && !lookingUp && lookup === null && (
+        {/* Lookup result: NIP not found */}
+        {trimmedNip.length >= 5 && !isSearching && lookup === null && !lookupError && (
           <div className="p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-xl">
             <p className="text-[12px] text-red-600 dark:text-red-400">❌ NIP tidak ditemukan dalam data pegawai.</p>
+          </div>
+        )}
+
+        {/* Lookup error */}
+        {lookupError && (
+          <div className="p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-xl">
+            <p className="text-[12px] text-red-600 dark:text-red-400">❌ Gagal mencari NIP: {(lookupError as Error).message || 'Terjadi kesalahan'}</p>
           </div>
         )}
 

@@ -924,10 +924,12 @@ export class KbmService {
       report: {
         passResults: bestAttempt.passResults,
         attempts: 3,
-        failedDetails: bestAttempt.failed.map((b: any) => {
+        failedDetails: await Promise.all(bestAttempt.failed.map(async (b: any) => {
           const subj = subjectMap.get(b.subjectId);
-          return { subject: subj?.nama || b.subjectId, kode: subj?.kode || '?', size: b.size, guruId: b.guruId, kelasId: b.kelasId, subjectId: b.subjectId, reason: b.failReason || 'no_slot' };
-        }),
+          const [kelasRow] = await db.execute(sql`SELECT nama FROM kelas WHERE id = ${b.kelasId} LIMIT 1`);
+          const kelasName = ((kelasRow as any)?.rows?.[0] || kelasRow as any)?.nama || b.kelasId;
+          return { subject: subj?.nama || b.subjectId, kode: subj?.kode || '?', size: b.size, guruId: b.guruId, kelasId: b.kelasId, subjectId: b.subjectId, kelasName, reason: b.failReason || 'no_slot' };
+        })),
       },
     };
   }

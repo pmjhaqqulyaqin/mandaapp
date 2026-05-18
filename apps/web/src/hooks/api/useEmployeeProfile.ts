@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { apiClient, API_BASE_URL } from '../../lib/api';
 
 // ── Types ──
@@ -46,16 +47,29 @@ export function useMyEmployee() {
   });
 }
 
+/** Debounce hook */
+function useDebounce(value: string, delay: number) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
+
 /** Lookup employee by NIP (preview before linking) */
 export function useLookupNip(nip: string) {
-  const trimmed = nip.trim();
-  return useQuery<NipLookupResult | null>({
-    queryKey: ['employee', 'lookup', trimmed],
-    queryFn: () => apiClient<NipLookupResult | null>(`/employees/lookup/${encodeURIComponent(trimmed)}`),
-    enabled: trimmed.length >= 5, // Only search when NIP has at least 5 chars
+  const debouncedNip = useDebounce(nip.trim(), 500);
+  const query = useQuery<NipLookupResult | null>({
+    queryKey: ['employee', 'lookup', debouncedNip],
+    queryFn: () => apiClient<NipLookupResult | null>(`/employees/lookup/${encodeURIComponent(debouncedNip)}`),
+    enabled: debouncedNip.length >= 5, // Only search when NIP has at least 5 chars
     staleTime: 30 * 1000,
-    retry: false,
+    retry: 1,
   });
+  // isTyping: user is still typing (debounce not settled yet)
+  const isTyping = nip.trim() !== debouncedNip;
+  return { ...query, isTyping };
 }
 
 /** Link current user to employee by NIP */
