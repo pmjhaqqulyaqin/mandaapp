@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../../../lib/api';
+import { Loader2 } from 'lucide-react';
 
 export const PrintIdCardPegawai = () => {
   const { ujianId } = useParams();
@@ -11,22 +12,9 @@ export const PrintIdCardPegawai = () => {
   const [ujian, setUjian] = useState<any>(null);
   const [pegawaiList, setPegawaiList] = useState<any[]>([]);
   const [schoolName, setSchoolName] = useState<string>('MAN 2 LOMBOK TIMUR');
+  const [logoUrl, setLogoUrl] = useState<string>('');
+  const [kemenagLogoUrl, setKemenagLogoUrl] = useState<string>('');
   const [imagesReady, setImagesReady] = useState(false);
-
-  useEffect(() => {
-    // Inject print styles to hide headers and page margin
-    const style = document.createElement('style');
-    style.innerHTML = `
-      @page { size: A4; margin: 0; }
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      #root { margin: 0; padding: 0; }
-      @media print {
-        @page { margin: 10mm; }
-      }
-    `;
-    document.head.appendChild(style);
-    return () => { document.head.removeChild(style); };
-  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,8 +50,13 @@ export const PrintIdCardPegawai = () => {
           setPegawaiList(pengawasPegawai);
         }
         
-        const sn = (settingsRes.data || settingsRes).find((s: any) => s.key === 'school_name')?.value;
-        if (sn) setSchoolName(sn);
+        const settingsArr = Array.isArray(settingsRes?.data || settingsRes) ? (settingsRes?.data || settingsRes) : [];
+        const settingsMap: Record<string, string> = {};
+        for (const s of settingsArr) { if (s.key && s.value) settingsMap[s.key] = s.value; }
+        
+        if (settingsMap.school_name) setSchoolName(settingsMap.school_name);
+        if (settingsMap.logo_url) setLogoUrl(settingsMap.logo_url);
+        if (settingsMap.kemenag_logo_url) setKemenagLogoUrl(settingsMap.kemenag_logo_url);
       } catch (error) {
         console.error('Failed to load ID card data', error);
       } finally {
@@ -73,7 +66,7 @@ export const PrintIdCardPegawai = () => {
     if (ujianId) fetchData();
   }, [ujianId, type]);
 
-  // Pre-load critical images (template, logos) to avoid blank cards on print
+  // Pre-load images
   useEffect(() => {
     if (loading || !ujian) return;
 
@@ -83,8 +76,9 @@ export const PrintIdCardPegawai = () => {
     const imagesToLoad: string[] = [];
     if (templateUrl) imagesToLoad.push(templateUrl);
     if (config.logoPegawaiUrl) imagesToLoad.push(config.logoPegawaiUrl);
+    if (logoUrl) imagesToLoad.push(logoUrl);
+    if (kemenagLogoUrl) imagesToLoad.push(kemenagLogoUrl);
 
-    // Also preload unique photo URLs (but limit to avoid overloading)
     const photoUrls = new Set<string>();
     pegawaiList.forEach(item => {
       const p = item.pegawai || item;
@@ -99,48 +93,59 @@ export const PrintIdCardPegawai = () => {
 
     let loaded = 0;
     const total = imagesToLoad.length;
-    const onLoad = () => {
-      loaded++;
-      if (loaded >= total) setImagesReady(true);
-    };
-    const onError = () => {
-      loaded++;
-      if (loaded >= total) setImagesReady(true);
-    };
-
-    // Set a maximum wait time of 5 seconds
+    const onDone = () => { loaded++; if (loaded >= total) setImagesReady(true); };
     const timeout = setTimeout(() => setImagesReady(true), 5000);
 
     imagesToLoad.forEach(url => {
       const img = new Image();
-      img.onload = onLoad;
-      img.onerror = onError;
+      img.onload = onDone;
+      img.onerror = onDone;
       img.src = url;
     });
 
     return () => clearTimeout(timeout);
-  }, [loading, ujian, pegawaiList, type]);
+  }, [loading, ujian, pegawaiList, type, logoUrl, kemenagLogoUrl]);
+
+  // Auto-print
+  useEffect(() => {
+    if (!imagesReady || !ujian || searchParams.get('preview') === 'true') return;
+    const timer = setTimeout(() => window.print(), 800);
+    return () => clearTimeout(timer);
+  }, [imagesReady, ujian, searchParams]);
 
   if (loading || !imagesReady) {
     return (
-      <div className="p-8 text-center print:hidden flex flex-col items-center gap-2">
-        <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
-        <span className="text-sm text-gray-500">
+      <div className="flex h-screen items-center justify-center bg-gray-100 flex-col gap-3">
+        <Loader2 className="animate-spin text-violet-500" size={32} />
+        <p className="text-sm text-gray-500">
           {loading ? 'Memuat data...' : 'Memuat gambar...'}
-        </span>
+        </p>
       </div>
     );
   }
-  if (!ujian) return <div className="p-8 text-center text-red-500 print:hidden">Gagal memuat data ujian.</div>;
+  if (!ujian) return <div className="flex h-screen items-center justify-center text-red-500 font-bold">Data Ujian Tidak Ditemukan</div>;
 
   const config = ujian.pengaturan?.kartuPeserta || {};
   const templateUrl = type === 'panitia' ? config.templatePanitiaUrl : config.templatePengawasUrl;
+  const namaUjian = (ujian.namaUjian || ujian.jenisUjian || ujian.title || 'UJIAN SEKOLAH').toUpperCase();
+  const tahunAjaran = ujian.tahunAjaran || new Date().getFullYear().toString();
+
+  // Use same logos as kartu peserta
+  const headerLogoKiri = kemenagLogoUrl || config.logoKiri || '';
+  const headerLogoKanan = logoUrl || config.logoKanan || '';
+
+  // Page layout: 3 columns × 3 rows = 9 cards per page
+  // Card size: 65mm wide × 93mm tall (kartu peserta dimensions rotated to vertical)
+  const cardsPerPage = 9;
+  const pages: any[][] = [];
+  for (let i = 0; i < pegawaiList.length; i += cardsPerPage) {
+    pages.push(pegawaiList.slice(i, i + cardsPerPage));
+  }
 
   const IdCard = ({ item }: { item: any }) => {
-    const p = item.pegawai || item; 
+    const p = item.pegawai || item;
     const roleTitle = type === 'panitia' ? 'PANITIA' : 'PENGAWAS';
     
-    // Choose fallback avatar
     let photoSrc = p.photoUrl;
     if (!photoSrc) {
       const genderLower = (p.gender || '').toLowerCase();
@@ -149,89 +154,147 @@ export const PrintIdCardPegawai = () => {
     }
 
     return (
-      <div className="w-[5.4cm] h-[8.6cm] border border-gray-300 relative overflow-hidden bg-white text-center break-inside-avoid shadow-sm print:shadow-none print:border-gray-200"
-           style={{ boxSizing: 'border-box' }}
+      <div
+        className="relative border-[1.5px] border-black flex flex-col font-sans box-border overflow-hidden bg-white"
+        style={{ width: '65mm', height: '93mm' }}
       >
-        {/* Background Layer */}
-        {templateUrl ? (
-          <img src={templateUrl} className="absolute inset-0 w-full h-full object-cover z-0" alt="template" loading="eager" />
-        ) : (
-          <div className="absolute inset-0 z-0 bg-white border-2 border-gray-800">
-            <div className="absolute top-0 left-0 w-full h-[3.5cm] bg-gray-100 border-b-2 border-gray-800" />
-          </div>
+        {/* Background template layer */}
+        {templateUrl && (
+          <img src={templateUrl} className="absolute inset-0 w-full h-full object-cover z-0" alt="" loading="eager" />
         )}
 
-        {/* Content Layer */}
-        <div className="relative z-10 w-full h-full flex flex-col items-center pt-3 pb-2 px-2">
+        {/* Content layer */}
+        <div className="relative z-10 w-full h-full flex flex-col items-center px-2 pt-2 pb-1.5">
           
-          {/* Header section */}
-          <div className="w-full flex-col items-center justify-center">
-            {config.logoPegawaiUrl && (
-              <img src={config.logoPegawaiUrl} className="w-8 h-8 object-contain mx-auto mb-1" alt="Logo Instansi" loading="eager" />
-            )}
-            
-            <div className="text-[7px] font-bold mt-1 text-gray-800 tracking-wider uppercase text-center w-full bg-white/40">{schoolName}</div>
-            <div className="text-[10px] uppercase font-black leading-tight mt-1 text-gray-900 border-b border-gray-800 pb-1 mb-1 inline-block text-center w-full bg-white/40">
-              {ujian.namaUjian}<br/>TA {ujian.tahunAjaran}
+          {/* HEADER — same style as kartu peserta */}
+          <div className="flex items-start gap-1 w-full border-b-[1.5px] border-black pb-1.5 mb-1.5 text-center">
+            <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center">
+              {headerLogoKiri ? (
+                <img src={headerLogoKiri} alt="" className="max-w-full max-h-full object-contain" />
+              ) : (
+                <div className="w-8 h-8" />
+              )}
+            </div>
+            <div className="flex-1 px-0.5 flex flex-col justify-center min-h-[32px]">
+              <h1 className="text-[8px] font-bold leading-tight m-0">KARTU {roleTitle}</h1>
+              <h2 className="text-[7.5px] font-bold leading-tight m-0">{namaUjian}</h2>
+              <h3 className="text-[7px] font-bold leading-tight m-0">TAHUN AJARAN {tahunAjaran}</h3>
+            </div>
+            <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center">
+              {headerLogoKanan ? (
+                <img src={headerLogoKanan} alt="" className="max-w-full max-h-full object-contain" />
+              ) : (
+                <div className="w-8 h-8" />
+              )}
             </div>
           </div>
 
-          <div className="flex-1 mt-1 mb-1"></div>
+          {/* SCHOOL NAME */}
+          <div className="text-[6.5px] font-bold text-gray-700 tracking-wider uppercase text-center w-full mb-1">{schoolName}</div>
 
-          {/* Photo Frame */}
-          <div className="w-[2.8cm] h-[3.6cm] bg-gray-200 mt-2 mb-2 rounded-[8px] overflow-hidden border-[3px] border-white shadow-md relative z-20">
-            <img src={photoSrc} className="w-full h-full object-cover" alt="Pegawai" loading="eager" />
+          {/* PHOTO */}
+          <div className="w-[24mm] h-[32mm] bg-gray-200 rounded-[4px] overflow-hidden border-[2px] border-gray-400 flex-shrink-0 mb-1.5">
+            <img src={photoSrc} className="w-full h-full object-cover" alt="" loading="eager" />
           </div>
 
-          {/* Nama Pegawai */}
-          <div className="text-[10px] font-bold uppercase mt-auto mb-1 px-1 line-clamp-2 max-h-[28px] overflow-hidden leading-tight bg-white/90 rounded w-full">
-            {p.name}
+          {/* IDENTITY */}
+          <table className="w-full text-[7.5px] font-semibold text-left mb-auto">
+            <tbody>
+              <tr>
+                <td className="w-[38px] py-[1px] align-top">Nama</td>
+                <td className="w-1.5 py-[1px] align-top">:</td>
+                <td className="py-[1px] font-bold uppercase leading-tight">{p.name || '-'}</td>
+              </tr>
+              {p.nip && (
+                <tr>
+                  <td className="py-[1px] align-top">NIP</td>
+                  <td className="py-[1px] align-top">:</td>
+                  <td className="py-[1px]">{p.nip}</td>
+                </tr>
+              )}
+              {p.position && (
+                <tr>
+                  <td className="py-[1px] align-top">Jabatan</td>
+                  <td className="py-[1px] align-top">:</td>
+                  <td className="py-[1px]">{p.position}</td>
+                </tr>
+              )}
+              {item.kodeLabel && (
+                <tr>
+                  <td className="py-[1px] align-top">Kode</td>
+                  <td className="py-[1px] align-top">:</td>
+                  <td className="py-[1px] font-bold">{item.kodeLabel}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+
+          {/* ROLE BADGE */}
+          <div className="w-[90%] py-1 mt-1 bg-gray-900 text-white font-black text-[9px] text-center tracking-widest uppercase rounded-sm">
+            {roleTitle} {item.kodeLabel ? `(${item.kodeLabel})` : ''}
           </div>
-          
-          {/* Jabatan/Role Bottom Bar */}
-          {templateUrl ? (
-            <div className="w-[85%] mx-auto py-1.5 mt-1 rounded-full bg-[#0d47a1] text-white font-black text-[12px] shadow-sm tracking-widest text-[#FFF]">
-               {roleTitle} {item.kodeLabel ? `(${item.kodeLabel})` : ''}
-            </div>
-          ) : (
-            <div className="w-full py-1.5 mt-auto bg-gray-800 text-white font-black text-[11px] tracking-widest">
-               {roleTitle} {item.kodeLabel ? `(${item.kodeLabel})` : ''}
-            </div>
-          )}
         </div>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 print:bg-white p-4 print:p-0">
-      
-      {/* Action Bar (Hidden when printing) */}
-      <div className="mb-4 bg-white p-4 rounded-lg shadow-sm flex items-center justify-between print:hidden max-w-[21cm] mx-auto">
-        <div>
-          <h2 className="text-lg font-bold text-gray-800">Preview {type === 'panitia' ? 'ID Card Panitia' : 'ID Card Pengawas'}</h2>
-          <p className="text-sm text-gray-500">Terdapat {pegawaiList.length} kartu yang siap dicetak.</p>
-        </div>
-        <button 
-          onClick={() => window.print()}
-          className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg shadow hover:bg-blue-700 transition"
-        >
-          Cetak PDF
-        </button>
-      </div>
+    <>
+      <style dangerouslySetInnerHTML={{__html: `
+        @page {
+          size: A4 portrait;
+          margin: 7mm 8mm;
+        }
+        @media print {
+          html, body {
+            background-color: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .page-break {
+            page-break-after: always;
+            break-after: page;
+          }
+        }
+        .page-container {
+          background-color: white;
+          width: 210mm;
+          min-height: 297mm;
+          padding: 7mm 8mm;
+          margin: 0 auto;
+          box-shadow: 0 0 10px rgba(0,0,0,0.1);
+          box-sizing: border-box;
+        }
+        @media print {
+          .page-container {
+            margin: 0;
+            padding: 0;
+            box-shadow: none;
+            width: auto;
+            min-height: 0;
+            height: auto;
+          }
+        }
+      `}} />
 
-      {/* A4 Sheet Viewer */}
-      <div className="w-[21cm] mx-auto bg-white print:bg-transparent shadow-md print:shadow-none p-[1cm] print:p-0">
-        <div className="grid grid-cols-3 gap-x-3 gap-y-4 justify-items-center">
-          {pegawaiList.map((item, idx) => (
-            <IdCard key={idx} item={item} />
-          ))}
-        </div>
-        
-        {pegawaiList.length === 0 && (
-          <div className="text-center py-20 text-gray-500">Belum ada pegawai ditugaskan.</div>
+      <div className="min-h-screen bg-gray-300 py-10 print:py-0 print:bg-white print:min-h-0">
+        {pages.map((pageItems, pageIdx) => (
+          <div key={pageIdx} className={`page-container ${pageIdx < pages.length - 1 ? 'page-break mb-10 print:mb-0' : ''}`}>
+            <div className="grid grid-cols-3 gap-x-[2mm] gap-y-[2mm] justify-items-center">
+              {pageItems.map((item: any, idx: number) => (
+                <IdCard key={idx} item={item} />
+              ))}
+            </div>
+          </div>
+        ))}
+        {pages.length === 0 && (
+          <div className="page-container flex items-center justify-center text-gray-500 print:hidden shadow-lg">
+            Belum ada pegawai ditugaskan.
+          </div>
         )}
       </div>
-    </div>
+    </>
   );
 };
