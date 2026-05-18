@@ -243,7 +243,7 @@ export const PrintKartuPeserta = () => {
 
         {/* IDENTITY BODY */}
         <div className="flex-1 flex flex-col">
-          <table className="w-full text-[8px] font-semibold tracking-tight text-left mb-0.5">
+          <table className="w-full text-[8.5px] font-semibold tracking-tight text-left mb-0.5">
             <tbody>
               <tr>
                 <td className="w-[58px] py-[0.3px] align-top">Nomor Peserta</td>
