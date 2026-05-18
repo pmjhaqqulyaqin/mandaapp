@@ -281,13 +281,13 @@ export const PrintKartuPeserta = () => {
             </div>
 
             {/* TTD BLOCK */}
-            <div className="flex-1 flex flex-col justify-end pl-1.5 pr-0.5 h-full">
-              <div className="flex flex-col text-[7.5px] ml-1.5">
+            <div className="flex-1 flex flex-col justify-end items-center h-full">
+              <div className="flex flex-col items-center text-[7.5px]">
                 <span>{tempat}, {formatDate(tanggal)}</span>
                 <span>{jabatan},</span>
-                <div className="h-5 my-0.5 relative flex items-center">
+                <div className="h-5 my-0.5 relative flex items-center justify-center">
                    {signatureUrl ? (
-                      <img src={signatureUrl} alt="TTD" className="h-[180%] w-auto max-w-[70px] object-contain mix-blend-multiply" style={{ marginTop: '-2px', marginLeft: '-8px' }} />
+                      <img src={signatureUrl} alt="TTD" className="h-[180%] w-auto max-w-[70px] object-contain mix-blend-multiply" />
                    ) : (
                      <div className="w-full h-full" />
                    )}
