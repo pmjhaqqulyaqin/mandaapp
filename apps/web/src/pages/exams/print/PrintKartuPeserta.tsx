@@ -232,9 +232,9 @@ export const PrintKartuPeserta = () => {
              )}
           </div>
           <div className="flex-1 px-0.5 flex flex-col justify-center min-h-[28px]">
-            <h1 className="text-[7.5px] font-bold leading-tight m-0">KARTU PESERTA</h1>
-            <h2 className="text-[7.5px] font-bold leading-tight m-0">{namaUjian}</h2>
-            <h3 className="text-[7px] font-bold leading-tight m-0">TAHUN AJARAN {tahunAjaran}</h3>
+            <h1 className="text-[9px] font-bold leading-tight m-0">KARTU PESERTA</h1>
+            <h2 className="text-[9px] font-bold leading-tight m-0">{namaUjian}</h2>
+            <h3 className="text-[8px] font-bold leading-tight m-0">TAHUN AJARAN {tahunAjaran}</h3>
           </div>
           <div className="w-7 h-7 flex-shrink-0 flex items-center justify-center">
              {logoKanan ? <img src={logoKanan} alt="Logo Kanan" className="max-w-full max-h-full object-contain" /> : <div className="w-7 h-7" />}
@@ -243,7 +243,7 @@ export const PrintKartuPeserta = () => {
 
         {/* IDENTITY BODY */}
         <div className="flex-1 flex flex-col">
-          <table className="w-full text-[7px] font-semibold tracking-tight text-left mb-0.5">
+          <table className="w-full text-[8px] font-semibold tracking-tight text-left mb-0.5">
             <tbody>
               <tr>
                 <td className="w-[58px] py-[0.3px] align-top">Nomor Peserta</td>
@@ -282,7 +282,7 @@ export const PrintKartuPeserta = () => {
 
             {/* TTD BLOCK */}
             <div className="flex-1 flex flex-col justify-end pl-1.5 pr-0.5 h-full">
-              <div className="flex flex-col text-[6.5px] ml-1.5">
+              <div className="flex flex-col text-[7.5px] ml-1.5">
                 <span>{tempat}, {formatDate(tanggal)}</span>
                 <span>{jabatan},</span>
                 <div className="h-5 my-0.5 relative flex items-center">
