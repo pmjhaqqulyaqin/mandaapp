@@ -179,8 +179,8 @@ export const PrintKartuPeserta = () => {
   // Tahun Ajaran mengikuti field tahunAjaran di master ujian
   const tahunAjaran = ujian.tahunAjaran || new Date().getFullYear().toString();
 
-  // Membagi peserta per halaman (4 baris x 2 kartu = 8 kartu)
-  const studentsPerPage = 4;
+  // Membagi peserta per halaman (5 baris x 2 kartu = 10 kartu)
+  const studentsPerPage = 5;
   const pages: any[][] = [];
   for (let i = 0; i < distribusi.length; i += studentsPerPage) {
     pages.push(distribusi.slice(i, i + studentsPerPage));
@@ -220,74 +220,74 @@ export const PrintKartuPeserta = () => {
     }
 
     return (
-      <div className="relative border-[1.5px] border-black p-2 h-[65mm] flex flex-col font-sans box-border overflow-hidden bg-white">
+      <div className="relative border-[1.5px] border-black p-1.5 flex flex-col font-sans box-border overflow-hidden bg-white" style={{ width: '86mm', height: '54mm' }}>
         
         {/* HEADER */}
-        <div className="flex items-start gap-1.5 mb-1.5 border-b-[1.5px] border-black pb-1.5 text-center">
-          <div className="w-9 h-9 flex-shrink-0 flex items-center justify-center">
+        <div className="flex items-start gap-1 mb-1 border-b-[1.5px] border-black pb-1 text-center">
+          <div className="w-7 h-7 flex-shrink-0 flex items-center justify-center">
              {logoKiri ? (
                <img src={logoKiri} alt="Logo Kiri" className="max-w-full max-h-full object-contain" />
              ) : (
-               <div className="w-9 h-9" />
+               <div className="w-7 h-7" />
              )}
           </div>
-          <div className="flex-1 px-0.5 flex flex-col justify-center min-h-[36px]">
-            <h1 className="text-[9px] font-bold leading-tight m-0">KARTU PESERTA</h1>
-            <h2 className="text-[9px] font-bold leading-tight m-0">{namaUjian}</h2>
-            <h3 className="text-[8px] font-bold leading-tight m-0">TAHUN AJARAN {tahunAjaran}</h3>
+          <div className="flex-1 px-0.5 flex flex-col justify-center min-h-[28px]">
+            <h1 className="text-[7.5px] font-bold leading-tight m-0">KARTU PESERTA</h1>
+            <h2 className="text-[7.5px] font-bold leading-tight m-0">{namaUjian}</h2>
+            <h3 className="text-[7px] font-bold leading-tight m-0">TAHUN AJARAN {tahunAjaran}</h3>
           </div>
-          <div className="w-9 h-9 flex-shrink-0 flex items-center justify-center">
-             {logoKanan ? <img src={logoKanan} alt="Logo Kanan" className="max-w-full max-h-full object-contain" /> : <div className="w-9 h-9" />}
+          <div className="w-7 h-7 flex-shrink-0 flex items-center justify-center">
+             {logoKanan ? <img src={logoKanan} alt="Logo Kanan" className="max-w-full max-h-full object-contain" /> : <div className="w-7 h-7" />}
           </div>
         </div>
 
         {/* IDENTITY BODY */}
         <div className="flex-1 flex flex-col">
-          <table className="w-full text-[8px] font-semibold tracking-tight text-left mb-1">
+          <table className="w-full text-[7px] font-semibold tracking-tight text-left mb-0.5">
             <tbody>
               <tr>
-                <td className="w-[70px] py-[0.5px] align-top">Nomor Peserta</td>
-                <td className="w-2 py-[0.5px] align-top">:</td>
-                <td className="py-[0.5px] font-bold uppercase">{nomorPesertaKustom}</td>
+                <td className="w-[58px] py-[0.3px] align-top">Nomor Peserta</td>
+                <td className="w-1.5 py-[0.3px] align-top">:</td>
+                <td className="py-[0.3px] font-bold uppercase">{nomorPesertaKustom}</td>
               </tr>
               <tr>
-                <td className="py-[0.5px] align-top">Nama Peserta</td>
-                <td className="py-[0.5px] align-top">:</td>
-                <td className="py-[0.5px] font-bold uppercase">{s.fullName || '-'}</td>
+                <td className="py-[0.3px] align-top">Nama Peserta</td>
+                <td className="py-[0.3px] align-top">:</td>
+                <td className="py-[0.3px] font-bold uppercase">{s.fullName || '-'}</td>
               </tr>
               <tr>
-                <td className="py-[0.5px] align-top">TTL</td>
-                <td className="py-[0.5px] align-top">:</td>
-                <td className="py-[0.5px] uppercase">{s.birthPlace || '-'}, {formatDate(s.birthDate)}</td>
+                <td className="py-[0.3px] align-top">TTL</td>
+                <td className="py-[0.3px] align-top">:</td>
+                <td className="py-[0.3px] uppercase">{s.birthPlace || '-'}, {formatDate(s.birthDate)}</td>
               </tr>
               <tr>
-                <td className="py-[0.5px] align-top">Kelas</td>
-                <td className="py-[0.5px] align-top">:</td>
-                <td className="py-[0.5px] uppercase">{s.fullClassName || s.className || '-'}</td>
+                <td className="py-[0.3px] align-top">Kelas</td>
+                <td className="py-[0.3px] align-top">:</td>
+                <td className="py-[0.3px] uppercase">{s.fullClassName || s.className || '-'}</td>
               </tr>
               <tr>
-                <td className="py-[0.5px] align-top">Ruang Ujian</td>
-                <td className="py-[0.5px] align-top">:</td>
-                <td className="py-[0.5px] font-bold uppercase">{ruang}</td>
+                <td className="py-[0.3px] align-top">Ruang Ujian</td>
+                <td className="py-[0.3px] align-top">:</td>
+                <td className="py-[0.3px] font-bold uppercase">{ruang}</td>
               </tr>
             </tbody>
           </table>
 
           {/* BOTTOM SECTION: PHOTO & TTD & QR */}
-          <div className="mt-auto flex justify-between h-[72px]">
+          <div className="mt-auto flex justify-between h-[56px]">
             {/* PHOTO */}
-            <div className="w-[52px] h-full border-[1.5px] border-black flex items-center justify-center bg-gray-100 flex-shrink-0 overflow-hidden">
+            <div className="w-[42px] h-full border-[1.5px] border-black flex items-center justify-center bg-gray-100 flex-shrink-0 overflow-hidden">
                <img src={photoSrc} alt="Foto Peserta" className="w-full h-full object-cover" />
             </div>
 
             {/* TTD BLOCK */}
-            <div className="flex-1 flex flex-col justify-end pl-2 pr-1 h-full">
-              <div className="flex flex-col text-[7.5px] ml-2">
+            <div className="flex-1 flex flex-col justify-end pl-1.5 pr-0.5 h-full">
+              <div className="flex flex-col text-[6.5px] ml-1.5">
                 <span>{tempat}, {formatDate(tanggal)}</span>
                 <span>{jabatan},</span>
-                <div className="h-7 my-0.5 relative flex items-center">
+                <div className="h-5 my-0.5 relative flex items-center">
                    {signatureUrl ? (
-                      <img src={signatureUrl} alt="TTD" className="h-[180%] w-auto max-w-[90px] object-contain mix-blend-multiply" style={{ marginTop: '-2px', marginLeft: '-10px' }} />
+                      <img src={signatureUrl} alt="TTD" className="h-[180%] w-auto max-w-[70px] object-contain mix-blend-multiply" style={{ marginTop: '-2px', marginLeft: '-8px' }} />
                    ) : (
                      <div className="w-full h-full" />
                    )}
@@ -298,9 +298,9 @@ export const PrintKartuPeserta = () => {
             </div>
               
             {/* QR CODE */}
-            <div className="flex flex-col justify-start items-end w-[44px] h-full flex-shrink-0">
-               <div className="border border-gray-200 overflow-hidden" style={{ width: 44, height: 44 }}>
-                  {qrDataUrl && <QrCodeImg dataUrl={qrDataUrl} size={44} />}
+            <div className="flex flex-col justify-start items-end w-[36px] h-full flex-shrink-0">
+               <div className="border border-gray-200 overflow-hidden" style={{ width: 36, height: 36 }}>
+                  {qrDataUrl && <QrCodeImg dataUrl={qrDataUrl} size={36} />}
                </div>
             </div>
           </div>
