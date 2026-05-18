@@ -12,8 +12,6 @@ export const PrintIdCardPegawai = () => {
   const [ujian, setUjian] = useState<any>(null);
   const [pegawaiList, setPegawaiList] = useState<any[]>([]);
   const [schoolName, setSchoolName] = useState<string>('MAN 2 LOMBOK TIMUR');
-  const [logoUrl, setLogoUrl] = useState<string>('');
-  const [kemenagLogoUrl, setKemenagLogoUrl] = useState<string>('');
   const [imagesReady, setImagesReady] = useState(false);
 
   useEffect(() => {
@@ -50,13 +48,8 @@ export const PrintIdCardPegawai = () => {
           setPegawaiList(pengawasPegawai);
         }
         
-        const settingsArr = Array.isArray(settingsRes?.data || settingsRes) ? (settingsRes?.data || settingsRes) : [];
-        const settingsMap: Record<string, string> = {};
-        for (const s of settingsArr) { if (s.key && s.value) settingsMap[s.key] = s.value; }
-        
-        if (settingsMap.school_name) setSchoolName(settingsMap.school_name);
-        if (settingsMap.logo_url) setLogoUrl(settingsMap.logo_url);
-        if (settingsMap.kemenag_logo_url) setKemenagLogoUrl(settingsMap.kemenag_logo_url);
+        const sn = (settingsRes.data || settingsRes).find((s: any) => s.key === 'school_name')?.value;
+        if (sn) setSchoolName(sn);
       } catch (error) {
         console.error('Failed to load ID card data', error);
       } finally {
@@ -66,7 +59,7 @@ export const PrintIdCardPegawai = () => {
     if (ujianId) fetchData();
   }, [ujianId, type]);
 
-  // Pre-load images
+  // Pre-load critical images (template, logos) to avoid blank cards on print
   useEffect(() => {
     if (loading || !ujian) return;
 
@@ -76,9 +69,8 @@ export const PrintIdCardPegawai = () => {
     const imagesToLoad: string[] = [];
     if (templateUrl) imagesToLoad.push(templateUrl);
     if (config.logoPegawaiUrl) imagesToLoad.push(config.logoPegawaiUrl);
-    if (logoUrl) imagesToLoad.push(logoUrl);
-    if (kemenagLogoUrl) imagesToLoad.push(kemenagLogoUrl);
 
+    // Also preload unique photo URLs (but limit to avoid overloading)
     const photoUrls = new Set<string>();
     pegawaiList.forEach(item => {
       const p = item.pegawai || item;
@@ -93,18 +85,27 @@ export const PrintIdCardPegawai = () => {
 
     let loaded = 0;
     const total = imagesToLoad.length;
-    const onDone = () => { loaded++; if (loaded >= total) setImagesReady(true); };
+    const onLoad = () => {
+      loaded++;
+      if (loaded >= total) setImagesReady(true);
+    };
+    const onError = () => {
+      loaded++;
+      if (loaded >= total) setImagesReady(true);
+    };
+
+    // Set a maximum wait time of 5 seconds
     const timeout = setTimeout(() => setImagesReady(true), 5000);
 
     imagesToLoad.forEach(url => {
       const img = new Image();
-      img.onload = onDone;
-      img.onerror = onDone;
+      img.onload = onLoad;
+      img.onerror = onError;
       img.src = url;
     });
 
     return () => clearTimeout(timeout);
-  }, [loading, ujian, pegawaiList, type, logoUrl, kemenagLogoUrl]);
+  }, [loading, ujian, pegawaiList, type]);
 
   // Auto-print
   useEffect(() => {
@@ -127,15 +128,8 @@ export const PrintIdCardPegawai = () => {
 
   const config = ujian.pengaturan?.kartuPeserta || {};
   const templateUrl = type === 'panitia' ? config.templatePanitiaUrl : config.templatePengawasUrl;
-  const namaUjian = (ujian.namaUjian || ujian.jenisUjian || ujian.title || 'UJIAN SEKOLAH').toUpperCase();
-  const tahunAjaran = ujian.tahunAjaran || new Date().getFullYear().toString();
-
-  // Use same logos as kartu peserta
-  const headerLogoKiri = kemenagLogoUrl || config.logoKiri || '';
-  const headerLogoKanan = logoUrl || config.logoKanan || '';
 
   // Page layout: 3 columns × 3 rows = 9 cards per page
-  // Card size: 65mm wide × 93mm tall (kartu peserta dimensions rotated to vertical)
   const cardsPerPage = 9;
   const pages: any[][] = [];
   for (let i = 0; i < pegawaiList.length; i += cardsPerPage) {
@@ -143,9 +137,10 @@ export const PrintIdCardPegawai = () => {
   }
 
   const IdCard = ({ item }: { item: any }) => {
-    const p = item.pegawai || item;
+    const p = item.pegawai || item; 
     const roleTitle = type === 'panitia' ? 'PANITIA' : 'PENGAWAS';
     
+    // Choose fallback avatar
     let photoSrc = p.photoUrl;
     if (!photoSrc) {
       const genderLower = (p.gender || '').toLowerCase();
@@ -154,85 +149,55 @@ export const PrintIdCardPegawai = () => {
     }
 
     return (
-      <div
-        className="relative border-[1.5px] border-black flex flex-col font-sans box-border overflow-hidden bg-white"
-        style={{ width: '65mm', height: '93mm' }}
+      <div className="border border-gray-300 relative overflow-hidden bg-white text-center break-inside-avoid shadow-sm print:shadow-none print:border-gray-200"
+           style={{ width: '65mm', height: '93mm', boxSizing: 'border-box' }}
       >
-        {/* Background template layer */}
-        {templateUrl && (
-          <img src={templateUrl} className="absolute inset-0 w-full h-full object-cover z-0" alt="" loading="eager" />
+        {/* Background Layer */}
+        {templateUrl ? (
+          <img src={templateUrl} className="absolute inset-0 w-full h-full object-cover z-0" alt="template" loading="eager" />
+        ) : (
+          <div className="absolute inset-0 z-0 bg-white border-2 border-gray-800">
+            <div className="absolute top-0 left-0 w-full h-[3.8cm] bg-gray-100 border-b-2 border-gray-800" />
+          </div>
         )}
 
-        {/* Content layer */}
-        <div className="relative z-10 w-full h-full flex flex-col items-center px-2 pt-2 pb-1.5">
+        {/* Content Layer */}
+        <div className="relative z-10 w-full h-full flex flex-col items-center pt-3 pb-2 px-2.5">
           
-          {/* HEADER — same style as kartu peserta */}
-          <div className="flex items-start gap-1 w-full border-b-[1.5px] border-black pb-1.5 mb-1.5 text-center">
-            <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center">
-              {headerLogoKiri ? (
-                <img src={headerLogoKiri} alt="" className="max-w-full max-h-full object-contain" />
-              ) : (
-                <div className="w-8 h-8" />
-              )}
-            </div>
-            <div className="flex-1 px-0.5 flex flex-col justify-center min-h-[32px]">
-              <h1 className="text-[8px] font-bold leading-tight m-0">KARTU {roleTitle}</h1>
-              <h2 className="text-[7.5px] font-bold leading-tight m-0">{namaUjian}</h2>
-              <h3 className="text-[7px] font-bold leading-tight m-0">TAHUN AJARAN {tahunAjaran}</h3>
-            </div>
-            <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center">
-              {headerLogoKanan ? (
-                <img src={headerLogoKanan} alt="" className="max-w-full max-h-full object-contain" />
-              ) : (
-                <div className="w-8 h-8" />
-              )}
+          {/* Header section */}
+          <div className="w-full flex-col items-center justify-center">
+            {config.logoPegawaiUrl && (
+              <img src={config.logoPegawaiUrl} className="w-10 h-10 object-contain mx-auto mb-1" alt="Logo Instansi" loading="eager" />
+            )}
+            
+            <div className="text-[8px] font-bold mt-1 text-gray-800 tracking-wider uppercase text-center w-full bg-white/40">{schoolName}</div>
+            <div className="text-[11px] uppercase font-black leading-tight mt-1 text-gray-900 border-b border-gray-800 pb-1.5 mb-1.5 inline-block text-center w-full bg-white/40">
+              {ujian.namaUjian}<br/>TA {ujian.tahunAjaran}
             </div>
           </div>
 
-          {/* SCHOOL NAME */}
-          <div className="text-[6.5px] font-bold text-gray-700 tracking-wider uppercase text-center w-full mb-1">{schoolName}</div>
+          <div className="flex-1 mt-1 mb-1"></div>
 
-          {/* PHOTO */}
-          <div className="w-[24mm] h-[32mm] bg-gray-200 rounded-[4px] overflow-hidden border-[2px] border-gray-400 flex-shrink-0 mb-1.5">
-            <img src={photoSrc} className="w-full h-full object-cover" alt="" loading="eager" />
+          {/* Photo Frame */}
+          <div className="w-[3cm] h-[4cm] bg-gray-200 mt-2 mb-2 rounded-[8px] overflow-hidden border-[3px] border-white shadow-md relative z-20">
+            <img src={photoSrc} className="w-full h-full object-cover" alt="Pegawai" loading="eager" />
           </div>
 
-          {/* IDENTITY */}
-          <table className="w-full text-[7.5px] font-semibold text-left mb-auto">
-            <tbody>
-              <tr>
-                <td className="w-[38px] py-[1px] align-top">Nama</td>
-                <td className="w-1.5 py-[1px] align-top">:</td>
-                <td className="py-[1px] font-bold uppercase leading-tight">{p.name || '-'}</td>
-              </tr>
-              {p.nip && (
-                <tr>
-                  <td className="py-[1px] align-top">NIP</td>
-                  <td className="py-[1px] align-top">:</td>
-                  <td className="py-[1px]">{p.nip}</td>
-                </tr>
-              )}
-              {p.position && (
-                <tr>
-                  <td className="py-[1px] align-top">Jabatan</td>
-                  <td className="py-[1px] align-top">:</td>
-                  <td className="py-[1px]">{p.position}</td>
-                </tr>
-              )}
-              {item.kodeLabel && (
-                <tr>
-                  <td className="py-[1px] align-top">Kode</td>
-                  <td className="py-[1px] align-top">:</td>
-                  <td className="py-[1px] font-bold">{item.kodeLabel}</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-          {/* ROLE BADGE */}
-          <div className="w-[90%] py-1 mt-1 bg-gray-900 text-white font-black text-[9px] text-center tracking-widest uppercase rounded-sm">
-            {roleTitle} {item.kodeLabel ? `(${item.kodeLabel})` : ''}
+          {/* Nama Pegawai */}
+          <div className="text-[11px] font-bold uppercase mt-auto mb-1.5 px-1 line-clamp-2 max-h-[32px] overflow-hidden leading-tight bg-white/90 rounded w-full">
+            {p.name}
           </div>
+          
+          {/* Jabatan/Role Bottom Bar */}
+          {templateUrl ? (
+            <div className="w-[85%] mx-auto py-1.5 mt-1 rounded-full bg-[#0d47a1] text-white font-black text-[13px] shadow-sm tracking-widest">
+               {roleTitle} {item.kodeLabel ? `(${item.kodeLabel})` : ''}
+            </div>
+          ) : (
+            <div className="w-full py-1.5 mt-auto bg-gray-800 text-white font-black text-[12px] tracking-widest">
+               {roleTitle} {item.kodeLabel ? `(${item.kodeLabel})` : ''}
+            </div>
+          )}
         </div>
       </div>
     );
