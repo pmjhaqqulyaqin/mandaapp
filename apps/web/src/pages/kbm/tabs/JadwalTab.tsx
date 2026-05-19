@@ -93,6 +93,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [jadwal, setJadwal] = useState<JadwalSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [generateProgress, setGenerateProgress] = useState<{ phase: string; progress: number; detail?: string } | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [viewMode, setViewMode] = useState<'kelas' | 'guru'>('kelas');
   const [selectedFilter, setSelectedFilter] = useState('');
@@ -226,19 +227,48 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
     }
   }, [academicYearId, semester, canEdit, grid, generateReport, setGenerateReport, loadData]);
 
-  const handleGenerate = async () => {
+  const handleGenerate = () => {
     setShowConfirmGenerate(false);
     setGenerating(true);
     setGenerateReport(null);
-    try {
-      const res = await apiClient<any>('/kbm/jadwal/generate', {
-        method: 'POST', data: { academicYearId, semester, clearExisting: true },
-      });
-      toast.success(res.message);
-      setGenerateReport(res);
-      loadData();
-    } catch (err: any) { toast.error(err.message || 'Gagal generate'); }
-    finally { setGenerating(false); }
+    setGenerateProgress({ phase: 'init', progress: 0, detail: 'Memulai...' });
+
+    const es = new EventSource(`/api/kbm/jadwal/generate-stream?academicYearId=${academicYearId}&semester=${semester}`);
+
+    es.addEventListener('progress', (e) => {
+      try { setGenerateProgress(JSON.parse(e.data)); } catch {}
+    });
+
+    es.addEventListener('result', (e) => {
+      try {
+        const res = JSON.parse(e.data);
+        toast.success(res.message);
+        setGenerateReport(res);
+        loadData();
+      } catch {}
+    });
+
+    es.addEventListener('error', (e) => {
+      try {
+        const data = JSON.parse((e as MessageEvent).data || '{}');
+        toast.error(data.message || 'Gagal generate');
+      } catch { toast.error('Koneksi terputus'); }
+      es.close();
+      setGenerating(false);
+      setGenerateProgress(null);
+    });
+
+    es.addEventListener('done', () => {
+      es.close();
+      setGenerating(false);
+      setGenerateProgress(null);
+    });
+
+    es.onerror = () => {
+      es.close();
+      setGenerating(false);
+      setGenerateProgress(null);
+    };
   };
 
   const handleSync = async () => {
@@ -529,6 +559,57 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
           onCancel={() => setShowConfirmGenerate(false)}
           color="amber"
         />
+      )}
+
+      {/* SSE Progress Modal */}
+      {generating && generateProgress && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl border border-gray-200 dark:border-[#333] p-6 w-[420px] max-w-[90vw] space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                <Zap size={20} className="text-white animate-pulse" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-gray-800 dark:text-gray-100">Generating Jadwal</h3>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  {{init: '📦 Memuat Data', scheduling: '🧩 Penjadwalan', optimizing: '⚡ Optimasi', saving: '💾 Menyimpan', done: '✅ Selesai'}[generateProgress.phase] || generateProgress.phase}
+                </p>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="space-y-1.5">
+              <div className="h-3 rounded-full bg-gray-100 dark:bg-[#222] overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-500 ease-out"
+                  style={{ width: `${generateProgress.progress}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] text-gray-400">
+                <span>{generateProgress.detail}</span>
+                <span className="font-mono font-bold">{generateProgress.progress}%</span>
+              </div>
+            </div>
+
+            {/* Phase Steps */}
+            <div className="flex items-center gap-1 text-[9px]">
+              {['init', 'scheduling', 'optimizing', 'saving', 'done'].map((ph, i) => {
+                const phases = ['init', 'scheduling', 'optimizing', 'saving', 'done'];
+                const currentIdx = phases.indexOf(generateProgress.phase);
+                const isActive = i === currentIdx;
+                const isDone = i < currentIdx;
+                return (
+                  <div key={ph} className="flex items-center gap-1">
+                    {i > 0 && <div className={`w-4 h-0.5 ${isDone ? 'bg-amber-400' : 'bg-gray-200 dark:bg-[#333]'}`} />}
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center font-bold transition-all ${isDone ? 'bg-amber-400 text-white' : isActive ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 ring-2 ring-amber-400 animate-pulse' : 'bg-gray-100 dark:bg-[#222] text-gray-400'}`}>
+                      {isDone ? '✓' : i + 1}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Confirm Sync Modal */}

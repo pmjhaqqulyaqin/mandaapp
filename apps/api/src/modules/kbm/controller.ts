@@ -709,6 +709,36 @@ export class KbmController {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
 
+  static async generateJadwalStream(req: Request, res: Response) {
+    const { academicYearId, semester } = req.query;
+    if (!academicYearId || !semester) { res.status(400).json({ error: "academicYearId dan semester diperlukan" }); return; }
+
+    // Set SSE headers
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+
+    const sendEvent = (event: string, data: any) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+      const result = await KbmService.generateJadwal(
+        academicYearId as string, semester as string, true,
+        (progress) => sendEvent('progress', progress)
+      );
+      sendEvent('result', result);
+      sendEvent('done', { ok: true });
+    } catch (err: any) {
+      sendEvent('error', { message: err.message });
+    } finally {
+      res.end();
+    }
+  }
+
   static async moveSlot(req: Request, res: Response) {
     try {
       const { dayOfWeek, jamKe, ruanganId } = req.body;

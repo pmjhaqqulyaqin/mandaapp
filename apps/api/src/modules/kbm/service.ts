@@ -559,7 +559,10 @@ export class KbmService {
 
   // ═══ Jadwal (Phase 2 — Multi-Pass Constraint Scheduler) ═════
 
-  static async generateJadwal(academicYearId: string, semester: string, clearExisting = true) {
+  static async generateJadwal(academicYearId: string, semester: string, clearExisting = true, onProgress?: (data: { phase: string; progress: number; detail?: string }) => void) {
+    const emit = onProgress || (() => {});
+    emit({ phase: 'init', progress: 0, detail: 'Mempersiapkan data...' });
+
     if (clearExisting) {
       await db.delete(kbmJadwal).where(and(eq(kbmJadwal.academicYearId, academicYearId), eq(kbmJadwal.semester, semester)));
     }
@@ -567,6 +570,7 @@ export class KbmService {
     const distribusi = await db.select({ guruId: distribusiJam.guruId, kelasId: distribusiJam.kelasId, subjectId: distribusiJam.subjectId, jumlahJam: distribusiJam.jumlahJam })
       .from(distribusiJam).where(and(eq(distribusiJam.academicYearId, academicYearId), eq(distribusiJam.semester, semester)));
     if (distribusi.length === 0) return { generated: 0, failed: 0, total: 0, blocks: 0, failedBlocks: 0, message: 'Tidak ada distribusi jam', report: null };
+    emit({ phase: 'init', progress: 5, detail: `${distribusi.length} distribusi dimuat` });
 
     const subjectList = await db.select().from(kbmSubjects).where(eq(kbmSubjects.isActive, true));
     const subjectMap = new Map(subjectList.map(s => [s.id, s]));
@@ -885,16 +889,19 @@ export class KbmService {
     };
 
     // Run attempts: each gets its own chain swap rescue
+    emit({ phase: 'scheduling', progress: 10, detail: `Attempt 1/${MAX_ATTEMPTS} — ${blocksNormal.length} blok` });
     let bestAttempt = runAttempt([...blocksNormal]);
     applyChainSwap(bestAttempt);
 
     if (bestAttempt.failed.length > 0) {
+      emit({ phase: 'scheduling', progress: 15, detail: `Attempt 2 (auto-split) — ${bestAttempt.failed.length} gagal` });
       const r2 = runAttempt([...blocksAutoSplit]);
       applyChainSwap(r2);
       if (r2.failed.length < bestAttempt.failed.length) bestAttempt = r2;
     }
 
     for (let a = 2; a < MAX_ATTEMPTS && bestAttempt.failed.length > 0; a++) {
+      if (a % 5 === 0) emit({ phase: 'optimizing', progress: 15 + Math.round((a / MAX_ATTEMPTS) * 70), detail: `Attempt ${a + 1}/${MAX_ATTEMPTS} — terbaik: ${bestAttempt.failed.length} gagal` });
       const base = a % 2 === 0 ? blocksAutoSplit : blocksNormal;
       const shuffled = [...base];
       for (let i = shuffled.length - 1; i > 0; i--) {
@@ -904,14 +911,17 @@ export class KbmService {
       const result = runAttempt(shuffled);
       applyChainSwap(result);
       if (result.failed.length < bestAttempt.failed.length) bestAttempt = result;
+      if (bestAttempt.failed.length === 0) break;
     }
 
     // Insert best attempt
+    emit({ phase: 'saving', progress: 90, detail: `Menyimpan ${bestAttempt.placed.length} slot...` });
     if (bestAttempt.placed.length > 0) {
       for (let i = 0; i < bestAttempt.placed.length; i += 100) {
         await db.insert(kbmJadwal).values(bestAttempt.placed.slice(i, i + 100));
       }
     }
+    emit({ phase: 'done', progress: 100, detail: 'Selesai' });
 
     const totalSlots = blocksNormal.reduce((s, b) => s + b.size, 0);
     return {

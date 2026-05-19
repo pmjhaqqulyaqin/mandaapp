@@ -62,6 +62,7 @@ router.post("/schedule-config", requireStaff, KbmController.upsertScheduleConfig
 // Jadwal (Phase 2 — Auto Scheduler)
 router.get("/jadwal", requireStaff, KbmController.getJadwal);
 router.post("/jadwal/generate", requireStaff, KbmController.generateJadwal);
+router.get("/jadwal/generate-stream", requireStaff, KbmController.generateJadwalStream);
 router.put("/jadwal/:id", requireStaff, KbmController.moveSlot);
 router.get("/jadwal/check-move", requireStaff, KbmController.checkMoveSlot);
 router.post("/jadwal/swap", requireStaff, KbmController.swapSlots);
