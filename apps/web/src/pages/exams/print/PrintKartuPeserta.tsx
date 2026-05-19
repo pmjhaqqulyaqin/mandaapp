@@ -283,23 +283,23 @@ export const PrintKartuPeserta = () => {
             </div>
 
             {/* TTD BLOCK */}
-            <div className="flex-1 flex flex-col justify-end items-center h-full">
+            <div className="flex-1 flex flex-col justify-end items-center h-full relative">
               <div className="flex flex-col items-center text-[7.5px]">
                 <span>{tempat}, {formatDate(tanggal)}</span>
                 <span>{jabatan},</span>
-                <div className="h-5 my-0.5 relative flex items-center justify-center">
+                <div className="h-5 my-0.5 flex items-center justify-center">
                    {signatureUrl ? (
                       <img src={signatureUrl} alt="TTD" className="h-[180%] w-auto max-w-[70px] object-contain mix-blend-multiply" />
                    ) : (
                      <div className="w-full h-full" />
                    )}
-                   {stampUrl && (
-                      <img src={stampUrl} alt="Stempel" className="absolute left-[-18px] top-[-10px] h-[280%] w-auto max-w-[55px] object-contain mix-blend-multiply opacity-85" />
-                   )}
                 </div>
                 <span className="font-bold underline underline-offset-2">{smartUpperCase(nama)}</span>
                 <span>NIP. {nip}</span>
               </div>
+              {stampUrl && (
+                <img src={stampUrl} alt="Stempel" className="absolute left-0 bottom-[8px] h-[42px] w-auto object-contain mix-blend-multiply opacity-85" />
+              )}
             </div>
               
             {/* QR CODE */}
