@@ -125,24 +125,46 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const fullscreenRef = useRef<HTMLDivElement>(null);
+  const userExitRef = useRef(false); // Track intentional exits vs toast-triggered exits
 
   // Hybrid fullscreen: Fullscreen API (hides browser chrome + taskbar) + CSS overlay (covers page content)
   const toggleFullscreen = useCallback(() => {
     const next = !isFullscreen;
+    if (!next) userExitRef.current = true; // Mark close button as intentional
     setIsFullscreen(next);
     if (next) {
-      // Enter browser fullscreen to hide tab bar + taskbar
+      userExitRef.current = false;
       document.documentElement.requestFullscreen?.().catch(() => {});
     } else {
-      // Exit browser fullscreen
       if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
     }
   }, [isFullscreen]);
 
-  // Sync state when browser fullscreen exits (e.g. ESC pressed at browser level)
+  // Detect ESC key press BEFORE browser exits fullscreen — mark as intentional
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        userExitRef.current = true;
+      }
+    };
+    document.addEventListener('keydown', handleKey, true); // capture phase
+    return () => document.removeEventListener('keydown', handleKey, true);
+  }, [isFullscreen]);
+
+  // Handle browser fullscreen changes — re-enter if exit was caused by toast/portal
   useEffect(() => {
     const handleFsChange = () => {
-      if (!document.fullscreenElement) setIsFullscreen(false);
+      if (!document.fullscreenElement) {
+        if (userExitRef.current) {
+          // User pressed ESC or clicked close — exit both
+          userExitRef.current = false;
+          setIsFullscreen(false);
+        } else {
+          // Toast/portal caused browser fullscreen exit — re-enter silently
+          document.documentElement.requestFullscreen?.().catch(() => {});
+        }
+      }
     };
     document.addEventListener('fullscreenchange', handleFsChange);
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
