@@ -17,3 +17,58 @@ export function normalizeGelar(str: string): string {
     .replace(/S\.IP\b/gi, 'S.IP')
     .replace(/M\.PD\.I\b/gi, 'M.Pd.I');
 }
+
+/**
+ * Uppercase a name string while preserving academic title casing.
+ * CSS `text-transform: uppercase` would break gelar like S.Pd -> S.PD,
+ * so we uppercase programmatically but protect gelar patterns.
+ * 
+ * Example: "Mehram, S.Pd, M.AP" -> "MEHRAM, S.Pd, M.AP"
+ */
+export function smartUpperCase(str: string): string {
+  // First normalize gelar
+  const normalized = normalizeGelar(str);
+
+  // Gelar patterns to preserve (with correct casing)
+  const gelarPatterns = [
+    /S\.Pd\.I\b/g, /M\.Pd\.I\b/g,
+    /S\.Pd\b/g, /M\.Pd\b/g,
+    /S\.Ag\b/g, /M\.Ag\b/g,
+    /S\.Sos\b/g, /S\.Kom\b/g,
+    /M\.Si\b/g, /S\.Hum\b/g, /M\.Hum\b/g,
+    /S\.Ked\b/g, /S\.IP\b/g,
+    /M\.AP\b/gi, /S\.AP\b/gi,
+    /M\.M\b/g, /S\.E\b/g, /M\.E\b/g,
+    /S\.H\b/g, /M\.H\b/g,
+    /S\.T\b/g, /M\.T\b/g,
+    /S\.Fil\b/g, /M\.Fil\b/g,
+  ];
+
+  // Collect gelar positions and their correct casing
+  const preserveList: { start: number; end: number; text: string }[] = [];
+  for (const pattern of gelarPatterns) {
+    let match;
+    // Reset lastIndex for global patterns
+    pattern.lastIndex = 0;
+    while ((match = pattern.exec(normalized)) !== null) {
+      preserveList.push({
+        start: match.index,
+        end: match.index + match[0].length,
+        text: match[0],
+      });
+    }
+  }
+
+  // Sort by start position descending to replace from end
+  preserveList.sort((a, b) => b.start - a.start);
+
+  // Uppercase the whole string first
+  let result = normalized.toUpperCase();
+
+  // Restore gelar casing
+  for (const item of preserveList) {
+    result = result.substring(0, item.start) + item.text + result.substring(item.end);
+  }
+
+  return result;
+}

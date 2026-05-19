@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../../../lib/api';
-import { normalizeGelar } from '../../../lib/normalizeGelar';
+import { normalizeGelar, smartUpperCase } from '../../../lib/normalizeGelar';
 import { Loader2 } from 'lucide-react';
 import QRCode from 'qrcode';
 
@@ -294,10 +294,10 @@ export const PrintKartuPeserta = () => {
                      <div className="w-full h-full" />
                    )}
                    {stampUrl && (
-                      <img src={stampUrl} alt="Stempel" className="absolute left-[-14px] top-[-8px] h-[250%] w-auto max-w-[50px] object-contain mix-blend-multiply opacity-90" />
+                      <img src={stampUrl} alt="Stempel" className="absolute left-[-18px] top-[-10px] h-[280%] w-auto max-w-[55px] object-contain mix-blend-multiply opacity-85" />
                    )}
                 </div>
-                <span className="font-bold uppercase underline underline-offset-2">{nama}</span>
+                <span className="font-bold underline underline-offset-2">{smartUpperCase(nama)}</span>
                 <span>NIP. {nip}</span>
               </div>
             </div>
