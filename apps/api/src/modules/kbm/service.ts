@@ -3,6 +3,7 @@ import {
   kbmSubjects, distribusiJam, tugasTambahanMaster, tugasTambahan,
   ruangan, employees, classes, academicYears, jurnalMapelCodes,
   kbmJadwal, teachingSubjects, guruUnavailability, scheduleConfig,
+  jadwalVersion,
 } from "../../db/schema";
 import { eq, and, sql, desc, asc, inArray } from "drizzle-orm";
 
@@ -914,26 +915,52 @@ export class KbmService {
       if (bestAttempt.failed.length === 0) break;
     }
 
-    // Insert best attempt
+    // Insert best attempt with version
     emit({ phase: 'saving', progress: 90, detail: `Menyimpan ${bestAttempt.placed.length} slot...` });
+
+    // Count existing versions to auto-name
+    const existingVersions = await db.select().from(jadwalVersion)
+      .where(and(eq(jadwalVersion.academicYearId, academicYearId), eq(jadwalVersion.semester, semester)));
+    const versionNum = existingVersions.length + 1;
+    const now = new Date();
+    const versionName = `Auto v${versionNum} (${now.getDate()}/${now.getMonth() + 1})`;
+
+    // Deactivate old versions
+    if (existingVersions.length > 0) {
+      await db.update(jadwalVersion).set({ isAktif: false })
+        .where(and(eq(jadwalVersion.academicYearId, academicYearId), eq(jadwalVersion.semester, semester)));
+    }
+
+    // Create new version
+    const totalSlots = blocksNormal.reduce((s, b) => s + b.size, 0);
+    const [newVersion] = await db.insert(jadwalVersion).values({
+      academicYearId, semester, nama: versionName, isAktif: true,
+      totalSlots: bestAttempt.placed.length,
+      totalFailed: bestAttempt.failed.reduce((s: number, b: any) => s + b.size, 0),
+      metadata: { passResults: bestAttempt.passResults, attempts: versionNum },
+    }).returning();
+
+    // Insert jadwal rows tagged with versionId
     if (bestAttempt.placed.length > 0) {
-      for (let i = 0; i < bestAttempt.placed.length; i += 100) {
-        await db.insert(kbmJadwal).values(bestAttempt.placed.slice(i, i + 100));
+      const taggedSlots = bestAttempt.placed.map((p: any) => ({ ...p, versionId: newVersion.id }));
+      for (let i = 0; i < taggedSlots.length; i += 100) {
+        await db.insert(kbmJadwal).values(taggedSlots.slice(i, i + 100));
       }
     }
     emit({ phase: 'done', progress: 100, detail: 'Selesai' });
 
-    const totalSlots = blocksNormal.reduce((s, b) => s + b.size, 0);
     return {
       generated: bestAttempt.placed.length,
       failed: bestAttempt.failed.reduce((s: number, b: any) => s + b.size, 0),
       total: totalSlots,
       blocks: blocksNormal.length,
       failedBlocks: bestAttempt.failed.length,
-      message: `${bestAttempt.placed.length} slot berhasil (${blocksNormal.length} blok)${bestAttempt.failed.length > 0 ? `, ${bestAttempt.failed.length} blok gagal` : ''}`,
+      versionId: newVersion.id,
+      versionName: newVersion.nama,
+      message: `${bestAttempt.placed.length} slot berhasil (${blocksNormal.length} blok)${bestAttempt.failed.length > 0 ? `, ${bestAttempt.failed.length} blok gagal` : ''} — ${versionName}`,
       report: {
         passResults: bestAttempt.passResults,
-        attempts: 3,
+        attempts: versionNum,
         failedDetails: await Promise.all(bestAttempt.failed.map(async (b: any) => {
           const subj = subjectMap.get(b.subjectId);
           const kelasResult = await db.execute(sql`SELECT nama FROM kelas WHERE id = ${b.kelasId} LIMIT 1`);
@@ -1254,6 +1281,54 @@ export class KbmService {
     }
 
     return { score: Math.max(0, 100 - totalPenalty), maxScore: 100, percentage, totalPenalty, violations, summary, totalSlots: jadwal.length };
+  }
+
+  // ═══ Jadwal Versioning ═══════════════════════════════════════════════════
+
+  static async listVersions(academicYearId: string, semester: string) {
+    return db.select().from(jadwalVersion)
+      .where(and(eq(jadwalVersion.academicYearId, academicYearId), eq(jadwalVersion.semester, semester)))
+      .orderBy(desc(jadwalVersion.createdAt));
+  }
+
+  static async activateVersion(versionId: string) {
+    const [ver] = await db.select().from(jadwalVersion).where(eq(jadwalVersion.id, versionId));
+    if (!ver) throw new Error('Versi tidak ditemukan');
+
+    // Deactivate all versions for this academic year + semester
+    await db.update(jadwalVersion)
+      .set({ isAktif: false })
+      .where(and(eq(jadwalVersion.academicYearId, ver.academicYearId), eq(jadwalVersion.semester, ver.semester)));
+
+    // Activate selected version
+    await db.update(jadwalVersion).set({ isAktif: true }).where(eq(jadwalVersion.id, versionId));
+
+    // Delete un-versioned jadwal (old data without version)
+    await db.delete(kbmJadwal).where(and(
+      eq(kbmJadwal.academicYearId, ver.academicYearId),
+      eq(kbmJadwal.semester, ver.semester),
+      sql`${kbmJadwal.versionId} IS NULL OR ${kbmJadwal.versionId} != ${versionId}`
+    ));
+
+    // Copy version's slots as the active jadwal (clone to versionId=NULL for backward compat)
+    // Actually, we keep versionId on slots, and getJadwal filters by active version
+    return { ok: true, nama: ver.nama };
+  }
+
+  static async deleteVersion(versionId: string) {
+    const [ver] = await db.select().from(jadwalVersion).where(eq(jadwalVersion.id, versionId));
+    if (!ver) throw new Error('Versi tidak ditemukan');
+    if (ver.isAktif) throw new Error('Tidak bisa hapus versi aktif');
+
+    // Cascade delete will remove associated kbm_jadwal rows
+    await db.delete(jadwalVersion).where(eq(jadwalVersion.id, versionId));
+    return { ok: true };
+  }
+
+  static async renameVersion(versionId: string, nama: string) {
+    const [updated] = await db.update(jadwalVersion).set({ nama, updatedAt: new Date() }).where(eq(jadwalVersion.id, versionId)).returning();
+    if (!updated) throw new Error('Versi tidak ditemukan');
+    return updated;
   }
 
   static async syncToJurnal(academicYearId: string, semester: string) {

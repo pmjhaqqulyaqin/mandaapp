@@ -821,6 +821,39 @@ export class KbmController {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
 
+  // Versioning
+  static async listVersions(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester } = req.query;
+      if (!academicYearId || !semester) return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      const result = await KbmService.listVersions(academicYearId as string, semester as string);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async activateVersion(req: Request, res: Response) {
+    try {
+      const result = await KbmService.activateVersion(req.params.id);
+      res.json(result);
+    } catch (err: any) { res.status(400).json({ error: err.message }); }
+  }
+
+  static async deleteVersion(req: Request, res: Response) {
+    try {
+      const result = await KbmService.deleteVersion(req.params.id);
+      res.json(result);
+    } catch (err: any) { res.status(400).json({ error: err.message }); }
+  }
+
+  static async renameVersion(req: Request, res: Response) {
+    try {
+      const { nama } = req.body;
+      if (!nama) return res.status(400).json({ error: "nama diperlukan" });
+      const result = await KbmService.renameVersion(req.params.id, nama);
+      res.json(result);
+    } catch (err: any) { res.status(400).json({ error: err.message }); }
+  }
+
   static async syncToJurnal(req: Request, res: Response) {
     try {
       const { academicYearId, semester } = req.body;

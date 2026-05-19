@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiClient } from '../../../lib/api';
-import { Download, FileSpreadsheet, RefreshCw, Zap, Trash2, AlertTriangle, Loader2, ChevronDown, CheckCircle2, XCircle, MapPin, GripVertical, ArrowLeftRight } from 'lucide-react';
+import { Download, FileSpreadsheet, RefreshCw, Zap, Trash2, AlertTriangle, Loader2, ChevronDown, CheckCircle2, XCircle, MapPin, GripVertical, ArrowLeftRight, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { DndContext, DragOverlay, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core';
 
@@ -105,6 +105,8 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [showMenu, setShowMenu] = useState(false);
   const [conflicts, setConflicts] = useState<any>(null);
   const [qualityScore, setQualityScore] = useState<any>(null);
+  const [versions, setVersions] = useState<any[]>([]);
+  const [showVersions, setShowVersions] = useState(false);
   const [generateReport, _setGenerateReport] = useState<any>(() => {
     try { const s = localStorage.getItem(`jadwal-report-${academicYearId}-${semester}`); return s ? JSON.parse(s) : null; } catch { return null; }
   });
@@ -399,6 +401,16 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
                 <button onClick={() => { handleCheckConflicts(); setShowMenu(false); }} className="w-full text-left px-3 py-2.5 text-[12px] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#222] flex items-center gap-2">
                   <AlertTriangle size={13} /> Cek Konflik
                 </button>
+                <button onClick={async () => {
+                  try {
+                    const res = await apiClient<any[]>(`/kbm/jadwal/versions?academicYearId=${academicYearId}&semester=${semester}`);
+                    setVersions(res);
+                    setShowVersions(true);
+                  } catch {}
+                  setShowMenu(false);
+                }} className="w-full text-left px-3 py-2.5 text-[12px] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#222] flex items-center gap-2">
+                  <Clock size={13} /> Riwayat Versi
+                </button>
                 {canEdit && (
                   <>
                     <div className="border-t border-gray-100 dark:border-[#333] my-1" />
@@ -412,6 +424,60 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
           )}
         </div>
       </div>
+
+      {/* Version Selector */}
+      {showVersions && (
+        <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/50 dark:bg-indigo-500/5 p-3">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300">📋 Riwayat Versi Jadwal</h4>
+            <button onClick={() => setShowVersions(false)} className="text-[10px] text-gray-400 hover:text-gray-600">✕</button>
+          </div>
+          {versions.length === 0 ? (
+            <p className="text-[10px] text-gray-400">Belum ada versi</p>
+          ) : (
+            <div className="space-y-1 max-h-40 overflow-y-auto">
+              {versions.map((v: any) => (
+                <div key={v.id} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[10px] transition-all ${v.isAktif ? 'bg-indigo-100 dark:bg-indigo-500/20 border border-indigo-300 dark:border-indigo-500/40' : 'bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#333] hover:border-indigo-200'}`}>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-bold text-gray-700 dark:text-gray-200 truncate">{v.nama}</span>
+                    {v.isAktif && <span className="ml-1 text-[8px] px-1.5 py-0.5 rounded-full bg-indigo-500 text-white font-bold">AKTIF</span>}
+                    <div className="text-[9px] text-gray-400">{v.totalSlots} slot • {v.totalFailed || 0} gagal • {new Date(v.createdAt).toLocaleDateString('id-ID')}</div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {!v.isAktif && canEdit && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await apiClient<any>(`/kbm/jadwal/versions/${v.id}/activate`, { method: 'POST' });
+                            toast.success(`Versi "${v.nama}" diaktifkan`);
+                            loadData();
+                            const res = await apiClient<any[]>(`/kbm/jadwal/versions?academicYearId=${academicYearId}&semester=${semester}`);
+                            setVersions(res);
+                          } catch (err: any) { toast.error(err?.message || 'Gagal aktivasi'); }
+                        }}
+                        className="px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-200 font-semibold"
+                      >Aktifkan</button>
+                    )}
+                    {!v.isAktif && canEdit && (
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Hapus versi "${v.nama}"?`)) return;
+                          try {
+                            await apiClient<any>(`/kbm/jadwal/versions/${v.id}`, { method: 'DELETE' });
+                            toast.success('Versi dihapus');
+                            setVersions(prev => prev.filter(vv => vv.id !== v.id));
+                          } catch (err: any) { toast.error(err?.message || 'Gagal hapus'); }
+                        }}
+                        className="p-0.5 rounded text-red-400 hover:bg-red-100 dark:hover:bg-red-500/15"
+                      ><Trash2 size={10} /></button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Conflict Warning */}
       {conflicts?.hasConflicts && (

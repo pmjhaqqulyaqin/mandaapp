@@ -76,6 +76,12 @@ router.post("/jadwal/sync", requireStaff, KbmController.syncToJurnal);
 router.get("/jadwal/export", requireStaff, KbmController.exportJadwal);
 router.get("/jadwal/export-grid", requireStaff, KbmController.exportJadwalGrid);
 
+// Versioning
+router.get("/jadwal/versions", requireStaff, KbmController.listVersions);
+router.post("/jadwal/versions/:id/activate", requireStaff, KbmController.activateVersion);
+router.put("/jadwal/versions/:id", requireStaff, KbmController.renameVersion);
+router.delete("/jadwal/versions/:id", requireStaff, KbmController.deleteVersion);
+
 // Kode Guru
 router.get("/guru-kode", requireStaff, KbmController.getGuruKode);
 router.put("/guru-kode/:id", requireStaff, KbmController.updateGuruKode);

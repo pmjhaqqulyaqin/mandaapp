@@ -848,12 +848,29 @@ export const ruangan = pgTable("ruangan", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// ═══ KBM Jadwal Version (Snapshot System) ════════════════════════════════════
+
+export const jadwalVersion = pgTable("jadwal_version", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  academicYearId: uuid("academic_year_id").references(() => academicYears.id).notNull(),
+  semester: varchar("semester", { length: 10 }).notNull(),
+  nama: varchar("nama", { length: 100 }).notNull(), // "Auto v1", "Manual Edit 19 Mei"
+  isAktif: boolean("is_aktif").default(false),
+  totalSlots: integer("total_slots").default(0),
+  totalFailed: integer("total_failed").default(0),
+  qualityScore: integer("quality_score"),
+  metadata: jsonb("metadata"), // generateReport, passResults, etc.
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // ═══ KBM Jadwal (Phase 2 — Auto Scheduler) ══════════════════════════════════
 
 export const kbmJadwal = pgTable("kbm_jadwal", {
   id: uuid("id").primaryKey().defaultRandom(),
   academicYearId: uuid("academic_year_id").references(() => academicYears.id).notNull(),
   semester: varchar("semester", { length: 10 }).notNull(),
+  versionId: uuid("version_id").references(() => jadwalVersion.id, { onDelete: "cascade" }),
   guruId: uuid("guru_id").references(() => employees.id, { onDelete: "cascade" }).notNull(),
   kelasId: uuid("kelas_id").references(() => classes.id).notNull(),
   subjectId: uuid("subject_id").references(() => kbmSubjects.id).notNull(),
