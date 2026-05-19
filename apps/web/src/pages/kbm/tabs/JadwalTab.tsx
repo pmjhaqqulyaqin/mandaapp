@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiClient } from '../../../lib/api';
-import { Download, FileSpreadsheet, RefreshCw, Zap, Trash2, AlertTriangle, Loader2, ChevronDown, CheckCircle2, XCircle, MapPin, GripVertical, ArrowLeftRight, Clock } from 'lucide-react';
+import { Download, FileSpreadsheet, RefreshCw, Zap, Trash2, AlertTriangle, Loader2, ChevronDown, CheckCircle2, XCircle, MapPin, GripVertical, ArrowLeftRight, Clock, Maximize2, Minimize2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DndContext, DragOverlay, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core';
 
@@ -123,6 +123,22 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [placingBlock, setPlacingBlock] = useState(false);
   const [draggingBlock, setDraggingBlock] = useState<any>(null);
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Escape key to exit fullscreen
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsFullscreen(false); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isFullscreen]);
+
+  // Lock body scroll when fullscreen
+  useEffect(() => {
+    if (isFullscreen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isFullscreen]);
 
   const loadData = useCallback(() => {
     if (!academicYearId) return;
@@ -547,19 +563,31 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
           <span>Mapel: <strong className="text-gray-700 dark:text-gray-200">{uniqueSubjects.length}</strong></span>
           <span>Hari: <strong className="text-gray-700 dark:text-gray-200">{new Set(jadwal.map(j => j.dayOfWeek)).size}</strong></span>
         </div>
-        {jadwal.length > 0 && (
-          <button
-            onClick={async () => {
-              try {
-                const res = await apiClient<any>(`/kbm/jadwal/score?academicYearId=${academicYearId}&semester=${semester}`);
-                setQualityScore(res);
-              } catch {}
-            }}
-            className="ml-auto text-[10px] px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-300 border border-violet-200 dark:border-violet-500/30 hover:bg-violet-100 dark:hover:bg-violet-500/20 font-semibold transition-all"
-          >
-            📊 Cek Kualitas
-          </button>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          {jadwal.length > 0 && (
+            <button
+              onClick={async () => {
+                try {
+                  const res = await apiClient<any>(`/kbm/jadwal/score?academicYearId=${academicYearId}&semester=${semester}`);
+                  setQualityScore(res);
+                } catch {}
+              }}
+              className="text-[10px] px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-300 border border-violet-200 dark:border-violet-500/30 hover:bg-violet-100 dark:hover:bg-violet-500/20 font-semibold transition-all"
+            >
+              📊 Cek Kualitas
+            </button>
+          )}
+          {jadwal.length > 0 && (
+            <button
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              title={isFullscreen ? 'Keluar Layar Penuh (Esc)' : 'Layar Penuh'}
+              className="text-[10px] px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-[#333] hover:bg-gray-100 dark:hover:bg-gray-700 font-semibold transition-all flex items-center gap-1"
+            >
+              {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+              {isFullscreen ? 'Keluar' : 'Layar Penuh'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Quality Score Card */}
@@ -599,7 +627,29 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
         </div>
       ) : (
         <>
-          <div className="overflow-auto rounded-xl border border-gray-200 dark:border-[#222] max-h-[calc(100vh-320px)]">
+          {/* Fullscreen Overlay */}
+          {isFullscreen && <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={() => setIsFullscreen(false)} />}
+          <div className={`overflow-auto rounded-xl border border-gray-200 dark:border-[#222] transition-all duration-300 ${
+            isFullscreen
+              ? 'fixed inset-3 z-50 bg-white dark:bg-[#111] shadow-2xl rounded-2xl max-h-none'
+              : 'max-h-[calc(100vh-320px)]'
+          }`}>
+            {/* Fullscreen header bar */}
+            {isFullscreen && (
+              <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-2xl">
+                <div className="flex items-center gap-3">
+                  <Zap size={16} className="text-white" />
+                  <span className="text-white font-bold text-sm">Jadwal KBM — Layar Penuh</span>
+                  <span className="text-white/70 text-[11px]">{jadwal.length} slot • {uniqueSubjects.length} mapel</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-white/50 text-[10px]">Tekan ESC untuk keluar</span>
+                  <button onClick={() => setIsFullscreen(false)} className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all">
+                    <Minimize2 size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
             <table className="w-full border-collapse text-[11px]">
               <thead className="sticky top-0 z-20">
                 <tr className="bg-gray-100 dark:bg-[#1a1a1a]">
@@ -637,6 +687,20 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
               </tbody>
             </table>
           </div>
+          {/* Fullscreen: failed blocks panel pinned to bottom */}
+          {isFullscreen && generateReport?.failedBlocks > 0 && (
+            <div className="fixed bottom-3 left-3 right-3 z-50 bg-white dark:bg-[#1a1a1a] rounded-xl shadow-2xl border border-amber-200 dark:border-amber-500/30 p-3 max-h-32 overflow-y-auto">
+              <div className="flex items-center gap-2 mb-1">
+                <XCircle size={12} className="text-red-500" />
+                <span className="text-[11px] font-bold text-red-600 dark:text-red-400">{generateReport.failedBlocks} blok gagal — drag ke grid</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {generateReport.report?.failedDetails?.map((f: any, i: number) => (
+                  <FailedBlockDraggable key={i} block={f} index={i} />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Drag Overlay */}
           <DragOverlay dropAnimation={null}>
