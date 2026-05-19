@@ -3,7 +3,7 @@ import { Button } from '@mandaapp/ui/src/components/Button';
 import { Input } from '@mandaapp/ui/src/components/Input';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Upload, Download, Edit2, Trash2, FileSpreadsheet, Image, Eye } from 'lucide-react';
+import { UserPlus, Upload, Download, Edit2, Trash2, FileSpreadsheet, Image, Eye, Link2, Unlink } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { apiClient, API_BASE_URL } from '../lib/api';
 
@@ -222,6 +222,18 @@ export const DashboardEmployees = () => {
           <p className="text-sm text-text-secondary dark:text-gray-400 mt-1">
             Kelola data Guru dan Tenaga Kependidikan sekolah.
           </p>
+          {employees.length > 0 && (
+            <div className="flex items-center gap-3 mt-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30">
+                <Link2 size={10} />
+                {employees.filter(e => e.userId).length} Terhubung
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-800/30 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700/30">
+                <Unlink size={10} />
+                {employees.filter(e => !e.userId).length} Belum Terhubung
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           <input 
@@ -301,7 +313,18 @@ export const DashboardEmployees = () => {
                     <tr key={emp.id} className="border-b border-gray-50 dark:border-[#222] group hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors">
                       <td className="py-3 px-4 text-center text-text-secondary">{idx + 1}</td>
                       <td className="py-3 px-4">
-                        <div className="font-medium text-text-primary dark:text-text-darkPrimary">{emp.name}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium text-text-primary dark:text-text-darkPrimary">{emp.name}</div>
+                          {emp.userId ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40" title="Data pegawai sudah terhubung dengan akun pengguna">
+                              <Link2 size={9} /> Linked
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-gray-50 dark:bg-gray-800/20 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700/30" title="Belum terhubung dengan akun pengguna">
+                              <Unlink size={9} />
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-text-secondary">{emp.position || '-'}</div>
                       </td>
                       <td className="py-3 px-4">{emp.nip}</td>
