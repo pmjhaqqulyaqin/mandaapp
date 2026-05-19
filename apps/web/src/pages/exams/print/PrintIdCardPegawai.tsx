@@ -178,9 +178,9 @@ export const PrintIdCardPegawai = () => {
 
 
 
-          {/* Photo Frame */}
+          {/* Photo Frame — trick: width fills container, height auto-scales, overflow clips from bottom only → head never cropped */}
           <div className="w-[3cm] h-[4cm] bg-white mt-2 mb-2 rounded-[8px] overflow-hidden border-[3px] border-white shadow-md relative z-20 flex-shrink-0">
-            <img src={photoSrc} className="w-full h-full object-contain" alt="Pegawai" loading="eager" />
+            <img src={photoSrc} className="block w-full" style={{ height: 'auto', minHeight: '100%' }} alt="Pegawai" loading="eager" />
           </div>
 
           {/* Nama Pegawai */}
