@@ -1017,6 +1017,93 @@ export class KbmService {
     return updated;
   }
 
+  // Pre-move validation: check if a slot can be moved/swapped to a target position
+  static async checkMoveSlot(slotId: string, targetDay: number, targetJam: number) {
+    const [slot] = await db.select().from(kbmJadwal).where(eq(kbmJadwal.id, slotId));
+    if (!slot) return { canMove: false, violations: [{ type: 'not_found', detail: 'Slot tidak ditemukan' }], swapTarget: null };
+
+    const atTarget = await db.select({
+      id: kbmJadwal.id, guruId: kbmJadwal.guruId, guruName: employees.name,
+      kelasId: kbmJadwal.kelasId, kelasName: classes.name,
+      subjectId: kbmJadwal.subjectId, subjectNama: kbmSubjects.nama, subjectKode: kbmSubjects.kode,
+      dayOfWeek: kbmJadwal.dayOfWeek, jamKe: kbmJadwal.jamKe,
+    }).from(kbmJadwal)
+      .leftJoin(employees, eq(kbmJadwal.guruId, employees.id))
+      .leftJoin(classes, eq(kbmJadwal.kelasId, classes.id))
+      .leftJoin(kbmSubjects, eq(kbmJadwal.subjectId, kbmSubjects.id))
+      .where(and(
+        eq(kbmJadwal.academicYearId, slot.academicYearId), eq(kbmJadwal.semester, slot.semester),
+        eq(kbmJadwal.dayOfWeek, targetDay), eq(kbmJadwal.jamKe, targetJam),
+        sql`${kbmJadwal.id} != ${slotId}`,
+      ));
+
+    const violations: { type: string; detail: string; conflictSlotId?: string }[] = [];
+    let swapTarget: any = null;
+
+    if (atTarget.length === 0) {
+      // Empty cell — check guru/kelas conflicts
+      const conflicts = await db.select({
+        id: kbmJadwal.id, guruId: kbmJadwal.guruId, guruName: employees.name,
+        kelasId: kbmJadwal.kelasId, kelasName: classes.name,
+      }).from(kbmJadwal)
+        .leftJoin(employees, eq(kbmJadwal.guruId, employees.id))
+        .leftJoin(classes, eq(kbmJadwal.kelasId, classes.id))
+        .where(and(
+          eq(kbmJadwal.academicYearId, slot.academicYearId), eq(kbmJadwal.semester, slot.semester),
+          eq(kbmJadwal.dayOfWeek, targetDay), eq(kbmJadwal.jamKe, targetJam),
+          sql`(${kbmJadwal.guruId} = ${slot.guruId} OR ${kbmJadwal.kelasId} = ${slot.kelasId})`,
+          sql`${kbmJadwal.id} != ${slotId}`,
+        ));
+      for (const c of conflicts) {
+        if (c.guruId === slot.guruId) violations.push({ type: 'guru_conflict', detail: `${c.guruName} sudah mengajar di ${c.kelasName}`, conflictSlotId: c.id });
+        if (c.kelasId === slot.kelasId) violations.push({ type: 'kelas_conflict', detail: `${c.kelasName} sudah ada jadwal lain`, conflictSlotId: c.id });
+      }
+    } else {
+      // Occupied — check swap feasibility
+      swapTarget = atTarget[0];
+      const origDay = slot.dayOfWeek, origJam = slot.jamKe;
+      // Can swapTarget go to slot's original position?
+      const c1 = await db.select({ id: kbmJadwal.id, guruId: kbmJadwal.guruId, guruName: employees.name, kelasId: kbmJadwal.kelasId, kelasName: classes.name })
+        .from(kbmJadwal).leftJoin(employees, eq(kbmJadwal.guruId, employees.id)).leftJoin(classes, eq(kbmJadwal.kelasId, classes.id))
+        .where(and(eq(kbmJadwal.academicYearId, slot.academicYearId), eq(kbmJadwal.semester, slot.semester),
+          eq(kbmJadwal.dayOfWeek, origDay), eq(kbmJadwal.jamKe, origJam),
+          sql`(${kbmJadwal.guruId} = ${swapTarget.guruId} OR ${kbmJadwal.kelasId} = ${swapTarget.kelasId})`,
+          sql`${kbmJadwal.id} != ${slotId}`, sql`${kbmJadwal.id} != ${swapTarget.id}`,
+        ));
+      for (const c of c1) {
+        if (c.guruId === swapTarget.guruId) violations.push({ type: 'guru_conflict', detail: `Swap: ${c.guruName} konflik di posisi asal`, conflictSlotId: c.id });
+        if (c.kelasId === swapTarget.kelasId) violations.push({ type: 'kelas_conflict', detail: `Swap: ${c.kelasName} konflik di posisi asal`, conflictSlotId: c.id });
+      }
+      // Can slot go to target position (excluding swapTarget)?
+      const c2 = await db.select({ id: kbmJadwal.id, guruId: kbmJadwal.guruId, guruName: employees.name, kelasId: kbmJadwal.kelasId, kelasName: classes.name })
+        .from(kbmJadwal).leftJoin(employees, eq(kbmJadwal.guruId, employees.id)).leftJoin(classes, eq(kbmJadwal.kelasId, classes.id))
+        .where(and(eq(kbmJadwal.academicYearId, slot.academicYearId), eq(kbmJadwal.semester, slot.semester),
+          eq(kbmJadwal.dayOfWeek, targetDay), eq(kbmJadwal.jamKe, targetJam),
+          sql`(${kbmJadwal.guruId} = ${slot.guruId} OR ${kbmJadwal.kelasId} = ${slot.kelasId})`,
+          sql`${kbmJadwal.id} != ${slotId}`, sql`${kbmJadwal.id} != ${swapTarget.id}`,
+        ));
+      for (const c of c2) {
+        if (c.guruId === slot.guruId) violations.push({ type: 'guru_conflict', detail: `${c.guruName} konflik di target`, conflictSlotId: c.id });
+        if (c.kelasId === slot.kelasId) violations.push({ type: 'kelas_conflict', detail: `${c.kelasName} konflik di target`, conflictSlotId: c.id });
+      }
+    }
+    return { canMove: violations.length === 0, violations, swapTarget };
+  }
+
+  // Atomic swap of two jadwal slots' positions
+  static async swapSlots(slotIdA: string, slotIdB: string) {
+    const [a] = await db.select().from(kbmJadwal).where(eq(kbmJadwal.id, slotIdA));
+    const [b] = await db.select().from(kbmJadwal).where(eq(kbmJadwal.id, slotIdB));
+    if (!a || !b) throw new Error('Slot tidak ditemukan');
+    const check = await this.checkMoveSlot(slotIdA, b.dayOfWeek, b.jamKe);
+    if (!check.canMove) throw new Error(check.violations.map(v => v.detail).join('; '));
+    const aDow = a.dayOfWeek, aJam = a.jamKe, aRoom = a.ruanganId;
+    const bDow = b.dayOfWeek, bJam = b.jamKe, bRoom = b.ruanganId;
+    await db.update(kbmJadwal).set({ dayOfWeek: bDow, jamKe: bJam, ruanganId: bRoom, updatedAt: new Date() }).where(eq(kbmJadwal.id, slotIdA));
+    await db.update(kbmJadwal).set({ dayOfWeek: aDow, jamKe: aJam, ruanganId: aRoom, updatedAt: new Date() }).where(eq(kbmJadwal.id, slotIdB));
+    return { swapped: true, a: { id: slotIdA, newDay: bDow, newJam: bJam }, b: { id: slotIdB, newDay: aDow, newJam: aJam } };
+  }
+
   static async checkConflicts(academicYearId: string, semester: string) {
     const jadwal = await this.getJadwal(academicYearId, semester);
     const guruConflicts: any[] = [];

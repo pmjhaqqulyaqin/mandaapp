@@ -718,6 +718,24 @@ export class KbmController {
     } catch (err: any) { res.status(400).json({ error: err.message }); }
   }
 
+  static async checkMoveSlot(req: Request, res: Response) {
+    try {
+      const { slotId, targetDay, targetJam } = req.query;
+      if (!slotId || targetDay === undefined || targetJam === undefined) return res.status(400).json({ error: "slotId, targetDay, targetJam diperlukan" });
+      const result = await KbmService.checkMoveSlot(slotId as string, Number(targetDay), Number(targetJam));
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async swapSlots(req: Request, res: Response) {
+    try {
+      const { slotIdA, slotIdB } = req.body;
+      if (!slotIdA || !slotIdB) return res.status(400).json({ error: "slotIdA dan slotIdB diperlukan" });
+      const result = await KbmService.swapSlots(slotIdA, slotIdB);
+      res.json(result);
+    } catch (err: any) { res.status(400).json({ error: err.message }); }
+  }
+
   static async findAvailableSlots(req: Request, res: Response) {
     try {
       const { academicYearId, semester, guruId, kelasId } = req.query;

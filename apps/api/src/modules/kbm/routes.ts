@@ -63,6 +63,8 @@ router.post("/schedule-config", requireStaff, KbmController.upsertScheduleConfig
 router.get("/jadwal", requireStaff, KbmController.getJadwal);
 router.post("/jadwal/generate", requireStaff, KbmController.generateJadwal);
 router.put("/jadwal/:id", requireStaff, KbmController.moveSlot);
+router.get("/jadwal/check-move", requireStaff, KbmController.checkMoveSlot);
+router.post("/jadwal/swap", requireStaff, KbmController.swapSlots);
 router.delete("/jadwal/:id", requireStaff, KbmController.deleteJadwalSlot);
 router.post("/jadwal/clear", requireStaff, KbmController.clearJadwal);
 router.get("/jadwal/conflicts", requireStaff, KbmController.checkConflicts);

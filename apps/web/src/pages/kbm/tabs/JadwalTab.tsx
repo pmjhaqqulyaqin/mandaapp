@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiClient } from '../../../lib/api';
-import { Download, FileSpreadsheet, RefreshCw, Zap, Trash2, AlertTriangle, Loader2, ChevronDown, CheckCircle2, XCircle, MapPin } from 'lucide-react';
+import { Download, FileSpreadsheet, RefreshCw, Zap, Trash2, AlertTriangle, Loader2, ChevronDown, CheckCircle2, XCircle, MapPin, GripVertical, ArrowLeftRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { DndContext, DragOverlay, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core';
 
 interface Props {
   academicYearId: string;
@@ -42,6 +43,51 @@ const SUBJECT_COLORS = [
   'bg-lime-100 dark:bg-lime-500/15 text-lime-800 dark:text-lime-200 border-lime-200 dark:border-lime-500/30',
   'bg-fuchsia-100 dark:bg-fuchsia-500/15 text-fuchsia-800 dark:text-fuchsia-200 border-fuchsia-200 dark:border-fuchsia-500/30',
 ];
+
+// --- DnD Helper Components ---
+const DraggableSlot = ({ slot, colorClass, viewMode, canEdit, onDelete }: { slot: JadwalSlot; colorClass: string; viewMode: string; canEdit: boolean; onDelete: (id: string) => void }) => {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `slot-${slot.id}`, data: { type: 'existing-slot', slot } });
+  return (
+    <div ref={setNodeRef} {...(canEdit ? { ...listeners, ...attributes } : {})}
+      className={`relative group rounded-lg border px-1.5 py-1 transition-all hover:shadow-sm ${colorClass} ${canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'} ${isDragging ? 'opacity-30 scale-95' : ''}`}
+    >
+      {canEdit && <GripVertical size={10} className="absolute top-1 right-5 opacity-0 group-hover:opacity-40 text-current" />}
+      <div className="font-bold text-[10px] leading-tight truncate">{slot.subjectNama}</div>
+      <div className="text-[9px] opacity-70 truncate">{viewMode === 'kelas' ? slot.guruName : slot.kelasName}</div>
+      {slot.ruanganNama && <div className="text-[8px] opacity-50 truncate">{slot.ruanganNama}</div>}
+      {canEdit && (
+        <button onClick={(e) => { e.stopPropagation(); onDelete(slot.id); }}
+          className="absolute top-0.5 right-0.5 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-red-200 dark:hover:bg-red-500/20 text-red-500 transition-opacity">
+          <Trash2 size={10} />
+        </button>
+      )}
+    </div>
+  );
+};
+
+const DroppableCell = ({ day, jam, children, isOver }: { day: number; jam: number; children: React.ReactNode; isOver?: boolean }) => {
+  const { setNodeRef, isOver: dndIsOver } = useDroppable({ id: `cell-${day}-${jam}`, data: { day, jam } });
+  const over = isOver || dndIsOver;
+  return (
+    <td ref={setNodeRef} className={`px-0.5 py-0.5 border-r border-gray-100 dark:border-[#1a1a1a] align-top transition-colors ${over ? 'bg-emerald-50/50 dark:bg-emerald-500/5' : ''}`}>
+      {children}
+    </td>
+  );
+};
+
+const FailedBlockDraggable = ({ block, index }: { block: any; index: number }) => {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `failed-${index}-${block.guruId}-${block.subjectId}`, data: { type: 'failed-block', block } });
+  return (
+    <div ref={setNodeRef} {...listeners} {...attributes}
+      className={`flex items-center justify-between gap-2 py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 cursor-grab active:cursor-grabbing border border-transparent hover:border-blue-200 dark:hover:border-blue-500/30 ${isDragging ? 'opacity-30' : ''}`}
+    >
+      <span className="text-gray-500 dark:text-gray-400">{"\u2022"} {block.kode}. {block.subject} ({block.size} JP)</span>
+      <span className="shrink-0 text-[9px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300 font-semibold flex items-center gap-1">
+        <MapPin size={9} /> Drag ke grid
+      </span>
+    </div>
+  );
+};
 
 export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [jadwal, setJadwal] = useState<JadwalSlot[]>([]);
@@ -114,6 +160,72 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
     grid.get(key)!.push(j);
   }
 
+  // --- @dnd-kit setup ---
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const [activeDrag, setActiveDrag] = useState<{ type: 'existing-slot' | 'failed-block'; slot?: JadwalSlot; block?: any } | null>(null);
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const data = event.active.data.current;
+    if (data?.type === 'existing-slot') setActiveDrag({ type: 'existing-slot', slot: data.slot });
+    else if (data?.type === 'failed-block') setActiveDrag({ type: 'failed-block', block: data.block });
+  }, []);
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveDrag(null);
+    if (!over || !canEdit) return;
+
+    const overData = over.data.current;
+    if (!overData?.day || !overData?.jam) return;
+    const targetDay = overData.day as number;
+    const targetJam = overData.jam as number;
+
+    const activeData = active.data.current;
+
+    // Case 1: Dragging a failed block to place it
+    if (activeData?.type === 'failed-block') {
+      const block = activeData.block;
+      try {
+        await apiClient<any>('/kbm/jadwal/manual-place', { method: 'POST', data: { academicYearId, semester, guruId: block.guruId, kelasId: block.kelasId, subjectId: block.subjectId, dayOfWeek: targetDay, jamKe: targetJam } });
+        toast.success(`${block.kode}. ${block.subject} → ${DAY_NAMES[targetDay]} jam ${targetJam}`);
+        if (generateReport) {
+          const nf = [...(generateReport.report?.failedDetails || [])];
+          const idx = nf.findIndex((f: any) => f.guruId === block.guruId && f.kelasId === block.kelasId && f.subject === block.subject);
+          if (idx >= 0) nf.splice(idx, 1);
+          setGenerateReport({ ...generateReport, report: { ...generateReport.report, failedDetails: nf }, failedBlocks: nf.length, failed: nf.reduce((a: number, f: any) => a + f.size, 0), generated: (generateReport.generated || 0) + 1 });
+        }
+        loadData();
+      } catch (err: any) { toast.error(err?.message || 'Konflik: slot sudah terisi'); }
+      return;
+    }
+
+    // Case 2: Dragging an existing slot
+    if (activeData?.type === 'existing-slot') {
+      const slot = activeData.slot as JadwalSlot;
+      if (slot.dayOfWeek === targetDay && slot.jamKe === targetJam) return; // Same position
+
+      // Check what's at the target
+      const targetSlots = grid.get(`${targetDay}-${targetJam}`) || [];
+
+      if (targetSlots.length === 0) {
+        // Move to empty cell
+        try {
+          await apiClient<any>(`/kbm/jadwal/${slot.id}`, { method: 'PUT', data: { dayOfWeek: targetDay, jamKe: targetJam } });
+          toast.success(`${slot.subjectNama} → ${DAY_NAMES[targetDay]} jam ${targetJam}`);
+          loadData();
+        } catch (err: any) { toast.error(err?.message || 'Konflik saat pindah'); }
+      } else {
+        // Swap with existing slot
+        const targetSlot = targetSlots[0];
+        try {
+          await apiClient<any>('/kbm/jadwal/swap', { method: 'POST', data: { slotIdA: slot.id, slotIdB: targetSlot.id } });
+          toast.success(`Swap: ${slot.subjectNama} ↔ ${targetSlot.subjectNama}`);
+          loadData();
+        } catch (err: any) { toast.error(err?.message || 'Konflik saat swap'); }
+      }
+    }
+  }, [academicYearId, semester, canEdit, grid, generateReport, setGenerateReport, loadData]);
+
   const handleGenerate = async () => {
     setShowConfirmGenerate(false);
     setGenerating(true);
@@ -182,6 +294,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   }
 
   return (
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
     <div className="space-y-3">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
@@ -317,24 +430,10 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
                 </p>
               </div>
               <details className="text-[10px]" open>
-                <summary className="cursor-pointer text-red-500 font-semibold">Detail Blok Gagal — klik "Tempatkan" untuk menempatkan manual</summary>
+                <summary className="cursor-pointer text-red-500 font-semibold">Detail Blok Gagal — drag ke grid untuk menempatkan manual</summary>
                 <div className="mt-1 space-y-1 max-h-48 overflow-y-auto">
                   {generateReport.report?.failedDetails?.map((f: any, i: number) => (
-                    <div key={i}
-                      draggable
-                      onDragStart={(e) => {
-                        setDraggingBlock(f);
-                        e.dataTransfer.effectAllowed = 'move';
-                        e.dataTransfer.setData('text/plain', JSON.stringify(f));
-                      }}
-                      onDragEnd={() => { setDraggingBlock(null); setDragOverCell(null); }}
-                      className="flex items-center justify-between gap-2 py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 cursor-grab active:cursor-grabbing border border-transparent hover:border-blue-200 dark:hover:border-blue-500/30"
-                    >
-                      <span className="text-gray-500 dark:text-gray-400">{"\u2022"} {f.kode}. {f.subject} ({f.size} JP)</span>
-                      <span className="shrink-0 text-[9px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300 font-semibold flex items-center gap-1">
-                        <MapPin size={9} /> Drag ke slot kosong
-                      </span>
-                    </div>
+                    <FailedBlockDraggable key={i} block={f} index={i} />
                   ))}
                 </div>
               </details>
@@ -358,83 +457,66 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
           <p className="text-[11px] mt-1">Klik "Generate Jadwal" untuk membuat jadwal otomatis dari distribusi jam</p>
         </div>
       ) : (
-        <div className="overflow-auto rounded-xl border border-gray-200 dark:border-[#222] max-h-[calc(100vh-320px)]">
-          <table className="w-full border-collapse text-[11px]">
-            <thead className="sticky top-0 z-20">
-              <tr className="bg-gray-100 dark:bg-[#1a1a1a]">
-                <th className="sticky left-0 z-30 bg-gray-100 dark:bg-[#1a1a1a] px-2 py-2.5 text-left font-semibold text-gray-500 border-r border-gray-200 dark:border-[#333] w-14">Jam</th>
-                {days.map(d => (
-                  <th key={d} className="px-1 py-2.5 text-center font-semibold text-gray-500 border-r border-gray-200 dark:border-[#333] min-w-[120px]">
-                    <span className="hidden md:inline">{DAY_NAMES[d]}</span>
-                    <span className="md:hidden">{DAY_SHORT[d]}</span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {jamRange.map(jam => (
-                <tr key={jam} className="border-t border-gray-100 dark:border-[#1a1a1a]">
-                  <td className="sticky left-0 z-10 bg-white dark:bg-[#111] px-2 py-1 text-center font-bold text-gray-500 border-r border-gray-200 dark:border-[#333]">{jam}</td>
-                  {days.map(day => {
-                    const slots = grid.get(`${day}-${jam}`) || [];
-                    return (
-                      <td key={day} className="px-0.5 py-0.5 border-r border-gray-100 dark:border-[#1a1a1a] align-top">
-                        {slots.length === 0 ? (
-                          <div
-                            onDragOver={draggingBlock ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverCell(`${day}-${jam}`); } : undefined}
-                            onDragLeave={() => setDragOverCell(null)}
-                            onDrop={draggingBlock ? async (e) => {
-                              e.preventDefault(); setDragOverCell(null);
-                              const block = draggingBlock; setDraggingBlock(null);
-                              if (!block) return;
-                              try {
-                                await apiClient<any>('/kbm/jadwal/manual-place', { method: 'POST', data: { academicYearId, semester, guruId: block.guruId, kelasId: block.kelasId, subjectId: block.subjectId, dayOfWeek: day, jamKe: jam } });
-                                toast.success(`${block.kode}. ${block.subject} \u2192 ${DAY_NAMES[day]} jam ${jam}`);
-                                if (generateReport) {
-                                  const nf = [...(generateReport.report?.failedDetails || [])];
-                                  const idx = nf.findIndex((f: any) => f.guruId === block.guruId && f.kelasId === block.kelasId && f.subject === block.subject);
-                                  if (idx >= 0) nf.splice(idx, 1);
-                                  setGenerateReport({ ...generateReport, report: { ...generateReport.report, failedDetails: nf }, failedBlocks: nf.length, failed: nf.reduce((a: number, f: any) => a + f.size, 0), generated: (generateReport.generated || 0) + 1 });
-                                }
-                                loadData();
-                              } catch (err: any) { toast.error(err?.message || 'Konflik: slot sudah terisi'); }
-                            } : undefined}
-                            className={`h-14 rounded-lg border border-dashed transition-all ${draggingBlock ? (dragOverCell === `${day}-${jam}` ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 scale-105 shadow-lg' : 'border-blue-300 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/5') : 'border-gray-100 dark:border-[#222]'}`}
-                          />
-                        ) : (
-                          <div className="space-y-0.5">
-                            {slots.map(slot => (
-                              <div
-                                key={slot.id}
-                                className={`relative group rounded-lg border px-1.5 py-1 cursor-default transition-all hover:shadow-sm ${subjectColorMap.get(slot.subjectId) || SUBJECT_COLORS[0]}`}
-                              >
-                                <div className="font-bold text-[10px] leading-tight truncate">{slot.subjectNama}</div>
-                                <div className="text-[9px] opacity-70 truncate">
-                                  {viewMode === 'kelas' ? slot.guruName : slot.kelasName}
-                                </div>
-                                {slot.ruanganNama && (
-                                  <div className="text-[8px] opacity-50 truncate">{slot.ruanganNama}</div>
-                                )}
-                                {canEdit && (
-                                  <button
-                                    onClick={() => handleDeleteSlot(slot.id)}
-                                    className="absolute top-0.5 right-0.5 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-red-200 dark:hover:bg-red-500/20 text-red-500 transition-opacity"
-                                  >
-                                    <Trash2 size={10} />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                    );
-                  })}
+        <>
+          <div className="overflow-auto rounded-xl border border-gray-200 dark:border-[#222] max-h-[calc(100vh-320px)]">
+            <table className="w-full border-collapse text-[11px]">
+              <thead className="sticky top-0 z-20">
+                <tr className="bg-gray-100 dark:bg-[#1a1a1a]">
+                  <th className="sticky left-0 z-30 bg-gray-100 dark:bg-[#1a1a1a] px-2 py-2.5 text-left font-semibold text-gray-500 border-r border-gray-200 dark:border-[#333] w-14">Jam</th>
+                  {days.map(d => (
+                    <th key={d} className="px-1 py-2.5 text-center font-semibold text-gray-500 border-r border-gray-200 dark:border-[#333] min-w-[120px]">
+                      <span className="hidden md:inline">{DAY_NAMES[d]}</span>
+                      <span className="md:hidden">{DAY_SHORT[d]}</span>
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {jamRange.map(jam => (
+                  <tr key={jam} className="border-t border-gray-100 dark:border-[#1a1a1a]">
+                    <td className="sticky left-0 z-10 bg-white dark:bg-[#111] px-2 py-1 text-center font-bold text-gray-500 border-r border-gray-200 dark:border-[#333]">{jam}</td>
+                    {days.map(day => {
+                      const slots = grid.get(`${day}-${jam}`) || [];
+                      return (
+                        <DroppableCell key={day} day={day} jam={jam}>
+                          {slots.length === 0 ? (
+                            <div className={`h-14 rounded-lg border border-dashed transition-all ${activeDrag ? 'border-blue-300 dark:border-blue-500/30 bg-blue-50/30 dark:bg-blue-500/5' : 'border-gray-100 dark:border-[#222]'}`} />
+                          ) : (
+                            <div className="space-y-0.5">
+                              {slots.map(slot => (
+                                <DraggableSlot key={slot.id} slot={slot} colorClass={subjectColorMap.get(slot.subjectId) || SUBJECT_COLORS[0]} viewMode={viewMode} canEdit={canEdit} onDelete={handleDeleteSlot} />
+                              ))}
+                            </div>
+                          )}
+                        </DroppableCell>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Drag Overlay */}
+          <DragOverlay dropAnimation={null}>
+            {activeDrag?.type === 'existing-slot' && activeDrag.slot && (
+              <div className="rounded-lg border-2 border-amber-400 bg-amber-50 dark:bg-amber-900/80 px-2 py-1.5 shadow-xl text-[11px] min-w-[100px] opacity-90">
+                <div className="font-bold text-amber-800 dark:text-amber-200 flex items-center gap-1">
+                  <ArrowLeftRight size={10} /> {activeDrag.slot.subjectNama}
+                </div>
+                <div className="text-[9px] text-amber-600 dark:text-amber-300">{activeDrag.slot.guruName} • {activeDrag.slot.kelasName}</div>
+              </div>
+            )}
+            {activeDrag?.type === 'failed-block' && activeDrag.block && (
+              <div className="rounded-lg border-2 border-blue-400 bg-blue-50 dark:bg-blue-900/80 px-2 py-1.5 shadow-xl text-[11px] min-w-[100px] opacity-90">
+                <div className="font-bold text-blue-800 dark:text-blue-200 flex items-center gap-1">
+                  <MapPin size={10} /> {activeDrag.block.kode}. {activeDrag.block.subject}
+                </div>
+                <div className="text-[9px] text-blue-600 dark:text-blue-300">{activeDrag.block.size} JP</div>
+              </div>
+            )}
+          </DragOverlay>
+        </>
       )}
 
       {/* Confirm Generate Modal */}
@@ -566,6 +648,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
         </div>
       )}
     </div>
+    </DndContext>
   );
 };
 
