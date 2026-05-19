@@ -1339,7 +1339,8 @@ export class KbmService {
     }
 
     const totalPenalty = violations.reduce((s, v) => s + v.penalty, 0);
-    const maxPenalty = Math.max(totalPenalty, 50); // baseline
+    // Scale max penalty with schedule size so percentage is meaningful
+    const maxPenalty = Math.max(jadwal.length * 0.5, 100);
     const percentage = Math.max(0, Math.round(100 - (totalPenalty / maxPenalty) * 100));
 
     // Summary by type
