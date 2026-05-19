@@ -30,6 +30,7 @@ export const MasterUjianTab = ({ ujian, onRefresh }: Props) => {
     nama: '',
     nip: '',
     signatureUrl: '',
+    stampUrl: '',
   });
 
   const fetchPanitia = async () => {
@@ -60,6 +61,7 @@ export const MasterUjianTab = ({ ujian, onRefresh }: Props) => {
         nama: config.nama || ttdDist.nama || ttdMaster.nama || '',
         nip: config.nip || ttdDist.nip || ttdMaster.nip || '',
         signatureUrl: config.signatureUrl || '',
+        stampUrl: config.stampUrl || '',
       });
     }
   }, [ujian]);
@@ -290,6 +292,14 @@ export const MasterUjianTab = ({ ujian, onRefresh }: Props) => {
                   <div className="flex justify-center">
                     <div className="scale-75 origin-top">
                       <PhotoUploader currentPhotoUrl={kartuConfig.signatureUrl} onPhotoChange={url => setKartuConfig({...kartuConfig, signatureUrl: url})} />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-[100px]">
+                  <label className="text-[10px] font-semibold text-gray-500 mb-1.5 block text-center">Stempel Sekolah</label>
+                  <div className="flex justify-center">
+                    <div className="scale-75 origin-top">
+                      <PhotoUploader currentPhotoUrl={kartuConfig.stampUrl} onPhotoChange={url => setKartuConfig({...kartuConfig, stampUrl: url})} />
                     </div>
                   </div>
                 </div>

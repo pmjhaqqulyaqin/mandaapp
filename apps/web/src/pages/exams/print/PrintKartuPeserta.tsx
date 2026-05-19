@@ -173,6 +173,7 @@ export const PrintKartuPeserta = () => {
   const nama = config.nama || ttdDist.nama || ttdMaster.nama || 'Nama Terang';
   const nip = config.nip || ttdDist.nip || ttdMaster.nip || '-';
   const signatureUrl = config.signatureUrl || '';
+  const stampUrl = config.stampUrl || '';
 
   // Nama ujian mengikuti field namaUjian di master ujian
   const namaUjian = (ujian.namaUjian || ujian.jenisUjian || ujian.title || 'UJIAN SEKOLAH').toUpperCase();
@@ -290,6 +291,9 @@ export const PrintKartuPeserta = () => {
                       <img src={signatureUrl} alt="TTD" className="h-[180%] w-auto max-w-[70px] object-contain mix-blend-multiply" />
                    ) : (
                      <div className="w-full h-full" />
+                   )}
+                   {stampUrl && (
+                      <img src={stampUrl} alt="Stempel" className="absolute right-[-12px] top-[-8px] h-[250%] w-auto max-w-[50px] object-contain mix-blend-multiply opacity-90" />
                    )}
                 </div>
                 <span className="font-bold uppercase underline underline-offset-2">{nama}</span>
