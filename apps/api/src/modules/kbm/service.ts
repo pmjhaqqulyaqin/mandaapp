@@ -991,9 +991,9 @@ export class KbmService {
         attempts: versionNum,
         failedDetails: await Promise.all(bestAttempt.failed.map(async (b: any) => {
           const subj = subjectMap.get(b.subjectId);
-          const kelasResult = await db.execute(sql`SELECT nama FROM kelas WHERE id = ${b.kelasId} LIMIT 1`);
+          const kelasResult = await db.execute(sql`SELECT name FROM classes WHERE id = ${b.kelasId} LIMIT 1`);
           const kelasRow = ((kelasResult as any).rows || kelasResult)?.[0];
-          const kelasName = (kelasRow as any)?.nama || b.kelasId;
+          const kelasName = (kelasRow as any)?.name || b.kelasId;
           return { subject: subj?.nama || b.subjectId, kode: subj?.kode || '?', size: b.size, guruId: b.guruId, kelasId: b.kelasId, subjectId: b.subjectId, kelasName, reason: b.failReason || 'no_slot' };
         })),
       },
@@ -1010,9 +1010,9 @@ export class KbmService {
     for (const e of existing) { if (e.guruId === guruId) guruBusyAt.set(`${e.dayOfWeek}-${e.jamKe}`, e.kelasId); }
     const kelasBusyMap = new Map<string, Set<string>>();
     for (const e of existing) { if (!kelasBusyMap.has(e.kelasId)) kelasBusyMap.set(e.kelasId, new Set()); kelasBusyMap.get(e.kelasId)!.add(`${e.dayOfWeek}-${e.jamKe}`); }
-    const kelasRows = await db.execute(sql`SELECT id, nama FROM kelas WHERE is_active = true ORDER BY nama`);
+    const kelasRows = await db.execute(sql`SELECT id, name FROM classes ORDER BY name`);
     const kelasNameMap = new Map<string, string>();
-    for (const k of (kelasRows as any).rows || kelasRows) { kelasNameMap.set(k.id, k.nama); if (!kelasBusyMap.has(k.id)) kelasBusyMap.set(k.id, new Set()); }
+    for (const k of (kelasRows as any).rows || kelasRows) { kelasNameMap.set(k.id, k.name); if (!kelasBusyMap.has(k.id)) kelasBusyMap.set(k.id, new Set()); }
     // Use complete time grid — derive max jam per day from existing data, with sensible defaults
     const maxJamPerDay = new Map<number, number>();
     for (const e of existing) {
