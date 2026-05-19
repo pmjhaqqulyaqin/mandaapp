@@ -344,27 +344,3 @@ main .text-xs { font-size: 0.6875rem !important; }
   }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   KBM JADWAL FULLSCREEN MODE
-   Hides sidebar, header, mobile nav, and FAB when fullscreen
-   is triggered from Jadwal KBM tab. Uses document-level
-   fullscreen to keep portals (DragOverlay, toasts) working.
-   ═══════════════════════════════════════════════════════════ */
-body.jadwal-kbm-fullscreen aside {
-  display: none !important;
-}
-body.jadwal-kbm-fullscreen header {
-  display: none !important;
-}
-body.jadwal-kbm-fullscreen nav.md\:hidden {
-  display: none !important;
-}
-body.jadwal-kbm-fullscreen .fab-container {
-  display: none !important;
-}
-body.jadwal-kbm-fullscreen main {
-  padding: 0 !important;
-}
-body.jadwal-kbm-fullscreen main > div {
-  padding: 0 !important;
-}

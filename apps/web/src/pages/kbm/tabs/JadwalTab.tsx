@@ -126,34 +126,25 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const fullscreenRef = useRef<HTMLDivElement>(null);
 
-  // Native Fullscreen API toggle — use document.documentElement to keep portals (DragOverlay, toasts) visible
-  const toggleFullscreen = useCallback(async () => {
-    try {
-      if (!document.fullscreenElement) {
-        await document.documentElement.requestFullscreen();
-        document.body.classList.add('jadwal-kbm-fullscreen');
-      } else {
-        document.body.classList.remove('jadwal-kbm-fullscreen');
-        await document.exitFullscreen();
-      }
-    } catch (err) {
-      console.warn('Fullscreen not supported:', err);
-    }
+  // CSS-based fullscreen overlay (avoids Fullscreen API restrictions with portals, confirm, toast)
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen(prev => !prev);
   }, []);
 
-  // Sync isFullscreen state with browser fullscreen events
+  // ESC key to exit fullscreen overlay
   useEffect(() => {
-    const handleChange = () => {
-      const fs = !!document.fullscreenElement;
-      setIsFullscreen(fs);
-      if (!fs) document.body.classList.remove('jadwal-kbm-fullscreen');
+    if (!isFullscreen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsFullscreen(false);
     };
-    document.addEventListener('fullscreenchange', handleChange);
+    document.addEventListener('keydown', handleKey);
+    // Lock body scroll when fullscreen
+    document.body.style.overflow = 'hidden';
     return () => {
-      document.removeEventListener('fullscreenchange', handleChange);
-      document.body.classList.remove('jadwal-kbm-fullscreen');
+      document.removeEventListener('keydown', handleKey);
+      document.body.style.overflow = '';
     };
-  }, []);
+  }, [isFullscreen]);
 
   const loadData = useCallback(() => {
     if (!academicYearId) return;
@@ -334,7 +325,6 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   };
 
   const handleDeleteSlot = async (id: string) => {
-    if (!confirm('Hapus slot ini?')) return;
     try {
       await apiClient(`/kbm/jadwal/${id}`, { method: 'DELETE' });
       setJadwal(prev => prev.filter(j => j.id !== id));
@@ -644,7 +634,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
         <>
           <div ref={fullscreenRef} className={`overflow-auto rounded-xl border border-gray-200 dark:border-[#222] transition-all duration-300 ${
             isFullscreen
-              ? 'bg-white dark:bg-[#111] rounded-none border-0 h-screen'
+              ? 'fixed inset-0 z-[9999] bg-white dark:bg-[#111] rounded-none border-0'
               : 'max-h-[calc(100vh-320px)]'
           }`}>
             {/* Fullscreen header bar */}
