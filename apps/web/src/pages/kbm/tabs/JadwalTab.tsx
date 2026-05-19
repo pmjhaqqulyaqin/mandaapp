@@ -54,7 +54,7 @@ const DraggableSlot = ({ slot, colorClass, viewMode, canEdit, onDelete }: { slot
       {canEdit && <GripVertical size={10} className="absolute top-1 right-5 opacity-0 group-hover:opacity-40 text-current" />}
       <div className="font-bold text-[10px] leading-tight truncate">{slot.subjectNama}</div>
       <div className="text-[9px] opacity-70 truncate">{viewMode === 'kelas' ? slot.guruName : slot.kelasName}</div>
-      {slot.ruanganNama && <div className="text-[8px] opacity-50 truncate">{slot.ruanganNama}</div>}
+      {viewMode !== 'kelas' && slot.ruanganNama && <div className="text-[8px] opacity-50 truncate">{slot.ruanganNama}</div>}
       {canEdit && (
         <button onClick={(e) => { e.stopPropagation(); onDelete(slot.id); }}
           className="absolute top-0.5 right-0.5 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-red-200 dark:hover:bg-red-500/20 text-red-500 transition-opacity">
@@ -801,7 +801,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
                 <div className="font-bold text-amber-800 dark:text-amber-200 flex items-center gap-1">
                   <ArrowLeftRight size={10} /> {activeDrag.slot.subjectNama}
                 </div>
-                <div className="text-[9px] text-amber-600 dark:text-amber-300">{activeDrag.slot.guruName} • {activeDrag.slot.kelasName}</div>
+                <div className="text-[9px] text-amber-600 dark:text-amber-300">{activeDrag.slot.guruName}</div>
               </div>
             )}
             {activeDrag?.type === 'failed-block' && activeDrag.block && (
