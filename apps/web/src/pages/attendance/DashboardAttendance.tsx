@@ -182,7 +182,7 @@ const UnifiedScanPage = ({ processScan, isLoading: scanLoading }: { processScan:
                       {log.status}
                     </span>
                     <div className="text-[9px] font-semibold text-text-secondary mt-0.5">
-                      {log.checkOut ? log.checkOut.slice(0,5) : (log.checkIn ? log.checkIn.slice(0,5) : '')}
+                      {log.checkOut ? log.checkOut.slice(0,5) : (log.checkIn ? log.checkIn.slice(0,5) : (log.createdAt ? new Date(log.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }) : ''))}
                     </div>
                   </div>
                 </div>

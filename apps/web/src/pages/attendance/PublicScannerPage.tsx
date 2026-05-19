@@ -325,7 +325,7 @@ export const PublicScannerPage = () => {
                         {log.status}
                       </span>
                       <div className="text-[10px] font-semibold text-slate-400 mt-0.5">
-                        {log.checkOut ? log.checkOut.slice(0,5) : (log.checkIn ? log.checkIn.slice(0,5) : '')}
+                        {log.checkOut ? log.checkOut.slice(0,5) : (log.checkIn ? log.checkIn.slice(0,5) : (log.createdAt ? new Date(log.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }) : ''))}
                       </div>
                     </div>
                   </div>

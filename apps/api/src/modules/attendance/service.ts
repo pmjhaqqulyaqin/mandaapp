@@ -7,6 +7,21 @@ import { ParentPortalService } from "../parent-portal/service";
 const VALID_STATUSES = ["Hadir", "Terlambat", "Alpa", "Sakit", "Izin", "Bolos"] as const;
 type AttendanceStatus = typeof VALID_STATUSES[number];
 
+/**
+ * Convert a Date to WITA (Asia/Makassar, UTC+8) date and time strings.
+ * This ensures correct time regardless of server timezone (e.g. UTC in Docker).
+ */
+function toWITA(date: Date): { dateStr: string; timeStr: string } {
+  // Use Intl to get WITA components reliably
+  const opts: Intl.DateTimeFormatOptions = { timeZone: 'Asia/Makassar', hour12: false };
+  const parts = new Intl.DateTimeFormat('en-CA', { ...opts, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+  // en-CA gives YYYY-MM-DD format
+  const dateStr = parts; // "2026-05-19"
+  const timeParts = new Intl.DateTimeFormat('en-GB', { ...opts, hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(date);
+  const timeStr = timeParts; // "08:21:30"
+  return { dateStr, timeStr };
+}
+
 export class AttendanceService {
 
   // ─── Settings ───────────────────────────────────────────────────────────
@@ -79,8 +94,8 @@ export class AttendanceService {
       scanTime = new Date();
     }
 
-    const today = scanTime.toISOString().split("T")[0]; // YYYY-MM-DD
-    const currentTime = scanTime.toTimeString().slice(0, 8); // HH:MM:SS
+    // Convert to WITA timezone (UTC+8) — ensures correct time regardless of server TZ
+    const { dateStr: today, timeStr: currentTime } = toWITA(scanTime);
 
     // 2. Get time settings
     const settings = await this.getActiveSettings();
@@ -194,7 +209,7 @@ export class AttendanceService {
       return { success: false, message: "Status tidak valid" };
     }
 
-    const today = new Date().toISOString().split("T")[0];
+    const { dateStr: today } = toWITA(new Date());
     if (data.date > today) {
       return { success: false, message: "Tanggal tidak boleh melebihi hari ini" };
     }
@@ -208,7 +223,7 @@ export class AttendanceService {
     }
 
     const student = students[0];
-    const currentTime = new Date().toTimeString().slice(0, 8);
+    const { timeStr: currentTime } = toWITA(new Date());
 
     // Check existing
     const existing = await db.select().from(attendanceRecords)
@@ -278,7 +293,7 @@ export class AttendanceService {
   // ─── Stats Today ────────────────────────────────────────────────────────
 
   static async getStatsToday(classId?: string) {
-    const today = new Date().toISOString().split("T")[0];
+    const { dateStr: today } = toWITA(new Date());
 
     // Total active students
     const totalQuery = classId
@@ -337,20 +352,20 @@ export class AttendanceService {
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      const dateStr = d.toISOString().split("T")[0];
+      const { dateStr: dateStrForDay } = toWITA(d);
       
       const statusBreakdown = await db.select({
         status: attendanceRecords.status,
         total: count(),
       }).from(attendanceRecords)
         .where(classId
-          ? and(eq(attendanceRecords.date, dateStr), eq(attendanceRecords.classId, classId))
-          : eq(attendanceRecords.date, dateStr)
+          ? and(eq(attendanceRecords.date, dateStrForDay), eq(attendanceRecords.classId, classId))
+          : eq(attendanceRecords.date, dateStrForDay)
         )
         .groupBy(attendanceRecords.status);
 
       const dayStats: Record<string, number | string> = {
-        date: dateStr,
+        date: dateStrForDay,
         day: d.toLocaleDateString('id-ID', { weekday: 'short' }),
         Hadir: 0, Terlambat: 0, Alpa: 0, Sakit: 0, Izin: 0, Bolos: 0,
         sudah_absen: 0,
@@ -371,7 +386,7 @@ export class AttendanceService {
   // ─── Log Today ──────────────────────────────────────────────────────────
 
   static async getLogToday(limit: number = 50) {
-    const today = new Date().toISOString().split("T")[0];
+    const { dateStr: today } = toWITA(new Date());
 
     const results = await db.select({
       id: attendanceRecords.id,
@@ -379,6 +394,7 @@ export class AttendanceService {
       checkIn: attendanceRecords.checkIn,
       checkOut: attendanceRecords.checkOut,
       method: attendanceRecords.method,
+      createdAt: attendanceRecords.createdAt,
       nama: studentProfiles.fullName,
       nis: studentProfiles.nis,
       kelas: studentProfiles.className,
@@ -387,7 +403,7 @@ export class AttendanceService {
       .from(attendanceRecords)
       .innerJoin(studentProfiles, eq(attendanceRecords.studentId, studentProfiles.id))
       .where(eq(attendanceRecords.date, today))
-      .orderBy(desc(attendanceRecords.updatedAt))
+      .orderBy(desc(attendanceRecords.createdAt))
       .limit(limit);
 
     return results;
