@@ -675,11 +675,9 @@ export class KbmService {
         for (const day of dayList) {
           if (guruUnavailDays.get(block.guruId)?.has(day)) continue;
           if (passLevel < 4 && block.isHeavy && kelasHeavyDays.get(block.kelasId)?.has(day)) continue;
-          // Prevent same subject from being split on the same day in the same class (hard at pass < 4)
-          if (passLevel < 4) {
-            const skdKey = `${block.subjectId}-${block.kelasId}`;
-            if (subjectKelasDay.get(skdKey)?.has(day)) continue;
-          }
+          // Prevent same subject from appearing twice on the same day in the same class (HARD constraint)
+          const skdKey = `${block.subjectId}-${block.kelasId}`;
+          if (subjectKelasDay.get(skdKey)?.has(day)) continue;
           if (passLevel < 3 && totalJP > threshold) {
             const curJP = ensureMap(guruDayJP, block.guruId).get(day) || 0;
             if (curJP + block.size > maxDailyLimit) continue;
