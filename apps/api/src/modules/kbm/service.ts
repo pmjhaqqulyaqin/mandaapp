@@ -661,6 +661,8 @@ export class KbmService {
       const kelasDayJP = new Map<string, Map<number, number>>();
       // Track guru-kelas-day blocks for adjacency check
       const guruKelasDay = new Map<string, { startJam: number; endJam: number }[]>();
+      // Track subject-kelas-day to prevent same subject appearing split on same day in same class
+      const subjectKelasDay = new Map<string, Set<number>>();
       const placed: any[] = [];
       const passResults: { pass: number; label: string; placed: number }[] = [];
 
@@ -673,13 +675,17 @@ export class KbmService {
         for (const day of dayList) {
           if (guruUnavailDays.get(block.guruId)?.has(day)) continue;
           if (passLevel < 4 && block.isHeavy && kelasHeavyDays.get(block.kelasId)?.has(day)) continue;
+          // Prevent same subject from being split on the same day in the same class (hard at pass < 4)
+          if (passLevel < 4) {
+            const skdKey = `${block.subjectId}-${block.kelasId}`;
+            if (subjectKelasDay.get(skdKey)?.has(day)) continue;
+          }
           if (passLevel < 3 && totalJP > threshold) {
             const curJP = ensureMap(guruDayJP, block.guruId).get(day) || 0;
             if (curJP + block.size > maxDailyLimit) continue;
           }
-          const afternoonApplies = block.maxJamKe && !(config.afternoonExcludeFriday && day === 5);
-          // Heavy subjects: maxJamKe is a HARD constraint (never relaxed).  Non-heavy: relaxed at pass 3+
-          const enforceAfternoon = afternoonApplies && (block.isHeavy ? true : passLevel < 3);
+          // maxJamKe is a HARD constraint for ALL subjects — never relax it
+          const enforceAfternoon = block.maxJamKe && !(config.afternoonExcludeFriday && day === 5);
           const activeDays = dayList.filter(d => !guruUnavailDays.get(block.guruId)?.has(d)).length;
           const targetPerDay = activeDays > 0 ? Math.ceil(totalJP / activeDays) : 99;
           const currentGuruDayJP = ensureMap(guruDayJP, block.guruId).get(day) || 0;
@@ -752,6 +758,10 @@ export class KbmService {
           ensureMap(guruDayJP, block.guruId).set(day, (ensureMap(guruDayJP, block.guruId).get(day) || 0) + block.size);
           ensureMap(kelasDayJP, block.kelasId).set(day, (ensureMap(kelasDayJP, block.kelasId).get(day) || 0) + block.size);
           if (block.isHeavy) { if (!kelasHeavyDays.has(block.kelasId)) kelasHeavyDays.set(block.kelasId, new Set()); kelasHeavyDays.get(block.kelasId)!.add(day); }
+          // Track subject-kelas-day (prevent split same subject on same day)
+          const skdKey2 = `${block.subjectId}-${block.kelasId}`;
+          if (!subjectKelasDay.has(skdKey2)) subjectKelasDay.set(skdKey2, new Set());
+          subjectKelasDay.get(skdKey2)!.add(day);
           // Track guru-kelas adjacency
           const gkKey = `${block.guruId}-${block.kelasId}-${day}`;
           if (!guruKelasDay.has(gkKey)) guruKelasDay.set(gkKey, []);
@@ -858,6 +868,9 @@ export class KbmService {
               for (let o = 1; o < block.size; o++) { if (jams[si+o] !== jams[si]+o) { con = false; break; } }
               if (!con) continue;
               const sj = jams[si];
+              const ejr = sj + block.size - 1;
+              // Enforce maxJamKe in chain swap rescue too
+              if (block.maxJamKe && !(config.afternoonExcludeFriday && day === 5) && ejr > block.maxJamKe) continue;
               let cf = true;
               for (let j = sj; j < sj + block.size; j++) { if (!kF(block.kelasId, day, j)) { cf = false; break; } }
               if (!cf) continue;
