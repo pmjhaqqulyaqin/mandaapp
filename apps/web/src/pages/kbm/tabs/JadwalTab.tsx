@@ -139,6 +139,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
       setJadwal(data);
       setClassList((cls as any[]).sort((a: any, b: any) => a.name.localeCompare(b.name)));
       setGuruList((guru as any[]).sort((a: any, b: any) => a.name.localeCompare(b.name)));
+      setQualityScore(null);
     }).catch(() => toast.error('Gagal memuat jadwal'))
       .finally(() => setLoading(false));
   }, [academicYearId, semester, selectedFilter, viewMode]);
