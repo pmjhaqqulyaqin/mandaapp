@@ -615,7 +615,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
                 try {
                   const res = await apiClient<any>(`/kbm/jadwal/score?academicYearId=${academicYearId}&semester=${semester}`);
                   setQualityScore(res);
-                } catch {}
+                } catch (err: any) { toast.error(err?.message || 'Gagal cek kualitas'); }
               }}
               className="text-[10px] px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-300 border border-violet-200 dark:border-violet-500/30 hover:bg-violet-100 dark:hover:bg-violet-500/20 font-semibold transition-all"
             >
