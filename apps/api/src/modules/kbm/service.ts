@@ -25,7 +25,7 @@ export class KbmService {
     return results[0];
   }
 
-  static async updateSubject(id: string, data: { kode?: string; nama?: string; isActive?: boolean; maxJamKe?: number | null; allowSingleSplit?: boolean; isHeavy?: boolean; customSplitRule?: any }) {
+  static async updateSubject(id: string, data: { kode?: string; nama?: string; isActive?: boolean; maxJamKe?: number | null; minJamKe?: number | null; allowSingleSplit?: boolean; isHeavy?: boolean; customSplitRule?: any }) {
     const results = await db.update(kbmSubjects)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(kbmSubjects.id, id)).returning();
@@ -617,13 +617,14 @@ export class KbmService {
     for (const d of distribusi) guruTotalJP.set(d.guruId, (guruTotalJP.get(d.guruId) || 0) + d.jumlahJam);
 
     // Expand distribusi into blocks
-    interface Block { guruId: string; kelasId: string; subjectId: string; size: number; isHeavy: boolean; maxJamKe: number | null; difficulty: number; failReason?: string; passPlaced?: number; }
+    interface Block { guruId: string; kelasId: string; subjectId: string; size: number; isHeavy: boolean; maxJamKe: number | null; minJamKe: number | null; difficulty: number; failReason?: string; passPlaced?: number; }
     const buildBlocks = (forceAutoSplit = false): Block[] => {
       const result: Block[] = [];
       for (const d of distribusi) {
         const subject = subjectMap.get(d.subjectId);
         const isHeavy = subject?.isHeavy || false;
         const maxJamKe = subject?.maxJamKe || null;
+        const minJamKe = subject?.minJamKe || null;
         const allowSingle = subject?.allowSingleSplit || false;
         const customSplit = subject?.customSplitRule as Record<string, number[]> | null;
         const jp = d.jumlahJam;
@@ -638,8 +639,8 @@ export class KbmService {
         }
         const guruUnavailCount = guruUnavailDays.get(d.guruId)?.size || 0;
         for (const size of blockSizes) {
-          const difficulty = size * 10 + (isHeavy ? 50 : 0) + (maxJamKe ? 30 : 0) + guruUnavailCount * 15 + (guruTotalJP.get(d.guruId)! > 20 ? 20 : 0);
-          result.push({ guruId: d.guruId, kelasId: d.kelasId, subjectId: d.subjectId, size, isHeavy, maxJamKe, difficulty });
+          const difficulty = size * 10 + (isHeavy ? 50 : 0) + (maxJamKe ? 30 : 0) + (minJamKe ? 30 : 0) + guruUnavailCount * 15 + (guruTotalJP.get(d.guruId)! > 20 ? 20 : 0);
+          result.push({ guruId: d.guruId, kelasId: d.kelasId, subjectId: d.subjectId, size, isHeavy, maxJamKe, minJamKe, difficulty });
         }
       }
       return result;
@@ -698,6 +699,8 @@ export class KbmService {
             if (!consecutive) continue;
             const startJam = jams[si], endJam = startJam + block.size - 1;
             if (enforceAfternoon && endJam > block.maxJamKe!) continue;
+            // minJamKe is a HARD constraint — subject must start at or after minJamKe
+            if (block.minJamKe && startJam < block.minJamKe) continue;
             let allFree = true;
             for (let j = startJam; j <= endJam; j++) {
               const sk = slotKey(day, j);
@@ -885,6 +888,8 @@ export class KbmService {
               const ejr = sj + block.size - 1;
               // Enforce maxJamKe in chain swap rescue too
               if (block.maxJamKe && !(config.afternoonExcludeFriday && day === 5) && ejr > block.maxJamKe) continue;
+              // Enforce minJamKe in chain swap rescue too
+              if (block.minJamKe && sj < block.minJamKe) continue;
               let cf = true;
               for (let j = sj; j < sj + block.size; j++) { if (!kF(block.kelasId, day, j)) { cf = false; break; } }
               if (!cf) continue;

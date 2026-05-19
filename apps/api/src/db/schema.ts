@@ -793,6 +793,7 @@ export const kbmSubjects = pgTable("kbm_subjects", {
   isActive: boolean("is_active").default(true),
   // Scheduler constraint fields
   maxJamKe: integer("max_jam_ke"),                    // null = no restriction, e.g. 6 = only jam 1-6
+  minJamKe: integer("min_jam_ke"),                    // null = no restriction, e.g. 5 = only jam 5+
   allowSingleSplit: boolean("allow_single_split").default(false), // can be split to 1 JP (e.g. 3→2+1)
   isHeavy: boolean("is_heavy").default(false),         // heavy subject (no same-day in same class with other heavy)
   customSplitRule: jsonb("custom_split_rule"),          // override split: e.g. {"5": [3,2], "4": [2,2]}

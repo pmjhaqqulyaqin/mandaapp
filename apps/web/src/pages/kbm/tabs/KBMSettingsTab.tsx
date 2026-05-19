@@ -118,6 +118,7 @@ const MapelSection = () => {
               <th className="px-3 py-2 text-center font-semibold text-gray-500 w-14">Berat</th>
               <th className="px-3 py-2 text-center font-semibold text-gray-500 w-14">Split 1</th>
               <th className="px-3 py-2 text-center font-semibold text-gray-500 w-20">Maks Jam</th>
+              <th className="px-3 py-2 text-center font-semibold text-gray-500 w-20">Min Jam</th>
               <th className="px-3 py-2 text-center font-semibold text-gray-500 w-16">Status</th>
               <th className="px-3 py-2 text-center font-semibold text-gray-500 w-14">Aksi</th>
             </tr></thead>
@@ -168,6 +169,23 @@ const MapelSection = () => {
                     </select>
                   </td>
                   <td className="px-3 py-1.5 text-center">
+                    <select
+                      value={s.minJamKe || ''}
+                      onChange={async (e) => {
+                        try {
+                          const val = e.target.value ? Number(e.target.value) : null;
+                          await apiClient(`/kbm/subjects/${s.id}`, { method: 'PUT', data: { minJamKe: val } });
+                          load(); toast.success(val ? `${s.nama}: Min jam ke-${val}` : `${s.nama}: Tanpa batas`);
+                        } catch { toast.error('Gagal'); }
+                      }}
+                      className="w-16 text-[11px] px-1 py-0.5 rounded border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 outline-none"
+                      title="Hanya boleh ditempatkan mulai dari jam ke-N (pembatasan pagi)"
+                    >
+                      <option value="">{"\u2014"}</option>
+                      {[3,4,5,6,7,8].map(n => <option key={n} value={n}>{"\u2265"} {n}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-3 py-1.5 text-center">
                     <span className={`text-[10px] font-semibold ${s.isActive ? 'text-emerald-600' : 'text-gray-400'}`}>
                       {s.isActive ? 'Aktif' : 'Nonaktif'}
                     </span>
@@ -184,7 +202,7 @@ const MapelSection = () => {
             </tbody>
           </table>
         </div>
-        <p className="text-[10px] text-gray-400 mt-1"><strong>Berat</strong> = tidak boleh ada bersamaan di 1 hari 1 kelas. <strong>Split 1</strong> = boleh dipecah ke 1 JP. <strong>Maks Jam</strong> = pembatasan jam siang.</p>
+        <p className="text-[10px] text-gray-400 mt-1"><strong>Berat</strong> = tidak boleh ada bersamaan di 1 hari 1 kelas. <strong>Split 1</strong> = boleh dipecah ke 1 JP. <strong>Maks Jam</strong> = hanya sampai jam ke-N. <strong>Min Jam</strong> = mulai dari jam ke-N.</p>
         </>
       )}
     </div>
