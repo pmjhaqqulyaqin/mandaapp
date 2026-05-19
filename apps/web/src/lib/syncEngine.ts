@@ -11,7 +11,7 @@
  * fire-and-forget log writes, and non-blocking queue operations.
  */
 
-import { syncQueue, cachedData, offlineLog, type SyncItemType, type SyncQueueItem } from './offlineDb';
+import { syncQueue, cachedData, offlineLog, type SyncItemType } from './offlineDb';
 import { apiClient } from './api';
 
 // ── Event System ──
@@ -123,7 +123,7 @@ async function sendToServer(type: SyncItemType, payload: any): Promise<any> {
     return apiClient(url, { method: endpoint.method, data: formData });
   }
 
-  // Remove internal fields before sending
+  // Remove internal fields before sending (keep 'timestamp' — used by server for offline scans)
   const cleanPayload = { ...payload };
   delete cleanPayload._offlineTimestamp;
   delete cleanPayload._formData;

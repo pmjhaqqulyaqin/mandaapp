@@ -52,7 +52,7 @@ export class AttendanceService {
    * - Auto-detects Hadir vs Terlambat based on settings
    * - Handles check-out (pulang) mode
    */
-  static async processScan(nis: string, mode: "masuk" | "pulang", method: string = "qr_scan", recordedBy?: string) {
+  static async processScan(nis: string, mode: "masuk" | "pulang", method: string = "qr_scan", recordedBy?: string, offlineTimestamp?: number) {
     // 1. Find student by NIS or NISN (card QR/barcode may contain either)
     const students = await db.select().from(studentProfiles)
       .where(or(eq(studentProfiles.nis, nis), eq(studentProfiles.nisn, nis)))
@@ -63,9 +63,24 @@ export class AttendanceService {
     }
 
     const student = students[0];
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-    const now = new Date();
-    const currentTime = now.toTimeString().slice(0, 8); // HH:MM:SS
+
+    // Use offline timestamp if provided (for synced offline scans), otherwise use server time.
+    // Guard: reject timestamps older than 3 days to prevent stale data injection.
+    let scanTime: Date;
+    if (offlineTimestamp && typeof offlineTimestamp === 'number') {
+      const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+      const age = Date.now() - offlineTimestamp;
+      if (age > 0 && age < THREE_DAYS_MS) {
+        scanTime = new Date(offlineTimestamp);
+      } else {
+        scanTime = new Date(); // Fallback to server time if timestamp is too old or in the future
+      }
+    } else {
+      scanTime = new Date();
+    }
+
+    const today = scanTime.toISOString().split("T")[0]; // YYYY-MM-DD
+    const currentTime = scanTime.toTimeString().slice(0, 8); // HH:MM:SS
 
     // 2. Get time settings
     const settings = await this.getActiveSettings();

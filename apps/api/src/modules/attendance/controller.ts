@@ -7,16 +7,20 @@ export class AttendanceController {
 
   static async scan(req: Request, res: Response) {
     try {
-      const { nis, jenis = "masuk", method = "qr_scan" } = req.body;
+      const { nis, jenis = "masuk", method = "qr_scan", timestamp } = req.body;
       if (!nis || String(nis).trim().length < 2) {
         return res.status(400).json({ success: false, message: "NIS kosong" });
       }
+
+      // timestamp: original scan time from offline queue (epoch ms)
+      const offlineTimestamp = typeof timestamp === 'number' ? timestamp : undefined;
 
       const result = await AttendanceService.processScan(
         String(nis).trim(),
         jenis === "pulang" ? "pulang" : "masuk",
         method,
-        undefined // no auth user for public scanner
+        undefined, // no auth user for public scanner
+        offlineTimestamp
       );
 
       return res.json(result);

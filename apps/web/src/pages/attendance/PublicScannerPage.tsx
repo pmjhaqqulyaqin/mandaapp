@@ -88,20 +88,36 @@ export const PublicScannerPage = () => {
 
       if (result.fromCache) {
         // Offline — show optimistic response
-        const cached = await offlineCache.lookupStudent(nis);
-        toast.custom(() => (
-          <div className="bg-white border-l-4 border-orange-400 rounded-lg shadow-lg p-4 flex items-start gap-3 w-80">
-            <WifiOff className="text-orange-500 mt-0.5" size={24} />
-            <div>
-              <h4 className="font-bold text-gray-800">{cached?.fullName || `NIS: ${nis}`}</h4>
-              {cached?.className && <p className="text-sm text-gray-600">{nis} | {cached.className}</p>}
-              <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-orange-100 text-orange-700 text-xs font-bold uppercase tracking-wider">
-                📱 Tersimpan Offline
+        try {
+          const cached = await offlineCache.lookupStudent(nis);
+          toast.custom(() => (
+            <div className="bg-white border-l-4 border-orange-400 rounded-lg shadow-lg p-4 flex items-start gap-3 w-80">
+              <WifiOff className="text-orange-500 mt-0.5" size={24} />
+              <div>
+                <h4 className="font-bold text-gray-800">{cached?.fullName || `NIS: ${nis}`}</h4>
+                {cached?.className && <p className="text-sm text-gray-600">{nis} | {cached.className}</p>}
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-orange-100 text-orange-700 text-xs font-bold uppercase tracking-wider">
+                  📱 Tersimpan Offline
+                </div>
+                <p className="text-[10px] text-gray-500 mt-1">Akan disinkronkan otomatis saat online</p>
               </div>
-              <p className="text-[10px] text-gray-500 mt-1">Akan disinkronkan otomatis saat online</p>
             </div>
-          </div>
-        ), { duration: 3000 });
+          ), { duration: 3000 });
+        } catch {
+          // Fallback toast if lookupStudent fails (e.g. no cached student data)
+          toast.custom(() => (
+            <div className="bg-white border-l-4 border-orange-400 rounded-lg shadow-lg p-4 flex items-start gap-3 w-80">
+              <WifiOff className="text-orange-500 mt-0.5" size={24} />
+              <div>
+                <h4 className="font-bold text-gray-800">NIS: {nis}</h4>
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-orange-100 text-orange-700 text-xs font-bold uppercase tracking-wider">
+                  📱 Tersimpan Offline
+                </div>
+                <p className="text-[10px] text-gray-500 mt-1">Akan disinkronkan otomatis saat online</p>
+              </div>
+            </div>
+          ), { duration: 3000 });
+        }
         playBeep('success');
       } else if (result.result) {
         const data = result.result;
@@ -134,7 +150,8 @@ export const PublicScannerPage = () => {
         }
       }
     } catch (error: any) {
-      toast.error('Error: ' + error.message);
+      console.error('[Scanner] processScan error:', error);
+      toast.error('Error: ' + (error.message || 'Terjadi kesalahan'));
       playBeep('error');
     } finally {
       setIsLoading(false);

@@ -5,7 +5,7 @@ import { apiClient } from '../../lib/api';
 import { smartSend, offlineCache } from '../../lib/syncEngine';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
-import { CheckCircle2, Search, Clock, UserCheck, AlertTriangle, Users, Grid, Settings, NotebookPen, WifiOff } from 'lucide-react';
+import { CheckCircle2, Search, Clock, UserCheck, Grid, Settings, NotebookPen, WifiOff } from 'lucide-react';
 import { AttendanceRecapTab } from './tabs/AttendanceRecapTab';
 import { AttendanceManualInputTab } from './tabs/AttendanceManualInputTab';
 import { AttendanceSettingsTab } from './tabs/AttendanceSettingsTab';
@@ -233,29 +233,45 @@ export const DashboardAttendance = () => {
     setIsLoading(true);
     try {
       const result = await smartSend('attendance_scan', {
-        nis, method, timestamp: Date.now()
+        nis, jenis: 'masuk', method, timestamp: Date.now()
       }, `Presensi ${nis} via ${method}`);
 
       if (result.fromCache) {
         // Offline or server failed — show optimistic response
         if (navigator.vibrate) navigator.vibrate([50, 100]);
         // Try to look up student name from cache
-        const cached = await offlineCache.lookupStudent(nis);
-        toast.custom(() => (
-          <div className="bg-white dark:bg-[#1a1a1a] border-l-4 border-orange-400 rounded-lg shadow-lg p-4 flex items-start gap-3 w-80">
-            <WifiOff className="text-orange-500 mt-0.5" size={24} />
-            <div>
-              <h4 className="font-bold text-text-primary dark:text-text-darkPrimary">
-                {cached?.fullName || `NIS: ${nis}`}
-              </h4>
-              {cached?.className && <p className="text-sm text-text-secondary">{nis} | {cached.className}</p>}
-              <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-orange-100 text-orange-700 text-xs font-bold uppercase tracking-wider">
-                📱 Tersimpan Offline
+        try {
+          const cached = await offlineCache.lookupStudent(nis);
+          toast.custom(() => (
+            <div className="bg-white dark:bg-[#1a1a1a] border-l-4 border-orange-400 rounded-lg shadow-lg p-4 flex items-start gap-3 w-80">
+              <WifiOff className="text-orange-500 mt-0.5" size={24} />
+              <div>
+                <h4 className="font-bold text-text-primary dark:text-text-darkPrimary">
+                  {cached?.fullName || `NIS: ${nis}`}
+                </h4>
+                {cached?.className && <p className="text-sm text-text-secondary">{nis} | {cached.className}</p>}
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-orange-100 text-orange-700 text-xs font-bold uppercase tracking-wider">
+                  📱 Tersimpan Offline
+                </div>
+                <p className="text-[10px] text-text-secondary mt-1">Akan disinkronkan otomatis saat online</p>
               </div>
-              <p className="text-[10px] text-text-secondary mt-1">Akan disinkronkan otomatis saat online</p>
             </div>
-          </div>
-        ), { duration: 3000 });
+          ), { duration: 3000 });
+        } catch {
+          // Fallback toast if lookupStudent fails
+          toast.custom(() => (
+            <div className="bg-white dark:bg-[#1a1a1a] border-l-4 border-orange-400 rounded-lg shadow-lg p-4 flex items-start gap-3 w-80">
+              <WifiOff className="text-orange-500 mt-0.5" size={24} />
+              <div>
+                <h4 className="font-bold text-text-primary dark:text-text-darkPrimary">NIS: {nis}</h4>
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-orange-100 text-orange-700 text-xs font-bold uppercase tracking-wider">
+                  📱 Tersimpan Offline
+                </div>
+                <p className="text-[10px] text-text-secondary mt-1">Akan disinkronkan otomatis saat online</p>
+              </div>
+            </div>
+          ), { duration: 3000 });
+        }
       } else if (result.result) {
         const data = result.result;
         if (data.success) {
