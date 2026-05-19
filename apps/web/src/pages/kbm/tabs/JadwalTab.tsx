@@ -65,8 +65,8 @@ const DraggableSlot = ({ slot, colorClass, viewMode, canEdit, onDelete }: { slot
   );
 };
 
-const DroppableCell = ({ day, jam, children, isOver }: { day: number; jam: number; children: React.ReactNode; isOver?: boolean }) => {
-  const { setNodeRef, isOver: dndIsOver } = useDroppable({ id: `cell-${day}-${jam}`, data: { day, jam } });
+const DroppableCell = ({ day, jam, kelasId, children, isOver }: { day: number; jam: number; kelasId?: string; children: React.ReactNode; isOver?: boolean }) => {
+  const { setNodeRef, isOver: dndIsOver } = useDroppable({ id: kelasId ? `cell-${day}-${jam}-${kelasId}` : `cell-${day}-${jam}`, data: { day, jam, kelasId } });
   const over = isOver || dndIsOver;
   return (
     <td ref={setNodeRef} className={`px-0.5 py-0.5 border-r border-gray-100 dark:border-[#1a1a1a] align-top transition-colors ${over ? 'bg-emerald-50/50 dark:bg-emerald-500/5' : ''}`}>
@@ -98,6 +98,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [viewMode, setViewMode] = useState<'kelas' | 'guru'>('kelas');
   const [selectedFilter, setSelectedFilter] = useState('');
   const [classList, setClassList] = useState<{ id: string; name: string }[]>([]);
+  const [classLevelFilter, setClassLevelFilter] = useState('');
   const [guruList, setGuruList] = useState<{ id: string; name: string }[]>([]);
   const [showConfirmGenerate, setShowConfirmGenerate] = useState(false);
   const [showConfirmSync, setShowConfirmSync] = useState(false);
@@ -149,7 +150,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
     if (!academicYearId) return;
     setLoading(true);
     const params = new URLSearchParams({ academicYearId, semester });
-    if (selectedFilter && viewMode === 'kelas') params.set('kelasId', selectedFilter);
+    // Mode kelas: load all data (classes are columns). Mode guru: filter per guru
     if (selectedFilter && viewMode === 'guru') params.set('guruId', selectedFilter);
 
     Promise.all([
@@ -164,6 +165,26 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
     }).catch(() => toast.error('Gagal memuat jadwal'))
       .finally(() => setLoading(false));
   }, [academicYearId, semester, selectedFilter, viewMode]);
+
+  // Derive visible classes from jadwal data (for grid columns)
+  const gridClasses = useMemo(() => {
+    const kelasIds = new Set(jadwal.map(j => j.kelasId));
+    let filtered = classList.filter(c => kelasIds.has(c.id));
+    if (classLevelFilter) {
+      filtered = filtered.filter(c => c.name.toUpperCase().startsWith(classLevelFilter));
+    }
+    return filtered.sort((a, b) => a.name.localeCompare(b.name));
+  }, [jadwal, classList, classLevelFilter]);
+
+  // Derive class levels for filter buttons (X, XI, XII, etc.)
+  const classLevels = useMemo(() => {
+    const levels = new Set<string>();
+    classList.forEach(c => {
+      const match = c.name.match(/^(X{1,3}I{0,2}V?|\d+)/i);
+      if (match) levels.add(match[1].toUpperCase());
+    });
+    return [...levels].sort();
+  }, [classList]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -181,7 +202,8 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   // Build grid: day -> jam -> slot(s)
   const grid = new Map<string, JadwalSlot[]>();
   for (const j of jadwal) {
-    const key = `${j.dayOfWeek}-${j.jamKe}`;
+    // Use kelasId in key for kelas mode (class-column layout)
+    const key = viewMode === 'kelas' ? `${j.dayOfWeek}-${j.jamKe}-${j.kelasId}` : `${j.dayOfWeek}-${j.jamKe}`;
     if (!grid.has(key)) grid.set(key, []);
     grid.get(key)!.push(j);
   }
@@ -228,10 +250,13 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
     // Case 2: Dragging an existing slot
     if (activeData?.type === 'existing-slot') {
       const slot = activeData.slot as JadwalSlot;
-      if (slot.dayOfWeek === targetDay && slot.jamKe === targetJam) return; // Same position
+      const targetKelasId = overData.kelasId as string | undefined;
+      const samePos = slot.dayOfWeek === targetDay && slot.jamKe === targetJam && (!targetKelasId || slot.kelasId === targetKelasId);
+      if (samePos) return;
 
-      // Check what's at the target
-      const targetSlots = grid.get(`${targetDay}-${targetJam}`) || [];
+      // Check what's at the target using the correct grid key
+      const gridKey = viewMode === 'kelas' && targetKelasId ? `${targetDay}-${targetJam}-${targetKelasId}` : `${targetDay}-${targetJam}`;
+      const targetSlots = grid.get(gridKey) || [];
 
       if (targetSlots.length === 0) {
         // Move to empty cell
@@ -250,7 +275,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
         } catch (err: any) { toast.error(err?.message || 'Konflik saat swap'); }
       }
     }
-  }, [academicYearId, semester, canEdit, grid, generateReport, setGenerateReport, loadData]);
+  }, [academicYearId, semester, canEdit, grid, viewMode, generateReport, setGenerateReport, loadData]);
 
   const handleGenerate = () => {
     setShowConfirmGenerate(false);
@@ -364,17 +389,34 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
           >Per Guru</button>
         </div>
 
-        {/* Filter */}
-        <select
-          value={selectedFilter}
-          onChange={e => setSelectedFilter(e.target.value)}
-          className="px-2 py-1.5 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none min-w-[140px]"
-        >
-          <option value="">Semua {viewMode === 'kelas' ? 'Kelas' : 'Guru'}</option>
-          {(viewMode === 'kelas' ? classList : guruList).map(item => (
-            <option key={item.id} value={item.id}>{item.name}</option>
-          ))}
-        </select>
+        {/* Filter — class level pills for kelas mode, guru dropdown for guru mode */}
+        {viewMode === 'kelas' ? (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setClassLevelFilter('')}
+              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all ${!classLevelFilter ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40' : 'bg-white dark:bg-[#1a1a1a] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#333] hover:border-amber-200'}`}
+            >Semua</button>
+            {classLevels.map(level => (
+              <button
+                key={level}
+                onClick={() => setClassLevelFilter(classLevelFilter === level ? '' : level)}
+                className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all ${classLevelFilter === level ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40' : 'bg-white dark:bg-[#1a1a1a] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#333] hover:border-amber-200'}`}
+              >{level}</button>
+            ))}
+            <span className="text-[10px] text-gray-400 ml-1">{gridClasses.length} kelas</span>
+          </div>
+        ) : (
+          <select
+            value={selectedFilter}
+            onChange={e => setSelectedFilter(e.target.value)}
+            className="px-2 py-1.5 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none min-w-[140px]"
+          >
+            <option value="">Semua Guru</option>
+            {guruList.map(item => (
+              <option key={item.id} value={item.id}>{item.name}</option>
+            ))}
+          </select>
+        )}
 
         <div className="flex-1" />
 
@@ -666,42 +708,90 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
                 </div>
               </div>
             )}
-            <table className="w-full border-collapse text-[11px]">
-              <thead className={`sticky z-20 ${isFullscreen ? (generateReport?.failedBlocks > 0 ? 'top-[108px]' : 'top-[44px]') : 'top-0'}`}>
-                <tr className="bg-gray-100 dark:bg-[#1a1a1a]">
-                  <th className="sticky left-0 z-30 bg-gray-100 dark:bg-[#1a1a1a] px-2 py-2.5 text-left font-semibold text-gray-500 border-r border-gray-200 dark:border-[#333] w-14">Jam</th>
-                  {days.map(d => (
-                    <th key={d} className="px-1 py-2.5 text-center font-semibold text-gray-500 border-r border-gray-200 dark:border-[#333] min-w-[120px]">
-                      <span className="hidden md:inline">{DAY_NAMES[d]}</span>
-                      <span className="md:hidden">{DAY_SHORT[d]}</span>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {jamRange.map(jam => (
-                  <tr key={jam} className="border-t border-gray-100 dark:border-[#1a1a1a]">
-                    <td className="sticky left-0 z-10 bg-white dark:bg-[#111] px-2 py-1 text-center font-bold text-gray-500 border-r border-gray-200 dark:border-[#333]">{jam}</td>
-                    {days.map(day => {
-                      const slots = grid.get(`${day}-${jam}`) || [];
-                      return (
-                        <DroppableCell key={day} day={day} jam={jam}>
-                          {slots.length === 0 ? (
-                            <div className={`h-14 rounded-lg border border-dashed transition-all ${activeDrag ? 'border-blue-300 dark:border-blue-500/30 bg-blue-50/30 dark:bg-blue-500/5' : 'border-gray-100 dark:border-[#222]'}`} />
-                          ) : (
-                            <div className="space-y-0.5">
-                              {slots.map(slot => (
-                                <DraggableSlot key={slot.id} slot={slot} colorClass={subjectColorMap.get(slot.subjectId) || SUBJECT_COLORS[0]} viewMode={viewMode} canEdit={canEdit} onDelete={handleDeleteSlot} />
-                              ))}
-                            </div>
-                          )}
-                        </DroppableCell>
-                      );
-                    })}
+            {viewMode === 'kelas' ? (
+              /* ═══ NEW LAYOUT: Hari×Jam rows, Class columns ═══ */
+              <table className="w-full border-collapse text-[11px]">
+                <thead className={`sticky z-20 ${isFullscreen ? (generateReport?.failedBlocks > 0 ? 'top-[108px]' : 'top-[44px]') : 'top-0'}`}>
+                  <tr className="bg-gray-100 dark:bg-[#1a1a1a]">
+                    <th className="sticky left-0 z-30 bg-gray-100 dark:bg-[#1a1a1a] px-2 py-2.5 text-center font-semibold text-gray-500 border-r border-gray-200 dark:border-[#333] w-10">Hari</th>
+                    <th className="sticky left-10 z-30 bg-gray-100 dark:bg-[#1a1a1a] px-2 py-2.5 text-center font-semibold text-gray-500 border-r border-gray-200 dark:border-[#333] w-10">Jam</th>
+                    {gridClasses.map(cls => (
+                      <th key={cls.id} className="px-1 py-2.5 text-center font-semibold text-gray-500 border-r border-gray-200 dark:border-[#333] min-w-[110px] text-[10px]">
+                        {cls.name}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {days.map(day => (
+                    jamRange.map((jam, jamIdx) => (
+                      <tr key={`${day}-${jam}`} className={`border-t ${jamIdx === 0 ? 'border-gray-300 dark:border-[#333]' : 'border-gray-100 dark:border-[#1a1a1a]'}`}>
+                        {jamIdx === 0 && (
+                          <td rowSpan={jamRange.length} className="sticky left-0 z-10 bg-gray-50 dark:bg-[#161616] px-1 py-1 text-center font-bold text-[10px] text-gray-400 dark:text-gray-500 border-r border-gray-200 dark:border-[#333] select-none" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed', transform: 'rotate(180deg)', letterSpacing: '2px' }}>
+                            {DAY_NAMES[day]}
+                          </td>
+                        )}
+                        <td className="sticky left-10 z-10 bg-white dark:bg-[#111] px-2 py-1 text-center font-bold text-gray-500 border-r border-gray-200 dark:border-[#333] w-10">{jam}</td>
+                        {gridClasses.map(cls => {
+                          const slots = grid.get(`${day}-${jam}-${cls.id}`) || [];
+                          return (
+                            <DroppableCell key={cls.id} day={day} jam={jam} kelasId={cls.id}>
+                              {slots.length === 0 ? (
+                                <div className={`h-10 rounded border border-dashed transition-all ${activeDrag ? 'border-blue-300 dark:border-blue-500/30 bg-blue-50/30 dark:bg-blue-500/5' : 'border-gray-100 dark:border-[#222]'}`} />
+                              ) : (
+                                <div className="space-y-0.5">
+                                  {slots.map(slot => (
+                                    <DraggableSlot key={slot.id} slot={slot} colorClass={subjectColorMap.get(slot.subjectId) || SUBJECT_COLORS[0]} viewMode={viewMode} canEdit={canEdit} onDelete={handleDeleteSlot} />
+                                  ))}
+                                </div>
+                              )}
+                            </DroppableCell>
+                          );
+                        })}
+                      </tr>
+                    ))
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              /* ═══ OLD LAYOUT (Guru mode): Jam rows, Day columns ═══ */
+              <table className="w-full border-collapse text-[11px]">
+                <thead className={`sticky z-20 ${isFullscreen ? (generateReport?.failedBlocks > 0 ? 'top-[108px]' : 'top-[44px]') : 'top-0'}`}>
+                  <tr className="bg-gray-100 dark:bg-[#1a1a1a]">
+                    <th className="sticky left-0 z-30 bg-gray-100 dark:bg-[#1a1a1a] px-2 py-2.5 text-left font-semibold text-gray-500 border-r border-gray-200 dark:border-[#333] w-14">Jam</th>
+                    {days.map(d => (
+                      <th key={d} className="px-1 py-2.5 text-center font-semibold text-gray-500 border-r border-gray-200 dark:border-[#333] min-w-[120px]">
+                        <span className="hidden md:inline">{DAY_NAMES[d]}</span>
+                        <span className="md:hidden">{DAY_SHORT[d]}</span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {jamRange.map(jam => (
+                    <tr key={jam} className="border-t border-gray-100 dark:border-[#1a1a1a]">
+                      <td className="sticky left-0 z-10 bg-white dark:bg-[#111] px-2 py-1 text-center font-bold text-gray-500 border-r border-gray-200 dark:border-[#333]">{jam}</td>
+                      {days.map(day => {
+                        const slots = grid.get(`${day}-${jam}`) || [];
+                        return (
+                          <DroppableCell key={day} day={day} jam={jam}>
+                            {slots.length === 0 ? (
+                              <div className={`h-14 rounded-lg border border-dashed transition-all ${activeDrag ? 'border-blue-300 dark:border-blue-500/30 bg-blue-50/30 dark:bg-blue-500/5' : 'border-gray-100 dark:border-[#222]'}`} />
+                            ) : (
+                              <div className="space-y-0.5">
+                                {slots.map(slot => (
+                                  <DraggableSlot key={slot.id} slot={slot} colorClass={subjectColorMap.get(slot.subjectId) || SUBJECT_COLORS[0]} viewMode={viewMode} canEdit={canEdit} onDelete={handleDeleteSlot} />
+                                ))}
+                              </div>
+                            )}
+                          </DroppableCell>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
           {/* Drag Overlay */}
