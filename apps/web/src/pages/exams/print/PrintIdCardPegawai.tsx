@@ -176,11 +176,11 @@ export const PrintIdCardPegawai = () => {
             </div>
           </div>
 
-          <div className="flex-1 mt-1 mb-1"></div>
+
 
           {/* Photo Frame */}
-          <div className="w-[3cm] h-[4cm] bg-gray-200 mt-2 mb-2 rounded-[8px] overflow-hidden border-[3px] border-white shadow-md relative z-20">
-            <img src={photoSrc} className="w-full h-full object-cover" alt="Pegawai" loading="eager" />
+          <div className="w-[3cm] h-[4cm] bg-gray-200 mt-2 mb-2 rounded-[8px] overflow-hidden border-[3px] border-white shadow-md relative z-20 flex-shrink-0">
+            <img src={photoSrc} className="w-full h-full object-cover object-top" alt="Pegawai" loading="eager" />
           </div>
 
           {/* Nama Pegawai */}
