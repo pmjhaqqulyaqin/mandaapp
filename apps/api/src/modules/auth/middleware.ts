@@ -29,6 +29,7 @@ type UserRole =
   | 'guru'
   | 'kepala_tu'
   | 'pegawai_tu'
+  | 'operator'
   | 'student'
   | 'orang_tua';
 
@@ -87,5 +88,5 @@ export const requireAdmin = requireAuth(['admin']);
  */
 export const requireStaff = requireAuth([
   'admin', 'kepala_madrasah', 'wakil_kepala', 'kepala_unit',
-  'wali_kelas', 'pembina_ekstra', 'guru', 'kepala_tu', 'pegawai_tu'
+  'wali_kelas', 'pembina_ekstra', 'guru', 'kepala_tu', 'pegawai_tu', 'operator'
 ]);

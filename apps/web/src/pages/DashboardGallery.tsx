@@ -16,7 +16,7 @@ interface GalleryImage {
   uploadedAt?: string;
 }
 
-const STAFF_ROLES = ['admin', 'kepala_madrasah', 'wakil_kepala', 'kepala_unit', 'wali_kelas', 'pembina_ekstra', 'guru'];
+const STAFF_ROLES = ['admin', 'kepala_madrasah', 'wakil_kepala', 'kepala_unit', 'wali_kelas', 'pembina_ekstra', 'guru', 'operator'];
 const AUDIT_ROLES = ['admin', 'kepala_madrasah', 'wakil_kepala'];
 
 export const DashboardGallery = () => {

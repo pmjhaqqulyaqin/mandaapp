@@ -15,6 +15,7 @@ import {
   kepalaTURole,
   pegawaiTURole,
   studentRole,
+  operatorRole,
 } from "./permissions";
 
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -90,6 +91,7 @@ export const auth = betterAuth({
         kepala_tu: kepalaTURole,
         pegawai_tu: pegawaiTURole,
         student: studentRole,
+        operator: operatorRole,
       },
       defaultRole: "student",
       adminRoles: ["admin"],

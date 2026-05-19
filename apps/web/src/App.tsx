@@ -153,7 +153,7 @@ function App() {
             } />
             
             <Route path="/dashboard" element={
-              <ProtectedRoute allowedRoles={['admin','kepala_madrasah','wakil_kepala','kepala_unit','wali_kelas','pembina_ekstra','guru','kepala_tu','pegawai_tu']}>
+              <ProtectedRoute allowedRoles={['admin','kepala_madrasah','wakil_kepala','kepala_unit','wali_kelas','pembina_ekstra','guru','kepala_tu','pegawai_tu','operator']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }>

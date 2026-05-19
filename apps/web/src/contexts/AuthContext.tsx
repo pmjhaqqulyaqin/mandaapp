@@ -12,6 +12,7 @@ export type UserRole =
   | 'guru' 
   | 'kepala_tu' 
   | 'pegawai_tu' 
+  | 'operator'
   | 'student'
   | 'orang_tua';
 
@@ -56,7 +57,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Staff roles that have access to galeri & berita
 const STAFF_ROLES: UserRole[] = [
   'admin', 'kepala_madrasah', 'wakil_kepala', 'kepala_unit',
-  'wali_kelas', 'pembina_ekstra', 'guru', 'kepala_tu', 'pegawai_tu'
+  'wali_kelas', 'pembina_ekstra', 'guru', 'kepala_tu', 'pegawai_tu', 'operator'
 ];
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

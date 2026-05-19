@@ -21,7 +21,7 @@ const ROLE_LABELS: Record<string, string> = {
   wakil_kepala: 'Wakil Kepala', kepala_unit: 'Kepala Unit',
   wali_kelas: 'Wali Kelas', pembina_ekstra: 'Pembina Ekstra',
   kepala_tu: 'Kepala TU', pegawai_tu: 'Pegawai TU',
-  guru: 'Guru', student: 'Siswa', orang_tua: 'Orang Tua',
+  guru: 'Guru', operator: 'Operator', student: 'Siswa', orang_tua: 'Orang Tua',
 };
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, onLogout }) => {

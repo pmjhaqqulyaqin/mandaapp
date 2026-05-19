@@ -106,3 +106,12 @@ export const pegawaiTURole = ac.newRole({
 export const studentRole = ac.newRole({
   student: ["view"],
 });
+
+// ─── Role: Operator ───
+// Operasional harian: presensi, data entry, cetak, surat
+export const operatorRole = ac.newRole({
+  news: ["create", "update"],
+  gallery: ["create", "update"],
+  student: ["view", "update", "input"],
+  schedule: ["create", "update"],
+});

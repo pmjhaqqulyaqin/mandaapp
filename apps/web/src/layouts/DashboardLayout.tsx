@@ -337,6 +337,7 @@ export const DashboardLayout = () => {
       : user?.role === 'pembina_ekstra' ? 'Pembina Ekstra'
       : user?.role === 'kepala_tu' ? 'Kepala TU'
       : user?.role === 'pegawai_tu' ? 'Pegawai TU'
+      : user?.role === 'operator' ? 'Operator'
       : user?.role === 'guru' ? 'Guru'
       : 'Siswa';
 

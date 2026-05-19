@@ -23,6 +23,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
   student: ["overview", "calendar", "student-card"],
   kepala_tu: ["overview", "news", "calendar", "student-card", "students", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm"],
   pegawai_tu: ["overview", "news", "calendar", "student-card", "students", "employees", "e-office", "ppdb", "penilaian-pmb", "ijazah", "attendance", "kbm"],
+  operator: ["overview", "news", "calendar", "student-card", "students", "employees", "gallery", "e-office", "ppdb", "penilaian-pmb", "ijazah", "attendance", "kbm"],
 };
 
 export async function getAuditLogsHandler(req: Request, res: Response) {
@@ -64,6 +65,7 @@ export function getRolesHandler(_req: Request, res: Response) {
     { value: "guru", label: "Guru" },
     { value: "kepala_tu", label: "Kepala TU" },
     { value: "pegawai_tu", label: "Pegawai TU" },
+    { value: "operator", label: "Operator" },
     { value: "student", label: "Siswa" },
     { value: "orang_tua", label: "Orang Tua / Wali" },
   ];
