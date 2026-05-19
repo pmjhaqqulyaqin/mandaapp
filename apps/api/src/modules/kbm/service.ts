@@ -1145,6 +1145,117 @@ export class KbmService {
     return { guruConflicts, kelasConflicts, hasConflicts: guruConflicts.length > 0 || kelasConflicts.length > 0 };
   }
 
+  // Soft Constraints Quality Scoring
+  static async scoreJadwal(academicYearId: string, semester: string) {
+    const jadwal = await this.getJadwal(academicYearId, semester);
+    if (jadwal.length === 0) return { score: 0, maxScore: 0, percentage: 0, violations: [], summary: {} };
+
+    const violations: { type: string; detail: string; penalty: number }[] = [];
+
+    // Group by guru-day
+    const guruDaySlots = new Map<string, { jamKe: number; subjectNama: string; kelasName: string }[]>();
+    // Group by kelas-day
+    const kelasDaySlots = new Map<string, { jamKe: number; subjectNama: string; guruName: string; subjectId: string }[]>();
+
+    for (const j of jadwal) {
+      const gdk = `${j.guruId}|${j.guruName || ''}|${j.dayOfWeek}`;
+      if (!guruDaySlots.has(gdk)) guruDaySlots.set(gdk, []);
+      guruDaySlots.get(gdk)!.push({ jamKe: j.jamKe, subjectNama: j.subjectNama || '', kelasName: j.kelasName || '' });
+
+      const kdk = `${j.kelasId}|${j.kelasName || ''}|${j.dayOfWeek}`;
+      if (!kelasDaySlots.has(kdk)) kelasDaySlots.set(kdk, []);
+      kelasDaySlots.get(kdk)!.push({ jamKe: j.jamKe, subjectNama: j.subjectNama || '', guruName: j.guruName || '', subjectId: j.subjectId });
+    }
+
+    const DAY_NAMES: Record<number, string> = { 1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis', 5: 'Jumat', 6: 'Sabtu' };
+
+    // 1. Guru pagi-siang span (jam 1 and jam 8+ on same day) — penalty 5
+    for (const [key, slots] of guruDaySlots) {
+      const [, guruName, dayStr] = key.split('|');
+      const jams = slots.map(s => s.jamKe).sort((a, b) => a - b);
+      if (jams.length >= 2) {
+        const span = jams[jams.length - 1] - jams[0];
+        if (span >= 7) {
+          violations.push({ type: 'guru_span', detail: `${guruName} mengajar jam ${jams[0]}-${jams[jams.length - 1]} (${DAY_NAMES[+dayStr]})`, penalty: 5 });
+        }
+      }
+    }
+
+    // 2. Guru gap hours (hole in schedule) — penalty 3
+    for (const [key, slots] of guruDaySlots) {
+      const [, guruName, dayStr] = key.split('|');
+      const jams = slots.map(s => s.jamKe).sort((a, b) => a - b);
+      if (jams.length >= 2) {
+        let gaps = 0;
+        for (let i = 1; i < jams.length; i++) {
+          const diff = jams[i] - jams[i - 1];
+          if (diff > 1) gaps += diff - 1;
+        }
+        if (gaps >= 2) {
+          violations.push({ type: 'guru_gap', detail: `${guruName} ada ${gaps} jam kosong di tengah (${DAY_NAMES[+dayStr]})`, penalty: 3 });
+        }
+      }
+    }
+
+    // 3. Heavy subject (Matematika, Fisika, Kimia, etc) at jam >= 7 — penalty 3
+    const heavySubjects = await db.select({ id: kbmSubjects.id, nama: kbmSubjects.nama }).from(kbmSubjects).where(eq(kbmSubjects.isHeavy, true));
+    const heavyIds = new Set(heavySubjects.map(s => s.id));
+    for (const j of jadwal) {
+      if (heavyIds.has(j.subjectId) && j.jamKe >= 7) {
+        violations.push({ type: 'heavy_afternoon', detail: `${j.subjectNama} di jam ${j.jamKe} (${j.kelasName}, ${DAY_NAMES[j.dayOfWeek]})`, penalty: 3 });
+      }
+    }
+
+    // 4. Same subject appearing multiple times in same day for same kelas — penalty 2
+    for (const [key, slots] of kelasDaySlots) {
+      const [, kelasName, dayStr] = key.split('|');
+      const subjectCount = new Map<string, number>();
+      for (const s of slots) subjectCount.set(s.subjectNama, (subjectCount.get(s.subjectNama) || 0) + 1);
+      // Only flag non-consecutive blocks (consecutive is fine for multi-JP)
+      const sortedSlots = [...slots].sort((a, b) => a.jamKe - b.jamKe);
+      for (const [subj, count] of subjectCount) {
+        if (count <= 1) continue;
+        const subSlots = sortedSlots.filter(s => s.subjectNama === subj).map(s => s.jamKe);
+        let hasGap = false;
+        for (let i = 1; i < subSlots.length; i++) { if (subSlots[i] - subSlots[i-1] > 1) { hasGap = true; break; } }
+        if (hasGap) {
+          violations.push({ type: 'split_subject', detail: `${subj} terpisah di ${kelasName} (${DAY_NAMES[+dayStr]})`, penalty: 2 });
+        }
+      }
+    }
+
+    // 5. Guru distribution — guru teaches all JP in only 1-2 days — penalty 4
+    const guruDays = new Map<string, Set<number>>();
+    const guruJP = new Map<string, number>();
+    for (const j of jadwal) {
+      if (!guruDays.has(j.guruId)) guruDays.set(j.guruId, new Set());
+      guruDays.get(j.guruId)!.add(j.dayOfWeek);
+      guruJP.set(j.guruId, (guruJP.get(j.guruId) || 0) + 1);
+    }
+    for (const [guruId, days] of guruDays) {
+      const jp = guruJP.get(guruId) || 0;
+      if (jp >= 12 && days.size <= 2) {
+        const gName = jadwal.find(j => j.guruId === guruId)?.guruName || guruId;
+        violations.push({ type: 'guru_concentration', detail: `${gName} mengajar ${jp} JP hanya di ${days.size} hari`, penalty: 4 });
+      }
+    }
+
+    const totalPenalty = violations.reduce((s, v) => s + v.penalty, 0);
+    const maxPenalty = Math.max(totalPenalty, 50); // baseline
+    const percentage = Math.max(0, Math.round(100 - (totalPenalty / maxPenalty) * 100));
+
+    // Summary by type
+    const summary: Record<string, { count: number; totalPenalty: number; label: string }> = {};
+    const labels: Record<string, string> = { guru_span: 'Guru Pagi-Siang', guru_gap: 'Gap Jam Guru', heavy_afternoon: 'Mapel Berat Sore', split_subject: 'Mapel Terpisah', guru_concentration: 'Konsentrasi Guru' };
+    for (const v of violations) {
+      if (!summary[v.type]) summary[v.type] = { count: 0, totalPenalty: 0, label: labels[v.type] || v.type };
+      summary[v.type].count++;
+      summary[v.type].totalPenalty += v.penalty;
+    }
+
+    return { score: Math.max(0, 100 - totalPenalty), maxScore: 100, percentage, totalPenalty, violations, summary, totalSlots: jadwal.length };
+  }
+
   static async syncToJurnal(academicYearId: string, semester: string) {
     // Smart merge: only remove teaching_subjects that were KBM-generated
     const jadwal = await this.getJadwal(academicYearId, semester);

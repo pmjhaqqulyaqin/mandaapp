@@ -104,6 +104,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [showConfirmClear, setShowConfirmClear] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [conflicts, setConflicts] = useState<any>(null);
+  const [qualityScore, setQualityScore] = useState<any>(null);
   const [generateReport, _setGenerateReport] = useState<any>(() => {
     try { const s = localStorage.getItem(`jadwal-report-${academicYearId}-${semester}`); return s ? JSON.parse(s) : null; } catch { return null; }
   });
@@ -472,12 +473,55 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
         </div>
       )}
 
-      {/* Stats */}
-      <div className="flex items-center gap-4 text-[11px] text-gray-400">
-        <span>Total: <strong className="text-gray-700 dark:text-gray-200">{jadwal.length}</strong> slot</span>
-        <span>Mapel: <strong className="text-gray-700 dark:text-gray-200">{uniqueSubjects.length}</strong></span>
-        <span>Hari: <strong className="text-gray-700 dark:text-gray-200">{new Set(jadwal.map(j => j.dayOfWeek)).size}</strong></span>
+      {/* Stats + Quality Score */}
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="flex items-center gap-4 text-[11px] text-gray-400 py-1">
+          <span>Total: <strong className="text-gray-700 dark:text-gray-200">{jadwal.length}</strong> slot</span>
+          <span>Mapel: <strong className="text-gray-700 dark:text-gray-200">{uniqueSubjects.length}</strong></span>
+          <span>Hari: <strong className="text-gray-700 dark:text-gray-200">{new Set(jadwal.map(j => j.dayOfWeek)).size}</strong></span>
+        </div>
+        {jadwal.length > 0 && (
+          <button
+            onClick={async () => {
+              try {
+                const res = await apiClient<any>(`/kbm/jadwal/score?academicYearId=${academicYearId}&semester=${semester}`);
+                setQualityScore(res);
+              } catch {}
+            }}
+            className="ml-auto text-[10px] px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-300 border border-violet-200 dark:border-violet-500/30 hover:bg-violet-100 dark:hover:bg-violet-500/20 font-semibold transition-all"
+          >
+            📊 Cek Kualitas
+          </button>
+        )}
       </div>
+
+      {/* Quality Score Card */}
+      {qualityScore && qualityScore.totalSlots > 0 && (
+        <div className="rounded-xl border border-violet-200 dark:border-violet-500/30 bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-500/5 dark:to-purple-500/5 p-3">
+          <div className="flex items-center gap-3">
+            <div className="text-2xl font-black text-violet-600 dark:text-violet-300">
+              {qualityScore.percentage}%
+            </div>
+            <div className="text-[11px]">
+              <div className="font-bold text-violet-700 dark:text-violet-200">
+                Kualitas Jadwal {'⭐'.repeat(Math.min(5, Math.ceil(qualityScore.percentage / 20)))}
+              </div>
+              <div className="text-violet-500 dark:text-violet-400">
+                {qualityScore.violations.length === 0 ? 'Sempurna — tidak ada pelanggaran soft constraint' : `${qualityScore.violations.length} pelanggaran (penalty: ${qualityScore.totalPenalty})`}
+              </div>
+            </div>
+          </div>
+          {Object.keys(qualityScore.summary).length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {Object.entries(qualityScore.summary as Record<string, { count: number; totalPenalty: number; label: string }>).map(([key, v]) => (
+                <span key={key} className="text-[9px] px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-500/15 text-violet-600 dark:text-violet-300 font-medium">
+                  {v.label}: {v.count}× (−{v.totalPenalty})
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Grid Timetable */}
       {jadwal.length === 0 ? (

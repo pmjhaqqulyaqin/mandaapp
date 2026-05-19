@@ -812,6 +812,15 @@ export class KbmController {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
 
+  static async scoreJadwal(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester } = req.query;
+      if (!academicYearId || !semester) return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      const result = await KbmService.scoreJadwal(academicYearId as string, semester as string);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
   static async syncToJurnal(req: Request, res: Response) {
     try {
       const { academicYearId, semester } = req.body;
