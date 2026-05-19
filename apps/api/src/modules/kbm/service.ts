@@ -775,10 +775,12 @@ export class KbmService {
           const decomposed: Block[] = [];
           const stillFailed: Block[] = [];
           for (const b of remaining) {
-            if (b.size === 3) {
+            const subj = subjectMap.get(b.subjectId);
+            const canSplit1 = subj?.allowSingleSplit || false;
+            if (b.size === 3 && canSplit1) {
               decomposed.push({ ...b, size: 2, difficulty: b.difficulty - 5 });
               decomposed.push({ ...b, size: 1, difficulty: b.difficulty - 10 });
-            } else if (b.size === 2) {
+            } else if (b.size === 2 && canSplit1) {
               decomposed.push({ ...b, size: 1, difficulty: b.difficulty - 5 });
               decomposed.push({ ...b, size: 1, difficulty: b.difficulty - 10 });
             } else {
