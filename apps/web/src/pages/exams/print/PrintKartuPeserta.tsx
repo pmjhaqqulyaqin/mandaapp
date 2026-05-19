@@ -298,7 +298,7 @@ export const PrintKartuPeserta = () => {
                 <span>NIP. {nip}</span>
               </div>
               {stampUrl && (
-                <img src={stampUrl} alt="Stempel" className="absolute left-0 bottom-[8px] h-[42px] w-auto object-contain mix-blend-multiply opacity-85" />
+                <img src={stampUrl} alt="Stempel" className="absolute left-[28%] bottom-[8px] h-[42px] w-auto object-contain mix-blend-multiply opacity-85" />
               )}
             </div>
               
