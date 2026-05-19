@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../../../lib/api';
+import { normalizeGelar } from '../../../lib/normalizeGelar';
 import { Loader2 } from 'lucide-react';
 import QRCode from 'qrcode';
 
@@ -170,7 +171,7 @@ export const PrintKartuPeserta = () => {
   const tempat = config.tempat || ttdDist.tempat || ttdMaster.tempat || 'Tempat';
   const tanggal = config.tanggal || ttdDist.tanggal || ttdMaster.tanggal || new Date().toISOString();
   const jabatan = config.jabatan || ttdDist.jabatan || ttdMaster.jabatan || 'Ketua Panitia';
-  const nama = config.nama || ttdDist.nama || ttdMaster.nama || 'Nama Terang';
+  const nama = normalizeGelar(config.nama || ttdDist.nama || ttdMaster.nama || 'Nama Terang');
   const nip = config.nip || ttdDist.nip || ttdMaster.nip || '-';
   const signatureUrl = config.signatureUrl || '';
   const stampUrl = config.stampUrl || '';

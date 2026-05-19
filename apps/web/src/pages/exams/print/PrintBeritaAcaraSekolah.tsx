@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiClient } from '../../../lib/api';
+import { normalizeGelar } from '../../../lib/normalizeGelar';
 import { Loader2 } from 'lucide-react';
 
 const HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -226,18 +227,18 @@ export const PrintBeritaAcaraSekolah = () => {
         <td style="padding:2px 0;">${idx + 1}.</td>
         <td style="padding:2px 5px;">${p.jabatan || '-'}</td>
         <td style="padding:2px 0;">:</td>
-        <td style="padding:2px 5px;font-weight:bold;">${p.pegawai?.name || p.name || '-'}</td>
+        <td style="padding:2px 5px;font-weight:bold;">${normalizeGelar(p.pegawai?.name || p.name || '-')}</td>
       </tr>`;
     });
 
     // Ketua panitia
     const ketua = panitia.find((p: any) => (p.jabatan || '').toLowerCase().includes('ketua'));
-    const ketuaName = ketua?.pegawai?.name || ketua?.name || '';
+    const ketuaName = normalizeGelar(ketua?.pegawai?.name || ketua?.name || '');
     const ketuaNip = ketua?.pegawai?.nip || ketua?.nip || '';
 
     // Kepala Madrasah from pengaturan cetak
     const ttdKepsek = ujian.pengaturan?.ttd || {};
-    const kepsekName = ttdKepsek.nama || '';
+    const kepsekName = normalizeGelar(ttdKepsek.nama || '');
     const kepsekNip = ttdKepsek.nip || '';
     const kepsekJabatan = ttdKepsek.jabatan || 'Kepala Madrasah';
 
@@ -387,12 +388,12 @@ export const PrintBeritaAcaraSekolah = () => {
 
   // Ketua panitia
   const ketua = panitia.find((p: any) => (p.jabatan || '').toLowerCase().includes('ketua'));
-  const ketuaName = ketua?.pegawai?.name || ketua?.name || '';
+  const ketuaName = normalizeGelar(ketua?.pegawai?.name || ketua?.name || '');
   const ketuaNip = ketua?.pegawai?.nip || ketua?.nip || '';
 
   // Kepala Madrasah
   const ttdKepsek = ujian.pengaturan?.ttd || {};
-  const kepsekName = ttdKepsek.nama || '';
+  const kepsekName = normalizeGelar(ttdKepsek.nama || '');
   const kepsekNip = ttdKepsek.nip || '';
   const kepsekJabatan = ttdKepsek.jabatan || 'Kepala Madrasah';
 
@@ -560,7 +561,7 @@ export const PrintBeritaAcaraSekolah = () => {
                         <td className="pr-2 py-0.5">{idx + 1}.</td>
                         <td className="pr-2 py-0.5">{p.jabatan || '-'}</td>
                         <td className="pr-2 py-0.5">:</td>
-                        <td className="py-0.5 font-bold">{p.pegawai?.name || p.name || '-'}</td>
+                        <td className="py-0.5 font-bold">{normalizeGelar(p.pegawai?.name || p.name || '-')}</td>
                       </tr>
                     ))}
                   </tbody>
