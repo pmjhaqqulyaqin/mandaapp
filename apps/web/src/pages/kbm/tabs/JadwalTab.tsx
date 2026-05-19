@@ -126,13 +126,14 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const fullscreenRef = useRef<HTMLDivElement>(null);
 
-  // Native Fullscreen API toggle
+  // Native Fullscreen API toggle — use document.documentElement to keep portals (DragOverlay, toasts) visible
   const toggleFullscreen = useCallback(async () => {
-    if (!fullscreenRef.current) return;
     try {
       if (!document.fullscreenElement) {
-        await fullscreenRef.current.requestFullscreen();
+        await document.documentElement.requestFullscreen();
+        document.body.classList.add('jadwal-kbm-fullscreen');
       } else {
+        document.body.classList.remove('jadwal-kbm-fullscreen');
         await document.exitFullscreen();
       }
     } catch (err) {
@@ -142,9 +143,16 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
 
   // Sync isFullscreen state with browser fullscreen events
   useEffect(() => {
-    const handleChange = () => setIsFullscreen(!!document.fullscreenElement);
+    const handleChange = () => {
+      const fs = !!document.fullscreenElement;
+      setIsFullscreen(fs);
+      if (!fs) document.body.classList.remove('jadwal-kbm-fullscreen');
+    };
     document.addEventListener('fullscreenchange', handleChange);
-    return () => document.removeEventListener('fullscreenchange', handleChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleChange);
+      document.body.classList.remove('jadwal-kbm-fullscreen');
+    };
   }, []);
 
   const loadData = useCallback(() => {
@@ -353,8 +361,8 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
     <div className="space-y-3">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Toolbar — hidden in fullscreen */}
+      {!isFullscreen && <div className="flex flex-wrap items-center gap-2">
         {/* View mode toggle */}
         <div className="flex rounded-lg border border-gray-200 dark:border-[#333] overflow-hidden">
           <button
@@ -447,10 +455,10 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
             </>
           )}
         </div>
-      </div>
+      </div>}
 
       {/* Version Selector */}
-      {showVersions && (
+      {!isFullscreen && showVersions && (
         <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/50 dark:bg-indigo-500/5 p-3">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300">📋 Riwayat Versi Jadwal</h4>
@@ -504,7 +512,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
       )}
 
       {/* Conflict Warning */}
-      {conflicts?.hasConflicts && (
+      {!isFullscreen && conflicts?.hasConflicts && (
         <div className="p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
           <p className="text-[12px] font-semibold text-red-700 dark:text-red-300 mb-1">
             {"\u26A0\uFE0F"} Ditemukan {conflicts.guruConflicts.length} konflik guru dan {conflicts.kelasConflicts.length} konflik kelas
@@ -513,8 +521,8 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
         </div>
       )}
 
-      {/* Generate Report */}
-      {generateReport && (
+      {/* Generate Report — hidden in fullscreen (shown inside grid header instead) */}
+      {!isFullscreen && generateReport && (
         <div className={`p-3 rounded-xl border space-y-2 ${generateReport.failedBlocks > 0 ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20' : 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -563,8 +571,8 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
         </div>
       )}
 
-      {/* Stats + Quality Score */}
-      <div className="flex flex-wrap items-start gap-3">
+      {/* Stats + Quality Score — hidden in fullscreen */}
+      {!isFullscreen && <div className="flex flex-wrap items-start gap-3">
         <div className="flex items-center gap-4 text-[11px] text-gray-400 py-1">
           <span>Total: <strong className="text-gray-700 dark:text-gray-200">{jadwal.length}</strong> slot</span>
           <span>Mapel: <strong className="text-gray-700 dark:text-gray-200">{uniqueSubjects.length}</strong></span>
@@ -595,10 +603,10 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
             </button>
           )}
         </div>
-      </div>
+      </div>}
 
       {/* Quality Score Card */}
-      {qualityScore && qualityScore.totalSlots > 0 && (
+      {!isFullscreen && qualityScore && qualityScore.totalSlots > 0 && (
         <div className="rounded-xl border border-violet-200 dark:border-violet-500/30 bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-500/5 dark:to-purple-500/5 p-3">
           <div className="flex items-center gap-3">
             <div className="text-2xl font-black text-violet-600 dark:text-violet-300">
