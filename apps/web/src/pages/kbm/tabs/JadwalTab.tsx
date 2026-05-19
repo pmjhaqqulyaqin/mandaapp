@@ -757,9 +757,9 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
               <table className="w-full border-collapse text-[11px]">
                 <thead className={`sticky z-20 ${isFullscreen ? (generateReport?.failedBlocks > 0 ? 'top-[108px]' : 'top-[44px]') : 'top-0'}`}>
                   <tr className="bg-gray-100 dark:bg-[#1a1a1a]">
-                    <th className="sticky left-0 z-30 bg-gray-100 dark:bg-[#1a1a1a] px-2 py-2.5 text-left font-semibold text-gray-500 border-r border-gray-200 dark:border-[#333] w-14">Jam</th>
+                    <th className="sticky left-0 z-30 bg-gray-100 dark:bg-[#1a1a1a] px-1.5 py-1.5 text-left font-semibold text-gray-500 border-r border-gray-200 dark:border-[#333] w-10">Jam</th>
                     {days.map(d => (
-                      <th key={d} className="px-1 py-2.5 text-center font-semibold text-gray-500 border-r border-gray-200 dark:border-[#333] min-w-[120px]">
+                      <th key={d} className="px-1 py-1.5 text-center font-semibold text-gray-500 border-r border-gray-200 dark:border-[#333] min-w-[90px]">
                         <span className="hidden md:inline">{DAY_NAMES[d]}</span>
                         <span className="md:hidden">{DAY_SHORT[d]}</span>
                       </th>
@@ -775,7 +775,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
                         return (
                           <DroppableCell key={day} day={day} jam={jam}>
                             {slots.length === 0 ? (
-                              <div className={`h-14 rounded-lg border border-dashed transition-all ${activeDrag ? 'border-blue-300 dark:border-blue-500/30 bg-blue-50/30 dark:bg-blue-500/5' : 'border-gray-100 dark:border-[#222]'}`} />
+                              <div className={`h-10 rounded border border-dashed transition-all ${activeDrag ? 'border-blue-300 dark:border-blue-500/30 bg-blue-50/30 dark:bg-blue-500/5' : 'border-gray-100 dark:border-[#222]'}`} />
                             ) : (
                               <div className="space-y-0.5">
                                 {slots.map(slot => (
