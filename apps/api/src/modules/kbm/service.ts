@@ -852,6 +852,13 @@ export class KbmService {
         kA.set(`${b.kelasId}-${d}-${j}`, ss.length - 1);
       };
 
+      // Build subject-kelas-day map from placed slots for interleaving prevention
+      const skdMap = new Map<string, Set<number>>();
+      for (const s of ss) {
+        const k = `${s.subjectId}-${s.kelasId}`;
+        if (!skdMap.has(k)) skdMap.set(k, new Set());
+        skdMap.get(k)!.add(s.dayOfWeek);
+      }
       let rescued = 0;
       let rem = [...attempt.failed];
       let changed = true;
@@ -866,7 +873,7 @@ export class KbmService {
             if (guruUnavailDays.get(block.guruId)?.has(day)) continue;
             // Enforce subject-kelas-day in chain swap rescue
             const rskKey = `${block.subjectId}-${block.kelasId}`;
-            if (subjectKelasDay.get(rskKey)?.has(day)) continue;
+            if (skdMap.get(rskKey)?.has(day)) continue;
             const jams = availableDays.get(day)!;
             for (let si = 0; si <= jams.length - block.size; si++) {
               let con = true;
@@ -883,8 +890,8 @@ export class KbmService {
               for (let j = sj; j < sj + block.size; j++) { if (!gF(block.guruId, day, j)) { af = false; break; } }
               if (af) {
                 for (let j = sj; j < sj + block.size; j++) pn(block, day, j);
-                if (!subjectKelasDay.has(rskKey)) subjectKelasDay.set(rskKey, new Set());
-                subjectKelasDay.get(rskKey)!.add(day);
+                if (!skdMap.has(rskKey)) skdMap.set(rskKey, new Set());
+                skdMap.get(rskKey)!.add(day);
                 ok = true; break;
               }
               if (block.size === 1) {
