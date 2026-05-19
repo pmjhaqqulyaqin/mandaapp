@@ -179,10 +179,29 @@ export class ExamService {
     if (data.ketuaPanitiaId !== undefined) updateFields.ketuaPanitiaId = data.ketuaPanitiaId || null;
     if (data.status !== undefined) updateFields.status = data.status;
     if (data.pengaturan !== undefined) {
-      // Merge pengaturan with existing data to avoid losing nested keys (like pengawasGroups)
+      // Deep merge pengaturan: merge nested objects (e.g. kartuPeserta, pengawasGroups, ttd)
+      // so that saving from one tab doesn't wipe settings saved from another tab
       const existing = await this.getUjianById(id);
       const existingPengaturan = (existing?.pengaturan as any) || {};
-      updateFields.pengaturan = { ...existingPengaturan, ...data.pengaturan };
+      const incoming = data.pengaturan;
+      
+      const merged: Record<string, any> = { ...existingPengaturan };
+      for (const key of Object.keys(incoming)) {
+        if (
+          incoming[key] !== null &&
+          typeof incoming[key] === 'object' &&
+          !Array.isArray(incoming[key]) &&
+          typeof existingPengaturan[key] === 'object' &&
+          existingPengaturan[key] !== null &&
+          !Array.isArray(existingPengaturan[key])
+        ) {
+          // Deep merge nested objects (e.g. kartuPeserta)
+          merged[key] = { ...existingPengaturan[key], ...incoming[key] };
+        } else {
+          merged[key] = incoming[key];
+        }
+      }
+      updateFields.pengaturan = merged;
     }
 
     return await db.update(ujian).set(updateFields).where(eq(ujian.id, id)).returning();
