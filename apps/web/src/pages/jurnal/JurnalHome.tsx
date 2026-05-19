@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { useScheduleToday, useJurnalEntries } from '../../hooks/api/useJurnal';
 import { apiClient } from '../../lib/api';
-import { Clock, CheckCircle2, AlertCircle, PenLine, History, BarChart3, Settings, Plus, BookOpen } from 'lucide-react';
+import { Clock, CheckCircle2, AlertCircle, PenLine, History, BarChart3, Settings, Plus, BookOpen, Lock, Zap } from 'lucide-react';
 
 const DAYS_SHORT = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
@@ -22,6 +22,8 @@ const QUOTES = [
   '"Mengajar adalah seni tertinggi, karena mediator adalah pikiran dan jiwa manusia." — John Adams',
   '"Siapa pun yang berhenti belajar adalah orang tua. Siapa pun yang terus belajar tetap muda." — Henry Ford',
 ];
+
+type ScheduleStatus = 'belum_waktunya' | 'sedang_berlangsung' | 'bisa_diisi' | 'lewat_batas' | 'tersimpan';
 
 interface Props {
   onNavigate: (view: 'create' | 'history' | 'stats', scheduleItem?: any) => void;
@@ -43,11 +45,116 @@ function getWeekRange() {
   };
 }
 
+/** Parse "HH:mm" time string to minutes since midnight */
+function timeToMinutes(time: string): number {
+  if (!time) return -1;
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + (m || 0);
+}
+
+/** Get current time as minutes since midnight */
+function nowMinutes(): number {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+/** Determine the status of a schedule item based on current time */
+function getScheduleStatus(
+  item: any,
+  currentMinutes: number,
+  deadlineMode: string,
+  deadlineTime: string,
+  allItems: any[]
+): ScheduleStatus {
+  if (item.alreadyFilled) return 'tersimpan';
+
+  const start = timeToMinutes(item.waktuMulai);
+  const end = timeToMinutes(item.waktuSelesai);
+
+  // If no time data, always allow (fallback for legacy data)
+  if (start < 0 || end < 0) return 'bisa_diisi';
+
+  // Before class starts
+  if (currentMinutes < start) return 'belum_waktunya';
+
+  // During class
+  if (currentMinutes >= start && currentMinutes <= end) return 'sedang_berlangsung';
+
+  // After class — check deadline
+  let deadlineMinutes: number;
+  if (deadlineMode === 'sesuai_waktu_belajar') {
+    // Deadline = end of last class of the day
+    const lastEnd = Math.max(...allItems.map(i => timeToMinutes(i.waktuSelesai)).filter(t => t >= 0));
+    deadlineMinutes = lastEnd >= 0 ? lastEnd : end;
+  } else {
+    // Mode: waktu_tertentu
+    deadlineMinutes = timeToMinutes(deadlineTime);
+  }
+
+  if (currentMinutes <= deadlineMinutes) return 'bisa_diisi';
+  return 'lewat_batas';
+}
+
+const STATUS_CONFIG: Record<ScheduleStatus, {
+  borderColor: string;
+  badge: string;
+  badgeClass: string;
+  textClass: string;
+  disabled: boolean;
+  icon?: any;
+}> = {
+  belum_waktunya: {
+    borderColor: 'border-l-gray-300',
+    badge: 'Belum Waktunya',
+    badgeClass: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400',
+    textClass: 'text-gray-400 dark:text-gray-500',
+    disabled: true,
+    icon: Lock,
+  },
+  sedang_berlangsung: {
+    borderColor: 'border-l-emerald-500',
+    badge: 'Sedang Berlangsung',
+    badgeClass: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 animate-pulse',
+    textClass: 'text-emerald-600 dark:text-emerald-400',
+    disabled: false,
+    icon: Zap,
+  },
+  bisa_diisi: {
+    borderColor: 'border-l-amber-400',
+    badge: 'Belum Dijurnal',
+    badgeClass: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400',
+    textClass: 'text-amber-600 dark:text-amber-400',
+    disabled: false,
+  },
+  lewat_batas: {
+    borderColor: 'border-l-red-400',
+    badge: 'Lewat Batas',
+    badgeClass: 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400',
+    textClass: 'text-red-500 dark:text-red-400',
+    disabled: true,
+    icon: Lock,
+  },
+  tersimpan: {
+    borderColor: 'border-l-emerald-400',
+    badge: 'Tersimpan',
+    badgeClass: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400',
+    textClass: 'text-emerald-600 dark:text-emerald-400',
+    disabled: true,
+  },
+};
+
 export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
   const { user } = useAuth();
   const today = new Date();
   const todayStr = today.toLocaleDateString('sv-SE');
   const [quote] = useState(() => QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+  const [currentTime, setCurrentTime] = useState(() => nowMinutes());
+
+  // Auto-refresh time every 30 seconds to update status indicators
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(nowMinutes()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Resolve employee via react-query (cached, instant on revisit)
   const empQuery = useQuery({
@@ -67,8 +174,13 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
     employeeId ? { teacherId: employeeId, dateFrom: weekRange.from, dateTo: weekRange.to } : undefined
   );
 
+  // Parse new response format (backward compatible)
+  const scheduleData = schedule.data as any;
+  const todaySchedule = Array.isArray(scheduleData) ? scheduleData : (scheduleData?.schedule || []);
+  const deadlineMode = scheduleData?.deadlineMode || 'waktu_tertentu';
+  const deadlineTime = scheduleData?.deadlineTime || '17:00';
+
   // Compute stats
-  const todaySchedule = schedule.data || [];
   const todayEntries = (entriesQuery.data || []).filter((e: any) => e.date === todayStr);
   const filledCount = todaySchedule.filter((s: any) => s.alreadyFilled).length;
   const pendingCount = todaySchedule.length - filledCount;
@@ -159,7 +271,19 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
 
       {/* Jadwal Hari Ini */}
       <div className="px-4 mt-4">
-        <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3">Jadwal Hari Ini</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-sm text-gray-800 dark:text-white">Jadwal Hari Ini</h3>
+          {deadlineMode === 'waktu_tertentu' && (
+            <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
+              Batas: {deadlineTime} WITA
+            </span>
+          )}
+          {deadlineMode === 'sesuai_waktu_belajar' && (
+            <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
+              Batas: Akhir Jadwal
+            </span>
+          )}
+        </div>
         {schedule.isLoading && (
           <div className="space-y-3">
             {[1, 2, 3].map(i => <div key={i} className="bg-white dark:bg-[#1a1a1a] rounded-xl h-20 animate-pulse border border-gray-100 dark:border-gray-800" />)}
@@ -172,28 +296,36 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
           </div>
         )}
         <div className="space-y-3">
-          {todaySchedule.map((item: any) => (
-            <button key={item.id} onClick={() => !item.alreadyFilled && onNavigate('create', item)}
-              disabled={item.alreadyFilled}
-              className={`w-full text-left bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border-l-4 transition-all active:scale-[0.98] border border-gray-100 dark:border-gray-800 ${
-                item.alreadyFilled ? 'border-l-emerald-400 opacity-80' : 'border-l-amber-400 hover:shadow-md cursor-pointer'
-              }`}>
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className={`text-xs font-medium ${item.alreadyFilled ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                    {item.waktuMulai || '--:--'} - {item.waktuSelesai || '--:--'} • Jam ke {item.jamKe || '-'}
-                  </p>
-                  <h4 className="font-semibold text-sm text-gray-800 dark:text-white mt-0.5">{item.subjectName}</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.className}</p>
+          {todaySchedule.map((item: any) => {
+            const status = getScheduleStatus(item, currentTime, deadlineMode, deadlineTime, todaySchedule);
+            const config = STATUS_CONFIG[status];
+            const StatusIcon = config.icon;
+            const canClick = !config.disabled;
+
+            return (
+              <button key={item.id} onClick={() => canClick && onNavigate('create', item)}
+                disabled={config.disabled}
+                className={`w-full text-left bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border-l-4 transition-all border border-gray-100 dark:border-gray-800 ${config.borderColor} ${
+                  canClick ? 'hover:shadow-md cursor-pointer active:scale-[0.98]' : 'opacity-70 cursor-not-allowed'
+                }`}>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className={`text-xs font-medium ${config.textClass}`}>
+                      {item.waktuMulai || '--:--'} - {item.waktuSelesai || '--:--'} • Jam ke {item.jamKe || '-'}
+                    </p>
+                    <h4 className={`font-semibold text-sm mt-0.5 ${config.disabled && status !== 'tersimpan' ? 'text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-white'}`}>
+                      {item.subjectName}
+                    </h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.className}</p>
+                  </div>
+                  <span className={`px-2.5 py-1 text-xs font-medium rounded-full shrink-0 flex items-center gap-1 ${config.badgeClass}`}>
+                    {StatusIcon && <StatusIcon size={10} />}
+                    {config.badge}
+                  </span>
                 </div>
-                <span className={`px-2.5 py-1 text-xs font-medium rounded-full shrink-0 ${
-                  item.alreadyFilled
-                    ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
-                    : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
-                }`}>{item.alreadyFilled ? 'Tersimpan' : 'Belum Dijurnal'}</span>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </div>
 

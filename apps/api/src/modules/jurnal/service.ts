@@ -2,7 +2,7 @@ import { db } from "../../db";
 import {
   teachingSubjects, jurnalEntries, jurnalStudentAttendance,
   jurnalAttachments, jurnalTemplates, employees, classes,
-  studentProfiles, attendanceRecords, jurnalTimeSlots, teachingMethods
+  studentProfiles, attendanceRecords, jurnalTimeSlots, teachingMethods, siteSettings
 } from "../../db/schema";
 import { eq, and, desc, count, sql } from "drizzle-orm";
 
@@ -44,7 +44,7 @@ export class JurnalService {
     // Derive day-of-week from the date string (timezone-safe)
     const [y, m, d] = today.split("-").map(Number);
     const jsDay = new Date(y, m - 1, d).getDay(); // 0=Sunday, 1=Monday...
-    if (jsDay === 0) return [];
+    if (jsDay === 0) return { schedule: [], deadlineMode: 'waktu_tertentu', deadlineTime: '17:00' };
 
     const results = await db.select({
       id: teachingSubjects.id,
@@ -69,7 +69,21 @@ export class JurnalService {
       .where(and(eq(jurnalEntries.teacherId, employeeId), eq(jurnalEntries.date, today)));
     const filledIds = new Set(todayJurnals.map(j => j.teachingSubjectId));
 
-    return results.map(r => ({ ...r, alreadyFilled: filledIds.has(r.id) }));
+    // Fetch deadline settings
+    const deadlineSettings = await db.select({ key: siteSettings.key, value: siteSettings.value })
+      .from(siteSettings)
+      .where(sql`${siteSettings.key} IN ('jurnal_deadline_mode', 'jurnal_deadline_time')`);
+    
+    const settingsMap: Record<string, string> = {};
+    for (const s of deadlineSettings) { if (s.key && s.value) settingsMap[s.key] = s.value; }
+
+    const schedule = results.map(r => ({ ...r, alreadyFilled: filledIds.has(r.id) }));
+
+    return {
+      schedule,
+      deadlineMode: settingsMap['jurnal_deadline_mode'] || 'waktu_tertentu',
+      deadlineTime: settingsMap['jurnal_deadline_time'] || '17:00',
+    };
   }
 
   static async createTeachingSubject(data: any) {
