@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { apiClient } from '../../../lib/api';
 import { Download, FileSpreadsheet, RefreshCw, Zap, Trash2, AlertTriangle, Loader2, ChevronDown, CheckCircle2, XCircle, MapPin, GripVertical, ArrowLeftRight, Clock, Maximize2, Minimize2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -124,21 +124,28 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [draggingBlock, setDraggingBlock] = useState<any>(null);
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const fullscreenRef = useRef<HTMLDivElement>(null);
 
-  // Escape key to exit fullscreen
-  useEffect(() => {
-    if (!isFullscreen) return;
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsFullscreen(false); };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [isFullscreen]);
+  // Native Fullscreen API toggle
+  const toggleFullscreen = useCallback(async () => {
+    if (!fullscreenRef.current) return;
+    try {
+      if (!document.fullscreenElement) {
+        await fullscreenRef.current.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.warn('Fullscreen not supported:', err);
+    }
+  }, []);
 
-  // Lock body scroll when fullscreen
+  // Sync isFullscreen state with browser fullscreen events
   useEffect(() => {
-    if (isFullscreen) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = '';
-    return () => { document.body.style.overflow = ''; };
-  }, [isFullscreen]);
+    const handleChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleChange);
+    return () => document.removeEventListener('fullscreenchange', handleChange);
+  }, []);
 
   const loadData = useCallback(() => {
     if (!academicYearId) return;
@@ -579,7 +586,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
           )}
           {jadwal.length > 0 && (
             <button
-              onClick={() => setIsFullscreen(!isFullscreen)}
+              onClick={toggleFullscreen}
               title={isFullscreen ? 'Keluar Layar Penuh (Esc)' : 'Layar Penuh'}
               className="text-[10px] px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-[#333] hover:bg-gray-100 dark:hover:bg-gray-700 font-semibold transition-all flex items-center gap-1"
             >
@@ -627,16 +634,14 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
         </div>
       ) : (
         <>
-          {/* Fullscreen Overlay */}
-          {isFullscreen && <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={() => setIsFullscreen(false)} />}
-          <div className={`overflow-auto rounded-xl border border-gray-200 dark:border-[#222] transition-all duration-300 ${
+          <div ref={fullscreenRef} className={`overflow-auto rounded-xl border border-gray-200 dark:border-[#222] transition-all duration-300 ${
             isFullscreen
-              ? 'fixed inset-3 z-50 bg-white dark:bg-[#111] shadow-2xl rounded-2xl max-h-none'
+              ? 'bg-white dark:bg-[#111] rounded-none border-0 h-screen'
               : 'max-h-[calc(100vh-320px)]'
           }`}>
             {/* Fullscreen header bar */}
             {isFullscreen && (
-              <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-2xl">
+              <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500">
                 <div className="flex items-center gap-3">
                   <Zap size={16} className="text-white" />
                   <span className="text-white font-bold text-sm">Jadwal KBM — Layar Penuh</span>
@@ -644,14 +649,28 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-white/50 text-[10px]">Tekan ESC untuk keluar</span>
-                  <button onClick={() => setIsFullscreen(false)} className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all">
+                  <button onClick={toggleFullscreen} className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all">
                     <Minimize2 size={14} />
                   </button>
                 </div>
               </div>
             )}
+            {/* Fullscreen: failed blocks panel */}
+            {isFullscreen && generateReport?.failedBlocks > 0 && (
+              <div className="sticky top-[44px] z-20 bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-500/30 px-4 py-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <XCircle size={12} className="text-red-500" />
+                  <span className="text-[11px] font-bold text-red-600 dark:text-red-400">{generateReport.failedBlocks} blok gagal — drag ke grid</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {generateReport.report?.failedDetails?.map((f: any, i: number) => (
+                    <FailedBlockDraggable key={i} block={f} index={i} />
+                  ))}
+                </div>
+              </div>
+            )}
             <table className="w-full border-collapse text-[11px]">
-              <thead className="sticky top-0 z-20">
+              <thead className={`sticky z-20 ${isFullscreen ? (generateReport?.failedBlocks > 0 ? 'top-[108px]' : 'top-[44px]') : 'top-0'}`}>
                 <tr className="bg-gray-100 dark:bg-[#1a1a1a]">
                   <th className="sticky left-0 z-30 bg-gray-100 dark:bg-[#1a1a1a] px-2 py-2.5 text-left font-semibold text-gray-500 border-r border-gray-200 dark:border-[#333] w-14">Jam</th>
                   {days.map(d => (
@@ -687,20 +706,6 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
               </tbody>
             </table>
           </div>
-          {/* Fullscreen: failed blocks panel pinned to bottom */}
-          {isFullscreen && generateReport?.failedBlocks > 0 && (
-            <div className="fixed bottom-3 left-3 right-3 z-50 bg-white dark:bg-[#1a1a1a] rounded-xl shadow-2xl border border-amber-200 dark:border-amber-500/30 p-3 max-h-32 overflow-y-auto">
-              <div className="flex items-center gap-2 mb-1">
-                <XCircle size={12} className="text-red-500" />
-                <span className="text-[11px] font-bold text-red-600 dark:text-red-400">{generateReport.failedBlocks} blok gagal — drag ke grid</span>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {generateReport.report?.failedDetails?.map((f: any, i: number) => (
-                  <FailedBlockDraggable key={i} block={f} index={i} />
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Drag Overlay */}
           <DragOverlay dropAnimation={null}>
