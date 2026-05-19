@@ -801,6 +801,10 @@ export class KbmService {
               }
               ensureMap(guruDayJP, block.guruId).set(day, (ensureMap(guruDayJP, block.guruId).get(day) || 0) + block.size);
               ensureMap(kelasDayJP, block.kelasId).set(day, (ensureMap(kelasDayJP, block.kelasId).get(day) || 0) + block.size);
+              // Track subject-kelas-day in decompose too
+              const dskKey = `${block.subjectId}-${block.kelasId}`;
+              if (!subjectKelasDay.has(dskKey)) subjectKelasDay.set(dskKey, new Set());
+              subjectKelasDay.get(dskKey)!.add(day);
               decomposedPlaced++;
             }
             if (decomposedPlaced > 0) passResults.push({ pass: 6, label: 'Decompose blok gagal (pecah 3->2+1, 2->1+1)', placed: decomposedPlaced });
@@ -860,6 +864,9 @@ export class KbmService {
           for (const day of dayList) {
             if (ok) break;
             if (guruUnavailDays.get(block.guruId)?.has(day)) continue;
+            // Enforce subject-kelas-day in chain swap rescue
+            const rskKey = `${block.subjectId}-${block.kelasId}`;
+            if (subjectKelasDay.get(rskKey)?.has(day)) continue;
             const jams = availableDays.get(day)!;
             for (let si = 0; si <= jams.length - block.size; si++) {
               let con = true;
@@ -874,7 +881,12 @@ export class KbmService {
               if (!cf) continue;
               let af = true;
               for (let j = sj; j < sj + block.size; j++) { if (!gF(block.guruId, day, j)) { af = false; break; } }
-              if (af) { for (let j = sj; j < sj + block.size; j++) pn(block, day, j); ok = true; break; }
+              if (af) {
+                for (let j = sj; j < sj + block.size; j++) pn(block, day, j);
+                if (!subjectKelasDay.has(rskKey)) subjectKelasDay.set(rskKey, new Set());
+                subjectKelasDay.get(rskKey)!.add(day);
+                ok = true; break;
+              }
               if (block.size === 1) {
                 const bi = gA.get(`${block.guruId}-${day}-${sj}`);
                 if (bi === undefined) continue;
