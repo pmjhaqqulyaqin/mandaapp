@@ -126,24 +126,33 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const fullscreenRef = useRef<HTMLDivElement>(null);
 
-  // CSS-based fullscreen overlay (avoids Fullscreen API restrictions with portals, confirm, toast)
+  // Hybrid fullscreen: Fullscreen API (hides browser chrome + taskbar) + CSS overlay (covers page content)
   const toggleFullscreen = useCallback(() => {
-    setIsFullscreen(prev => !prev);
+    const next = !isFullscreen;
+    setIsFullscreen(next);
+    if (next) {
+      // Enter browser fullscreen to hide tab bar + taskbar
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    } else {
+      // Exit browser fullscreen
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    }
+  }, [isFullscreen]);
+
+  // Sync state when browser fullscreen exits (e.g. ESC pressed at browser level)
+  useEffect(() => {
+    const handleFsChange = () => {
+      if (!document.fullscreenElement) setIsFullscreen(false);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, []);
 
-  // ESC key to exit fullscreen overlay
+  // Lock body scroll when fullscreen overlay is active
   useEffect(() => {
     if (!isFullscreen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsFullscreen(false);
-    };
-    document.addEventListener('keydown', handleKey);
-    // Lock body scroll when fullscreen
     document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', handleKey);
-      document.body.style.overflow = '';
-    };
+    return () => { document.body.style.overflow = ''; };
   }, [isFullscreen]);
 
   const loadData = useCallback(() => {
