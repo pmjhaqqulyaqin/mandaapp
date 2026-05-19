@@ -678,7 +678,8 @@ export class KbmService {
             if (curJP + block.size > maxDailyLimit) continue;
           }
           const afternoonApplies = block.maxJamKe && !(config.afternoonExcludeFriday && day === 5);
-          const enforceAfternoon = afternoonApplies && (block.isHeavy ? passLevel < 5 : passLevel < 3);
+          // Heavy subjects: maxJamKe is a HARD constraint (never relaxed).  Non-heavy: relaxed at pass 3+
+          const enforceAfternoon = afternoonApplies && (block.isHeavy ? true : passLevel < 3);
           const activeDays = dayList.filter(d => !guruUnavailDays.get(block.guruId)?.has(d)).length;
           const targetPerDay = activeDays > 0 ? Math.ceil(totalJP / activeDays) : 99;
           const currentGuruDayJP = ensureMap(guruDayJP, block.guruId).get(day) || 0;
