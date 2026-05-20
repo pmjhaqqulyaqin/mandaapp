@@ -1416,6 +1416,20 @@ export class KbmService {
       });
     }
 
+    // Nullify jurnal_entries references to KBM-generated teaching_subjects before deletion
+    // (jurnal_entries.teaching_subject_id FK has ON DELETE NO ACTION, but the column is nullable
+    //  and each jurnal entry keeps its own subject_name/teacher_id/class_id, so this is safe)
+    await db.execute(sql`
+      UPDATE jurnal_entries
+      SET teaching_subject_id = NULL
+      WHERE teaching_subject_id IN (
+        SELECT id FROM teaching_subjects
+        WHERE kbm_generated = true
+          AND semester = ${semester}
+          AND tahun_ajaran = ${tahunAjaran}
+      )
+    `);
+
     // Delete only KBM-generated teaching_subjects for this semester
     await db.execute(sql`
       DELETE FROM teaching_subjects 
