@@ -63,6 +63,9 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
   }, [selectedSchedule]);
 
   const schedule = useScheduleToday(employeeId);
+  // Parse new response format: { schedule: [...], deadlineMode, deadlineTime } (backward compatible with plain array)
+  const scheduleData = schedule.data as any;
+  const scheduleItems: any[] = Array.isArray(scheduleData) ? scheduleData : (scheduleData?.schedule || []);
   const classStudents = useClassStudents(form.classId, form.date);
 
   // Init attendance from class students
@@ -77,10 +80,10 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
   }, [classStudents.data, form.classId]);
 
   useEffect(() => {
-    if (schedule.data && schedule.data.length > 0) {
-      offlineCache.cacheScheduleToday(schedule.data).catch(() => {});
+    if (scheduleItems.length > 0) {
+      offlineCache.cacheScheduleToday(scheduleItems).catch(() => {});
     }
-  }, [schedule.data]);
+  }, [scheduleItems]);
 
   // Auto-save draft
   useEffect(() => {
@@ -242,9 +245,9 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
             Pilih Jadwal
           </h3>
           {schedule.isLoading && <p className="text-sm text-gray-400">Memuat jadwal...</p>}
-          {schedule.data?.length === 0 && <p className="text-sm text-gray-400">Tidak ada jadwal hari ini</p>}
+          {!schedule.isLoading && scheduleItems.length === 0 && <p className="text-sm text-gray-400">Tidak ada jadwal hari ini</p>}
           <div className="space-y-2">
-            {schedule.data?.map((item: any) => (
+            {scheduleItems.map((item: any) => (
               <button key={item.id} onClick={() => selectSchedule(item)} disabled={item.alreadyFilled}
                 className={`w-full text-left p-3 rounded-lg border transition-all active:scale-[0.98] ${
                   form.teachingSubjectId === item.id ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 ring-2 ring-emerald-500/30'
