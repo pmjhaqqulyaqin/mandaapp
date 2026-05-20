@@ -426,7 +426,7 @@ export const DashboardStudents = () => {
 
       {/* Floating Action Bar */}
       {selectedStudentIds.length > 0 && activeTab === 'students' && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white dark:bg-[#1a1a1a] shadow-xl border border-gray-200 dark:border-[#333] px-4 py-3 rounded-full flex items-center gap-4 z-50 animate-in slide-in-from-bottom h-14">
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 bg-white dark:bg-[#1a1a1a] shadow-xl border border-gray-200 dark:border-[#333] px-4 py-3 rounded-full flex items-center gap-4 z-50 animate-in slide-in-from-bottom h-14">
           <div className="bg-primary/10 text-primary font-bold w-8 h-8 rounded-full flex items-center justify-center text-sm">{selectedStudentIds.length}</div>
           <span className="text-sm font-medium text-text-primary dark:text-text-darkPrimary pr-2 hidden sm:inline">Siswa Terpilih</span>
           <div className="w-px h-6 bg-gray-200 dark:bg-[#333]" />

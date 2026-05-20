@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useScheduleToday, useClassStudents, useTeachingMethodsList } from '../../../hooks/api/useJurnal';
 import { apiClient } from '../../../lib/api';
@@ -28,6 +29,7 @@ interface Props {
 
 export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [form, setForm] = useState<FormData>(INITIAL);
   const [employeeId, setEmployeeId] = useState('');
   const [attendance, setAttendance] = useState<{ studentId: string; status: string; name: string }[]>([]);
@@ -160,6 +162,9 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
       if (!navigator.onLine) {
         await smartSend('jurnal_create', payload, `Jurnal ${form.subjectName} - ${form.className}`);
         localStorage.removeItem('jurnal_draft');
+        // Invalidate schedule & entries cache so status updates on return
+        await queryClient.invalidateQueries({ queryKey: ['jurnal-schedule-today'] });
+        await queryClient.invalidateQueries({ queryKey: ['jurnal-entries'] });
         toast.success('📱 Jurnal tersimpan offline — akan dikirim saat online');
         onBack();
         return;
@@ -181,6 +186,9 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
       }
 
       localStorage.removeItem('jurnal_draft');
+      // Invalidate schedule & entries cache so JurnalHome shows updated status immediately
+      await queryClient.invalidateQueries({ queryKey: ['jurnal-schedule-today'] });
+      await queryClient.invalidateQueries({ queryKey: ['jurnal-entries'] });
       toast.success(andSubmit ? 'Jurnal berhasil disubmit!' : 'Draft tersimpan!');
       onBack();
     } catch (err: any) {
@@ -192,6 +200,9 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
         try {
           await smartSend('jurnal_create', payload, `Jurnal ${form.subjectName} - ${form.className}`);
           localStorage.removeItem('jurnal_draft');
+          // Invalidate schedule & entries cache so status updates on return
+          await queryClient.invalidateQueries({ queryKey: ['jurnal-schedule-today'] });
+          await queryClient.invalidateQueries({ queryKey: ['jurnal-entries'] });
           toast.success('📱 Jurnal tersimpan offline — akan dikirim saat online');
           onBack();
         } catch {
