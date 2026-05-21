@@ -196,7 +196,12 @@ export class StudentController {
 
   static async getById(req: Request, res: Response) {
     try {
-      const student = await StudentService.getStudentById(req.params.id);
+      let student;
+      if (req.query.complete === 'true') {
+        student = await StudentService.getStudentCompleteData(req.params.id);
+      } else {
+        student = await StudentService.getStudentById(req.params.id);
+      }
       if (!student) return res.status(404).json({ error: "Not found" });
       res.json(student);
     } catch (error) {
@@ -206,21 +211,24 @@ export class StudentController {
 
   static async generateBukuInduk(req: Request, res: Response) {
     try {
-      const student = await StudentService.getStudentById(req.params.id);
-      if (!student) return res.status(404).json({ error: "Not found" });
+      const completeStudentData = await StudentService.getStudentCompleteData(req.params.id);
+      if (!completeStudentData) return res.status(404).json({ error: "Not found" });
 
-      // TODO: In a real implementation, you would fetch these from their respective services
+      // Build data payload for the PDF template, falling back to N/A for empty nested relations
       const mockData = {
-        student,
-        parents: [
-          { type: 'ayah', name: 'Budi Santoso', occupation: 'Wiraswasta' },
-          { type: 'ibu', name: 'Siti Aminah', occupation: 'Ibu Rumah Tangga' }
+        student: completeStudentData,
+        parents: completeStudentData.parents && completeStudentData.parents.length > 0 ? completeStudentData.parents : [
+          { type: 'ayah', name: '-', occupation: '-' },
+          { type: 'ibu', name: '-', occupation: '-' }
         ],
-        education: { previousSchoolName: 'SMP Negeri 1' },
-        physical: { heightCm: 160, weightKg: 50 },
+        education: completeStudentData.education && completeStudentData.education.length > 0 ? completeStudentData.education[0] : { previousSchoolName: '-' },
+        physical: completeStudentData.physical && completeStudentData.physical.length > 0 ? completeStudentData.physical[0] : { heightCm: 0, weightKg: 0 },
         grades: [
-          { subjectName: 'Matematika', score: 85 },
-          { subjectName: 'Bahasa Indonesia', score: 90 }
+          // TODO: Fetch actual grades from Grade module when implemented
+          { subjectName: 'Pendidikan Agama Islam', score: '-' },
+          { subjectName: 'Pendidikan Pancasila', score: '-' },
+          { subjectName: 'Bahasa Indonesia', score: '-' },
+          { subjectName: 'Matematika', score: '-' },
         ]
       };
 
@@ -242,8 +250,15 @@ export class StudentController {
 
   static async update(req: Request, res: Response) {
     try {
-      const updated = await StudentService.updateStudent(req.params.id, req.body);
-      res.json(updated);
+      if (req.body.student || req.body.parents || req.body.education || req.body.physical) {
+        // Complete Data Update
+        const updated = await StudentService.saveStudentCompleteData(req.params.id, req.body);
+        res.json(updated);
+      } else {
+        // Legacy simple update
+        const updated = await StudentService.updateStudent(req.params.id, req.body);
+        res.json(updated);
+      }
     } catch (error) {
       res.status(500).json({ error: "Failed to update student" });
     }

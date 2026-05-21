@@ -1,5 +1,5 @@
 import { db } from "../../db";
-import { studentProfiles, identityRevisions } from "../../db/schema";
+import { studentProfiles, identityRevisions, parentProfiles, educationHistory, physicalData } from "../../db/schema";
 import { eq, ilike, or } from "drizzle-orm";
 
 export class StudentService {
@@ -16,6 +16,22 @@ export class StudentService {
   static async getStudentById(id: string) {
     const results = await db.select().from(studentProfiles).where(eq(studentProfiles.id, id));
     return results[0] || null;
+  }
+
+  static async getStudentCompleteData(id: string) {
+    const student = await this.getStudentById(id);
+    if (!student) return null;
+
+    const parents = await db.select().from(parentProfiles).where(eq(parentProfiles.studentId, id));
+    const education = await db.select().from(educationHistory).where(eq(educationHistory.studentId, id));
+    const physical = await db.select().from(physicalData).where(eq(physicalData.studentId, id));
+
+    return {
+      ...student,
+      parents,
+      education,
+      physical
+    };
   }
 
   static async createStudent(data: any) {
@@ -41,6 +57,47 @@ export class StudentService {
   static async updateStudent(id: string, data: any) {
     const results = await db.update(studentProfiles).set(data).where(eq(studentProfiles.id, id)).returning();
     return results[0];
+  }
+
+  static async saveStudentCompleteData(id: string, payload: any) {
+    return db.transaction(async (tx) => {
+      // 1. Update Student Profile
+      const studentData = payload.student || {};
+      let updatedStudent = null;
+      if (Object.keys(studentData).length > 0) {
+        const results = await tx.update(studentProfiles).set(studentData).where(eq(studentProfiles.id, id)).returning();
+        updatedStudent = results[0];
+      }
+
+      // 2. Overwrite Parents
+      if (payload.parents && Array.isArray(payload.parents)) {
+        await tx.delete(parentProfiles).where(eq(parentProfiles.studentId, id));
+        if (payload.parents.length > 0) {
+          const parentsToInsert = payload.parents.map((p: any) => ({ ...p, studentId: id }));
+          await tx.insert(parentProfiles).values(parentsToInsert);
+        }
+      }
+
+      // 3. Overwrite Education History
+      if (payload.education && Array.isArray(payload.education)) {
+        await tx.delete(educationHistory).where(eq(educationHistory.studentId, id));
+        if (payload.education.length > 0) {
+          const eduToInsert = payload.education.map((e: any) => ({ ...e, studentId: id }));
+          await tx.insert(educationHistory).values(eduToInsert);
+        }
+      }
+
+      // 4. Overwrite Physical Data
+      if (payload.physical && Array.isArray(payload.physical)) {
+        await tx.delete(physicalData).where(eq(physicalData.studentId, id));
+        if (payload.physical.length > 0) {
+          const physicalToInsert = payload.physical.map((p: any) => ({ ...p, studentId: id }));
+          await tx.insert(physicalData).values(physicalToInsert);
+        }
+      }
+
+      return updatedStudent;
+    });
   }
 
   static async deleteStudent(id: string) {
