@@ -232,8 +232,7 @@ export class StudentController {
 
       const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
       const page = await browser.newPage();
-      // Increase resilience against slow external images (like ui-avatars)
-      await page.setContent(htmlContent, { waitUntil: 'networkidle2', timeout: 30000 });
+      await page.setContent(htmlContent, { waitUntil: 'domcontentloaded', timeout: 30000 });
       const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '1.5cm', bottom: '1.5cm', left: '1.5cm', right: '1.5cm' } });
       await browser.close();
 
