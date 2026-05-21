@@ -158,6 +158,13 @@ const ALL_MENU_ITEMS = [
     group: 'main',
   },
   {
+    key: 'buku-induk',
+    label: 'Buku Induk',
+    href: '/dashboard/buku-induk',
+    icon: <BookOpen size={16} />,
+    group: 'main',
+  },
+  {
     key: 'e-office',
     label: 'Korespondensi Dinas',
     href: '/dashboard/e-office',
@@ -258,6 +265,7 @@ const MENU_ICON_COLORS: Record<string, { bg: string; text: string }> = {
   'kbm':           { bg: 'bg-gradient-to-br from-amber-500 to-orange-500',    text: 'text-white' },
   'nis':           { bg: 'bg-gradient-to-br from-violet-400 to-violet-500',   text: 'text-white' },
   'students':      { bg: 'bg-gradient-to-br from-indigo-400 to-indigo-500',   text: 'text-white' },
+  'buku-induk':    { bg: 'bg-gradient-to-br from-blue-400 to-cyan-500',       text: 'text-white' },
   'e-office':      { bg: 'bg-gradient-to-br from-amber-400 to-amber-500',     text: 'text-white' },
   'exams':         { bg: 'bg-gradient-to-br from-purple-500 to-purple-600',   text: 'text-white' },
   'ppdb':          { bg: 'bg-gradient-to-br from-sky-400 to-sky-500',         text: 'text-white' },
@@ -289,6 +297,7 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'users': 'users',
   'updates': 'updates',
   'students': 'students',
+  'buku-induk': 'buku-induk',
   'ijazah': 'ijazah',
   'nis': 'nis',
   'employees': 'employees',
@@ -441,7 +450,7 @@ export const DashboardLayout = () => {
   // ── Categorized menu sections for unified grid ──
   const frequentKeys = ['jurnal', 'kbm', 'attendance', 'employees', 'e-office'];
   const infoKeys = ['news', 'gallery', 'contacts', 'calendar'];
-  const siswaKeys = ['students', 'student-card', 'nis', 'ijazah', 'ppdb', 'penilaian-pmb'];
+  const siswaKeys = ['students', 'buku-induk', 'student-card', 'nis', 'ijazah', 'ppdb', 'penilaian-pmb'];
   const layananKeys = ['ptsp', 'exams'];
 
   const menuSections = [

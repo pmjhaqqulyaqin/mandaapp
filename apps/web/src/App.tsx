@@ -166,6 +166,7 @@ function App() {
               <Route path="settings" element={<ProtectedRoute allowedRoles={['admin','kepala_madrasah']}><DashboardSettings /></ProtectedRoute>} />
               <Route path="users" element={<ProtectedRoute allowedRoles={['admin']}><DashboardUsers /></ProtectedRoute>} />
               <Route path="students" element={<DashboardStudents />} />
+              <Route path="buku-induk" element={<DashboardStudents />} />
               <Route path="ijazah" element={<DashboardIjazah />} />
               <Route path="nis" element={<DashboardNIS />} />
               <Route path="employees" element={<DashboardEmployees />} />
