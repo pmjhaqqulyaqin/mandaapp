@@ -88,6 +88,8 @@ export const studentProfiles = pgTable("student_profiles", {
   fullName: varchar("full_name", { length: 255 }), // Added for standalone student data
   nis: varchar("nis", { length: 50 }),
   nisn: varchar("nisn", { length: 50 }).unique().notNull(),
+  nik: varchar("nik", { length: 50 }),
+  noKk: varchar("no_kk", { length: 50 }),
   classId: uuid("class_id").references(() => classes.id),
   className: varchar("class_name", { length: 50 }), // Kept for legacy compatibility
   birthPlace: varchar("birth_place", { length: 100 }),
@@ -97,6 +99,46 @@ export const studentProfiles = pgTable("student_profiles", {
   photoUrl: varchar("photo_url", { length: 255 }),
   status: varchar("status", { length: 20 }).default("active"),
   createdSource: varchar("created_source", { length: 50 }).default("student_module"), // student_module or nis_module
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const parentProfiles = pgTable("parent_profiles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  studentId: uuid("student_id").references(() => studentProfiles.id, { onDelete: "cascade" }).notNull(),
+  type: varchar("type", { length: 20 }).notNull(), // ayah, ibu, wali
+  name: varchar("name", { length: 255 }).notNull(),
+  relationship: varchar("relationship", { length: 100 }), // for wali
+  educationLevel: varchar("education_level", { length: 100 }),
+  occupation: varchar("occupation", { length: 150 }),
+  phone: varchar("phone", { length: 50 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const educationHistory = pgTable("education_history", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  studentId: uuid("student_id").references(() => studentProfiles.id, { onDelete: "cascade" }).notNull(),
+  previousSchoolName: varchar("previous_school_name", { length: 255 }),
+  sttbDate: date("sttb_date"),
+  sttbNumber: varchar("sttb_number", { length: 100 }),
+  transferFromSchool: varchar("transfer_from_school", { length: 255 }),
+  transferFromClass: varchar("transfer_from_class", { length: 50 }),
+  transferAcceptDate: date("transfer_accept_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const physicalData = pgTable("physical_data", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  studentId: uuid("student_id").references(() => studentProfiles.id, { onDelete: "cascade" }).notNull(),
+  semester: integer("semester").notNull(),
+  academicYear: varchar("academic_year", { length: 50 }),
+  heightCm: integer("height_cm"),
+  weightKg: integer("weight_kg"),
+  hearingCondition: varchar("hearing_condition", { length: 100 }),
+  visionCondition: varchar("vision_condition", { length: 100 }),
+  dentalCondition: varchar("dental_condition", { length: 100 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });

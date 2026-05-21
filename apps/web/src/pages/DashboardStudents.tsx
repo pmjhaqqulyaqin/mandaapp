@@ -7,7 +7,8 @@ import * as XLSX from 'xlsx';
 import {
   Users, Search, Settings2, RefreshCw, FileSpreadsheet, Download,
   UserPlus, Edit2, Trash2, ChevronLeft, ChevronRight, Loader2,
-  CheckCircle2, GraduationCap, AlertCircle, UserCog, ArrowUpRight, X, QrCode
+  UserPlus, Edit2, Trash2, ChevronLeft, ChevronRight, Loader2,
+  CheckCircle2, GraduationCap, AlertCircle, UserCog, ArrowUpRight, X, QrCode, Printer
 } from 'lucide-react';
 
 // Sub-components
@@ -147,6 +148,30 @@ export const DashboardStudents = () => {
     if (!window.confirm(`Yakin hapus data siswa "${name}"?`)) return;
     try { await apiClient(`/students/${id}`, { method: 'DELETE' }); fetchAll(); }
     catch (err: any) { alert('Gagal: ' + err.message); }
+  };
+
+  const handlePrintBukuInduk = async (s: any) => {
+    try {
+      const { API_BASE_URL } = await import('../lib/api');
+      const response = await fetch(`${API_BASE_URL}/students/${s.id}/buku-induk/pdf`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error(`Gagal mencetak Buku Induk: ${response.statusText}`);
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Buku_Induk_${s.nis || s.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      alert('Gagal mencetak Buku Induk: ' + (error.message || 'Error'));
+    }
   };
 
   const handleEdit = (student: any) => {
@@ -328,6 +353,7 @@ export const DashboardStudents = () => {
                       <td className="py-2 px-3"><StatusBadge status={s.status} /></td>
                       <td className="py-2 px-3 text-center">
                         <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => handlePrintBukuInduk(s)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-emerald-500 transition-colors" title="Cetak Buku Induk"><Printer size={13} /></button>
                           <button onClick={() => { setStatusStudent(s); setUpdateStatusOpen(true); }} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-amber-500 transition-colors" title="Ubah Status"><UserCog size={13} /></button>
                           <button onClick={() => handleEdit(s)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-blue-500 transition-colors" title="Edit"><Edit2 size={13} /></button>
                           <button onClick={() => handleDelete(s.id, s.fullName)} disabled={!isAdmin} className={`p-1 rounded-md transition-colors ${isAdmin ? 'hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-red-500' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50'}`} title={isAdmin ? "Hapus" : "Akses Ditolak"}><Trash2 size={13} /></button>

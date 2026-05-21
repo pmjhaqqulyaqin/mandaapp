@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { StudentService } from "./service";
 import * as xlsx from "xlsx";
+import puppeteer from "puppeteer";
+import { generateBukuIndukTemplate } from "./template";
 
 export class StudentController {
   static async getAll(req: Request, res: Response) {
@@ -199,6 +201,42 @@ export class StudentController {
       res.json(student);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch student" });
+    }
+  }
+
+  static async generateBukuInduk(req: Request, res: Response) {
+    try {
+      const student = await StudentService.getStudentById(req.params.id);
+      if (!student) return res.status(404).json({ error: "Not found" });
+
+      // TODO: In a real implementation, you would fetch these from their respective services
+      const mockData = {
+        student,
+        parents: [
+          { type: 'ayah', name: 'Budi Santoso', occupation: 'Wiraswasta' },
+          { type: 'ibu', name: 'Siti Aminah', occupation: 'Ibu Rumah Tangga' }
+        ],
+        education: { previousSchoolName: 'SMP Negeri 1' },
+        physical: { heightCm: 160, weightKg: 50 },
+        grades: [
+          { subjectName: 'Matematika', score: 85 },
+          { subjectName: 'Bahasa Indonesia', score: 90 }
+        ]
+      };
+
+      const htmlContent = generateBukuIndukTemplate(mockData);
+
+      const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+      const page = await browser.newPage();
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '2cm', bottom: '2cm', left: '2cm', right: '2cm' } });
+      await browser.close();
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', \`attachment; filename="Buku_Induk_\${student.nis || student.id}.pdf"\`);
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to generate PDF Buku Induk", details: error.message });
     }
   }
 

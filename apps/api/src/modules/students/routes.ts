@@ -20,6 +20,7 @@ router.get("/revisions", requireStaff, StudentController.getRevisions);
 router.post("/pull-from-nis", requireStaff, StudentController.pullFromNIS);
 router.put("/bulk-update", requireStaff, StudentController.bulkUpdate);
 router.get("/:id", requireStaff, StudentController.getById);
+router.get("/:id/buku-induk/pdf", requireStaff, StudentController.generateBukuInduk);
 router.put("/:id", requireStaff, StudentController.update);
 router.delete("/:id", requireStaff, StudentController.delete);
 router.post("/revisions", requireStaff, StudentController.createRevision);
