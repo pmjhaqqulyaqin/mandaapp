@@ -241,7 +241,7 @@ export class StudentController {
       await browser.close();
 
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="Buku_Induk_${student.nis || student.id}.pdf"`);
+      res.setHeader('Content-Disposition', `attachment; filename="Buku_Induk_${completeStudentData.nis || completeStudentData.id}.pdf"`);
       res.send(pdfBuffer);
     } catch (error: any) {
       res.status(500).json({ error: "Failed to generate PDF Buku Induk", details: error.message });
