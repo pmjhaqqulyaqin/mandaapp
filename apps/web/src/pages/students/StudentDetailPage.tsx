@@ -525,6 +525,7 @@ export default function StudentDetailPage() {
   const [extracurriculars, setExtracurriculars] = useState<any[]>([]);
   const [p5Data, setP5Data] = useState<any[]>([]);
   const [finalStatusForm, setFinalStatusForm] = useState<any>({});
+  const [classMapels, setClassMapels] = useState<string[]>(DEFAULT_SUBJECTS);
 
   const fetchData = async () => {
     try {
@@ -535,6 +536,21 @@ export default function StudentDetailPage() {
       ]);
       setData(result);
       setClassesList(classesRes);
+
+      if (result.classId) {
+        try {
+          const m = await apiClient<any>(`/students/class-mapels/${result.classId}`);
+          if (m && m.mapels && m.mapels.length > 0) {
+            setClassMapels(m.mapels);
+          } else {
+            setClassMapels(DEFAULT_SUBJECTS);
+          }
+        } catch {
+          setClassMapels(DEFAULT_SUBJECTS);
+        }
+      } else {
+        setClassMapels(DEFAULT_SUBJECTS);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -561,7 +577,7 @@ export default function StudentDetailPage() {
         matrix[g.subjectName][g.semester] = g.score;
         subs.add(g.subjectName);
       });
-      DEFAULT_SUBJECTS.forEach(s => subs.add(s));
+      classMapels.forEach(s => subs.add(s));
       setGradesMatrix(matrix);
       setSubjects(Array.from(subs));
 

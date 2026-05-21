@@ -348,4 +348,42 @@ export class StudentController {
       res.status(500).json({ error: "Failed to search students" });
     }
   }
+
+  // --- Class Mapels (Buku Induk) ---
+  static async getClassMapels(req: Request, res: Response) {
+    try {
+      const { classId } = req.params;
+      const data = await StudentService.getClassMapels(classId);
+      res.json(data || { classId, mapels: [] });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch class mapels" });
+    }
+  }
+
+  static async updateClassMapels(req: Request, res: Response) {
+    try {
+      const { classId } = req.params;
+      const { mapels } = req.body;
+      if (!Array.isArray(mapels)) {
+        return res.status(400).json({ error: "mapels must be an array" });
+      }
+      const data = await StudentService.updateClassMapels(classId, mapels);
+      res.json({ message: "Berhasil menyimpan mapel kelas", data });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update class mapels" });
+    }
+  }
+
+  static async copyClassMapels(req: Request, res: Response) {
+    try {
+      const { sourceClassId, targetClassId } = req.body;
+      if (!sourceClassId || !targetClassId) {
+        return res.status(400).json({ error: "sourceClassId and targetClassId required" });
+      }
+      const data = await StudentService.copyClassMapels(sourceClassId, targetClassId);
+      res.json({ message: "Berhasil menyalin mapel kelas", data });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to copy class mapels" });
+    }
+  }
 }

@@ -1,5 +1,5 @@
 import { db } from "../../db";
-import { studentProfiles, identityRevisions, parentProfiles, educationHistory, physicalData, bukuIndukGrades, bukuIndukAttendance, bukuIndukExtracurriculars, bukuIndukP5, bukuIndukFinalStatus } from "../../db/schema";
+import { studentProfiles, identityRevisions, parentProfiles, educationHistory, physicalData, bukuIndukGrades, bukuIndukAttendance, bukuIndukExtracurriculars, bukuIndukP5, bukuIndukFinalStatus, bukuIndukClassMapels } from "../../db/schema";
 import { eq, ilike, or, and } from "drizzle-orm";
 
 export class StudentService {
@@ -215,25 +215,53 @@ export class StudentService {
     return results[0] || null;
   }
 
-  static async searchStudentsAutocomplete(keyword: string) {
-    const trimmed = keyword.trim();
-    if (!trimmed || trimmed.length < 2) return [];
-
+  static async searchStudentsAutocomplete(q: string) {
     const results = await db.select({
       id: studentProfiles.id,
       fullName: studentProfiles.fullName,
       nis: studentProfiles.nis,
       nisn: studentProfiles.nisn,
-      className: studentProfiles.className,
-    }).from(studentProfiles)
-      .where(
-        or(
-          ilike(studentProfiles.fullName, `%${trimmed}%`),
-          ilike(studentProfiles.nis, `%${trimmed}%`)
-        )
+      className: studentProfiles.className
+    })
+    .from(studentProfiles)
+    .where(
+      or(
+        ilike(studentProfiles.fullName, `%${q}%`),
+        ilike(studentProfiles.nisn, `%${q}%`)
       )
-      .limit(10);
-
+    )
+    .limit(10);
+    
     return results;
+  }
+
+  // --- Class Mapels (Buku Induk) ---
+  static async getClassMapels(classId: string) {
+    const result = await db.select().from(bukuIndukClassMapels).where(eq(bukuIndukClassMapels.classId, classId));
+    if (result.length > 0) return result[0];
+    return null;
+  }
+
+  static async updateClassMapels(classId: string, mapels: string[]) {
+    const existing = await db.select().from(bukuIndukClassMapels).where(eq(bukuIndukClassMapels.classId, classId));
+    if (existing.length > 0) {
+      const updated = await db.update(bukuIndukClassMapels)
+        .set({ mapels, updatedAt: new Date() })
+        .where(eq(bukuIndukClassMapels.classId, classId))
+        .returning();
+      return updated[0];
+    } else {
+      const inserted = await db.insert(bukuIndukClassMapels)
+        .values({ classId, mapels })
+        .returning();
+      return inserted[0];
+    }
+  }
+
+  static async copyClassMapels(sourceClassId: string, targetClassId: string) {
+    const source = await this.getClassMapels(sourceClassId);
+    if (!source || !source.mapels) throw new Error("Kelas sumber tidak memiliki mapel.");
+    
+    return await this.updateClassMapels(targetClassId, source.mapels as string[]);
   }
 }

@@ -246,6 +246,18 @@ export const bukuIndukFinalStatus = pgTable("buku_induk_final_status", {
   updatedAt: timestamp("updated_at").defaultNow()
 });
 
+// ═══════════════════════════════════════════════════════════════
+// Buku Induk: Mapel per Kelas
+// ═══════════════════════════════════════════════════════════════
+
+export const bukuIndukClassMapels = pgTable("buku_induk_class_mapels", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  classId: uuid("class_id").references(() => classes.id, { onDelete: "cascade" }).notNull().unique(),
+  mapels: jsonb("mapels").default([]), // Array of strings e.g. ["Pend. Agama", "Matematika", ...]
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
 export const identityRevisions = pgTable("identity_revisions", {
   id: uuid("id").primaryKey().defaultRandom(),
   studentProfileId: uuid("student_profile_id").references(() => studentProfiles.id).notNull(),

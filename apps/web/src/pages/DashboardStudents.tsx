@@ -19,6 +19,7 @@ import { AddStudentModal } from './students/AddStudentModal';
 import { UpdateStatusModal } from './students/UpdateStatusModal';
 import { BulkPromotionModal } from './students/BulkPromotionModal';
 import { PrintQRPortal } from './parent/PrintQRPortal';
+import { ClassMapelModal } from './students/ClassMapelModal';
 
 type Tab = 'students' | 'classes';
 
@@ -85,6 +86,7 @@ export const DashboardStudents = () => {
   const [updateStatusOpen, setUpdateStatusOpen] = useState(false);
   const [statusStudent, setStatusStudent] = useState<any>(null);
   const [bulkPromotionOpen, setBulkPromotionOpen] = useState(false);
+  const [isClassMapelModalOpen, setIsClassMapelModalOpen] = useState(false);
   const [qrPrintOpen, setQrPrintOpen] = useState(false);
   const [qrPrintStudents, setQrPrintStudents] = useState<any[]>([]);
 
@@ -284,10 +286,14 @@ export const DashboardStudents = () => {
                   ))}
                 </select>
               </div>
-              <div className="shrink-0 self-end sm:self-auto">
+              <div className="flex gap-2 shrink-0 self-end sm:self-auto">
                 <Button variant="outline" size="icon" title="Export Excel (sesuai filter aktif)"
                   onClick={handleExportExcel} className="h-8 w-8">
                   <Download size={14} className="text-emerald-600" />
+                </Button>
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5"
+                  onClick={() => setIsClassMapelModalOpen(true)}>
+                  <Settings2 size={14} /> Atur Mapel
                 </Button>
               </div>
             </div>
@@ -436,6 +442,7 @@ export const DashboardStudents = () => {
       <BulkPromotionModal isOpen={bulkPromotionOpen} onClose={() => { setBulkPromotionOpen(false); setSelectedStudentIds([]); }}
         selectedStudents={filtered.filter(s => selectedStudentIds.includes(s.id))} classes={classesList}
         apiClient={apiClient} onSuccess={() => { fetchAll(); setSelectedStudentIds([]); }} />
+      <ClassMapelModal isOpen={isClassMapelModalOpen} onClose={() => setIsClassMapelModalOpen(false)} classes={classesList} />
       <PrintQRPortal isOpen={qrPrintOpen} onClose={() => setQrPrintOpen(false)} students={qrPrintStudents} />
 
       {/* Floating Action Bar */}

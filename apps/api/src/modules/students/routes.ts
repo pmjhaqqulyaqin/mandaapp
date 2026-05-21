@@ -19,6 +19,12 @@ router.post("/upload", requireStaff, upload.single("file"), StudentController.up
 router.get("/revisions", requireStaff, StudentController.getRevisions);
 router.post("/pull-from-nis", requireStaff, StudentController.pullFromNIS);
 router.put("/bulk-update", requireStaff, StudentController.bulkUpdate);
+
+// Class-Specific Mapel (Buku Induk)
+router.post("/class-mapels/copy", requireStaff, StudentController.copyClassMapels);
+router.get("/class-mapels/:classId", requireStaff, StudentController.getClassMapels);
+router.put("/class-mapels/:classId", requireStaff, StudentController.updateClassMapels);
+
 router.get("/:id", requireStaff, StudentController.getById);
 router.get("/:id/buku-induk/pdf", requireStaff, StudentController.generateBukuInduk);
 router.put("/:id", requireStaff, StudentController.update);
