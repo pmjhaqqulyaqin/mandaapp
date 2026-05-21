@@ -73,8 +73,8 @@ app.use(pinoHttp({
 }));
 
 // Trust proxy is required for 'Secure' cookies to work when running behind 
-// Railway's or Vercel's reverse proxy
-app.set('trust proxy', true);
+// Railway's or Vercel's reverse proxy (use number = hops, not boolean)
+app.set('trust proxy', 1);
 
 // Global rate limiting — 200 requests per 15 minutes per IP
 const globalLimiter = rateLimit({
@@ -83,6 +83,7 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Terlalu banyak request. Silakan coba lagi nanti.' },
+  validate: { trustProxy: false },
 });
 app.use(globalLimiter);
 
@@ -91,6 +92,7 @@ const formLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 15,
   message: { error: 'Terlalu banyak percobaan pengiriman. Silakan coba lagi dalam 15 menit.' },
+  validate: { trustProxy: false },
 });
 app.use('/api/ppdb/daftar', formLimiter);
 app.use('/api/contacts', formLimiter);
@@ -100,6 +102,7 @@ const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
   message: { error: 'Terlalu banyak percobaan login. Silakan coba lagi dalam 15 menit.' },
+  validate: { trustProxy: false },
 });
 app.use('/api/auth', authLimiter);
 
