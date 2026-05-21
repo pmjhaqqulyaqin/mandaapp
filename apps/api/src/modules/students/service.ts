@@ -1,5 +1,5 @@
 import { db } from "../../db";
-import { studentProfiles, identityRevisions, parentProfiles, educationHistory, physicalData } from "../../db/schema";
+import { studentProfiles, identityRevisions, parentProfiles, educationHistory, physicalData, bukuIndukGrades, bukuIndukAttendance, bukuIndukExtracurriculars, bukuIndukP5 } from "../../db/schema";
 import { eq, ilike, or } from "drizzle-orm";
 
 export class StudentService {
@@ -25,12 +25,20 @@ export class StudentService {
     const parents = await db.select().from(parentProfiles).where(eq(parentProfiles.studentId, id));
     const education = await db.select().from(educationHistory).where(eq(educationHistory.studentId, id));
     const physical = await db.select().from(physicalData).where(eq(physicalData.studentId, id));
+    const grades = await db.select().from(bukuIndukGrades).where(eq(bukuIndukGrades.studentId, id));
+    const attendance = await db.select().from(bukuIndukAttendance).where(eq(bukuIndukAttendance.studentId, id));
+    const extracurriculars = await db.select().from(bukuIndukExtracurriculars).where(eq(bukuIndukExtracurriculars.studentId, id));
+    const p5 = await db.select().from(bukuIndukP5).where(eq(bukuIndukP5.studentId, id));
 
     return {
       ...student,
       parents,
       education,
-      physical
+      physical,
+      grades,
+      attendance,
+      extracurriculars,
+      p5
     };
   }
 
@@ -93,6 +101,42 @@ export class StudentService {
         if (payload.physical.length > 0) {
           const physicalToInsert = payload.physical.map((p: any) => ({ ...p, studentId: id }));
           await tx.insert(physicalData).values(physicalToInsert);
+        }
+      }
+
+      // 5. Overwrite Buku Induk Grades
+      if (payload.grades && Array.isArray(payload.grades)) {
+        await tx.delete(bukuIndukGrades).where(eq(bukuIndukGrades.studentId, id));
+        if (payload.grades.length > 0) {
+          const gradesToInsert = payload.grades.map((g: any) => ({ ...g, studentId: id }));
+          await tx.insert(bukuIndukGrades).values(gradesToInsert);
+        }
+      }
+
+      // 6. Overwrite Buku Induk Attendance
+      if (payload.attendance && Array.isArray(payload.attendance)) {
+        await tx.delete(bukuIndukAttendance).where(eq(bukuIndukAttendance.studentId, id));
+        if (payload.attendance.length > 0) {
+          const attToInsert = payload.attendance.map((a: any) => ({ ...a, studentId: id }));
+          await tx.insert(bukuIndukAttendance).values(attToInsert);
+        }
+      }
+
+      // 7. Overwrite Buku Induk Extracurriculars
+      if (payload.extracurriculars && Array.isArray(payload.extracurriculars)) {
+        await tx.delete(bukuIndukExtracurriculars).where(eq(bukuIndukExtracurriculars.studentId, id));
+        if (payload.extracurriculars.length > 0) {
+          const extraToInsert = payload.extracurriculars.map((e: any) => ({ ...e, studentId: id }));
+          await tx.insert(bukuIndukExtracurriculars).values(extraToInsert);
+        }
+      }
+
+      // 8. Overwrite Buku Induk P5
+      if (payload.p5 && Array.isArray(payload.p5)) {
+        await tx.delete(bukuIndukP5).where(eq(bukuIndukP5.studentId, id));
+        if (payload.p5.length > 0) {
+          const p5ToInsert = payload.p5.map((p: any) => ({ ...p, studentId: id }));
+          await tx.insert(bukuIndukP5).values(p5ToInsert);
         }
       }
 

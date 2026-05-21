@@ -250,7 +250,7 @@ export class StudentController {
 
   static async update(req: Request, res: Response) {
     try {
-      if (req.body.student || req.body.parents || req.body.education || req.body.physical) {
+      if (req.body.student || req.body.parents || req.body.education || req.body.physical || req.body.grades || req.body.attendance || req.body.extracurriculars || req.body.p5) {
         // Complete Data Update
         const updated = await StudentService.saveStudentCompleteData(req.params.id, req.body);
         res.json(updated);

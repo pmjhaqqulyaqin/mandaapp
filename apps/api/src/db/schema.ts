@@ -151,6 +151,74 @@ export const physicalData = pgTable("physical_data", {
   updatedAt: timestamp("updated_at").defaultNow()
 });
 
+// ═══════════════════════════════════════════════════════════════
+// Buku Induk: Nilai Rapor (Matrix per Semester per Tahun Ajaran)
+// ═══════════════════════════════════════════════════════════════
+
+export const bukuIndukGrades = pgTable("buku_induk_grades", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  studentId: uuid("student_id").references(() => studentProfiles.id, { onDelete: "cascade" }).notNull(),
+  subjectName: varchar("subject_name", { length: 150 }).notNull(),
+  semester: integer("semester").notNull(), // 1-12 (semester 1 kelas X s/d semester 2 kelas XII)
+  academicYear: varchar("academic_year", { length: 20 }), // "2025/2026"
+  classLevel: varchar("class_level", { length: 50 }), // "X", "XI", "XII"
+  score: varchar("score", { length: 10 }), // nilai angka atau huruf
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Buku Induk: Ketidakhadiran per Semester (Sakit, Izin, Alpa)
+// ═══════════════════════════════════════════════════════════════
+
+export const bukuIndukAttendance = pgTable("buku_induk_attendance", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  studentId: uuid("student_id").references(() => studentProfiles.id, { onDelete: "cascade" }).notNull(),
+  semester: integer("semester").notNull(),
+  academicYear: varchar("academic_year", { length: 20 }),
+  classLevel: varchar("class_level", { length: 50 }),
+  sick: integer("sick").default(0),
+  excused: integer("excused").default(0),
+  unexcused: integer("unexcused").default(0),
+  promotionStatus: varchar("promotion_status", { length: 50 }), // "Naik ke Kls ..." / "Tidak Naik"
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Buku Induk: Kegiatan Ekstrakurikuler per Semester
+// ═══════════════════════════════════════════════════════════════
+
+export const bukuIndukExtracurriculars = pgTable("buku_induk_extracurriculars", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  studentId: uuid("student_id").references(() => studentProfiles.id, { onDelete: "cascade" }).notNull(),
+  activityName: varchar("activity_name", { length: 200 }).notNull(),
+  semester: integer("semester").notNull(),
+  academicYear: varchar("academic_year", { length: 20 }),
+  classLevel: varchar("class_level", { length: 50 }),
+  predicate: varchar("predicate", { length: 50 }), // A/B/C/D or Sangat Baik/Baik/Cukup
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Buku Induk: Projek Penguatan Profil Pelajar Pancasila (P5)
+// Hanya capaian akhir Fase, bukan per semester
+// ═══════════════════════════════════════════════════════════════
+
+export const bukuIndukP5 = pgTable("buku_induk_p5", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  studentId: uuid("student_id").references(() => studentProfiles.id, { onDelete: "cascade" }).notNull(),
+  fase: varchar("fase", { length: 10 }).notNull(), // "E", "F"
+  projectName: varchar("project_name", { length: 255 }).notNull(),
+  dimension: varchar("dimension", { length: 200 }), // Dimensi Pancasila
+  predicate: varchar("predicate", { length: 50 }), // SB/B/C/K
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
 export const identityRevisions = pgTable("identity_revisions", {
   id: uuid("id").primaryKey().defaultRandom(),
   studentProfileId: uuid("student_profile_id").references(() => studentProfiles.id).notNull(),

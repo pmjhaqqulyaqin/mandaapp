@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { Input } from '@mandaapp/ui/src/components/Input';
-import { User, GraduationCap, MapPin, Info, Loader2, Users, BookOpen, Activity } from 'lucide-react';
+import { User, GraduationCap, MapPin, Info, Loader2, Users, BookOpen, Activity, Plus, Trash2, Award, ClipboardList } from 'lucide-react';
 import type { ClassItem } from './types';
 
 interface Props {
@@ -33,16 +33,69 @@ const INITIAL_PHYSICAL = [
   { semester: 1, heightCm: '', weightKg: '', hearingCondition: '', visionCondition: '', dentalCondition: '' }
 ];
 
+const DEFAULT_SUBJECTS = [
+  'Pendidikan Agama Islam', 'Pendidikan Pancasila', 'Bahasa Indonesia', 'Matematika',
+  'Bahasa Inggris', 'Sejarah', 'Seni Budaya', 'Pendidikan Jasmani',
+  'Informatika', 'Bahasa Arab'
+];
+
+// Semester columns for 3 years: X (sem1,2), XI (sem1,2), XII (sem1,2)
+const SEMESTER_COLS = [
+  { semester: 1, classLevel: 'X', label: 'X/1' },
+  { semester: 2, classLevel: 'X', label: 'X/2' },
+  { semester: 3, classLevel: 'XI', label: 'XI/1' },
+  { semester: 4, classLevel: 'XI', label: 'XI/2' },
+  { semester: 5, classLevel: 'XII', label: 'XII/1' },
+  { semester: 6, classLevel: 'XII', label: 'XII/2' },
+];
+
+type TabId = 'pribadi' | 'ortu' | 'pendidikan' | 'jasmani' | 'akademik' | 'nonakademik';
+
 export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, apiClient, onSuccess, editStudent }) => {
-  const [activeTab, setActiveTab] = useState<'pribadi' | 'ortu' | 'pendidikan' | 'jasmani'>('pribadi');
+  const [activeTab, setActiveTab] = useState<TabId>('pribadi');
   
   const [studentForm, setStudentForm] = useState(INITIAL_STUDENT);
   const [parentsForm, setParentsForm] = useState(INITIAL_PARENTS);
   const [educationForm, setEducationForm] = useState(INITIAL_EDUCATION);
   const [physicalForm, setPhysicalForm] = useState(INITIAL_PHYSICAL);
   
+  // Phase 3 state: Matrix data
+  const [subjects, setSubjects] = useState<string[]>([...DEFAULT_SUBJECTS]);
+  const [gradesMatrix, setGradesMatrix] = useState<Record<string, Record<number, string>>>({});
+  const [attendanceData, setAttendanceData] = useState<any[]>([]);
+  const [extracurriculars, setExtracurriculars] = useState<any[]>([]);
+  const [p5Data, setP5Data] = useState<any[]>([]);
+  
   const [saving, setSaving] = useState(false);
   const [loadingComplete, setLoadingComplete] = useState(false);
+  const [newSubject, setNewSubject] = useState('');
+
+  // Initialize gradesMatrix from subjects
+  useEffect(() => {
+    const matrix: Record<string, Record<number, string>> = {};
+    subjects.forEach(sub => {
+      if (!matrix[sub]) matrix[sub] = {};
+      SEMESTER_COLS.forEach(col => {
+        matrix[sub][col.semester] = gradesMatrix[sub]?.[col.semester] || '';
+      });
+    });
+    setGradesMatrix(matrix);
+  }, [subjects]);
+
+  // Initialize attendance rows for each semester
+  useEffect(() => {
+    if (attendanceData.length === 0) {
+      setAttendanceData(SEMESTER_COLS.map(col => ({
+        semester: col.semester,
+        classLevel: col.classLevel,
+        academicYear: '',
+        sick: '',
+        excused: '',
+        unexcused: '',
+        promotionStatus: ''
+      })));
+    }
+  }, []);
 
   useEffect(() => {
     if (isOpen && editStudent) {
@@ -77,6 +130,43 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, api
           } else {
             setPhysicalForm(INITIAL_PHYSICAL);
           }
+
+          // Grades: rebuild matrix from flat array
+          if (res.grades && res.grades.length > 0) {
+            const uniqueSubjects = [...new Set(res.grades.map((g: any) => g.subjectName))] as string[];
+            const allSubjects = [...new Set([...DEFAULT_SUBJECTS, ...uniqueSubjects])];
+            setSubjects(allSubjects);
+            const matrix: Record<string, Record<number, string>> = {};
+            allSubjects.forEach(sub => { matrix[sub] = {}; });
+            res.grades.forEach((g: any) => {
+              if (!matrix[g.subjectName]) matrix[g.subjectName] = {};
+              matrix[g.subjectName][g.semester] = g.score || '';
+            });
+            setGradesMatrix(matrix);
+          }
+
+          // Attendance
+          if (res.attendance && res.attendance.length > 0) {
+            const attMap = SEMESTER_COLS.map(col => {
+              const found = res.attendance.find((a: any) => a.semester === col.semester);
+              return found || { semester: col.semester, classLevel: col.classLevel, academicYear: '', sick: '', excused: '', unexcused: '', promotionStatus: '' };
+            });
+            setAttendanceData(attMap);
+          }
+
+          // Extracurriculars
+          if (res.extracurriculars && res.extracurriculars.length > 0) {
+            setExtracurriculars(res.extracurriculars);
+          } else {
+            setExtracurriculars([]);
+          }
+
+          // P5
+          if (res.p5 && res.p5.length > 0) {
+            setP5Data(res.p5);
+          } else {
+            setP5Data([]);
+          }
         })
         .catch((err: any) => console.error("Failed to load complete data", err))
         .finally(() => setLoadingComplete(false));
@@ -85,32 +175,59 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, api
       setParentsForm([...INITIAL_PARENTS]);
       setEducationForm([...INITIAL_EDUCATION]);
       setPhysicalForm([...INITIAL_PHYSICAL]);
+      setSubjects([...DEFAULT_SUBJECTS]);
+      setGradesMatrix({});
+      setAttendanceData(SEMESTER_COLS.map(col => ({
+        semester: col.semester, classLevel: col.classLevel, academicYear: '', sick: '', excused: '', unexcused: '', promotionStatus: ''
+      })));
+      setExtracurriculars([]);
+      setP5Data([]);
       setActiveTab('pribadi');
     }
   }, [isOpen, editStudent]);
 
   const isEditing = !!editStudent;
 
+  // Flatten grades matrix to array for backend
+  const flattenGrades = () => {
+    const result: any[] = [];
+    Object.entries(gradesMatrix).forEach(([subjectName, semesters]) => {
+      Object.entries(semesters).forEach(([sem, score]) => {
+        if (score && String(score).trim() !== '') {
+          const col = SEMESTER_COLS.find(c => c.semester === Number(sem));
+          result.push({
+            subjectName,
+            semester: Number(sem),
+            classLevel: col?.classLevel || '',
+            score: String(score)
+          });
+        }
+      });
+    });
+    return result;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     
-    // Normalize payload
     const payload = {
       student: studentForm,
       parents: parentsForm.filter(p => p.name.trim() !== ''),
       education: educationForm.filter(e => e.previousSchoolName.trim() !== ''),
-      physical: physicalForm.filter(p => p.heightCm || p.weightKg || p.hearingCondition)
+      physical: physicalForm.filter(p => p.heightCm || p.weightKg || p.hearingCondition),
+      grades: flattenGrades(),
+      attendance: attendanceData.filter(a => a.sick || a.excused || a.unexcused || a.promotionStatus),
+      extracurriculars: extracurriculars.filter(e => e.activityName?.trim()),
+      p5: p5Data.filter(p => p.projectName?.trim())
     };
 
     try {
       if (isEditing) {
         await apiClient(`/students/${editStudent.id}`, { method: 'PUT', data: payload });
       } else {
-        // Create student first
         const newStudent = await apiClient('/students', { method: 'POST', data: payload.student });
-        // Then upsert relations via PUT to the new ID if there is any relation data
-        if (payload.parents.length > 0 || payload.education.length > 0 || payload.physical.length > 0) {
+        if (payload.parents.length > 0 || payload.education.length > 0 || payload.physical.length > 0 || payload.grades.length > 0) {
           await apiClient(`/students/${newStudent.id}`, { method: 'PUT', data: payload });
         }
       }
@@ -121,9 +238,7 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, api
     } finally { setSaving(false); }
   };
 
-  const classOptions = classes.map(c => {
-    return { ...c, label: c.name };
-  });
+  const classOptions = classes.map(c => ({ ...c, label: c.name }));
 
   const SectionHeader = ({ icon, title, subtitle, color }: { icon: React.ReactNode; title: string; subtitle: string; color: string }) => (
     <div className="flex items-center gap-3 mb-4">
@@ -136,11 +251,17 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, api
   );
 
   const tabs = [
-    { id: 'pribadi', label: 'Data Pribadi', icon: <User size={14} /> },
-    { id: 'ortu', label: 'Orang Tua', icon: <Users size={14} /> },
-    { id: 'pendidikan', label: 'Pendidikan', icon: <GraduationCap size={14} /> },
-    { id: 'jasmani', label: 'Jasmani', icon: <Activity size={14} /> },
-  ] as const;
+    { id: 'pribadi' as TabId, label: 'Data Pribadi', icon: <User size={14} /> },
+    { id: 'ortu' as TabId, label: 'Orang Tua', icon: <Users size={14} /> },
+    { id: 'pendidikan' as TabId, label: 'Pendidikan', icon: <GraduationCap size={14} /> },
+    { id: 'jasmani' as TabId, label: 'Jasmani', icon: <Activity size={14} /> },
+    { id: 'akademik' as TabId, label: 'Nilai Rapor', icon: <ClipboardList size={14} /> },
+    { id: 'nonakademik' as TabId, label: 'Non-Akademik', icon: <Award size={14} /> },
+  ];
+
+  const cellInputClass = "w-full h-8 text-center text-xs border-0 bg-transparent outline-none focus:bg-primary/5 dark:focus:bg-primary/10 rounded";
+  const thClass = "px-2 py-1.5 text-[10px] font-semibold text-text-secondary uppercase tracking-wide border border-gray-100 dark:border-[#333] bg-gray-50 dark:bg-[#111]";
+  const tdClass = "px-1 py-0.5 border border-gray-100 dark:border-[#333]";
 
   if (loadingComplete) {
     return (
@@ -156,7 +277,7 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, api
     <Modal isOpen={isOpen} onClose={onClose}
       title={isEditing ? "Buku Induk: Edit Data Siswa" : "Buku Induk: Tambah Siswa Baru"}
       description={isEditing ? "Perbarui informasi lengkap data siswa." : "Pendaftaran data lengkap siswa. Pastikan semua data valid sesuai dokumen resmi."}
-      className="max-w-4xl"
+      className="max-w-5xl"
       isScrolled={true}
     >
       <div className="mb-6 flex space-x-1 overflow-x-auto border-b border-gray-100 dark:border-[#333] pb-2">
@@ -408,6 +529,222 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, api
                   <option value="Perlu Perawatan">Perlu Perawatan</option>
               </select>
             </div>
+          </div>
+        </div>
+
+        {/* TAB 5: AKADEMIK - Nilai Rapor Matrix */}
+        <div className={activeTab === 'akademik' ? 'block space-y-6' : 'hidden'}>
+          <SectionHeader icon={<ClipboardList size={16} className="text-indigo-600" />} title="Penilaian Hasil Belajar" subtitle="Isi nilai rapor per semester dalam format tabel matriks." color="bg-indigo-500/10" />
+          
+          <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#333]">
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  <th rowSpan={2} className={`${thClass} text-left min-w-[180px] sticky left-0 z-10 bg-gray-50 dark:bg-[#111]`}>Bidang Studi</th>
+                  <th colSpan={2} className={thClass}>Kelas X</th>
+                  <th colSpan={2} className={thClass}>Kelas XI</th>
+                  <th colSpan={2} className={thClass}>Kelas XII</th>
+                </tr>
+                <tr>
+                  {SEMESTER_COLS.map(col => (
+                    <th key={col.semester} className={`${thClass} w-16`}>Sem {col.semester % 2 === 1 ? 'I' : 'II'}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {subjects.map((sub, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-[#111]/50">
+                    <td className={`${tdClass} text-xs font-medium text-text-primary dark:text-text-darkPrimary sticky left-0 bg-white dark:bg-[#0d0d0d] z-10`}>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="truncate">{sub}</span>
+                        {!DEFAULT_SUBJECTS.includes(sub) && (
+                          <button type="button" onClick={() => {
+                            setSubjects(subjects.filter((_, i) => i !== idx));
+                            const newMatrix = { ...gradesMatrix };
+                            delete newMatrix[sub];
+                            setGradesMatrix(newMatrix);
+                          }} className="text-red-400 hover:text-red-600 shrink-0"><Trash2 size={12} /></button>
+                        )}
+                      </div>
+                    </td>
+                    {SEMESTER_COLS.map(col => (
+                      <td key={col.semester} className={tdClass}>
+                        <input
+                          type="text"
+                          className={cellInputClass}
+                          value={gradesMatrix[sub]?.[col.semester] || ''}
+                          onChange={e => {
+                            const newMatrix = { ...gradesMatrix };
+                            if (!newMatrix[sub]) newMatrix[sub] = {};
+                            newMatrix[sub][col.semester] = e.target.value;
+                            setGradesMatrix(newMatrix);
+                          }}
+                          placeholder="-"
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Add Subject */}
+          <div className="flex items-center gap-2">
+            <Input placeholder="Nama mata pelajaran baru..." value={newSubject} onChange={e => setNewSubject(e.target.value)} className="flex-1" />
+            <Button type="button" variant="outline" size="sm" onClick={() => {
+              if (newSubject.trim() && !subjects.includes(newSubject.trim())) {
+                setSubjects([...subjects, newSubject.trim()]);
+                setNewSubject('');
+              }
+            }} className="flex items-center gap-1 whitespace-nowrap">
+              <Plus size={14} /> Tambah Mapel
+            </Button>
+          </div>
+        </div>
+
+        {/* TAB 6: NON-AKADEMIK - Absensi, Ekskul, P5 */}
+        <div className={activeTab === 'nonakademik' ? 'block space-y-8' : 'hidden'}>
+          
+          {/* Ketidakhadiran */}
+          <div>
+            <SectionHeader icon={<ClipboardList size={16} className="text-orange-600" />} title="Ketidakhadiran per Semester" subtitle="Jumlah hari sakit, izin, dan tanpa keterangan." color="bg-orange-500/10" />
+            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#333]">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className={`${thClass} text-left min-w-[100px]`}>Keterangan</th>
+                    {SEMESTER_COLS.map(col => (
+                      <th key={col.semester} className={`${thClass} w-16`}>{col.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {['Sakit', 'Izin', 'Tanpa Ket.'].map((label, rowIdx) => {
+                    const key = rowIdx === 0 ? 'sick' : rowIdx === 1 ? 'excused' : 'unexcused';
+                    return (
+                      <tr key={label}>
+                        <td className={`${tdClass} text-xs font-medium`}>{label}</td>
+                        {attendanceData.map((att, colIdx) => (
+                          <td key={colIdx} className={tdClass}>
+                            <input type="number" className={cellInputClass} value={att[key] || ''} onChange={e => {
+                              const newAtt = [...attendanceData];
+                              newAtt[colIdx] = { ...newAtt[colIdx], [key]: e.target.value };
+                              setAttendanceData(newAtt);
+                            }} placeholder="-" />
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                  <tr>
+                    <td className={`${tdClass} text-xs font-medium`}>Naik/Tidak</td>
+                    {attendanceData.map((att, colIdx) => (
+                      <td key={colIdx} className={tdClass}>
+                        <select className="w-full h-8 text-[10px] border-0 bg-transparent outline-none focus:bg-primary/5 rounded" value={att.promotionStatus || ''} onChange={e => {
+                          const newAtt = [...attendanceData];
+                          newAtt[colIdx] = { ...newAtt[colIdx], promotionStatus: e.target.value };
+                          setAttendanceData(newAtt);
+                        }}>
+                          <option value="">-</option>
+                          <option value="Naik">Naik</option>
+                          <option value="Tidak Naik">Tidak</option>
+                        </select>
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Ekstrakurikuler */}
+          <div>
+            <SectionHeader icon={<Award size={16} className="text-teal-600" />} title="Kegiatan Ekstrakurikuler" subtitle="Daftar kegiatan dan predikat per semester." color="bg-teal-500/10" />
+            {extracurriculars.map((extra, idx) => (
+              <div key={idx} className="grid grid-cols-12 gap-2 mb-2 items-end">
+                <div className="col-span-3 space-y-1">
+                  {idx === 0 && <label className="text-[10px] font-medium text-text-secondary">Nama Kegiatan</label>}
+                  <Input placeholder="Pramuka, Futsal..." value={extra.activityName || ''} onChange={e => {
+                    const newE = [...extracurriculars]; newE[idx].activityName = e.target.value; setExtracurriculars(newE);
+                  }} />
+                </div>
+                <div className="col-span-2 space-y-1">
+                  {idx === 0 && <label className="text-[10px] font-medium text-text-secondary">Semester</label>}
+                  <select className="w-full h-10 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] px-2 text-xs outline-none" value={extra.semester || ''} onChange={e => {
+                    const newE = [...extracurriculars]; newE[idx].semester = Number(e.target.value); const col = SEMESTER_COLS.find(c => c.semester === Number(e.target.value)); newE[idx].classLevel = col?.classLevel || ''; setExtracurriculars(newE);
+                  }}>
+                    <option value="">-</option>
+                    {SEMESTER_COLS.map(c => <option key={c.semester} value={c.semester}>{c.label}</option>)}
+                  </select>
+                </div>
+                <div className="col-span-2 space-y-1">
+                  {idx === 0 && <label className="text-[10px] font-medium text-text-secondary">Predikat</label>}
+                  <Input placeholder="A/B/C" value={extra.predicate || ''} onChange={e => {
+                    const newE = [...extracurriculars]; newE[idx].predicate = e.target.value; setExtracurriculars(newE);
+                  }} />
+                </div>
+                <div className="col-span-4 space-y-1">
+                  {idx === 0 && <label className="text-[10px] font-medium text-text-secondary">Keterangan</label>}
+                  <Input placeholder="Keterangan singkat" value={extra.description || ''} onChange={e => {
+                    const newE = [...extracurriculars]; newE[idx].description = e.target.value; setExtracurriculars(newE);
+                  }} />
+                </div>
+                <div className="col-span-1 flex justify-center">
+                  <button type="button" onClick={() => setExtracurriculars(extracurriculars.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-600 h-10 flex items-center">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+            <Button type="button" variant="outline" size="sm" onClick={() => setExtracurriculars([...extracurriculars, { activityName: '', semester: '', classLevel: '', predicate: '', description: '' }])} className="flex items-center gap-1 mt-2">
+              <Plus size={14} /> Tambah Ekskul
+            </Button>
+          </div>
+
+          {/* P5 / Kokurikuler (Akhir Fase) */}
+          <div>
+            <SectionHeader icon={<Award size={16} className="text-purple-600" />} title="Projek P5 / Kokurikuler" subtitle="Capaian akhir fase (bukan per semester)." color="bg-purple-500/10" />
+            {p5Data.map((p5, idx) => (
+              <div key={idx} className="grid grid-cols-12 gap-2 mb-2 items-end">
+                <div className="col-span-2 space-y-1">
+                  {idx === 0 && <label className="text-[10px] font-medium text-text-secondary">Fase</label>}
+                  <select className="w-full h-10 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] px-2 text-xs outline-none" value={p5.fase || ''} onChange={e => {
+                    const newP = [...p5Data]; newP[idx].fase = e.target.value; setP5Data(newP);
+                  }}>
+                    <option value="">-</option>
+                    <option value="E">Fase E</option>
+                    <option value="F">Fase F</option>
+                  </select>
+                </div>
+                <div className="col-span-3 space-y-1">
+                  {idx === 0 && <label className="text-[10px] font-medium text-text-secondary">Nama Projek</label>}
+                  <Input placeholder="Nama projek P5" value={p5.projectName || ''} onChange={e => {
+                    const newP = [...p5Data]; newP[idx].projectName = e.target.value; setP5Data(newP);
+                  }} />
+                </div>
+                <div className="col-span-3 space-y-1">
+                  {idx === 0 && <label className="text-[10px] font-medium text-text-secondary">Dimensi Pancasila</label>}
+                  <Input placeholder="Gotong Royong, dll" value={p5.dimension || ''} onChange={e => {
+                    const newP = [...p5Data]; newP[idx].dimension = e.target.value; setP5Data(newP);
+                  }} />
+                </div>
+                <div className="col-span-2 space-y-1">
+                  {idx === 0 && <label className="text-[10px] font-medium text-text-secondary">Predikat</label>}
+                  <Input placeholder="SB/B/C" value={p5.predicate || ''} onChange={e => {
+                    const newP = [...p5Data]; newP[idx].predicate = e.target.value; setP5Data(newP);
+                  }} />
+                </div>
+                <div className="col-span-1 flex justify-center">
+                  <button type="button" onClick={() => setP5Data(p5Data.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-600 h-10 flex items-center">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+            <Button type="button" variant="outline" size="sm" onClick={() => setP5Data([...p5Data, { fase: '', projectName: '', dimension: '', predicate: '', description: '' }])} className="flex items-center gap-1 mt-2">
+              <Plus size={14} /> Tambah Projek P5
+            </Button>
           </div>
         </div>
 
