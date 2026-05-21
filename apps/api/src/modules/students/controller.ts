@@ -214,30 +214,24 @@ export class StudentController {
       const completeStudentData = await StudentService.getStudentCompleteData(req.params.id);
       if (!completeStudentData) return res.status(404).json({ error: "Not found" });
 
-      // Build data payload for the PDF template, falling back to N/A for empty nested relations
-      const mockData = {
+      // Build data payload for the PDF template using real data from all tables
+      const templateData = {
         student: completeStudentData,
-        parents: completeStudentData.parents && completeStudentData.parents.length > 0 ? completeStudentData.parents : [
-          { type: 'ayah', name: '-', occupation: '-' },
-          { type: 'ibu', name: '-', occupation: '-' }
-        ],
-        education: completeStudentData.education && completeStudentData.education.length > 0 ? completeStudentData.education[0] : { previousSchoolName: '-' },
-        physical: completeStudentData.physical && completeStudentData.physical.length > 0 ? completeStudentData.physical[0] : { heightCm: 0, weightKg: 0 },
-        grades: [
-          // TODO: Fetch actual grades from Grade module when implemented
-          { subjectName: 'Pendidikan Agama Islam', score: '-' },
-          { subjectName: 'Pendidikan Pancasila', score: '-' },
-          { subjectName: 'Bahasa Indonesia', score: '-' },
-          { subjectName: 'Matematika', score: '-' },
-        ]
+        parents: completeStudentData.parents && completeStudentData.parents.length > 0 ? completeStudentData.parents : [],
+        education: completeStudentData.education && completeStudentData.education.length > 0 ? completeStudentData.education[0] : {},
+        physical: completeStudentData.physical && completeStudentData.physical.length > 0 ? completeStudentData.physical[0] : {},
+        grades: completeStudentData.grades || [],
+        attendance: completeStudentData.attendance || [],
+        extracurriculars: completeStudentData.extracurriculars || [],
+        p5: completeStudentData.p5 || []
       };
 
-      const htmlContent = generateBukuIndukTemplate(mockData);
+      const htmlContent = generateBukuIndukTemplate(templateData);
 
       const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
       const page = await browser.newPage();
       await page.setContent(htmlContent, { waitUntil: 'load' });
-      const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '2cm', bottom: '2cm', left: '2cm', right: '2cm' } });
+      const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '1.5cm', bottom: '1.5cm', left: '1.5cm', right: '1.5cm' } });
       await browser.close();
 
       res.setHeader('Content-Type', 'application/pdf');
