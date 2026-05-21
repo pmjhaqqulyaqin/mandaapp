@@ -357,6 +357,7 @@ export default function StudentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [data, setData] = useState<any>(null);
+  const [classesList, setClassesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('identitas');
   const [editOpen, setEditOpen] = useState(false);
@@ -364,8 +365,12 @@ export default function StudentDetailPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const result = await apiClient<any>(`/students/${id}?complete=true`);
+      const [result, classesRes] = await Promise.all([
+        apiClient<any>(`/students/${id}?complete=true`),
+        apiClient<any>('/classes').catch(() => [])
+      ]);
       setData(result);
+      setClassesList(classesRes);
     } catch (err) {
       console.error(err);
     } finally {
@@ -545,8 +550,10 @@ export default function StudentDetailPage() {
         <AddStudentModal
           isOpen={editOpen}
           onClose={() => { setEditOpen(false); fetchData(); }}
-          student={s}
-          classesList={[]}
+          editStudent={s}
+          classes={classesList}
+          apiClient={apiClient}
+          onSuccess={() => fetchData()}
         />
       )}
     </div>
