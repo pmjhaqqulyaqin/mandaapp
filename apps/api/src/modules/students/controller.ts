@@ -230,7 +230,11 @@ export class StudentController {
 
       const htmlContent = generateBukuIndukTemplate(templateData);
 
-      const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+      const launchOptions: any = { headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] };
+      if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+      }
+      const browser = await puppeteer.launch(launchOptions);
       const page = await browser.newPage();
       await page.setContent(htmlContent, { waitUntil: 'domcontentloaded', timeout: 30000 });
       const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '1.5cm', bottom: '1.5cm', left: '1.5cm', right: '1.5cm' } });

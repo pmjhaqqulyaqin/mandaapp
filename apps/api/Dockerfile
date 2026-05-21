@@ -1,8 +1,20 @@
 FROM node:20-alpine
 WORKDIR /app
 
-# Enable Online Updater: Install git and docker-cli to manipulate host docker socket
-RUN apk add --no-cache git docker-cli docker-cli-compose
+# Install system dependencies: git, docker-cli, and Chromium for Puppeteer PDF generation
+RUN apk add --no-cache git docker-cli docker-cli-compose \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    font-noto \
+    font-noto-cjk
+
+# Tell Puppeteer to use system Chromium instead of downloading its own
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # 1. Copy root package files
 COPY package*.json ./
@@ -12,7 +24,6 @@ COPY packages/ui/package.json ./packages/ui/
 COPY apps/api/package.json ./apps/api/
 
 # 3. Install ALL dependencies (monorepo)
-# Using single-stage build ensures all symlinks are correctly created in place
 RUN npm install
 
 # 4. Copy source code (respects .dockerignore)
