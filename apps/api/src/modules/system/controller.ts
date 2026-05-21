@@ -3,6 +3,7 @@ import * as systemService from './service';
 import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
+import { AuditLogger } from '../../utils/auditLogger';
 
 export const serveFileHandler = async (req: Request, res: Response) => {
   try {
@@ -127,7 +128,32 @@ export const uploadImageHandler = async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
-    console.error('Upload error:', error);
     res.status(500).json({ error: 'Failed to upload image', details: error.message });
+  }
+};
+
+export const getAuditLogs = async (req: Request, res: Response) => {
+  try {
+    const logs = await systemService.getAuditLogs();
+    res.json(logs);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch audit logs', details: error.message });
+  }
+};
+
+export const downloadBackup = async (req: Request, res: Response) => {
+  try {
+    const jsonString = await systemService.generateDatabaseBackup();
+    const backupNodeBuffer = Buffer.from(jsonString, 'utf-8');
+    const dateStr = new Date().toISOString().split('T')[0];
+
+    await AuditLogger.log(req, 'BACKUP_DB', 'system');
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Length', backupNodeBuffer.length.toString());
+    res.setHeader('Content-Disposition', `attachment; filename="MandaApp_Backup_${dateStr}.json"`);
+    res.end(backupNodeBuffer);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to generate backup', details: error.message });
   }
 };

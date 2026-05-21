@@ -40,4 +40,8 @@ router.post('/sync-github', requireAdmin, systemController.syncGithubUpdate);
 router.post('/upload-update', requireAdmin, upload.single('package'), systemController.uploadUpdatePackage);
 router.post('/rollback', requireAdmin, systemController.rollbackUpdatePackage);
 
+// Audit & Backup
+router.get('/audit-logs', requireAdmin, systemController.getAuditLogs);
+router.get('/backup', requireAdmin, systemController.downloadBackup);
+
 export const systemRoutes = router;

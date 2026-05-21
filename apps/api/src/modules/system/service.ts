@@ -1,3 +1,6 @@
+import { db } from '../../db';
+import { auditLogs, studentProfiles, educationHistory, physicalData, parentProfiles, bukuIndukGrades, bukuIndukAttendance, bukuIndukExtracurriculars, bukuIndukP5, bukuIndukFinalStatus, user } from '../../db/schema';
+import { desc, eq } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
@@ -118,4 +121,57 @@ export const syncGithubUpdate = async () => {
     console.error('GitHub Sync Bridge Failed:', error.message);
     throw new Error('Gagal mengeksekusi Git Pull/Rebuild via Daemon: ' + error.message);
   }
+};
+
+export const getAuditLogs = async () => {
+  return db
+    .select({
+      id: auditLogs.id,
+      action: auditLogs.action,
+      targetType: auditLogs.targetType,
+      targetId: auditLogs.targetId,
+      details: auditLogs.details,
+      ipAddress: auditLogs.ipAddress,
+      createdAt: auditLogs.createdAt,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    })
+    .from(auditLogs)
+    .leftJoin(user, eq(auditLogs.userId, user.id))
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(500);
+};
+
+export const generateDatabaseBackup = async () => {
+  const students = await db.select().from(studentProfiles);
+  const education = await db.select().from(educationHistory);
+  const parents = await db.select().from(parentProfiles);
+  const physical = await db.select().from(physicalData);
+  const grades = await db.select().from(bukuIndukGrades);
+  const attendance = await db.select().from(bukuIndukAttendance);
+  const extracurriculars = await db.select().from(bukuIndukExtracurriculars);
+  const p5 = await db.select().from(bukuIndukP5);
+  const finalStatus = await db.select().from(bukuIndukFinalStatus);
+
+  const backupData = {
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+    collections: {
+      studentProfiles: students,
+      educationHistory: education,
+      parentProfiles: parents,
+      physicalData: physical,
+      bukuIndukGrades: grades,
+      bukuIndukAttendance: attendance,
+      bukuIndukExtracurriculars: extracurriculars,
+      bukuIndukP5: p5,
+      bukuIndukFinalStatus: finalStatus,
+    }
+  };
+
+  return JSON.stringify(backupData, null, 2);
 };

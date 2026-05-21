@@ -3,6 +3,7 @@ import { StudentService } from "./service";
 import * as xlsx from "xlsx";
 import puppeteer from "puppeteer";
 import { generateBukuIndukTemplate } from "./template";
+import { AuditLogger } from "../../utils/auditLogger";
 
 export class StudentController {
   static async getAll(req: Request, res: Response) {
@@ -204,6 +205,9 @@ export class StudentController {
         student = await StudentService.getStudentById(req.params.id);
       }
       if (!student) return res.status(404).json({ error: "Not found" });
+      
+      await AuditLogger.log(req, "VIEW_STUDENT", "student", req.params.id);
+      
       res.json(student);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch student" });
@@ -227,6 +231,8 @@ export class StudentController {
         p5: completeStudentData.p5 || [],
         finalStatus: completeStudentData.finalStatus || []
       };
+
+      await AuditLogger.log(req, "EXPORT_STUDENT_PDF", "student", req.params.id);
 
       const htmlContent = generateBukuIndukTemplate(templateData);
 
@@ -258,10 +264,16 @@ export class StudentController {
       if (req.body.student || req.body.parents || req.body.education || req.body.physical || req.body.grades || req.body.attendance || req.body.extracurriculars || req.body.p5) {
         // Complete Data Update
         const updated = await StudentService.saveStudentCompleteData(req.params.id, req.body);
+        
+        await AuditLogger.log(req, "UPDATE_STUDENT", "student", req.params.id, { complete: true });
+        
         res.json(updated);
       } else {
         // Legacy simple update
         const updated = await StudentService.updateStudent(req.params.id, req.body);
+        
+        await AuditLogger.log(req, "UPDATE_STUDENT", "student", req.params.id, { partial: true });
+        
         res.json(updated);
       }
     } catch (error) {

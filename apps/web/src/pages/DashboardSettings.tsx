@@ -1119,6 +1119,26 @@ export const DashboardSettings = () => {
                   </div>
                 </div>
 
+                {/* Database Backup */}
+                <div className="mt-8 mb-6 p-6 rounded-xl border border-red-200 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-xl">💾</span>
+                    <h3 className="text-md font-bold text-red-700 dark:text-red-400">Backup Database Sistem</h3>
+                  </div>
+                  <p className="text-sm text-red-600/80 dark:text-red-300/80 mb-4">
+                    Unduh seluruh data (Profil, Akademik, dll) ke dalam file JSON. Pastikan untuk menyimpan file ini di tempat yang aman.
+                  </p>
+                  <button
+                    onClick={() => {
+                      window.open(`${API_BASE_URL}/system/backup`, '_blank');
+                    }}
+                    className="px-6 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors flex items-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Download Backup (.JSON)
+                  </button>
+                </div>
+
                 <div className="mt-8 flex justify-end">
                   <SaveButton status={saveStatus['system'] || 'idle'} onClick={() => handleSaveGroup('system')} />
                 </div>
