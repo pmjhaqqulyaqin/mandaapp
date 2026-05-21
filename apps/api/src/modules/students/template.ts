@@ -6,10 +6,10 @@ export const generateBukuIndukTemplate = (data: any) => {
   const ibu = getParent('ibu');
   const wali = getParent('wali');
 
-  const edu = (education && education[0]) || {};
+  const edu = education || {};
   
   // final status (it's an array from DB)
-  const fStatus = (finalStatus && finalStatus[0]) || {};
+  const fStatus = (Array.isArray(finalStatus) && finalStatus.length > 0) ? finalStatus[0] : (finalStatus || {});
   const v = (val: any) => val || '....................';
   const dash = (val: any) => val || '-';
 
