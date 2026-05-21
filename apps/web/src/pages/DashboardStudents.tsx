@@ -130,9 +130,11 @@ export const DashboardStudents = () => {
 
   // Stats
   const stats = useMemo(() => ({
-    total: filtered.length,
+    total: students.length,
     aktif: filtered.length,
-  }), [filtered]);
+    lulus: students.filter(s => (s.status || '').toLowerCase() === 'lulus').length,
+    mutasi: students.filter(s => ['pindah','keluar','do','mutasi'].includes((s.status || '').toLowerCase())).length,
+  }), [students, filtered]);
 
   // Handlers
   const handleDelete = async (id: string, name: string) => {
