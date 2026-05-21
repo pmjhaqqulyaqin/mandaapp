@@ -6,7 +6,7 @@ export const generateBukuIndukTemplate = (data: any) => {
   const ibu = getParent('ibu');
   const wali = getParent('wali');
 
-  const edu = education || {};
+  const edu = (Array.isArray(education) && education.length > 0) ? education[0] : (education || {});
   
   // final status (it's an array from DB)
   const fStatus = (Array.isArray(finalStatus) && finalStatus.length > 0) ? finalStatus[0] : (finalStatus || {});
@@ -27,6 +27,12 @@ export const generateBukuIndukTemplate = (data: any) => {
   const attMap: Record<number, any> = {};
   if (attendance && attendance.length > 0) {
     attendance.forEach((a: any) => { attMap[a.semester] = a; });
+  }
+
+  // Build physical map: semester -> physical data
+  const physMap: Record<number, any> = {};
+  if (physical && Array.isArray(physical)) {
+    physical.forEach((p: any) => { physMap[p.semester] = p; });
   }
 
   // Semester column definitions
@@ -147,14 +153,14 @@ export const generateBukuIndukTemplate = (data: any) => {
   '<div class="sub-indent">' +
     '<div class="info-row"><div class="info-label">a. Masuk menjadi siswa</div></div>' +
     '<div class="sub-indent">' +
-      '<div class="info-row"><div class="info-label">1. Nama sekolah</div><div class="info-colon">:</div><div class="info-value">' + v(education?.previousSchoolName) + '</div></div>' +
-      '<div class="info-row"><div class="info-label">2. Tanggal dan Nomor STTB</div><div class="info-colon">:</div><div class="info-value">' + formatDate(education?.sttbDate) + ' / ' + v(education?.sttbNumber) + '</div></div>' +
+      '<div class="info-row"><div class="info-label">1. Nama sekolah</div><div class="info-colon">:</div><div class="info-value">' + v(edu.previousSchoolName) + '</div></div>' +
+      '<div class="info-row"><div class="info-label">2. Tanggal dan Nomor STTB</div><div class="info-colon">:</div><div class="info-value">' + formatDate(edu.sttbDate) + ' / ' + v(edu.sttbNumber) + '</div></div>' +
     '</div>' +
     '<div class="info-row"><div class="info-label">b. Pindahan dari sekolah lain</div></div>' +
     '<div class="sub-indent">' +
-      '<div class="info-row"><div class="info-label">1. Asal sekolah</div><div class="info-colon">:</div><div class="info-value">' + v(education?.transferFromSchool) + '</div></div>' +
-      '<div class="info-row"><div class="info-label">2. Dari tingkat</div><div class="info-colon">:</div><div class="info-value">' + v(education?.transferFromClass) + '</div></div>' +
-      '<div class="info-row"><div class="info-label">3. Diterima tanggal</div><div class="info-colon">:</div><div class="info-value">' + formatDate(education?.transferAcceptDate) + '</div></div>' +
+      '<div class="info-row"><div class="info-label">1. Asal sekolah</div><div class="info-colon">:</div><div class="info-value">' + v(edu.transferFromSchool) + '</div></div>' +
+      '<div class="info-row"><div class="info-label">2. Dari tingkat</div><div class="info-colon">:</div><div class="info-value">' + v(edu.transferFromClass) + '</div></div>' +
+      '<div class="info-row"><div class="info-label">3. Diterima tanggal</div><div class="info-colon">:</div><div class="info-value">' + formatDate(edu.transferAcceptDate) + '</div></div>' +
     '</div>' +
   '</div>' +
 '</div>' +
@@ -175,21 +181,12 @@ export const generateBukuIndukTemplate = (data: any) => {
   '</tr>' +
   '<tr><th>Gnjl</th><th>Gnp</th><th>Gnjl</th><th>Gnp</th><th>Gnjl</th><th>Gnp</th></tr>' +
   '<tr>' +
-    '<td>' + dash(physical?.heightCm) + ' cm</td><td>... cm</td>' +
-    '<td>... cm</td><td>... cm</td>' +
-    '<td>... cm</td><td>... cm</td>' +
-  '</tr>' +
-  '<tr>' +
     '<td>1</td><td class="text-left">Tinggi Badan</td>' +
-    '<td>' + dash(physical?.heightCm) + ' cm</td><td>... cm</td>' +
-    '<td>... cm</td><td>... cm</td>' +
-    '<td>... cm</td><td>... cm</td>' +
+    semCols.map(col => '<td>' + (physMap[col.sem]?.heightCm ? physMap[col.sem].heightCm + ' cm' : '... cm') + '</td>').join('') +
   '</tr>' +
   '<tr>' +
     '<td>2</td><td class="text-left">Berat Badan</td>' +
-    '<td>' + dash(physical?.weightKg) + ' kg</td><td>... kg</td>' +
-    '<td>... kg</td><td>... kg</td>' +
-    '<td>... kg</td><td>... kg</td>' +
+    semCols.map(col => '<td>' + (physMap[col.sem]?.weightKg ? physMap[col.sem].weightKg + ' kg' : '... kg') + '</td>').join('') +
   '</tr>' +
 '</table>' +
 
@@ -203,18 +200,15 @@ export const generateBukuIndukTemplate = (data: any) => {
   '</tr>' +
   '<tr>' +
     '<td>1</td><td class="text-left">Pendengaran</td>' +
-    '<td>' + dash(physical?.hearingCondition) + '</td><td>...</td>' +
-    '<td>...</td><td>...</td><td>...</td><td>...</td>' +
+    semCols.map(col => '<td>' + dash(physMap[col.sem]?.hearingCondition) + '</td>').join('') +
   '</tr>' +
   '<tr>' +
     '<td>2</td><td class="text-left">Penglihatan</td>' +
-    '<td>' + dash(physical?.visionCondition) + '</td><td>...</td>' +
-    '<td>...</td><td>...</td><td>...</td><td>...</td>' +
+    semCols.map(col => '<td>' + dash(physMap[col.sem]?.visionCondition) + '</td>').join('') +
   '</tr>' +
   '<tr>' +
     '<td>3</td><td class="text-left">Gigi</td>' +
-    '<td>' + dash(physical?.dentalCondition) + '</td><td>...</td>' +
-    '<td>...</td><td>...</td><td>...</td><td>...</td>' +
+    semCols.map(col => '<td>' + dash(physMap[col.sem]?.dentalCondition) + '</td>').join('') +
   '</tr>' +
 '</table>' +
 

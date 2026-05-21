@@ -26,10 +26,12 @@ const formatDate = (d: any) => {
   catch { return d; }
 };
 
-type TabKey = 'identitas' | 'orang-tua' | 'nilai' | 'kehadiran' | 'ekskul-p5' | 'status';
+type TabKey = 'identitas' | 'orang-tua' | 'pendidikan' | 'jasmani' | 'nilai' | 'kehadiran' | 'ekskul-p5' | 'status';
 const TABS: { key: TabKey; label: string; icon: any }[] = [
   { key: 'identitas', label: 'Identitas', icon: User },
   { key: 'orang-tua', label: 'Orang Tua', icon: Users },
+  { key: 'pendidikan', label: 'Pendidikan', icon: Briefcase },
+  { key: 'jasmani', label: 'Kesehatan', icon: Heart },
   { key: 'nilai', label: 'Nilai Rapor', icon: BookOpen },
   { key: 'kehadiran', label: 'Kehadiran', icon: ClipboardList },
   { key: 'ekskul-p5', label: 'Ekskul & P5', icon: Award },
@@ -70,6 +72,123 @@ const InfoRow = ({ label, value, isEditing, editInput }: { label: string; value:
     {isEditing ? editInput : <span className="text-xs text-text-primary dark:text-text-darkPrimary font-semibold">{value || '-'}</span>}
   </div>
 );
+
+// ── TAB: Riwayat Pendidikan ──
+const TabPendidikan = ({ education, isEditing, formEdu, setFormEdu }: { education: any[], isEditing: boolean, formEdu: any[], setFormEdu: any }) => {
+  const e = isEditing ? (formEdu[0] || {}) : (education && education.length > 0 ? education[0] : null);
+  
+  if (!isEditing && !e) {
+    return (
+      <Section title="Riwayat Pendidikan Sebelumnya" icon={Briefcase}>
+        <div className="bg-gray-50 dark:bg-[#0a0a0a] rounded-xl border border-dashed border-gray-200 dark:border-[#333] p-8 flex items-center justify-center">
+          <p className="text-xs text-text-secondary italic">Data riwayat pendidikan belum diisi.</p>
+        </div>
+      </Section>
+    );
+  }
+
+  const update = (field: string, val: any) => {
+    const newEdu = [...formEdu];
+    if (!newEdu[0]) newEdu[0] = {};
+    newEdu[0][field] = val;
+    setFormEdu(newEdu);
+  };
+
+  return (
+    <div className="grid gap-4">
+      <Section title="A. Masuk Menjadi Siswa Baru" icon={Briefcase}>
+        <div className="grid md:grid-cols-2 gap-x-8">
+          <div>
+            <InfoRow label="Asal Sekolah" value={e?.previousSchoolName} isEditing={isEditing} 
+              editInput={<Input value={e?.previousSchoolName || ''} onChange={ev => update('previousSchoolName', ev.target.value)} />} />
+            <InfoRow label="Tanggal STTB/Ijazah" value={formatDate(e?.sttbDate)} isEditing={isEditing} 
+              editInput={<Input type="date" value={e?.sttbDate ? e.sttbDate.split('T')[0] : ''} onChange={ev => update('sttbDate', ev.target.value)} />} />
+          </div>
+          <div>
+            <InfoRow label="Nomor STTB/Ijazah" value={e?.sttbNumber} isEditing={isEditing} 
+              editInput={<Input value={e?.sttbNumber || ''} onChange={ev => update('sttbNumber', ev.target.value)} />} />
+          </div>
+        </div>
+      </Section>
+      <Section title="B. Pindahan dari Sekolah Lain" icon={Briefcase}>
+        <div className="grid md:grid-cols-2 gap-x-8">
+          <div>
+            <InfoRow label="Sekolah Asal" value={e?.transferFromSchool} isEditing={isEditing} 
+              editInput={<Input value={e?.transferFromSchool || ''} onChange={ev => update('transferFromSchool', ev.target.value)} />} />
+            <InfoRow label="Dari Kelas/Tingkat" value={e?.transferFromClass} isEditing={isEditing} 
+              editInput={<Input value={e?.transferFromClass || ''} onChange={ev => update('transferFromClass', ev.target.value)} />} />
+          </div>
+          <div>
+            <InfoRow label="Diterima Tanggal" value={formatDate(e?.transferAcceptDate)} isEditing={isEditing} 
+              editInput={<Input type="date" value={e?.transferAcceptDate ? e.transferAcceptDate.split('T')[0] : ''} onChange={ev => update('transferAcceptDate', ev.target.value)} />} />
+          </div>
+        </div>
+      </Section>
+    </div>
+  );
+};
+
+// ── TAB: Jasmani & Kesehatan ──
+const TabJasmani = ({ physical, isEditing, formPhys, setFormPhys }: { physical: any[], isEditing: boolean, formPhys: any[], setFormPhys: any }) => {
+  if (!isEditing && (!physical || physical.length === 0)) return (
+    <Section title="Perkembangan Jasmani dan Kesehatan" icon={Heart}>
+      <div className="bg-gray-50 dark:bg-[#0a0a0a] rounded-xl border border-dashed border-gray-200 dark:border-[#333] p-8 flex items-center justify-center">
+        <p className="text-xs text-text-secondary italic">Belum ada data jasmani yang dimasukkan.</p>
+      </div>
+    </Section>
+  );
+
+  return (
+    <Section title="Data Perkembangan Jasmani Per Semester" icon={Heart}>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {semCols.map((col, idx) => {
+          const viewPhys = (physical || []).find((p: any) => p.semester === col.sem);
+          const editPhys = formPhys[idx] || { semester: col.sem };
+          
+          if (!isEditing && !viewPhys) return (
+            <div key={col.sem} className="bg-gray-50 dark:bg-[#0a0a0a] rounded-lg border border-dashed border-gray-200 dark:border-[#333] p-3">
+              <p className="text-[10px] font-bold text-text-secondary mb-1">Kelas {col.cl} — Sem {col.sem}</p>
+              <p className="text-[10px] text-gray-400 italic">Belum ada data</p>
+            </div>
+          );
+
+          const p = isEditing ? editPhys : viewPhys;
+          const update = (field: string, val: any) => {
+            const newP = [...formPhys];
+            if (!newP[idx]) newP[idx] = { semester: col.sem };
+            newP[idx][field] = val;
+            setFormPhys(newP);
+          };
+          
+          return (
+            <div key={col.sem} className="bg-white dark:bg-[#111] rounded-lg border border-gray-200 dark:border-[#222] p-3">
+              <p className="text-[10px] font-bold text-primary mb-2">Kelas {col.cl} — Sem {col.sem}</p>
+              {isEditing ? (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input type="number" min="50" max="250" placeholder="Tinggi (cm)" className="h-7 text-xs w-full" value={p.heightCm || ''} onChange={e => update('heightCm', e.target.value)} />
+                    <Input type="number" min="20" max="200" placeholder="Berat (kg)" className="h-7 text-xs w-full" value={p.weightKg || ''} onChange={e => update('weightKg', e.target.value)} />
+                  </div>
+                  <Input placeholder="Pendengaran" className="h-7 text-xs" value={p.hearingCondition || ''} onChange={e => update('hearingCondition', e.target.value)} />
+                  <Input placeholder="Penglihatan" className="h-7 text-xs" value={p.visionCondition || ''} onChange={e => update('visionCondition', e.target.value)} />
+                  <Input placeholder="Gigi" className="h-7 text-xs" value={p.dentalCondition || ''} onChange={e => update('dentalCondition', e.target.value)} />
+                </div>
+              ) : (
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between border-b border-gray-50 dark:border-[#1a1a1a] pb-1"><span className="text-text-secondary">Tinggi</span><span className="font-semibold">{p.heightCm || '-'} cm</span></div>
+                  <div className="flex justify-between border-b border-gray-50 dark:border-[#1a1a1a] pb-1"><span className="text-text-secondary">Berat</span><span className="font-semibold">{p.weightKg || '-'} kg</span></div>
+                  <div className="flex justify-between border-b border-gray-50 dark:border-[#1a1a1a] pb-1"><span className="text-text-secondary">Telinga</span><span className="font-semibold">{p.hearingCondition || '-'}</span></div>
+                  <div className="flex justify-between border-b border-gray-50 dark:border-[#1a1a1a] pb-1"><span className="text-text-secondary">Mata</span><span className="font-semibold">{p.visionCondition || '-'}</span></div>
+                  <div className="flex justify-between"><span className="text-text-secondary">Gigi</span><span className="font-semibold">{p.dentalCondition || '-'}</span></div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Section>
+  );
+};
 
 // ── TAB: Identitas ──
 const TabIdentitas = ({ s, isEditing, formData, onChange, classesList }: { s: any, isEditing: boolean, formData: any, onChange: (field: string, val: any) => void, classesList: any[] }) => (
@@ -222,11 +341,13 @@ const TabNilai = ({ grades, isEditing, matrix, setMatrix, subjects, setSubjects 
                   return (
                     <td key={c.sem} className="text-center py-1 px-1">
                       {isEditing ? (
-                        <input
-                          type="number"
-                          className="w-14 h-8 text-center border border-gray-300 dark:border-gray-700 rounded text-xs"
+                        <Input
+                          className="h-6 w-12 text-center text-xs p-0 m-0 border-primary bg-primary/5 focus:ring-1 focus:ring-primary"
                           value={val || ''}
-                          onChange={(e) => {
+                          type="number"
+                          min="0"
+                          max="100"
+                          onChange={e => {
                             const newM = { ...matrix };
                             if (!newM[subj]) newM[subj] = {};
                             newM[subj][c.sem] = e.target.value;
@@ -378,24 +499,27 @@ const TabEkskulP5 = ({ extracurriculars, p5, isEditing, formEkskul, setFormEksku
         <div className="space-y-3">
           {(isEditing ? formEkskul : extracurriculars).map((e: any, i: number) => (
             isEditing ? (
-              <div key={i} className="flex gap-2 items-center">
-                <Input placeholder="Nama Kegiatan" value={e.activityName} onChange={ev => { const n = [...formEkskul]; n[i].activityName = ev.target.value; setFormEkskul(n); }} />
-                <Input placeholder="Semester" className="w-24" value={e.semester} onChange={ev => { const n = [...formEkskul]; n[i].semester = ev.target.value; setFormEkskul(n); }} />
-                <Input placeholder="Nilai" className="w-24" value={e.assessment} onChange={ev => { const n = [...formEkskul]; n[i].assessment = ev.target.value; setFormEkskul(n); }} />
+              <div key={i} className="flex gap-2 w-full items-start">
+                <Input placeholder="Nama Kegiatan" className="flex-1" value={e.activityName} onChange={ev => { const n = [...formEkskul]; n[i].activityName = ev.target.value; setFormEkskul(n); }} />
+                <Input placeholder="Sem" type="number" min="1" max="6" className="w-16" value={e.semester} onChange={ev => { const n = [...formEkskul]; n[i].semester = ev.target.value; setFormEkskul(n); }} />
+                <select className="flex h-10 w-28 rounded-md border border-gray-200 bg-transparent px-2 text-xs" value={e.predicate || e.assessment || ''} onChange={ev => { const n = [...formEkskul]; n[i].predicate = ev.target.value; setFormEkskul(n); }}>
+                  <option value="">Predikat</option><option value="Sangat Baik">Sangat Baik</option><option value="Baik">Baik</option><option value="Cukup">Cukup</option><option value="Kurang">Kurang</option>
+                </select>
+                <Input placeholder="Keterangan..." className="flex-1" value={e.description || ''} onChange={ev => { const n = [...formEkskul]; n[i].description = ev.target.value; setFormEkskul(n); }} />
                 <button onClick={() => setFormEkskul(formEkskul.filter((_, idx) => idx !== i))} className="p-2 text-red-500"><Trash2 size={16}/></button>
               </div>
             ) : (
               <div key={i} className="flex items-center gap-3 bg-gray-50 dark:bg-[#0a0a0a] rounded-lg p-3 border border-gray-100 dark:border-[#222]">
                 <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center shrink-0"><Star size={14} className="text-violet-600" /></div>
                 <div>
-                  <p className="text-xs font-semibold">{e.name || e.activityName}</p>
-                  <p className="text-[10px] text-text-secondary">Semester {e.semester} • {e.score || e.assessment || '-'}</p>
+                  <p className="text-xs font-semibold">{e.name || e.activityName} <span className="font-normal text-text-secondary">({e.predicate || e.assessment || '-'})</span></p>
+                  <p className="text-[10px] text-text-secondary">Semester {e.semester} • {e.description || '-'}</p>
                 </div>
               </div>
             )
           ))}
           {isEditing && (
-            <Button variant="outline" size="sm" onClick={() => setFormEkskul([...formEkskul, { activityName: '', semester: '', assessment: '' }])}>
+            <Button variant="outline" size="sm" onClick={() => setFormEkskul([...formEkskul, { activityName: '', semester: '', predicate: '', description: '' }])}>
               <Plus size={14} className="mr-1"/> Tambah Ekskul
             </Button>
           )}
@@ -409,22 +533,31 @@ const TabEkskulP5 = ({ extracurriculars, p5, isEditing, formEkskul, setFormEksku
         <div className="space-y-3">
           {(isEditing ? formP5 : p5).map((item: any, i: number) => (
             isEditing ? (
-              <div key={i} className="flex gap-2 items-center">
-                <Input placeholder="Tema/Projek" value={item.projectName} onChange={ev => { const n = [...formP5]; n[i].projectName = ev.target.value; setFormP5(n); }} />
-                <Input placeholder="Semester" className="w-24" value={item.semester} onChange={ev => { const n = [...formP5]; n[i].semester = ev.target.value; setFormP5(n); }} />
-                <Input placeholder="Nilai" className="w-32" value={item.score} onChange={ev => { const n = [...formP5]; n[i].score = ev.target.value; setFormP5(n); }} />
-                <button onClick={() => setFormP5(formP5.filter((_, idx) => idx !== i))} className="p-2 text-red-500"><Trash2 size={16}/></button>
+              <div key={i} className="flex gap-2 flex-wrap items-start bg-gray-50 dark:bg-[#111] p-2 rounded-lg border border-gray-100 dark:border-[#222]">
+                <select className="flex h-10 w-20 rounded-md border border-gray-200 bg-white dark:bg-black px-2 text-xs" value={item.fase || ''} onChange={ev => { const n = [...formP5]; n[i].fase = ev.target.value; setFormP5(n); }}>
+                  <option value="">Fase</option><option value="E">E</option><option value="F">F</option>
+                </select>
+                <Input placeholder="Tema/Projek" className="flex-1 min-w-[150px] bg-white dark:bg-black" value={item.projectName} onChange={ev => { const n = [...formP5]; n[i].projectName = ev.target.value; setFormP5(n); }} />
+                <Input placeholder="Dimensi P5" className="flex-1 min-w-[120px] bg-white dark:bg-black" value={item.dimension || ''} onChange={ev => { const n = [...formP5]; n[i].dimension = ev.target.value; setFormP5(n); }} />
+                <select className="flex h-10 w-36 rounded-md border border-gray-200 bg-white dark:bg-black px-2 text-xs" value={item.predicate || item.score || ''} onChange={ev => { const n = [...formP5]; n[i].predicate = ev.target.value; setFormP5(n); }}>
+                  <option value="">Predikat</option><option value="Sangat Berkembang">Sangat Berkembang</option><option value="Berkembang Sesuai Harapan">Berkembang Sesuai Harapan</option><option value="Mulai Berkembang">Mulai Berkembang</option><option value="Belum Berkembang">Belum Berkembang</option>
+                </select>
+                <Input placeholder="Catatan..." className="w-full bg-white dark:bg-black" value={item.description || ''} onChange={ev => { const n = [...formP5]; n[i].description = ev.target.value; setFormP5(n); }} />
+                <button onClick={() => setFormP5(formP5.filter((_, idx) => idx !== i))} className="absolute right-3 mt-2 text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
               </div>
             ) : (
               <div key={i} className="bg-gray-50 dark:bg-[#0a0a0a] rounded-lg p-3 border border-gray-100 dark:border-[#222]">
-                <p className="text-xs font-semibold">{item.projectName || item.dimensionName || 'P5'}</p>
-                <p className="text-[10px] text-text-secondary mt-0.5">Semester {item.semester}</p>
-                <div className="mt-2"><span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{item.score || '-'}</span></div>
+                <p className="text-xs font-semibold">{item.projectName || item.dimensionName || 'P5'} <span className="font-normal text-text-secondary">(Fase {item.fase || '-'})</span></p>
+                <p className="text-[10px] text-text-secondary mt-0.5">{item.dimension || '-'}</p>
+                <div className="mt-2 flex gap-2 items-center">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{item.predicate || item.score || '-'}</span>
+                  {item.description && <span className="text-[10px] text-gray-500 italic">{item.description}</span>}
+                </div>
               </div>
             )
           ))}
           {isEditing && (
-            <Button variant="outline" size="sm" onClick={() => setFormP5([...formP5, { projectName: '', semester: '', score: '' }])}>
+            <Button variant="outline" size="sm" onClick={() => setFormP5([...formP5, { projectName: '', fase: '', dimension: '', predicate: '', description: '' }])}>
               <Plus size={14} className="mr-1"/> Tambah P5
             </Button>
           )}
@@ -491,11 +624,11 @@ const TabStatus = ({ finalStatus, student, isEditing, formData, onChange }: { fi
         </div>
         {fs && (
           <div className="space-y-0 bg-white/60 rounded-lg p-3">
-            {fs.tanggalKeluar && <InfoRow label="Tanggal" value={formatDate(fs.tanggalKeluar)} />}
-            {fs.alasan && <InfoRow label="Alasan" value={fs.alasan} />}
-            {fs.noIjazah && <InfoRow label="No. Ijazah" value={fs.noIjazah} />}
-            {fs.tujuanPindah && <InfoRow label="Tujuan Pindah" value={fs.tujuanPindah} />}
-            {fs.tujuanSetelahLulus && <InfoRow label="Tujuan Setelah Lulus" value={fs.tujuanSetelahLulus} />}
+            {fs.leaveDate && <InfoRow label="Tanggal Keluar" value={formatDate(fs.leaveDate)} />}
+            {fs.leaveReason && <InfoRow label="Alasan" value={fs.leaveReason} />}
+            {fs.ijazahNumber && <InfoRow label="No. Ijazah" value={fs.ijazahNumber} />}
+            {fs.destinationSchool && <InfoRow label="Tujuan Pindah" value={fs.destinationSchool} />}
+            {fs.continueTo && <InfoRow label="Melanjutkan Ke" value={fs.continueTo} />}
           </div>
         )}
       </div>
@@ -526,6 +659,8 @@ export default function StudentDetailPage() {
   const [p5Data, setP5Data] = useState<any[]>([]);
   const [finalStatusForm, setFinalStatusForm] = useState<any>({});
   const [classMapels, setClassMapels] = useState<string[]>(DEFAULT_SUBJECTS);
+  const [educationForm, setEducationForm] = useState<any[]>([]);
+  const [physicalForm, setPhysicalForm] = useState<any[]>([]);
 
   const fetchData = async () => {
     try {
@@ -588,6 +723,13 @@ export default function StudentDetailPage() {
       setAttendanceData(attMap);
       setExtracurriculars(data.extracurriculars || []);
       setP5Data(data.p5 || []);
+      setEducationForm(data.education || []);
+      
+      const physMap = semCols.map(col => {
+        const found = (data.physical || []).find((p: any) => p.semester === col.sem);
+        return found || { semester: col.sem, heightCm: '', weightKg: '', hearingCondition: '', visionCondition: '', dentalCondition: '' };
+      });
+      setPhysicalForm(physMap);
       
       const fs = data.finalStatus && data.finalStatus.length > 0 ? data.finalStatus[0] : {};
       setFinalStatusForm({
@@ -619,6 +761,8 @@ export default function StudentDetailPage() {
       attendance: attendanceData.filter(a => a.sick || a.excused || a.unexcused || a.promotionStatus),
       extracurriculars: extracurriculars.filter(e => e.activityName?.trim()),
       p5: p5Data.filter(p => p.projectName?.trim()),
+      education: educationForm.filter(e => e.previousSchoolName || e.sttbNumber || e.transferFromSchool),
+      physical: physicalForm.filter(p => p.heightCm || p.weightKg || p.hearingCondition || p.visionCondition || p.dentalCondition),
       finalStatus: finalStatusForm.statusType ? [finalStatusForm] : []
     };
 
@@ -704,6 +848,8 @@ export default function StudentDetailPage() {
           <div className="animate-in fade-in duration-200">
             {activeTab === 'identitas' && <TabIdentitas s={isEditing ? studentForm : data} isEditing={isEditing} formData={studentForm} onChange={(f,v) => setStudentForm({...studentForm, [f]: v})} classesList={classesList} />}
             {activeTab === 'orang-tua' && <TabOrangTua parents={data.parents} isEditing={isEditing} formParents={parentsForm} setFormParents={setParentsForm} />}
+            {activeTab === 'pendidikan' && <TabPendidikan education={data.education} isEditing={isEditing} formEdu={educationForm} setFormEdu={setEducationForm} />}
+            {activeTab === 'jasmani' && <TabJasmani physical={data.physical} isEditing={isEditing} formPhys={physicalForm} setFormPhys={setPhysicalForm} />}
             {activeTab === 'nilai' && <TabNilai grades={data.grades} isEditing={isEditing} matrix={gradesMatrix} setMatrix={setGradesMatrix} subjects={subjects} setSubjects={setSubjects} />}
             {activeTab === 'kehadiran' && <TabKehadiran attendance={data.attendance} isEditing={isEditing} formAtt={attendanceData} setFormAtt={setAttendanceData} />}
             {activeTab === 'ekskul-p5' && <TabEkskulP5 extracurriculars={data.extracurriculars} p5={data.p5} isEditing={isEditing} formEkskul={extracurriculars} setFormEkskul={setExtracurriculars} formP5={p5Data} setFormP5={setP5Data} />}
