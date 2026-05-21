@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,8 +8,7 @@ import * as XLSX from 'xlsx';
 import {
   Users, Search, Settings2, RefreshCw, FileSpreadsheet, Download,
   UserPlus, Edit2, Trash2, ChevronLeft, ChevronRight, Loader2,
-  UserPlus, Edit2, Trash2, ChevronLeft, ChevronRight, Loader2,
-  CheckCircle2, GraduationCap, AlertCircle, UserCog, ArrowUpRight, X, QrCode, Printer
+  CheckCircle2, GraduationCap, AlertCircle, UserCog, ArrowUpRight, X, QrCode, Printer, Eye
 } from 'lucide-react';
 
 // Sub-components
@@ -62,6 +62,7 @@ const ITEMS_PER_PAGE = 10;
 
 export default function DashboardAlumni() {
   const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('students');
   const [students, setStudents] = useState<any[]>([]);
   const [classesList, setClassesList] = useState<any[]>([]);
@@ -326,17 +327,18 @@ export default function DashboardAlumni() {
                       </td>
                       <td className="py-2 px-3 text-[11px] font-mono text-text-secondary">{s.nis || s.nisn || '-'}</td>
                       <td className="py-2 px-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/dashboard/students/${s.id}`)}>
                           <div className={`w-6 h-6 rounded-full ${avatarColor(s.fullName || '')} text-white text-[9px] font-bold flex items-center justify-center shrink-0`}>
                             {initials(s.fullName || '?')}
                           </div>
-                          <span className="text-[12.5px] font-semibold text-text-primary dark:text-text-darkPrimary">{s.fullName || '-'}</span>
+                          <span className="text-[12.5px] font-semibold text-primary hover:underline">{s.fullName || '-'}</span>
                         </div>
                       </td>
                       <td className="py-2 px-3 text-[11px] text-text-primary dark:text-text-darkPrimary">{getClassLabel(s)}</td>
                       <td className="py-2 px-3"><StatusBadge status={s.status} /></td>
                       <td className="py-2 px-3 text-center">
                         <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => navigate(`/dashboard/students/${s.id}`)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-primary transition-colors" title="Lihat Detail"><Eye size={13} /></button>
                           <button onClick={() => handlePrintBukuInduk(s)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-emerald-500 transition-colors" title="Cetak Buku Induk"><Printer size={13} /></button>
                           <button onClick={() => { setStatusStudent(s); setUpdateStatusOpen(true); }} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-amber-500 transition-colors" title="Ubah Status"><UserCog size={13} /></button>
                           <button onClick={() => handleEdit(s)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-400 hover:text-blue-500 transition-colors" title="Edit"><Edit2 size={13} /></button>
