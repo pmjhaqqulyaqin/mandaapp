@@ -33,6 +33,10 @@ const INITIAL_PHYSICAL = [
   { semester: 1, heightCm: '', weightKg: '', hearingCondition: '', visionCondition: '', dentalCondition: '' }
 ];
 
+const INITIAL_FINAL_STATUS = {
+  statusType: '', graduationYear: '', ijazahNumber: '', continueTo: '', leaveClass: '', destinationSchool: '', destinationClass: '', leaveReason: '', leaveDate: ''
+};
+
 const DEFAULT_SUBJECTS = [
   'Pendidikan Agama Islam', 'Pendidikan Pancasila', 'Bahasa Indonesia', 'Matematika',
   'Bahasa Inggris', 'Sejarah', 'Seni Budaya', 'Pendidikan Jasmani',
@@ -49,7 +53,7 @@ const SEMESTER_COLS = [
   { semester: 6, classLevel: 'XII', label: 'XII/2' },
 ];
 
-type TabId = 'pribadi' | 'ortu' | 'pendidikan' | 'jasmani' | 'akademik' | 'nonakademik';
+type TabId = 'pribadi' | 'ortu' | 'pendidikan' | 'jasmani' | 'akademik' | 'nonakademik' | 'status_akhir';
 
 export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, apiClient, onSuccess, editStudent }) => {
   const [activeTab, setActiveTab] = useState<TabId>('pribadi');
@@ -58,6 +62,7 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, api
   const [parentsForm, setParentsForm] = useState(INITIAL_PARENTS);
   const [educationForm, setEducationForm] = useState(INITIAL_EDUCATION);
   const [physicalForm, setPhysicalForm] = useState(INITIAL_PHYSICAL);
+  const [finalStatusForm, setFinalStatusForm] = useState(INITIAL_FINAL_STATUS);
   
   // Phase 3 state: Matrix data
   const [subjects, setSubjects] = useState<string[]>([...DEFAULT_SUBJECTS]);
@@ -167,6 +172,24 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, api
           } else {
             setP5Data([]);
           }
+
+          // Final Status
+          if (res.finalStatus && res.finalStatus.length > 0) {
+            const fs = res.finalStatus[0];
+            setFinalStatusForm({
+              statusType: fs.statusType || '',
+              graduationYear: fs.graduationYear || '',
+              ijazahNumber: fs.ijazahNumber || '',
+              continueTo: fs.continueTo || '',
+              leaveClass: fs.leaveClass || '',
+              destinationSchool: fs.destinationSchool || '',
+              destinationClass: fs.destinationClass || '',
+              leaveReason: fs.leaveReason || '',
+              leaveDate: fs.leaveDate ? fs.leaveDate.split('T')[0] : ''
+            });
+          } else {
+            setFinalStatusForm(INITIAL_FINAL_STATUS);
+          }
         })
         .catch((err: any) => console.error("Failed to load complete data", err))
         .finally(() => setLoadingComplete(false));
@@ -182,6 +205,7 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, api
       })));
       setExtracurriculars([]);
       setP5Data([]);
+      setFinalStatusForm(INITIAL_FINAL_STATUS);
       setActiveTab('pribadi');
     }
   }, [isOpen, editStudent]);
@@ -219,7 +243,8 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, api
       grades: flattenGrades(),
       attendance: attendanceData.filter(a => a.sick || a.excused || a.unexcused || a.promotionStatus),
       extracurriculars: extracurriculars.filter(e => e.activityName?.trim()),
-      p5: p5Data.filter(p => p.projectName?.trim())
+      p5: p5Data.filter(p => p.projectName?.trim()),
+      finalStatus: finalStatusForm.statusType ? [finalStatusForm] : []
     };
 
     try {
@@ -257,6 +282,7 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, api
     { id: 'jasmani' as TabId, label: 'Jasmani', icon: <Activity size={14} /> },
     { id: 'akademik' as TabId, label: 'Nilai Rapor', icon: <ClipboardList size={14} /> },
     { id: 'nonakademik' as TabId, label: 'Non-Akademik', icon: <Award size={14} /> },
+    { id: 'status_akhir' as TabId, label: 'Status Akhir', icon: <MapPin size={14} /> },
   ];
 
   const cellInputClass = "w-full h-8 text-center text-xs border-0 bg-transparent outline-none focus:bg-primary/5 dark:focus:bg-primary/10 rounded";
@@ -747,6 +773,81 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, api
             </Button>
           </div>
         </div>
+
+        {/* Tab 7: Status Akhir */}
+        {activeTab === 'status_akhir' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+            <SectionHeader icon={<MapPin size={16} className="text-amber-600" />} title="Status Akhir Siswa" subtitle="Pencatatan kelulusan, mutasi, atau putus sekolah." color="bg-amber-500/10" />
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-text-secondary">Status Akhir</label>
+                <select className="w-full h-10 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] px-3 text-sm outline-none focus:border-amber-500/50"
+                  value={finalStatusForm.statusType} onChange={e => setFinalStatusForm({ ...finalStatusForm, statusType: e.target.value })}>
+                  <option value="">(Belum Ada Status Akhir)</option>
+                  <option value="Lulus">Tamat / Lulus (Alumni)</option>
+                  <option value="Pindah">Pindah Sekolah (Mutasi)</option>
+                  <option value="Keluar">Keluar / Putus Sekolah (DO)</option>
+                </select>
+              </div>
+              {finalStatusForm.statusType && (
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-text-secondary">Tanggal Penetapan</label>
+                  <Input type="date" value={finalStatusForm.leaveDate} onChange={e => setFinalStatusForm({ ...finalStatusForm, leaveDate: e.target.value })} />
+                </div>
+              )}
+              
+              {finalStatusForm.statusType === 'Lulus' && (
+                <>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-text-secondary">Tahun Lulus</label>
+                    <Input placeholder="Contoh: 2026" value={finalStatusForm.graduationYear} onChange={e => setFinalStatusForm({ ...finalStatusForm, graduationYear: e.target.value })} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-text-secondary">Nomor Ijazah</label>
+                    <Input placeholder="Nomor seri ijazah" value={finalStatusForm.ijazahNumber} onChange={e => setFinalStatusForm({ ...finalStatusForm, ijazahNumber: e.target.value })} />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-xs font-semibold text-text-secondary">Melanjutkan Ke / Bekerja Di</label>
+                    <Input placeholder="Nama instansi/perusahaan tujuan" value={finalStatusForm.continueTo} onChange={e => setFinalStatusForm({ ...finalStatusForm, continueTo: e.target.value })} />
+                  </div>
+                </>
+              )}
+
+              {(finalStatusForm.statusType === 'Pindah' || finalStatusForm.statusType === 'Keluar') && (
+                <>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-xs font-semibold text-text-secondary">Alasan {finalStatusForm.statusType}</label>
+                    <Input placeholder="Alasan mutasi / keluar" value={finalStatusForm.leaveReason} onChange={e => setFinalStatusForm({ ...finalStatusForm, leaveReason: e.target.value })} />
+                  </div>
+                  {finalStatusForm.statusType === 'Pindah' && (
+                    <>
+                      <div className="space-y-1 sm:col-span-2">
+                        <label className="text-xs font-semibold text-text-secondary">Pindah Ke Sekolah</label>
+                        <Input placeholder="Nama sekolah tujuan" value={finalStatusForm.destinationSchool} onChange={e => setFinalStatusForm({ ...finalStatusForm, destinationSchool: e.target.value })} />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-text-secondary">Ditinggalkan di Kelas</label>
+                        <Input placeholder="Kelas saat ditinggalkan" value={finalStatusForm.leaveClass} onChange={e => setFinalStatusForm({ ...finalStatusForm, leaveClass: e.target.value })} />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-text-secondary">Diterima di Kelas</label>
+                        <Input placeholder="Kelas di sekolah baru" value={finalStatusForm.destinationClass} onChange={e => setFinalStatusForm({ ...finalStatusForm, destinationClass: e.target.value })} />
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+            {finalStatusForm.statusType && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg mt-4">
+                <p className="text-xs text-amber-800 dark:text-amber-200">
+                  <strong>Perhatian:</strong> Menyimpan status akhir ({finalStatusForm.statusType}) akan mengubah status utama siswa menjadi "{finalStatusForm.statusType}". Siswa ini tidak akan muncul lagi di tabel "Data Siswa Aktif".
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-[#222]">

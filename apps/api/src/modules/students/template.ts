@@ -1,11 +1,15 @@
 export const generateBukuIndukTemplate = (data: any) => {
-  const { student, parents, education, physical, grades, attendance, extracurriculars, p5 } = data;
+  const { student, parents, education, physical, grades, attendance, extracurriculars, p5, finalStatus } = data;
 
   const getParent = (type: string) => (parents || []).find((p: any) => p.type === type) || {};
   const ayah = getParent('ayah');
   const ibu = getParent('ibu');
   const wali = getParent('wali');
 
+  const edu = (education && education[0]) || {};
+  
+  // final status (it's an array from DB)
+  const fStatus = (finalStatus && finalStatus[0]) || {};
   const v = (val: any) => val || '....................';
   const dash = (val: any) => val || '-';
 
@@ -319,6 +323,27 @@ export const generateBukuIndukTemplate = (data: any) => {
       ).join('')
     : '<tr><td>1</td><td></td><td class="text-left">.......................</td><td></td><td></td></tr>' +
       '<tr><td>2</td><td></td><td class="text-left">.......................</td><td></td><td></td></tr>'
+  ) +
+'</table>' +
+
+// STATUS AKHIR
+'<h2>X. STATUS AKHIR (KELULUSAN / MUTASI KELUAR)</h2>' +
+'<table>' +
+  (fStatus.statusType === 'Lulus' 
+    ? '<tr><td style="width: 30%">Tamat Belajar / Lulus</td><td style="width: 2%">:</td><td>Tahun ' + (fStatus.graduationYear || '-') + '</td></tr>' +
+      '<tr><td>Nomor Seri Ijazah</td><td>:</td><td>' + (fStatus.ijazahNumber || '-') + '</td></tr>' +
+      '<tr><td>Melanjutkan Ke / Bekerja</td><td>:</td><td>' + (fStatus.continueTo || '-') + '</td></tr>'
+    : fStatus.statusType === 'Pindah'
+    ? '<tr><td style="width: 30%">Pindah Ke Sekolah</td><td style="width: 2%">:</td><td>' + (fStatus.destinationSchool || '-') + '</td></tr>' +
+      '<tr><td>Ditinggalkan di Kelas</td><td>:</td><td>' + (fStatus.leaveClass || '-') + '</td></tr>' +
+      '<tr><td>Diterima di Kelas</td><td>:</td><td>' + (fStatus.destinationClass || '-') + '</td></tr>' +
+      '<tr><td>Alasan Pindah</td><td>:</td><td>' + (fStatus.leaveReason || '-') + '</td></tr>'
+    : fStatus.statusType === 'Keluar'
+    ? '<tr><td style="width: 30%">Keluar / Putus Sekolah</td><td style="width: 2%">:</td><td>Pada Tanggal: ' + (fStatus.leaveDate ? new Date(fStatus.leaveDate).toLocaleDateString('id-ID') : '-') + '</td></tr>' +
+      '<tr><td>Alasan Keluar</td><td>:</td><td>' + (fStatus.leaveReason || '-') + '</td></tr>'
+    : '<tr><td style="width: 30%">Tamat / Pindah / Keluar</td><td style="width: 2%">:</td><td>...........................................................</td></tr>' +
+      '<tr><td>Nomor Ijazah / Alasan</td><td>:</td><td>...........................................................</td></tr>' +
+      '<tr><td>Melanjutkan Ke</td><td>:</td><td>...........................................................</td></tr>'
   ) +
 '</table>' +
 

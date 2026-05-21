@@ -60,7 +60,7 @@ const StatusBadge = ({ status }: { status: string }) => {
 
 const ITEMS_PER_PAGE = 10;
 
-export const DashboardStudents = () => {
+export default function DashboardAlumni() {
   const { user, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('students');
   const [students, setStudents] = useState<any[]>([]);
@@ -118,8 +118,8 @@ export const DashboardStudents = () => {
         const name = cls?.name || s.className || '';
         return name === filterClass;
       })();
-      const status = (s.status || 'active').toLowerCase();
-      const matchStatus = status === 'aktif' || status === 'active';
+      const status = (s.status || '').toLowerCase();
+      const matchStatus = status === 'lulus';
       return matchSearch && matchClass && matchStatus;
     });
   }, [students, searchQuery, filterClass, classesList]);
@@ -131,7 +131,7 @@ export const DashboardStudents = () => {
   // Stats
   const stats = useMemo(() => ({
     total: filtered.length,
-    aktif: filtered.length,
+    lulus: filtered.length,
   }), [filtered]);
 
   // Handlers
@@ -224,9 +224,9 @@ export const DashboardStudents = () => {
         <div>
           <Breadcrumbs items={[
             { label: 'Database', href: '/dashboard' },
-            { label: activeTab === 'students' ? 'Data Siswa' : 'Kelas' },
+            { label: activeTab === 'students' ? 'Data Alumni' : 'Kelas' },
           ]} />
-          <h1 className="text-xl font-bold text-text-primary dark:text-text-darkPrimary mt-1">Manajemen Data Siswa</h1>
+          <h1 className="text-xl font-bold text-text-primary dark:text-text-darkPrimary mt-1">Data Alumni (Lulus)</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
@@ -387,21 +387,13 @@ export const DashboardStudents = () => {
 
           {/* Stat Cards Footer */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {[
-              { icon: <Users size={16} className="text-blue-500" />, label: 'Total Siswa', value: stats.total, bg: 'bg-blue-500/10', mode: 'Semua' },
-              { icon: <CheckCircle2 size={16} className="text-emerald-500" />, label: 'Aktif', value: stats.aktif, bg: 'bg-emerald-500/10', mode: 'Aktif' },
-              { icon: <GraduationCap size={16} className="text-amber-500" />, label: 'Lulus', value: stats.lulus, bg: 'bg-amber-500/10', mode: 'Lulus' },
-              { icon: <AlertCircle size={16} className="text-red-500" />, label: 'Mutasi', value: stats.mutasi, bg: 'bg-red-500/10', mode: 'Mutasi' },
-            ].map(card => (
-              <div key={card.label} onClick={() => setFilterStatus(card.mode)} 
-                className={`bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-3 flex items-center gap-2.5 cursor-pointer hover:border-primary/50 transition-colors ${filterStatus === card.mode ? 'ring-1 ring-primary shadow-sm' : ''}`}>
-                <div className={`w-8 h-8 rounded-lg ${card.bg} flex items-center justify-center shrink-0`}>{card.icon}</div>
-                <div>
-                  <p className="text-[9px] font-semibold uppercase tracking-wider text-text-secondary">{card.label}</p>
-                  <p className="text-base font-bold text-text-primary dark:text-text-darkPrimary leading-tight">{card.value.toLocaleString()}</p>
-                </div>
+            <div className={`bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] p-3 flex items-center gap-2.5 shadow-sm`}>
+              <div className={`w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0`}><GraduationCap size={16} className="text-blue-500" /></div>
+              <div>
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-text-secondary">Total Alumni</p>
+                <p className="text-base font-bold text-text-primary dark:text-text-darkPrimary leading-tight">{stats.lulus.toLocaleString()}</p>
               </div>
-            ))}
+            </div>
           </div>
         </>
       ) : (

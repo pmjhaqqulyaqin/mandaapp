@@ -152,18 +152,26 @@ const ALL_MENU_ITEMS = [
   },
   {
     key: 'students',
-    label: 'Manajemen Siswa',
+    label: 'Manajemen Siswa & Buku Induk',
     href: '/dashboard/students',
     icon: <Users size={16} />,
     group: 'main',
   },
   {
-    key: 'buku-induk',
-    label: 'Buku Induk',
-    href: '/dashboard/buku-induk',
-    icon: <BookOpen size={16} />,
+    key: 'alumni',
+    label: 'Data Alumni',
+    href: '/dashboard/alumni',
+    icon: <GraduationCap size={16} />,
     group: 'main',
   },
+  {
+    key: 'mutasi',
+    label: 'Data Mutasi / Keluar',
+    href: '/dashboard/mutasi',
+    icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.828l-6.536-6.536"/><path d="M12 13.7a4 4 0 0 1 1.172-2.828l6.536-6.536"/></svg>,
+    group: 'main',
+  },
+
   {
     key: 'e-office',
     label: 'Korespondensi Dinas',

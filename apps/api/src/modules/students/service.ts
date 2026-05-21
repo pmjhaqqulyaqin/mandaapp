@@ -1,14 +1,16 @@
 import { db } from "../../db";
-import { studentProfiles, identityRevisions, parentProfiles, educationHistory, physicalData, bukuIndukGrades, bukuIndukAttendance, bukuIndukExtracurriculars, bukuIndukP5 } from "../../db/schema";
-import { eq, ilike, or } from "drizzle-orm";
+import { studentProfiles, identityRevisions, parentProfiles, educationHistory, physicalData, bukuIndukGrades, bukuIndukAttendance, bukuIndukExtracurriculars, bukuIndukP5, bukuIndukFinalStatus } from "../../db/schema";
+import { eq, ilike, or, and } from "drizzle-orm";
 
 export class StudentService {
-  static async getAllStudents(classFilter?: string, classIdFilter?: string) {
-    if (classIdFilter) {
-      return db.select().from(studentProfiles).where(eq(studentProfiles.classId, classIdFilter));
-    }
-    if (classFilter) {
-      return db.select().from(studentProfiles).where(eq(studentProfiles.className, classFilter));
+  static async getAllStudents(classFilter?: string, classIdFilter?: string, statusFilter?: string) {
+    const conditions = [];
+    if (classIdFilter) conditions.push(eq(studentProfiles.classId, classIdFilter));
+    if (classFilter) conditions.push(eq(studentProfiles.className, classFilter));
+    if (statusFilter) conditions.push(eq(studentProfiles.status, statusFilter));
+
+    if (conditions.length > 0) {
+      return db.select().from(studentProfiles).where(and(...conditions));
     }
     return db.select().from(studentProfiles);
   }
@@ -29,6 +31,7 @@ export class StudentService {
     const attendance = await db.select().from(bukuIndukAttendance).where(eq(bukuIndukAttendance.studentId, id));
     const extracurriculars = await db.select().from(bukuIndukExtracurriculars).where(eq(bukuIndukExtracurriculars.studentId, id));
     const p5 = await db.select().from(bukuIndukP5).where(eq(bukuIndukP5.studentId, id));
+    const finalStatus = await db.select().from(bukuIndukFinalStatus).where(eq(bukuIndukFinalStatus.studentId, id));
 
     return {
       ...student,
@@ -38,7 +41,8 @@ export class StudentService {
       grades,
       attendance,
       extracurriculars,
-      p5
+      p5,
+      finalStatus
     };
   }
 
@@ -137,6 +141,37 @@ export class StudentService {
         if (payload.p5.length > 0) {
           const p5ToInsert = payload.p5.map((p: any) => ({ ...p, studentId: id }));
           await tx.insert(bukuIndukP5).values(p5ToInsert);
+        }
+      }
+
+      // 9. Overwrite Buku Induk Final Status
+      if (payload.finalStatus && Array.isArray(payload.finalStatus)) {
+        await tx.delete(bukuIndukFinalStatus).where(eq(bukuIndukFinalStatus.studentId, id));
+        if (payload.finalStatus.length > 0) {
+          const statusToInsert = payload.finalStatus[0]; // Assuming only 1 final status per student
+          
+          // Check for duplicate ijazah
+          if (statusToInsert.statusType === 'Lulus' && statusToInsert.ijazahNumber) {
+             const existingIjazah = await tx.select().from(bukuIndukFinalStatus).where(eq(bukuIndukFinalStatus.ijazahNumber, statusToInsert.ijazahNumber));
+             if (existingIjazah.length > 0 && existingIjazah[0].studentId !== id) {
+                throw new Error(`Nomor Ijazah ${statusToInsert.ijazahNumber} sudah digunakan oleh siswa lain.`);
+             }
+          }
+
+          const recordToInsert = { ...statusToInsert, studentId: id };
+          await tx.insert(bukuIndukFinalStatus).values([recordToInsert]);
+          
+          // Auto update student status
+          const newStatusMap: any = {
+            'Lulus': 'Lulus',
+            'Pindah': 'Pindah',
+            'Keluar': 'Keluar'
+          };
+          const newStatus = newStatusMap[statusToInsert.statusType] || 'Tidak Aktif';
+          await tx.update(studentProfiles).set({ status: newStatus }).where(eq(studentProfiles.id, id));
+        } else {
+          // If deleted, revert to active (optional logic)
+          await tx.update(studentProfiles).set({ status: 'active' }).where(eq(studentProfiles.id, id));
         }
       }
 

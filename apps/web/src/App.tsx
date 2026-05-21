@@ -31,7 +31,9 @@ const DashboardUsers = React.lazy(() => import('./pages/DashboardUsers').then(m 
 const DashboardPages = React.lazy(() => import('./pages/dashboard/DashboardPages').then(m => ({ default: m.DashboardPages })));
 const DashboardMenus = React.lazy(() => import('./pages/dashboard/DashboardMenus').then(m => ({ default: m.DashboardMenus })));
 const DashboardServices = React.lazy(() => import('./pages/dashboard/DashboardServices').then(m => ({ default: m.DashboardServices })));
-const DashboardStudents = React.lazy(() => import('./pages/DashboardStudents').then(m => ({ default: m.DashboardStudents })));
+const DashboardStudents = React.lazy(() => import('./pages/DashboardStudents').then(m => ({ default: m.default || (m as any).DashboardStudents })));
+const DashboardAlumni = React.lazy(() => import('./pages/DashboardAlumni').then(m => ({ default: m.default })));
+const DashboardMutasi = React.lazy(() => import('./pages/DashboardMutasi').then(m => ({ default: m.default })));
 const DashboardIjazah = React.lazy(() => import('./pages/ijazah/DashboardIjazah').then(m => ({ default: m.DashboardIjazah })));
 const DashboardNIS = React.lazy(() => import('./pages/DashboardNIS').then(m => ({ default: m.DashboardNIS })));
 const DashboardEmployees = React.lazy(() => import('./pages/DashboardEmployees').then(m => ({ default: m.DashboardEmployees })));
@@ -165,7 +167,9 @@ function App() {
               <Route path="contacts" element={<DashboardContacts />} />
               <Route path="settings" element={<ProtectedRoute allowedRoles={['admin','kepala_madrasah']}><DashboardSettings /></ProtectedRoute>} />
               <Route path="users" element={<ProtectedRoute allowedRoles={['admin']}><DashboardUsers /></ProtectedRoute>} />
-              <Route path="students" element={<DashboardStudents />} />
+              <Route path="students" element={<ProtectedRoute requireAdmin><DashboardStudents /></ProtectedRoute>} />
+              <Route path="alumni" element={<ProtectedRoute requireAdmin><DashboardAlumni /></ProtectedRoute>} />
+              <Route path="mutasi" element={<ProtectedRoute requireAdmin><DashboardMutasi /></ProtectedRoute>} />
               <Route path="buku-induk" element={<DashboardStudents />} />
               <Route path="ijazah" element={<DashboardIjazah />} />
               <Route path="nis" element={<DashboardNIS />} />

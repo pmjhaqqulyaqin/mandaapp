@@ -219,6 +219,33 @@ export const bukuIndukP5 = pgTable("buku_induk_p5", {
   updatedAt: timestamp("updated_at").defaultNow()
 });
 
+// ═══════════════════════════════════════════════════════════════
+// Buku Induk: Status Akhir (Kelulusan / Mutasi Keluar)
+// ═══════════════════════════════════════════════════════════════
+
+export const bukuIndukFinalStatus = pgTable("buku_induk_final_status", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  studentId: uuid("student_id").references(() => studentProfiles.id, { onDelete: "cascade" }).notNull(),
+  statusType: varchar("status_type", { length: 50 }).notNull(), // 'Lulus', 'Pindah', 'Keluar'
+  
+  // Fields untuk Lulus
+  graduationYear: varchar("graduation_year", { length: 20 }),
+  ijazahNumber: varchar("ijazah_number", { length: 150 }).unique(),
+  continueTo: varchar("continue_to", { length: 255 }), // Sekolah/Universitas/Bekerja
+  
+  // Fields untuk Pindah
+  leaveClass: varchar("leave_class", { length: 50 }),
+  destinationSchool: varchar("destination_school", { length: 255 }),
+  destinationClass: varchar("destination_class", { length: 50 }),
+  
+  // Fields untuk Keluar
+  leaveReason: text("leave_reason"),
+  leaveDate: date("leave_date"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
 export const identityRevisions = pgTable("identity_revisions", {
   id: uuid("id").primaryKey().defaultRandom(),
   studentProfileId: uuid("student_profile_id").references(() => studentProfiles.id).notNull(),

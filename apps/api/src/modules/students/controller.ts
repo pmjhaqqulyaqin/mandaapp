@@ -9,7 +9,8 @@ export class StudentController {
     try {
       const classFilter = req.query.class as string;
       const classIdFilter = req.query.classId as string;
-      const students = await StudentService.getAllStudents(classFilter, classIdFilter);
+      const statusFilter = req.query.status as string;
+      const students = await StudentService.getAllStudents(classFilter, classIdFilter, statusFilter);
       res.json(students);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch students" });
@@ -223,14 +224,16 @@ export class StudentController {
         grades: completeStudentData.grades || [],
         attendance: completeStudentData.attendance || [],
         extracurriculars: completeStudentData.extracurriculars || [],
-        p5: completeStudentData.p5 || []
+        p5: completeStudentData.p5 || [],
+        finalStatus: completeStudentData.finalStatus || []
       };
 
       const htmlContent = generateBukuIndukTemplate(templateData);
 
-      const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+      const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
       const page = await browser.newPage();
-      await page.setContent(htmlContent, { waitUntil: 'load' });
+      // Increase resilience against slow external images (like ui-avatars)
+      await page.setContent(htmlContent, { waitUntil: 'networkidle2', timeout: 30000 });
       const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '1.5cm', bottom: '1.5cm', left: '1.5cm', right: '1.5cm' } });
       await browser.close();
 
