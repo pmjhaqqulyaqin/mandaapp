@@ -240,9 +240,13 @@ export class StudentController {
       const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '1.5cm', bottom: '1.5cm', left: '1.5cm', right: '1.5cm' } });
       await browser.close();
 
+      // Puppeteer returns Uint8Array; convert to Node Buffer so Express sends raw binary
+      const pdfNodeBuffer = Buffer.from(pdfBuffer);
+
       res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Length', pdfNodeBuffer.length.toString());
       res.setHeader('Content-Disposition', `attachment; filename="Buku_Induk_${completeStudentData.nis || completeStudentData.id}.pdf"`);
-      res.send(pdfBuffer);
+      res.end(pdfNodeBuffer);
     } catch (error: any) {
       console.error('[BukuInduk PDF Error]', error.message, error.stack);
       res.status(500).json({ error: "Failed to generate PDF Buku Induk", details: error.message });
