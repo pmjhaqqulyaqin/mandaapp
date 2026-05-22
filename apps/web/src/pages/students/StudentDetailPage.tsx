@@ -759,7 +759,9 @@ export default function StudentDetailPage() {
 
     const { 
       parents, education, physical, grades, attendance, 
-      extracurriculars, p5, finalStatus, ...pureStudentData 
+      extracurriculars, p5, finalStatus, 
+      createdAt, updatedAt, id: studentId, userId,
+      ...pureStudentData 
     } = studentForm;
 
     const payload = {
