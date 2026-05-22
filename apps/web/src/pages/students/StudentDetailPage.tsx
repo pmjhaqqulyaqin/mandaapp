@@ -754,15 +754,42 @@ export default function StudentDetailPage() {
       });
     });
 
+    const sanitizeInt = (val: any) => (val === '' || val === null || val === undefined) ? null : Number(val);
+    const sanitizeZero = (val: any) => (val === '' || val === null || val === undefined) ? 0 : Number(val);
+
     const payload = {
-      student: studentForm,
+      student: {
+        ...studentForm,
+        jumlahSaudara: sanitizeInt(studentForm.jumlahSaudara),
+        anakKe: sanitizeInt(studentForm.anakKe),
+        classId: studentForm.classId || null,
+        birthDate: studentForm.birthDate || null,
+      },
       parents: parentsForm.filter(p => p.name?.trim() !== ''),
       grades: gradesArray,
-      attendance: attendanceData.filter(a => a.sick || a.excused || a.unexcused || a.promotionStatus),
-      extracurriculars: extracurriculars.filter(e => e.activityName?.trim()),
+      attendance: attendanceData
+        .filter(a => a.sick || a.excused || a.unexcused || a.promotionStatus)
+        .map(a => ({
+          ...a,
+          sick: sanitizeZero(a.sick),
+          excused: sanitizeZero(a.excused),
+          unexcused: sanitizeZero(a.unexcused)
+        })),
+      extracurriculars: extracurriculars
+        .filter(e => e.activityName?.trim())
+        .map(e => ({
+          ...e,
+          semester: sanitizeInt(e.semester)
+        })),
       p5: p5Data.filter(p => p.projectName?.trim()),
       education: educationForm.filter(e => e.previousSchoolName || e.sttbNumber || e.transferFromSchool),
-      physical: physicalForm.filter(p => p.heightCm || p.weightKg || p.hearingCondition || p.visionCondition || p.dentalCondition),
+      physical: physicalForm
+        .filter(p => p.heightCm || p.weightKg || p.hearingCondition || p.visionCondition || p.dentalCondition)
+        .map(p => ({
+          ...p,
+          heightCm: sanitizeInt(p.heightCm),
+          weightKg: sanitizeInt(p.weightKg)
+        })),
       finalStatus: finalStatusForm.statusType ? [finalStatusForm] : []
     };
 

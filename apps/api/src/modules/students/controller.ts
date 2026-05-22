@@ -276,8 +276,9 @@ export class StudentController {
         
         res.json(updated);
       }
-    } catch (error) {
-      res.status(500).json({ error: "Failed to update student" });
+    } catch (error: any) {
+      console.error("Failed to update student:", error);
+      res.status(500).json({ error: error.message || "Failed to update student" });
     }
   }
 
