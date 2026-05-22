@@ -765,10 +765,10 @@ export default function StudentDetailPage() {
         classId: studentForm.classId || null,
         birthDate: studentForm.birthDate || null,
       },
-      parents: parentsForm.filter(p => p.name?.trim() !== ''),
+      parents: parentsForm.filter(p => p && p.name && p.name.trim() !== ''),
       grades: gradesArray,
       attendance: attendanceData
-        .filter(a => a.sick || a.excused || a.unexcused || a.promotionStatus)
+        .filter(a => a && (a.sick || a.excused || a.unexcused || a.promotionStatus))
         .map(a => ({
           ...a,
           sick: sanitizeZero(a.sick),
@@ -776,21 +776,21 @@ export default function StudentDetailPage() {
           unexcused: sanitizeZero(a.unexcused)
         })),
       extracurriculars: extracurriculars
-        .filter(e => e.activityName?.trim())
+        .filter(e => e && e.activityName && e.activityName.trim() !== '')
         .map(e => ({
           ...e,
           semester: sanitizeInt(e.semester)
         })),
-      p5: p5Data.filter(p => p.projectName?.trim()),
-      education: educationForm.filter(e => e.previousSchoolName || e.sttbNumber || e.transferFromSchool),
+      p5: p5Data.filter(p => p && p.projectName && p.projectName.trim() !== ''),
+      education: educationForm.filter(e => e && (e.previousSchoolName || e.sttbNumber || e.transferFromSchool)),
       physical: physicalForm
-        .filter(p => p.heightCm || p.weightKg || p.hearingCondition || p.visionCondition || p.dentalCondition)
+        .filter(p => p && (p.heightCm || p.weightKg || p.hearingCondition || p.visionCondition || p.dentalCondition))
         .map(p => ({
           ...p,
           heightCm: sanitizeInt(p.heightCm),
           weightKg: sanitizeInt(p.weightKg)
         })),
-      finalStatus: finalStatusForm.statusType ? [finalStatusForm] : []
+      finalStatus: (finalStatusForm && finalStatusForm.statusType) ? [finalStatusForm] : []
     };
 
     try {
