@@ -757,13 +757,18 @@ export default function StudentDetailPage() {
     const sanitizeInt = (val: any) => (val === '' || val === null || val === undefined) ? null : Number(val);
     const sanitizeZero = (val: any) => (val === '' || val === null || val === undefined) ? 0 : Number(val);
 
+    const { 
+      parents, education, physical, grades, attendance, 
+      extracurriculars, p5, finalStatus, ...pureStudentData 
+    } = studentForm;
+
     const payload = {
       student: {
-        ...studentForm,
-        jumlahSaudara: sanitizeInt(studentForm.jumlahSaudara),
-        anakKe: sanitizeInt(studentForm.anakKe),
-        classId: studentForm.classId || null,
-        birthDate: studentForm.birthDate || null,
+        ...pureStudentData,
+        jumlahSaudara: sanitizeInt(pureStudentData.jumlahSaudara),
+        anakKe: sanitizeInt(pureStudentData.anakKe),
+        classId: pureStudentData.classId || null,
+        birthDate: pureStudentData.birthDate || null,
       },
       parents: parentsForm.filter(p => p && p.name && p.name.trim() !== ''),
       grades: gradesArray,
