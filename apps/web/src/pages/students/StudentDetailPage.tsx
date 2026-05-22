@@ -767,7 +767,7 @@ export default function StudentDetailPage() {
     };
 
     try {
-      await apiClient.put(`/students/${id}`, payload);
+      await apiClient(`/students/${id}`, { method: 'PUT', data: payload });
       setIsEditing(false);
       fetchData();
     } catch (err: any) {

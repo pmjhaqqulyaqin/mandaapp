@@ -31,7 +31,7 @@ export function ClassMapelModal({ isOpen, onClose, classes }: ClassMapelModalPro
     const fetchMapels = async () => {
       setIsLoading(true);
       try {
-        const data = await apiClient.get(`/students/class-mapels/${selectedClassId}`);
+        const data = await apiClient<any>(`/students/class-mapels/${selectedClassId}`);
         setMapels(data.mapels || []);
       } catch (err) {
         console.error("Failed to load mapels", err);
@@ -50,8 +50,9 @@ export function ClassMapelModal({ isOpen, onClose, classes }: ClassMapelModalPro
     try {
       // Filter out empty mapels
       const validMapels = mapels.map(m => m.trim()).filter(m => m.length > 0);
-      await apiClient.put(`/students/class-mapels/${selectedClassId}`, {
-        mapels: validMapels
+      await apiClient(`/students/class-mapels/${selectedClassId}`, {
+        method: 'PUT',
+        data: { mapels: validMapels }
       });
       // Optionally show a toast here
       onClose();
@@ -76,13 +77,16 @@ export function ClassMapelModal({ isOpen, onClose, classes }: ClassMapelModalPro
 
     setIsCopying(true);
     try {
-      await apiClient.post(`/students/class-mapels/copy`, {
-        sourceClassId: copyFromClassId,
-        targetClassId: selectedClassId
+      await apiClient(`/students/class-mapels/copy`, {
+        method: 'POST',
+        data: {
+          sourceClassId: copyFromClassId,
+          targetClassId: selectedClassId
+        }
       });
       
       // Reload mapels
-      const data = await apiClient.get(`/students/class-mapels/${selectedClassId}`);
+      const data = await apiClient<any>(`/students/class-mapels/${selectedClassId}`);
       setMapels(data.mapels || []);
       setCopyFromClassId('');
     } catch (err: any) {
