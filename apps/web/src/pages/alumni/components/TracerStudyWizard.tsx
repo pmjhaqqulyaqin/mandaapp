@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, Check, UploadCloud, Loader2 } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Check, UploadCloud, Loader2, Send } from 'lucide-react';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { toast } from 'sonner';
 import { apiClient } from '../../../lib/api';
