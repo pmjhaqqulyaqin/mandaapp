@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, MapPin, Award, GraduationCap } from 'lucide-react';
-import { Navbar } from '../../components/Navbar'; // Assuming there's a public Navbar
-import { Footer } from '../../components/Footer';
 
 // Use standard fetch to the backend (since it's a public endpoint)
 const fetchPublicAlumni = async () => {
@@ -27,8 +25,11 @@ export const PublicAlumniDirectory = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* Assuming Navbar handles public header */}
-      <Navbar />
+      <header className="bg-white border-b border-gray-200 py-4 px-6 flex items-center justify-between shadow-sm">
+        <div className="text-xl font-bold text-primary flex items-center gap-2">
+          <GraduationCap size={24} /> Alumni MandaApp
+        </div>
+      </header>
 
       <main className="flex-1 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
         <div className="text-center mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -114,7 +115,9 @@ export const PublicAlumniDirectory = () => {
         )}
       </main>
       
-      <Footer />
+      <footer className="bg-white border-t border-gray-200 py-6 text-center text-sm text-gray-500 mt-auto">
+        &copy; {new Date().getFullYear()} MandaApp. Hak Cipta Dilindungi.
+      </footer>
     </div>
   );
 };

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../../lib/api';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { 
-  Search, Download, Eye, Award, GraduationCap, Building2, MapPin, Loader2, User
+  Search, Download, Eye, Award, GraduationCap, Building2, MapPin, Loader2, User, BookOpen
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
