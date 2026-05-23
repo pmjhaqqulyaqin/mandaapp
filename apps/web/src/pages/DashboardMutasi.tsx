@@ -66,6 +66,8 @@ export default function DashboardMutasi() {
   const [activeTab, setActiveTab] = useState<Tab>('students');
   const [students, setStudents] = useState<any[]>([]);
   const [classesList, setClassesList] = useState<any[]>([]);
+  const [teachers, setTeachers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState(() => sessionStorage.getItem('sm_search') || '');
