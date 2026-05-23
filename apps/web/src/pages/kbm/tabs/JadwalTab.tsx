@@ -165,6 +165,16 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
       .finally(() => setLoading(false));
   }, [academicYearId, semester, selectedFilter, viewMode]);
 
+  // Silent refresh — only re-fetches jadwal data without loading spinner (no flicker, preserves scroll)
+  const refreshJadwal = useCallback(() => {
+    if (!academicYearId) return;
+    const params = new URLSearchParams({ academicYearId, semester });
+    if (selectedFilter && viewMode === 'guru') params.set('guruId', selectedFilter);
+    apiClient<JadwalSlot[]>(`/kbm/jadwal?${params}`)
+      .then(data => setJadwal(data))
+      .catch(() => {});
+  }, [academicYearId, semester, selectedFilter, viewMode]);
+
   // Derive visible classes from jadwal data (for grid columns)
   const gridClasses = useMemo(() => {
     const kelasIds = new Set(jadwal.map(j => j.kelasId));
@@ -241,7 +251,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
           if (idx >= 0) nf.splice(idx, 1);
           setGenerateReport({ ...generateReport, report: { ...generateReport.report, failedDetails: nf }, failedBlocks: nf.length, failed: nf.reduce((a: number, f: any) => a + f.size, 0), generated: (generateReport.generated || 0) + 1 });
         }
-        loadData();
+        refreshJadwal();
       } catch (err: any) { toast.error(err?.message || 'Konflik: slot sudah terisi'); }
       return;
     }
@@ -262,7 +272,7 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
         try {
           await apiClient<any>(`/kbm/jadwal/${slot.id}`, { method: 'PUT', data: { dayOfWeek: targetDay, jamKe: targetJam } });
           toast.success(`${slot.subjectNama} → ${DAY_NAMES[targetDay]} jam ${targetJam}`);
-          loadData();
+          refreshJadwal();
         } catch (err: any) { toast.error(err?.message || 'Konflik saat pindah'); }
       } else {
         // Swap with existing slot
@@ -270,11 +280,11 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
         try {
           await apiClient<any>('/kbm/jadwal/swap', { method: 'POST', data: { slotIdA: slot.id, slotIdB: targetSlot.id } });
           toast.success(`Swap: ${slot.subjectNama} ↔ ${targetSlot.subjectNama}`);
-          loadData();
+          refreshJadwal();
         } catch (err: any) { toast.error(err?.message || 'Konflik saat swap'); }
       }
     }
-  }, [academicYearId, semester, canEdit, grid, viewMode, generateReport, setGenerateReport, loadData]);
+  }, [academicYearId, semester, canEdit, grid, viewMode, generateReport, setGenerateReport, refreshJadwal]);
 
   const handleGenerate = () => {
     setShowConfirmGenerate(false);
