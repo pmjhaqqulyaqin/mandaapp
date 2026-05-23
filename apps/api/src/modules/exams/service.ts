@@ -2308,13 +2308,32 @@ export class ExamService {
       const jadwalForMapel = jadwalList.filter((j: any) => j.mataPelajaran === mapel);
       const jadwalInfo = jadwalForMapel[0] as any;
 
+      // Collect all kelas from jadwal for this mapel
+      const kelasSet = new Set<string>();
+      jadwalForMapel.forEach((j: any) => {
+        if (j.kelas) {
+          j.kelas.split(',').map((k: string) => k.trim()).filter(Boolean)
+            .forEach((k: string) => kelasSet.add(k));
+        }
+      });
+      const hasKelasFilter = kelasSet.size > 0;
+
       const showPG = fmt.tipe === 'pilihan_ganda' || fmt.tipe === 'campuran';
       const showEsai = fmt.tipe === 'esai' || fmt.tipe === 'campuran';
 
       for (const room of roomsToProcess) {
-        const studentsInRoom = (distribusiAll as any[])
+        let studentsInRoom = (distribusiAll as any[])
           .filter((d: any) => d.ruangId === room.id)
           .sort((a: any, b: any) => (a.siswa?.fullName || '').localeCompare(b.siswa?.fullName || ''));
+
+        // Filter students by kelas from jadwal — only include students whose class
+        // is listed in the jadwal for this mapel
+        if (hasKelasFilter) {
+          studentsInRoom = studentsInRoom.filter((d: any) => {
+            const studentClass = d.siswa?.fullClassName || d.siswa?.className || '';
+            return kelasSet.has(studentClass);
+          });
+        }
 
         if (studentsInRoom.length === 0) continue;
 

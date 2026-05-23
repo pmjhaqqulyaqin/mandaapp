@@ -89,6 +89,16 @@ export const PrintFormatNilai = () => {
           const fmt = getFormat(mapel);
           const jadwalInfo = jadwalForMapel[0];
 
+          // Collect all kelas from jadwal for this mapel
+          const kelasSet = new Set<string>();
+          jadwalForMapel.forEach(j => {
+            if (j.kelas) {
+              j.kelas.split(',').map((k: string) => k.trim()).filter(Boolean)
+                .forEach((k: string) => kelasSet.add(k));
+            }
+          });
+          const hasKelasFilter = kelasSet.size > 0;
+
           // Determine which rooms have students
           let ruangList = ruangData;
           if (filterRuangId) {
@@ -96,7 +106,17 @@ export const PrintFormatNilai = () => {
           }
 
           for (const room of ruangList) {
-            const studentsInRoom = distData.filter((d: any) => d.ruangId === room.id);
+            let studentsInRoom = distData.filter((d: any) => d.ruangId === room.id);
+
+            // Filter students by kelas from jadwal — only show students whose class
+            // is listed in the jadwal for this mapel
+            if (hasKelasFilter) {
+              studentsInRoom = studentsInRoom.filter((d: any) => {
+                const studentClass = d.siswa?.fullClassName || d.siswa?.className || '';
+                return kelasSet.has(studentClass);
+              });
+            }
+
             if (studentsInRoom.length === 0) continue;
 
             // Sort by name
