@@ -853,10 +853,30 @@ export default function StudentDetailPage() {
                 {data.birthPlace && <div className="flex items-center gap-2 text-xs text-text-secondary"><Calendar size={13} className="text-primary shrink-0" /><span>{data.birthPlace}, {formatDate(data.birthDate)}</span></div>}
                 {data.address && <div className="flex items-center gap-2 text-xs text-text-secondary"><MapPin size={13} className="text-primary shrink-0" /><span className="line-clamp-2">{data.address}</span></div>}
               </div>
-              <div className="mt-4 flex gap-2">
-                <button onClick={() => window.print()} className="flex-1 flex items-center justify-center gap-1.5 h-9 bg-primary text-white rounded-lg text-xs font-semibold"><Printer size={13} /> Cetak PDF</button>
-                {!isEditing && (
-                  <button onClick={toggleEditMode} className="flex-1 flex items-center justify-center gap-1.5 h-9 bg-gray-100 text-text-primary rounded-lg text-xs font-semibold hover:bg-gray-200"><Edit2 size={13} /> Edit Data</button>
+              <div className="mt-4 flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <button onClick={() => window.print()} className="flex-1 flex items-center justify-center gap-1.5 h-9 bg-primary text-white rounded-lg text-xs font-semibold"><Printer size={13} /> Cetak PDF</button>
+                  {!isEditing && (
+                    <button onClick={toggleEditMode} className="flex-1 flex items-center justify-center gap-1.5 h-9 bg-gray-100 dark:bg-[#222] text-text-primary dark:text-text-darkPrimary rounded-lg text-xs font-semibold hover:bg-gray-200 dark:hover:bg-[#333]"><Edit2 size={13} /> Edit Data</button>
+                  )}
+                </div>
+                {statusLower === 'lulus' && !isEditing && (
+                  <button 
+                    onClick={async () => {
+                      try {
+                        const newNotable = !data.isNotable;
+                        await apiClient(`/students/${id}`, { method: 'PUT', data: { student: { isNotable: newNotable } } });
+                        fetchData();
+                      } catch(e) { alert('Gagal mengupdate status prestasi'); }
+                    }}
+                    className={`flex items-center justify-center gap-1.5 h-9 rounded-lg text-xs font-semibold transition-colors ${
+                      data.isNotable 
+                        ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400' 
+                        : 'bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-[#222] dark:text-amber-500'
+                    }`}
+                  >
+                    <Award size={13} /> {data.isNotable ? 'Hapus Status Berprestasi' : 'Tandai Berprestasi'}
+                  </button>
                 )}
               </div>
             </div>

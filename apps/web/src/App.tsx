@@ -32,7 +32,7 @@ const DashboardPages = React.lazy(() => import('./pages/dashboard/DashboardPages
 const DashboardMenus = React.lazy(() => import('./pages/dashboard/DashboardMenus').then(m => ({ default: m.DashboardMenus })));
 const DashboardServices = React.lazy(() => import('./pages/dashboard/DashboardServices').then(m => ({ default: m.DashboardServices })));
 const DashboardStudents = React.lazy(() => import('./pages/DashboardStudents').then(m => ({ default: m.default || (m as any).DashboardStudents })));
-const DashboardAlumni = React.lazy(() => import('./pages/DashboardAlumni').then(m => ({ default: m.default })));
+const DashboardAlumniLayout = React.lazy(() => import('./pages/alumni/DashboardAlumniLayout').then(m => ({ default: m.DashboardAlumniLayout })));
 const DashboardMutasi = React.lazy(() => import('./pages/DashboardMutasi').then(m => ({ default: m.default })));
 const StudentDetailPage = React.lazy(() => import('./pages/students/StudentDetailPage'));
 const DashboardIjazah = React.lazy(() => import('./pages/ijazah/DashboardIjazah').then(m => ({ default: m.DashboardIjazah })));
@@ -170,7 +170,7 @@ function App() {
               <Route path="users" element={<ProtectedRoute allowedRoles={['admin']}><DashboardUsers /></ProtectedRoute>} />
               <Route path="students" element={<ProtectedRoute requireAdmin><DashboardStudents /></ProtectedRoute>} />
               <Route path="students/:id" element={<ProtectedRoute requireAdmin><StudentDetailPage /></ProtectedRoute>} />
-              <Route path="alumni" element={<ProtectedRoute requireAdmin><DashboardAlumni /></ProtectedRoute>} />
+              <Route path="alumni/*" element={<ProtectedRoute requireAdmin><DashboardAlumniLayout /></ProtectedRoute>} />
               <Route path="mutasi" element={<ProtectedRoute requireAdmin><DashboardMutasi /></ProtectedRoute>} />
               <Route path="buku-induk" element={<DashboardStudents />} />
               <Route path="ijazah" element={<DashboardIjazah />} />
