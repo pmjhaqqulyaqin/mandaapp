@@ -894,7 +894,7 @@ export default function StudentDetailPage() {
 
       {/* FLOATING ACTION BAR FOR EDIT MODE */}
       {isEditing && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur-sm border border-gray-200 shadow-2xl rounded-full p-2 flex items-center gap-2 animate-in slide-in-from-bottom-10">
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur-sm border border-gray-200 shadow-2xl rounded-full p-2 flex items-center gap-2 animate-in slide-in-from-bottom-10">
           <Button onClick={toggleEditMode} variant="outline" className="rounded-full px-4 h-10 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300">
             <X size={16} className="mr-1.5" /> Batal
           </Button>

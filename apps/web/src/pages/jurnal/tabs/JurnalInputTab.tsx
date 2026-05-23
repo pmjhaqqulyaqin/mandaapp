@@ -6,7 +6,93 @@ import { apiClient } from '../../../lib/api';
 import { smartSend, offlineCache } from '../../../lib/syncEngine';
 import { compressImage } from '../../../lib/imageCompressor';
 import { toast } from 'sonner';
-import { ArrowLeft, Check, BookOpen, Users, Camera, Link as LinkIcon, FileText, Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Check, BookOpen, Users, Camera, Link as LinkIcon, FileText, Plus, ChevronDown, ChevronUp, Lock, Zap } from 'lucide-react';
+
+/** Parse "HH:mm" time string to minutes since midnight */
+function timeToMinutes(time: string): number {
+  if (!time) return -1;
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + (m || 0);
+}
+
+/** Get current time as minutes since midnight */
+function nowMinutes(): number {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+type ScheduleStatus = 'belum_waktunya' | 'sedang_berlangsung' | 'bisa_diisi' | 'lewat_batas' | 'tersimpan';
+
+/** Determine the status of a schedule item based on current time */
+function getScheduleStatus(
+  item: any,
+  currentMinutes: number,
+  deadlineMode: string,
+  deadlineTime: string,
+  allItems: any[]
+): ScheduleStatus {
+  if (item.alreadyFilled) return 'tersimpan';
+
+  const start = timeToMinutes(item.waktuMulai);
+  const end = timeToMinutes(item.waktuSelesai);
+
+  // If no time data, always allow (fallback for legacy data)
+  if (start < 0 || end < 0) return 'bisa_diisi';
+
+  // Before class starts
+  if (currentMinutes < start) return 'belum_waktunya';
+
+  // During class
+  if (currentMinutes >= start && currentMinutes <= end) return 'sedang_berlangsung';
+
+  // After class — check deadline
+  let deadlineMinutes: number;
+  if (deadlineMode === 'sesuai_waktu_belajar') {
+    const lastEnd = Math.max(...allItems.map(i => timeToMinutes(i.waktuSelesai)).filter(t => t >= 0));
+    deadlineMinutes = lastEnd >= 0 ? lastEnd : end;
+  } else {
+    deadlineMinutes = timeToMinutes(deadlineTime);
+  }
+
+  if (currentMinutes <= deadlineMinutes) return 'bisa_diisi';
+  return 'lewat_batas';
+}
+
+const STATUS_BADGE: Record<ScheduleStatus, {
+  badge: string;
+  badgeClass: string;
+  disabled: boolean;
+  icon?: any;
+}> = {
+  belum_waktunya: {
+    badge: 'Belum Waktunya',
+    badgeClass: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400',
+    disabled: true,
+    icon: Lock,
+  },
+  sedang_berlangsung: {
+    badge: 'Sedang Berlangsung',
+    badgeClass: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 animate-pulse',
+    disabled: false,
+    icon: Zap,
+  },
+  bisa_diisi: {
+    badge: 'Belum Dijurnal',
+    badgeClass: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400',
+    disabled: false,
+  },
+  lewat_batas: {
+    badge: 'Lewat Batas',
+    badgeClass: 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400',
+    disabled: true,
+    icon: Lock,
+  },
+  tersimpan: {
+    badge: 'Sudah Diisi',
+    badgeClass: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400',
+    disabled: true,
+  },
+};
 
 interface FormData {
   teachingSubjectId: string; teacherId: string; classId: string; subjectName: string; className: string;
@@ -68,6 +154,15 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
   // Parse new response format: { schedule: [...], deadlineMode, deadlineTime } (backward compatible with plain array)
   const scheduleData = schedule.data as any;
   const scheduleItems: any[] = Array.isArray(scheduleData) ? scheduleData : (scheduleData?.schedule || []);
+  const deadlineMode = scheduleData?.deadlineMode || 'waktu_tertentu';
+  const deadlineTime = scheduleData?.deadlineTime || '17:00';
+  const [currentTime, setCurrentTime] = useState(() => nowMinutes());
+
+  // Auto-refresh time every 30 seconds to update status indicators
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(nowMinutes()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
   const classStudents = useClassStudents(form.classId, form.date);
 
   // Init attendance from class students
@@ -258,23 +353,43 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
           {schedule.isLoading && <p className="text-sm text-gray-400">Memuat jadwal...</p>}
           {!schedule.isLoading && scheduleItems.length === 0 && <p className="text-sm text-gray-400">Tidak ada jadwal hari ini</p>}
           <div className="space-y-2">
-            {scheduleItems.map((item: any) => (
-              <button key={item.id} onClick={() => selectSchedule(item)} disabled={item.alreadyFilled}
-                className={`w-full text-left p-3 rounded-lg border transition-all active:scale-[0.98] ${
-                  form.teachingSubjectId === item.id ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 ring-2 ring-emerald-500/30'
-                  : item.alreadyFilled ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-50 cursor-not-allowed'
-                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#222] hover:border-emerald-300'
-                }`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-sm text-gray-900 dark:text-white">{item.subjectName}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{item.className} • Jam ke {item.jamKe || '-'}</p>
+            {scheduleItems.map((item: any) => {
+              const status = getScheduleStatus(item, currentTime, deadlineMode, deadlineTime, scheduleItems);
+              const config = STATUS_BADGE[status];
+              const isDisabled = config.disabled;
+              const StatusIcon = config.icon;
+              const isSelected = form.teachingSubjectId === item.id;
+
+              return (
+                <button key={item.id} onClick={() => !isDisabled && selectSchedule(item)} disabled={isDisabled}
+                  className={`w-full text-left p-3 rounded-lg border transition-all active:scale-[0.98] ${
+                    isSelected ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 ring-2 ring-emerald-500/30'
+                    : isDisabled ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-60 cursor-not-allowed'
+                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#222] hover:border-emerald-300'
+                  }`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className={`text-xs font-medium mb-0.5 ${
+                        status === 'sedang_berlangsung' ? 'text-emerald-600 dark:text-emerald-400' :
+                        status === 'bisa_diisi' ? 'text-amber-600 dark:text-amber-400' :
+                        'text-gray-400 dark:text-gray-500'
+                      }`}>
+                        {item.waktuMulai || '--:--'} - {item.waktuSelesai || '--:--'}
+                      </p>
+                      <p className={`font-semibold text-sm ${isDisabled && status !== 'tersimpan' ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{item.subjectName}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{item.className} • Jam ke {item.jamKe || '-'}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full flex items-center gap-1 ${config.badgeClass}`}>
+                        {StatusIcon && <StatusIcon size={10} />}
+                        {config.badge}
+                      </span>
+                      {isSelected && <Check size={18} className="text-emerald-600" />}
+                    </div>
                   </div>
-                  {item.alreadyFilled && <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-full">Sudah Diisi</span>}
-                  {form.teachingSubjectId === item.id && <Check size={18} className="text-emerald-600" />}
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
 
           {/* Link RPP */}

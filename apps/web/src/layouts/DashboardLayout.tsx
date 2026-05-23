@@ -281,6 +281,8 @@ const MENU_ICON_COLORS: Record<string, { bg: string; text: string }> = {
   'ijazah':        { bg: 'bg-gradient-to-br from-fuchsia-400 to-fuchsia-500', text: 'text-white' },
   'ptsp':          { bg: 'bg-gradient-to-br from-blue-400 to-indigo-500',     text: 'text-white' },
   'contacts':      { bg: 'bg-gradient-to-br from-green-400 to-emerald-500',   text: 'text-white' },
+  'alumni':        { bg: 'bg-gradient-to-br from-blue-400 to-indigo-500',     text: 'text-white' },
+  'mutasi':        { bg: 'bg-gradient-to-br from-rose-400 to-red-500',        text: 'text-white' },
   // System
   'pages':         { bg: 'bg-gradient-to-br from-slate-400 to-slate-500',     text: 'text-white' },
   'menus':         { bg: 'bg-gradient-to-br from-stone-400 to-stone-500',     text: 'text-white' },
@@ -312,6 +314,8 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'attendance': 'attendance',
   'jurnal': 'jurnal',
   'kbm': 'kbm',
+  'alumni': 'alumni',
+  'mutasi': 'mutasi',
   'exams': 'exams',
   'ppdb': 'ppdb',
   'ppdb/penilaian': 'penilaian-pmb',
@@ -458,7 +462,7 @@ export const DashboardLayout = () => {
   // ── Categorized menu sections for unified grid ──
   const frequentKeys = ['jurnal', 'kbm', 'attendance', 'employees', 'e-office'];
   const infoKeys = ['news', 'gallery', 'contacts', 'calendar'];
-  const siswaKeys = ['students', 'buku-induk', 'student-card', 'nis', 'ijazah', 'ppdb', 'penilaian-pmb'];
+  const siswaKeys = ['students', 'buku-induk', 'student-card', 'nis', 'ijazah', 'alumni', 'mutasi', 'ppdb', 'penilaian-pmb'];
   const layananKeys = ['ptsp', 'exams'];
 
   const menuSections = [
