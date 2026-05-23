@@ -1140,6 +1140,7 @@ export class KbmService {
       .where(and(
         eq(kbmJadwal.academicYearId, slot.academicYearId), eq(kbmJadwal.semester, slot.semester),
         eq(kbmJadwal.dayOfWeek, targetDay), eq(kbmJadwal.jamKe, targetJam),
+        eq(kbmJadwal.kelasId, slot.kelasId),
         sql`${kbmJadwal.id} != ${slotId}`,
         slot.versionId ? eq(kbmJadwal.versionId, slot.versionId) : sql`${kbmJadwal.versionId} IS NULL`,
       ));
