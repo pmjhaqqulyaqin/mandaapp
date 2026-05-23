@@ -235,6 +235,23 @@ export class StudentService {
     return results;
   }
 
+  static async getPublicAlumni() {
+    const results = await db.select({
+      id: studentProfiles.id,
+      fullName: studentProfiles.fullName,
+      nis: studentProfiles.nis,
+      nisn: studentProfiles.nisn,
+      className: studentProfiles.className,
+      isNotable: studentProfiles.isNotable,
+      photoUrl: studentProfiles.photoUrl,
+    })
+    .from(studentProfiles)
+    .where(eq(studentProfiles.status, 'Lulus'))
+    .orderBy(studentProfiles.fullName);
+
+    return results;
+  }
+
   // --- Class Mapels (Buku Induk) ---
   static async getClassMapels(classId: string) {
     const result = await db.select().from(bukuIndukClassMapels).where(eq(bukuIndukClassMapels.classId, classId));

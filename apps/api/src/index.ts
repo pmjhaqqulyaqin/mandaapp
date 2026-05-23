@@ -36,6 +36,7 @@ import { jurnalRoutes } from './modules/jurnal/routes';
 import analyticsRoutes from './modules/analytics/routes';
 import { parentPortalRoutes } from './modules/parent-portal/routes';
 import { kbmRoutes } from './modules/kbm/routes';
+import { tracerRoutes } from './modules/tracer/routes';
 
 dotenv.config();
 
@@ -194,6 +195,7 @@ app.use("/api/jurnal", jurnalRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/parent-portal", parentPortalRoutes);
 app.use("/api/kbm", kbmRoutes);
+app.use("/api/tracer", tracerRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

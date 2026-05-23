@@ -106,6 +106,7 @@ export const studentProfiles = pgTable("student_profiles", {
   address: text("address"),
   photoUrl: varchar("photo_url", { length: 255 }),
   status: varchar("status", { length: 20 }).default("active"),
+  isNotable: boolean("is_notable").default(false), // Ditambahkan untuk Alumni Berprestasi
   createdSource: varchar("created_source", { length: 50 }).default("student_module"), // student_module or nis_module
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
@@ -1065,4 +1066,26 @@ export const scheduleConfig = pgTable("schedule_config", {
   defaultSplitRules: jsonb("default_split_rules").default('{"2":[2],"3":[3],"4":[2,2],"5":[3,2],"6":[3,3]}'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ═══ Tracer Study (Pelacakan Alumni) ═════════════════════════════════════════
+
+export const tracerStudies = pgTable("tracer_studies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: varchar("title", { length: 255 }).notNull(),
+  targetYear: varchar("target_year", { length: 4 }), // e.g. "2024"
+  status: varchar("status", { length: 20 }).default("Aktif"), // Aktif, Selesai
+  targetResponses: integer("target_responses").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const tracerResponses = pgTable("tracer_responses", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  studyId: uuid("study_id").references(() => tracerStudies.id, { onDelete: "cascade" }).notNull(),
+  studentId: uuid("student_id").references(() => studentProfiles.id, { onDelete: "cascade" }).notNull(),
+  status: varchar("status", { length: 50 }).notNull(), // Bekerja, Kuliah, Wirausaha, Mencari Kerja
+  companyOrCampus: varchar("company_or_campus", { length: 255 }),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow()
 });

@@ -50,6 +50,7 @@ const PPDBDaftarUlangPage = React.lazy(() => import('./pages/ppdb/PPDBDaftarUlan
 const PPDBVerifikasiPage = React.lazy(() => import('./pages/ppdb/PPDBVerifikasiPage').then(m => ({ default: m.PPDBVerifikasiPage })));
 const SystemUpdateCenter = React.lazy(() => import('./pages/dashboard/SystemUpdateCenter').then(m => ({ default: m.SystemUpdateCenter })));
 const PublicScannerPage = React.lazy(() => import('./pages/attendance/PublicScannerPage').then(m => ({ default: m.PublicScannerPage })));
+const PublicAlumniDirectory = React.lazy(() => import('./pages/alumni/PublicAlumniDirectory').then(m => ({ default: m.PublicAlumniDirectory })));
 const DashboardAttendance = React.lazy(() => import('./pages/attendance/DashboardAttendance').then(m => ({ default: m.DashboardAttendance })));
 const DashboardJurnal = React.lazy(() => import('./pages/jurnal/DashboardJurnal').then(m => ({ default: m.DashboardJurnal })));
 const DashboardKBM = React.lazy(() => import('./pages/kbm/DashboardKBM').then(m => ({ default: m.DashboardKBM })));
@@ -95,6 +96,10 @@ function App() {
             <Route path="/ppdb/daftar-ulang" element={<MaintenanceGuard><PPDBDaftarUlangPage /></MaintenanceGuard>} />
             <Route path="/ppdb/verifikasi" element={<PPDBVerifikasiPage />} />
             <Route path="/attendance/scan" element={<MaintenanceGuard><PublicScannerPage /></MaintenanceGuard>} />
+            
+            {/* Public Alumni Route */}
+            <Route path="/alumni-public" element={<MaintenanceGuard><PublicAlumniDirectory /></MaintenanceGuard>} />
+            
             <Route path="/login" element={<LoginPage />} />
             <Route path="/portal-ortu" element={
               <ProtectedRoute allowedRoles={['orang_tua']}>

@@ -362,6 +362,15 @@ export class StudentController {
     }
   }
 
+  static async getPublicAlumni(req: Request, res: Response) {
+    try {
+      const alumni = await StudentService.getPublicAlumni();
+      res.json(alumni);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch public alumni directory" });
+    }
+  }
+
   // --- Class Mapels (Buku Induk) ---
   static async getClassMapels(req: Request, res: Response) {
     try {
