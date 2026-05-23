@@ -664,6 +664,13 @@ export class KbmService {
       const guruKelasDay = new Map<string, { startJam: number; endJam: number }[]>();
       // Track subject-kelas-day to prevent same subject appearing split on same day in same class
       const subjectKelasDay = new Map<string, Set<number>>();
+      // Track number of BLOCKS (not JP) per guru per day for even distribution
+      const guruBlocksPerDay = new Map<string, Map<number, number>>();
+      // Precompute total blocks per guru for idealMaxBlocksPerDay calculation
+      const guruTotalBlocks = new Map<string, number>();
+      for (const b of blocks) {
+        guruTotalBlocks.set(b.guruId, (guruTotalBlocks.get(b.guruId) || 0) + 1);
+      }
       const placed: any[] = [];
       const passResults: { pass: number; label: string; placed: number }[] = [];
 
@@ -673,19 +680,26 @@ export class KbmService {
         const totalJP = guruTotalJP.get(block.guruId) || 0;
         let best: { day: number; startJam: number; score: number } | null = null;
 
+        // Precompute guru active days and ideal max blocks per day
+        const activeDays = dayList.filter(d => !guruUnavailDays.get(block.guruId)?.has(d)).length;
+        const totalBlocksForGuru = guruTotalBlocks.get(block.guruId) || 1;
+        const idealMaxBlocksPerDay = activeDays > 0 ? Math.ceil(totalBlocksForGuru / activeDays) : 99;
+
         for (const day of dayList) {
           if (guruUnavailDays.get(block.guruId)?.has(day)) continue;
           if (passLevel < 4 && block.isHeavy && kelasHeavyDays.get(block.kelasId)?.has(day)) continue;
           // Prevent same subject from appearing twice on the same day in the same class (HARD constraint)
           const skdKey = `${block.subjectId}-${block.kelasId}`;
           if (subjectKelasDay.get(skdKey)?.has(day)) continue;
+          // Hard constraint pass 1: enforce even block distribution per day
+          const guruBlocksThisDay = ensureMap(guruBlocksPerDay, block.guruId).get(day) || 0;
+          if (passLevel <= 1 && guruBlocksThisDay >= idealMaxBlocksPerDay) continue;
           if (passLevel < 3 && totalJP > threshold) {
             const curJP = ensureMap(guruDayJP, block.guruId).get(day) || 0;
             if (curJP + block.size > maxDailyLimit) continue;
           }
           // maxJamKe is a HARD constraint for ALL subjects — never relax it
           const enforceAfternoon = block.maxJamKe && !(config.afternoonExcludeFriday && day === 5);
-          const activeDays = dayList.filter(d => !guruUnavailDays.get(block.guruId)?.has(d)).length;
           const targetPerDay = activeDays > 0 ? Math.ceil(totalJP / activeDays) : 99;
           const currentGuruDayJP = ensureMap(guruDayJP, block.guruId).get(day) || 0;
           const isOverloaded = passLevel < 2 && currentGuruDayJP >= Math.ceil(targetPerDay * 1.5);
@@ -712,8 +726,10 @@ export class KbmService {
             let score = 100;
             // S1: Prefer morning for heavy subjects
             if (block.isHeavy) score += (10 - startJam) * 3;
-            // S2: Spread guru across days
-            score -= currentGuruDayJP * 8;
+            // S2: Spread guru blocks across days — strong penalty to prevent stacking
+            if (guruBlocksThisDay >= idealMaxBlocksPerDay) score -= 100;
+            score -= guruBlocksThisDay * 25; // progressive penalty per block already on this day
+            score -= currentGuruDayJP * 12; // also penalize JP accumulation
             // S3: Spread kelas across days
             score -= (ensureMap(kelasDayJP, block.kelasId).get(day) || 0) * 2;
             // S4: Penalize overloaded days
@@ -758,6 +774,8 @@ export class KbmService {
           }
           ensureMap(guruDayJP, block.guruId).set(day, (ensureMap(guruDayJP, block.guruId).get(day) || 0) + block.size);
           ensureMap(kelasDayJP, block.kelasId).set(day, (ensureMap(kelasDayJP, block.kelasId).get(day) || 0) + block.size);
+          // Track guru blocks per day for even distribution
+          ensureMap(guruBlocksPerDay, block.guruId).set(day, (ensureMap(guruBlocksPerDay, block.guruId).get(day) || 0) + 1);
           if (block.isHeavy) { if (!kelasHeavyDays.has(block.kelasId)) kelasHeavyDays.set(block.kelasId, new Set()); kelasHeavyDays.get(block.kelasId)!.add(day); }
           // Track subject-kelas-day (prevent split same subject on same day)
           const skdKey2 = `${block.subjectId}-${block.kelasId}`;
