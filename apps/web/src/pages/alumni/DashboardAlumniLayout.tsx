@@ -7,7 +7,7 @@ const AlumniOverview = React.lazy(() => import('./views/AlumniOverview').then(m 
 const AlumniDirectory = React.lazy(() => import('./views/AlumniDirectory').then(m => ({ default: m.AlumniDirectory })));
 const TracerStudy = React.lazy(() => import('./views/TracerStudy').then(m => ({ default: m.TracerStudy })));
 const AlumniSettings = React.lazy(() => import('./views/AlumniSettings').then(m => ({ default: m.AlumniSettings })));
-const StudentDetailPage = React.lazy(() => import('../students/StudentDetailPage').then(m => ({ default: m.StudentDetailPage })));
+const StudentDetailPage = React.lazy(() => import('../students/StudentDetailPage'));
 
 export const DashboardAlumniLayout = () => {
   const location = useLocation();
