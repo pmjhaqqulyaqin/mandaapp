@@ -1087,5 +1087,8 @@ export const tracerResponses = pgTable("tracer_responses", {
   status: varchar("status", { length: 50 }).notNull(), // Bekerja, Kuliah, Wirausaha, Mencari Kerja
   companyOrCampus: varchar("company_or_campus", { length: 255 }),
   description: text("description"),
+  payload: jsonb("payload"),
+  buktiUrl: varchar("bukti_url", { length: 500 }),
+  isVerified: boolean("is_verified").default(false),
   createdAt: timestamp("created_at").defaultNow()
 });

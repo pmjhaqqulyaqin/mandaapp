@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, MapPin, Award, GraduationCap } from 'lucide-react';
 
+import { TracerStudyWizard } from './components/TracerStudyWizard';
+
 // Use standard fetch to the backend (since it's a public endpoint)
 const fetchPublicAlumni = async () => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -12,6 +14,7 @@ const fetchPublicAlumni = async () => {
 
 export const PublicAlumniDirectory = () => {
   const [search, setSearch] = useState('');
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
   
   const { data: alumni, isLoading, isError } = useQuery({
     queryKey: ['publicAlumni'],
@@ -25,6 +28,8 @@ export const PublicAlumniDirectory = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
+      <TracerStudyWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} />
+      
       <header className="bg-white border-b border-gray-200 py-4 px-6 flex items-center justify-between shadow-sm">
         <div className="text-xl font-bold text-primary flex items-center gap-2">
           <GraduationCap size={24} /> Alumni MandaApp
@@ -32,13 +37,21 @@ export const PublicAlumniDirectory = () => {
       </header>
 
       <main className="flex-1 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-        <div className="text-center mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="text-center mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight sm:text-5xl">
             Direktori <span className="text-primary">Alumni</span>
           </h1>
           <p className="mt-4 text-xl text-gray-500 max-w-2xl mx-auto">
             Temukan dan jalin relasi dengan jaringan alumni unggulan kami yang tersebar di berbagai institusi dan industri.
           </p>
+          <div className="mt-8 flex justify-center">
+            <button 
+              onClick={() => setIsWizardOpen(true)}
+              className="bg-primary hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex items-center gap-2"
+            >
+              <Award size={20} /> Isi Kuesioner Tracer Study
+            </button>
+          </div>
         </div>
 
         <div className="max-w-xl mx-auto mb-10">

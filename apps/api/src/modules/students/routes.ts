@@ -9,6 +9,7 @@ const router = Router();
 
 // Public endpoints (no auth needed)
 router.post("/public-search", StudentController.publicSearch);
+router.post("/public-verify-nisn", StudentController.publicVerifyNisn);
 router.get("/search-autocomplete", StudentController.autocompleteSearch);
 router.get("/public-alumni", StudentController.getPublicAlumni);
 

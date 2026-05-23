@@ -2,10 +2,14 @@ import { Router } from "express";
 import { TracerController } from "./controller";
 import { requireStaff } from "../auth/middleware";
 
+import multer from "multer";
+
+const upload = multer({ storage: multer.memoryStorage() });
 const router = Router();
 
 // Public endpoints
 router.post("/:id/responses", TracerController.submitResponse);
+router.post("/upload-bukti", upload.single("file"), TracerController.uploadBukti);
 
 // Protected endpoints
 router.get("/", requireStaff, TracerController.getAllStudies);

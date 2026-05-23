@@ -331,7 +331,6 @@ export class StudentController {
         return res.status(404).json({ error: "Data siswa tidak ditemukan. Pastikan Nama, Tempat Lahir, dan Tanggal Lahir sudah benar." });
       }
 
-      // Return only safe necessary data for card printing
       res.json({
         id: student.id,
         fullName: student.fullName,
@@ -346,6 +345,46 @@ export class StudentController {
       });
     } catch (error) {
       res.status(500).json({ error: "Terjadi kesalahan pada server saat mencari data." });
+    }
+  }
+
+  static async publicVerifyNisn(req: Request, res: Response) {
+    try {
+      const { nisn, birthDate } = req.body;
+      if (!nisn || !birthDate) {
+        return res.status(400).json({ error: "Kolom NISN dan Tanggal Lahir harus diisi." });
+      }
+
+      const { eq, and, sql } = require('drizzle-orm');
+      const { db } = require('../../db');
+      const { studentProfiles } = require('../../db/schema');
+      
+      const results = await db.select().from(studentProfiles).where(
+        and(
+          eq(studentProfiles.nisn, nisn.trim()),
+          sql`DATE(${studentProfiles.birthDate}) = DATE(${birthDate})`
+        )
+      ).limit(1);
+      
+      const student = results[0];
+
+      if (!student) {
+        return res.status(404).json({ error: "Data siswa tidak ditemukan. Pastikan NISN dan Tanggal Lahir sudah benar." });
+      }
+
+      res.json({
+        id: student.id,
+        fullName: student.fullName,
+        nisn: student.nisn,
+        nis: student.nis,
+        className: student.className,
+        photoUrl: student.photoUrl,
+        gradYear: student.gradYear || new Date().getFullYear().toString(),
+        major: student.major || 'Umum',
+        status: student.status
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Terjadi kesalahan pada server saat verifikasi data." });
     }
   }
 
