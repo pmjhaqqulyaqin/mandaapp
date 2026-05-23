@@ -186,7 +186,7 @@ export const AlumniDirectory = () => {
                 {s.jobStatus}
               </span>
               <button 
-                onClick={() => navigate(`/dashboard/students/${s.id}`)}
+                onClick={() => navigate(`/dashboard/alumni/profile/${s.id}`)}
                 className="text-xs font-semibold text-primary flex items-center gap-1 hover:underline bg-primary/5 px-2 py-1 rounded-lg"
               >
                 Lihat Detail <Eye size={12} />
@@ -243,7 +243,7 @@ export const AlumniDirectory = () => {
                 <td className="py-3 px-4 text-center">
                   <Button 
                     variant="outline" size="sm" 
-                    onClick={() => navigate(`/dashboard/students/${s.id}`)}
+                    onClick={() => navigate(`/dashboard/alumni/profile/${s.id}`)}
                     className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 mx-auto h-8 text-xs"
                   >
                     <User size={14} /> Profil Lengkap

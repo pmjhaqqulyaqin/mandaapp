@@ -7,6 +7,7 @@ const AlumniOverview = React.lazy(() => import('./views/AlumniOverview').then(m 
 const AlumniDirectory = React.lazy(() => import('./views/AlumniDirectory').then(m => ({ default: m.AlumniDirectory })));
 const TracerStudy = React.lazy(() => import('./views/TracerStudy').then(m => ({ default: m.TracerStudy })));
 const AlumniSettings = React.lazy(() => import('./views/AlumniSettings').then(m => ({ default: m.AlumniSettings })));
+const StudentDetailPage = React.lazy(() => import('../students/StudentDetailPage').then(m => ({ default: m.StudentDetailPage })));
 
 export const DashboardAlumniLayout = () => {
   const location = useLocation();
@@ -45,7 +46,7 @@ export const DashboardAlumniLayout = () => {
               end={tab.path === ''}
               className={({ isActive }) => `
                 flex items-center gap-2 px-5 py-3 text-[13px] font-semibold transition-colors whitespace-nowrap border-b-2
-                ${isActive 
+                ${(isActive || (location.pathname.includes('/profile/') && tab.id === 'directory'))
                   ? 'border-primary text-primary bg-primary/5' 
                   : 'border-transparent text-text-secondary hover:text-text-primary dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a]'
                 }
@@ -68,6 +69,7 @@ export const DashboardAlumniLayout = () => {
           <Routes>
             <Route index element={<AlumniOverview />} />
             <Route path="directory" element={<AlumniDirectory />} />
+            <Route path="profile/:id" element={<StudentDetailPage />} />
             <Route path="tracer-study" element={<TracerStudy />} />
             <Route path="settings" element={<AlumniSettings />} />
             <Route path="*" element={<Navigate to="" replace />} />

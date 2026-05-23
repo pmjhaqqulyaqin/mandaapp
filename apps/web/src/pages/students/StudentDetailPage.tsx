@@ -813,7 +813,7 @@ export default function StudentDetailPage() {
   };
 
   if (loading) return <div className="flex h-64 items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>;
-  if (!data) return <div className="flex flex-col items-center justify-center h-64 gap-3"><p>Data siswa tidak ditemukan.</p><button onClick={() => navigate('/dashboard/students')} className="text-xs text-primary">← Kembali</button></div>;
+  if (!data) return <div className="flex flex-col items-center justify-center h-64 gap-3"><p>Data siswa tidak ditemukan.</p><button onClick={() => navigate(-1)} className="text-xs text-primary">← Kembali</button></div>;
 
   const statusLower = (data.status || 'aktif').toLowerCase();
   const statusConfig = statusLower === 'lulus' ? { bg: 'bg-blue-500', text: 'Lulus' }
