@@ -209,8 +209,8 @@ export class StudentController {
       await AuditLogger.log(req, "VIEW_STUDENT", "student", req.params.id);
       
       res.json(student);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch student" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to fetch student" });
     }
   }
 
