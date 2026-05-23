@@ -686,8 +686,9 @@ export default function StudentDetailPage() {
       } else {
         setClassMapels(DEFAULT_SUBJECTS);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      alert("Error detail: " + (err?.message || err?.error || JSON.stringify(err)));
     } finally {
       setLoading(false);
     }
