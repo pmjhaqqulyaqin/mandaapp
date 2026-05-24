@@ -248,6 +248,28 @@ export const bukuIndukFinalStatus = pgTable("buku_induk_final_status", {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// Rekam Mutasi (Masuk, Keluar, Internal)
+// ═══════════════════════════════════════════════════════════════
+
+export const mutationRecords = pgTable("mutation_records", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  studentId: uuid("student_id").references(() => studentProfiles.id, { onDelete: "cascade" }).notNull(),
+  type: varchar("type", { length: 20 }).notNull(),        // 'masuk' | 'keluar' | 'internal'
+  reason: text("reason"),                                  // Alasan mutasi
+  fromSchool: varchar("from_school", { length: 255 }),     // Sekolah asal (untuk masuk)
+  toSchool: varchar("to_school", { length: 255 }),         // Sekolah tujuan (untuk keluar)
+  fromClass: varchar("from_class", { length: 100 }),       // Kelas asal (untuk internal)
+  toClass: varchar("to_class", { length: 100 }),           // Kelas tujuan (untuk internal)
+  suratNumber: varchar("surat_number", { length: 100 }),   // Nomor surat pindah
+  effectiveDate: date("effective_date"),                   // Tanggal efektif mutasi
+  status: varchar("status", { length: 20 }).default("aktif"), // aktif | draft | batal
+  documentUrl: varchar("document_url", { length: 500 }),   // File scan surat
+  createdBy: text("created_by").references(() => user.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// ═══════════════════════════════════════════════════════════════
 // Buku Induk: Mapel per Kelas
 // ═══════════════════════════════════════════════════════════════
 

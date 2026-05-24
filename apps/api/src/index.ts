@@ -37,6 +37,7 @@ import analyticsRoutes from './modules/analytics/routes';
 import { parentPortalRoutes } from './modules/parent-portal/routes';
 import { kbmRoutes } from './modules/kbm/routes';
 import { tracerRoutes } from './modules/tracer/routes';
+import mutationRoutes from './modules/mutation';
 
 dotenv.config();
 
@@ -196,6 +197,7 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/parent-portal", parentPortalRoutes);
 app.use("/api/kbm", kbmRoutes);
 app.use("/api/tracer", tracerRoutes);
+app.use("/api/mutations", mutationRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -617,6 +619,29 @@ async function runAutoMigration() {
       await db.execute(sql`ALTER TABLE "teaching_subjects" ADD COLUMN IF NOT EXISTS "kbm_generated" boolean DEFAULT false;`);
     } catch (e) { /* column/index may already exist */ }
     logger.info("KBM tables ready.");
+
+    // Auto-create Mutation tables
+    logger.info("Checking mutation tables...");
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "mutation_records" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "student_id" uuid NOT NULL REFERENCES "student_profiles"("id") ON DELETE CASCADE,
+        "type" varchar(20) NOT NULL,
+        "reason" text,
+        "from_school" varchar(255),
+        "to_school" varchar(255),
+        "from_class" varchar(100),
+        "to_class" varchar(100),
+        "surat_number" varchar(100),
+        "effective_date" date,
+        "status" varchar(20) DEFAULT 'aktif',
+        "document_url" varchar(500),
+        "created_by" text REFERENCES "user"("id"),
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `);
+    logger.info("Mutation tables ready.");
 
   } catch (err) {
     logger.error({ err }, "Auto-migration failed");
