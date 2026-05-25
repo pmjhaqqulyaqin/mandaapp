@@ -2894,10 +2894,10 @@ export class ExamService {
       } catch(e) { tglTtdStr = ''; }
 
       const ttdRow = summaryStartRow + 4;
-      const leftColStart = 2; // Geser dari margin kiri
-      const leftColEnd = Math.floor(totalCols / 2);
-      const rightColStart = totalCols - 3 > leftColEnd ? totalCols - 3 : leftColEnd + 1; // Geser dari margin kanan
-      const rightColEnd = totalCols;
+      const leftColStart = 3; // Mengetahui / Kepala Madrasah
+      const leftColEnd = 12; // Lebar merge secukupnya
+      const rightColStart = 19; // Ketua Panitia
+      const rightColEnd = Math.max(19 + 5, totalCols); // Lebar merge secukupnya
 
       // Kiri: Mengetahui / Kepala Madrasah
       sheet.mergeCells(ttdRow, leftColStart, ttdRow, leftColEnd);
