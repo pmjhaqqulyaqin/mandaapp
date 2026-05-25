@@ -2707,7 +2707,7 @@ export class ExamService {
       };
       titleStyle(1, 'DAFTAR HADIR PESERTA', 13);
       titleStyle(2, `${namaUjian} ${instansi}`, 12);
-      titleStyle(3, `TAHUN PELAJARAN ${tahunAjaran}`, 12);
+      titleStyle(3, `TAHUN AJARAN ${tahunAjaran}`, 12);
 
       // ===== ROW 5-6: INFO KELAS (kiri) + RUANG (kanan) =====
       const infoLabelStyle = { bold: false, size: 10 };
@@ -2715,13 +2715,11 @@ export class ExamService {
 
       const setInfoRow = (row: number, label: string, value: string) => {
         sheet.mergeCells(row, 1, row, 2); // Merge col 1 & 2 for label
-        sheet.getCell(row, 1).value = label;
+        sheet.getCell(row, 1).value = `${label} :`;
         sheet.getCell(row, 1).font = infoLabelStyle;
-        sheet.getCell(row, 3).value = ':';
-        sheet.getCell(row, 3).font = infoLabelStyle;
-        sheet.mergeCells(row, 4, row, Math.floor(totalCols * 0.7)); // Value merge wider
-        sheet.getCell(row, 4).value = value;
-        sheet.getCell(row, 4).font = infoValueStyle;
+        sheet.mergeCells(row, 3, row, Math.floor(totalCols * 0.7)); // Value starts at col 3
+        sheet.getCell(row, 3).value = value;
+        sheet.getCell(row, 3).font = infoValueStyle;
         sheet.getRow(row).height = 14;
       };
 
