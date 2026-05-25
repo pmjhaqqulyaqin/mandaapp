@@ -2709,25 +2709,24 @@ export class ExamService {
       titleStyle(2, `${namaUjian} ${instansi}`, 12);
       titleStyle(3, `TAHUN PELAJARAN ${tahunAjaran}`, 12);
 
-      // ===== ROW 5-7: INFO KELAS (kiri) + RUANG (kanan) =====
-      // Kolom info: 1..3 untuk label+value, kolom kanan untuk RUANG
+      // ===== ROW 5-6: INFO KELAS (kiri) + RUANG (kanan) =====
       const infoLabelStyle = { bold: false, size: 10 };
       const infoValueStyle = { bold: true, size: 10 };
 
       const setInfoRow = (row: number, label: string, value: string) => {
+        sheet.mergeCells(row, 1, row, 2); // Merge col 1 & 2 for label
         sheet.getCell(row, 1).value = label;
         sheet.getCell(row, 1).font = infoLabelStyle;
-        sheet.getCell(row, 2).value = ':';
-        sheet.getCell(row, 2).font = infoLabelStyle;
-        sheet.mergeCells(row, 3, row, Math.floor(totalCols / 2));
-        sheet.getCell(row, 3).value = value;
-        sheet.getCell(row, 3).font = infoValueStyle;
+        sheet.getCell(row, 3).value = ':';
+        sheet.getCell(row, 3).font = infoLabelStyle;
+        sheet.mergeCells(row, 4, row, Math.floor(totalCols * 0.7)); // Value merge wider
+        sheet.getCell(row, 4).value = value;
+        sheet.getCell(row, 4).font = infoValueStyle;
         sheet.getRow(row).height = 14;
       };
 
-      setInfoRow(5, 'KELAS', tingkatDisplay);
-      setInfoRow(6, 'JURUSAN', jurusan);
-      setInfoRow(7, 'NOMOR PESERTA', `${nomorFirst} S/D ${nomorLast}`);
+      setInfoRow(5, 'KELAS / JURUSAN', `${tingkatDisplay} / ${jurusan}`);
+      setInfoRow(6, 'NOMOR PESERTA', `${nomorFirst} S/D ${nomorLast}`);
 
       // RUANG di kanan (row 5-6, merge)
       const ruangStartCol = Math.floor(totalCols * 0.75);
@@ -2834,8 +2833,7 @@ export class ExamService {
         for (let c = fixedCols + 1; c <= totalCols; c++) {
           sheet.getCell(rowIdx, c).border = thinBorder;
         }
-
-        sheet.getRow(rowIdx).height = 18;
+        // Auto fit row height (do not explicitly set height)
       });
 
       // ===== COLUMN WIDTHS =====
@@ -2898,54 +2896,57 @@ export class ExamService {
       } catch(e) { tglTtdStr = ''; }
 
       const ttdRow = summaryStartRow + 4;
-      const midCol = Math.floor(totalCols / 2) + 1;
+      const leftColStart = 2; // Geser dari margin kiri
+      const leftColEnd = Math.floor(totalCols / 2);
+      const rightColStart = totalCols - 3 > leftColEnd ? totalCols - 3 : leftColEnd + 1; // Geser dari margin kanan
+      const rightColEnd = totalCols;
 
       // Kiri: Mengetahui / Kepala Madrasah
-      sheet.mergeCells(ttdRow, 1, ttdRow, midCol - 1);
-      sheet.getCell(ttdRow, 1).value = 'Mengetahui :';
-      sheet.getCell(ttdRow, 1).font = { size: 9 };
-      sheet.getCell(ttdRow, 1).alignment = { horizontal: 'left' };
+      sheet.mergeCells(ttdRow, leftColStart, ttdRow, leftColEnd);
+      sheet.getCell(ttdRow, leftColStart).value = 'Mengetahui :';
+      sheet.getCell(ttdRow, leftColStart).font = { size: 9 };
+      sheet.getCell(ttdRow, leftColStart).alignment = { horizontal: 'left' };
 
-      sheet.mergeCells(ttdRow + 1, 1, ttdRow + 1, midCol - 1);
-      sheet.getCell(ttdRow + 1, 1).value = kepsekJabatan;
-      sheet.getCell(ttdRow + 1, 1).font = { size: 9 };
-      sheet.getCell(ttdRow + 1, 1).alignment = { horizontal: 'left' };
+      sheet.mergeCells(ttdRow + 1, leftColStart, ttdRow + 1, leftColEnd);
+      sheet.getCell(ttdRow + 1, leftColStart).value = kepsekJabatan;
+      sheet.getCell(ttdRow + 1, leftColStart).font = { size: 9 };
+      sheet.getCell(ttdRow + 1, leftColStart).alignment = { horizontal: 'left' };
 
       // Kanan: Tempat, tanggal + Ketua Panitia
-      sheet.mergeCells(ttdRow, midCol, ttdRow, totalCols);
-      sheet.getCell(ttdRow, midCol).value = `${ttd.tempat || 'Wanasaba'}, ${tglTtdStr}`;
-      sheet.getCell(ttdRow, midCol).font = { size: 9 };
-      sheet.getCell(ttdRow, midCol).alignment = { horizontal: 'right' };
+      sheet.mergeCells(ttdRow, rightColStart, ttdRow, rightColEnd);
+      sheet.getCell(ttdRow, rightColStart).value = `${ttd.tempat || 'Wanasaba'}, ${tglTtdStr}`;
+      sheet.getCell(ttdRow, rightColStart).font = { size: 9 };
+      sheet.getCell(ttdRow, rightColStart).alignment = { horizontal: 'left' };
 
-      sheet.mergeCells(ttdRow + 1, midCol, ttdRow + 1, totalCols);
-      sheet.getCell(ttdRow + 1, midCol).value = 'Ketua Panitia';
-      sheet.getCell(ttdRow + 1, midCol).font = { size: 9 };
-      sheet.getCell(ttdRow + 1, midCol).alignment = { horizontal: 'right' };
+      sheet.mergeCells(ttdRow + 1, rightColStart, ttdRow + 1, rightColEnd);
+      sheet.getCell(ttdRow + 1, rightColStart).value = 'Ketua Panitia';
+      sheet.getCell(ttdRow + 1, rightColStart).font = { size: 9 };
+      sheet.getCell(ttdRow + 1, rightColStart).alignment = { horizontal: 'left' };
 
       // Spasi tanda tangan (4 baris)
       const signRow = ttdRow + 5;
 
       // Nama & NIP Kepsek (kiri)
-      sheet.mergeCells(signRow, 1, signRow, midCol - 1);
-      sheet.getCell(signRow, 1).value = kepsekName;
-      sheet.getCell(signRow, 1).font = { bold: true, size: 9 };
-      sheet.getCell(signRow, 1).alignment = { horizontal: 'left' };
+      sheet.mergeCells(signRow, leftColStart, signRow, leftColEnd);
+      sheet.getCell(signRow, leftColStart).value = kepsekName;
+      sheet.getCell(signRow, leftColStart).font = { bold: true, size: 9 };
+      sheet.getCell(signRow, leftColStart).alignment = { horizontal: 'left' };
 
-      sheet.mergeCells(signRow + 1, 1, signRow + 1, midCol - 1);
-      sheet.getCell(signRow + 1, 1).value = kepsekNip ? `NIP. ${kepsekNip}` : '';
-      sheet.getCell(signRow + 1, 1).font = { size: 9 };
-      sheet.getCell(signRow + 1, 1).alignment = { horizontal: 'left' };
+      sheet.mergeCells(signRow + 1, leftColStart, signRow + 1, leftColEnd);
+      sheet.getCell(signRow + 1, leftColStart).value = kepsekNip ? `NIP. ${kepsekNip}` : '';
+      sheet.getCell(signRow + 1, leftColStart).font = { size: 9 };
+      sheet.getCell(signRow + 1, leftColStart).alignment = { horizontal: 'left' };
 
       // Nama & NIP Ketua Panitia (kanan)
-      sheet.mergeCells(signRow, midCol, signRow, totalCols);
-      sheet.getCell(signRow, midCol).value = ketuaName;
-      sheet.getCell(signRow, midCol).font = { bold: true, size: 9 };
-      sheet.getCell(signRow, midCol).alignment = { horizontal: 'right' };
+      sheet.mergeCells(signRow, rightColStart, signRow, rightColEnd);
+      sheet.getCell(signRow, rightColStart).value = ketuaName;
+      sheet.getCell(signRow, rightColStart).font = { bold: true, size: 9 };
+      sheet.getCell(signRow, rightColStart).alignment = { horizontal: 'left' };
 
-      sheet.mergeCells(signRow + 1, midCol, signRow + 1, totalCols);
-      sheet.getCell(signRow + 1, midCol).value = ketuaNip ? `NIP. ${ketuaNip}` : '';
-      sheet.getCell(signRow + 1, midCol).font = { size: 9 };
-      sheet.getCell(signRow + 1, midCol).alignment = { horizontal: 'right' };
+      sheet.mergeCells(signRow + 1, rightColStart, signRow + 1, rightColEnd);
+      sheet.getCell(signRow + 1, rightColStart).value = ketuaNip ? `NIP. ${ketuaNip}` : '';
+      sheet.getCell(signRow + 1, rightColStart).font = { size: 9 };
+      sheet.getCell(signRow + 1, rightColStart).alignment = { horizontal: 'left' };
     }
 
     if (workbook.worksheets.length === 0) {
