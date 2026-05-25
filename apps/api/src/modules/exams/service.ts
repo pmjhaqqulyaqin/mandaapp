@@ -2846,6 +2846,106 @@ export class ExamService {
       for (let c = fixedCols + 1; c <= totalCols; c++) {
         sheet.getColumn(c).width = 5; // Sesi columns
       }
+
+      // ===== RINGKASAN JUMLAH =====
+      const jumlahTotal = siswaList.length;
+      const jumlahL = siswaList.filter((d: any) => {
+        const g = (d.siswa?.gender || '').toLowerCase();
+        return g.includes('laki');
+      }).length;
+      const jumlahP = jumlahTotal - jumlahL;
+
+      const summaryStartRow = dataStartRow + siswaList.length + 1;
+      const summaryLabelCols = 3; // label mencakup kolom 1-3
+
+      const addSummaryRow = (row: number, label: string, value: number) => {
+        sheet.mergeCells(row, 1, row, summaryLabelCols);
+        const cellLabel = sheet.getCell(row, 1);
+        cellLabel.value = label;
+        cellLabel.font = { bold: true, size: 9 };
+        cellLabel.alignment = { horizontal: 'left', vertical: 'middle' };
+        cellLabel.border = thinBorder;
+
+        const cellVal = sheet.getCell(row, 4);
+        cellVal.value = value;
+        cellVal.font = { bold: true, size: 9 };
+        cellVal.alignment = { horizontal: 'center', vertical: 'middle' };
+        cellVal.border = thinBorder;
+        sheet.getRow(row).height = 16;
+      };
+
+      addSummaryRow(summaryStartRow, 'JUMLAH PESERTA', jumlahTotal);
+      addSummaryRow(summaryStartRow + 1, 'LAKI-LAKI (L)', jumlahL);
+      addSummaryRow(summaryStartRow + 2, 'PEREMPUAN (P)', jumlahP);
+
+      // ===== TANDA TANGAN =====
+      const ttd = config.ttd || {};
+      const panitiaList2 = await this.getPanitia(ujianId);
+      const ketua = panitiaList2.find((p: any) => (p.jabatan || '').toLowerCase().includes('ketua'));
+      const ketuaName = ketua?.pegawai?.name || ttd.nama || '';
+      const ketuaNip = ketua?.pegawai?.nip || ttd.nip || '';
+
+      const kepsekName = ttd.nama || '';
+      const kepsekNip = ttd.nip || '';
+      const kepsekJabatan = ttd.jabatan || 'Kepala Madrasah';
+
+      // Format tanggal TTD
+      let tglTtdStr = '';
+      try {
+        const tglTtd = ttd.tanggal ? new Date(ttd.tanggal) : new Date();
+        const bulanIndo = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+        tglTtdStr = `${tglTtd.getDate()} ${bulanIndo[tglTtd.getMonth()]} ${tglTtd.getFullYear()}`;
+      } catch(e) { tglTtdStr = ''; }
+
+      const ttdRow = summaryStartRow + 4;
+      const midCol = Math.floor(totalCols / 2) + 1;
+
+      // Kiri: Mengetahui / Kepala Madrasah
+      sheet.mergeCells(ttdRow, 1, ttdRow, midCol - 1);
+      sheet.getCell(ttdRow, 1).value = 'Mengetahui :';
+      sheet.getCell(ttdRow, 1).font = { size: 9 };
+      sheet.getCell(ttdRow, 1).alignment = { horizontal: 'left' };
+
+      sheet.mergeCells(ttdRow + 1, 1, ttdRow + 1, midCol - 1);
+      sheet.getCell(ttdRow + 1, 1).value = kepsekJabatan;
+      sheet.getCell(ttdRow + 1, 1).font = { size: 9 };
+      sheet.getCell(ttdRow + 1, 1).alignment = { horizontal: 'left' };
+
+      // Kanan: Tempat, tanggal + Ketua Panitia
+      sheet.mergeCells(ttdRow, midCol, ttdRow, totalCols);
+      sheet.getCell(ttdRow, midCol).value = `${ttd.tempat || 'Wanasaba'}, ${tglTtdStr}`;
+      sheet.getCell(ttdRow, midCol).font = { size: 9 };
+      sheet.getCell(ttdRow, midCol).alignment = { horizontal: 'right' };
+
+      sheet.mergeCells(ttdRow + 1, midCol, ttdRow + 1, totalCols);
+      sheet.getCell(ttdRow + 1, midCol).value = 'Ketua Panitia';
+      sheet.getCell(ttdRow + 1, midCol).font = { size: 9 };
+      sheet.getCell(ttdRow + 1, midCol).alignment = { horizontal: 'right' };
+
+      // Spasi tanda tangan (4 baris)
+      const signRow = ttdRow + 5;
+
+      // Nama & NIP Kepsek (kiri)
+      sheet.mergeCells(signRow, 1, signRow, midCol - 1);
+      sheet.getCell(signRow, 1).value = kepsekName;
+      sheet.getCell(signRow, 1).font = { bold: true, size: 9 };
+      sheet.getCell(signRow, 1).alignment = { horizontal: 'left' };
+
+      sheet.mergeCells(signRow + 1, 1, signRow + 1, midCol - 1);
+      sheet.getCell(signRow + 1, 1).value = kepsekNip ? `NIP. ${kepsekNip}` : '';
+      sheet.getCell(signRow + 1, 1).font = { size: 9 };
+      sheet.getCell(signRow + 1, 1).alignment = { horizontal: 'left' };
+
+      // Nama & NIP Ketua Panitia (kanan)
+      sheet.mergeCells(signRow, midCol, signRow, totalCols);
+      sheet.getCell(signRow, midCol).value = ketuaName;
+      sheet.getCell(signRow, midCol).font = { bold: true, size: 9 };
+      sheet.getCell(signRow, midCol).alignment = { horizontal: 'right' };
+
+      sheet.mergeCells(signRow + 1, midCol, signRow + 1, totalCols);
+      sheet.getCell(signRow + 1, midCol).value = ketuaNip ? `NIP. ${ketuaNip}` : '';
+      sheet.getCell(signRow + 1, midCol).font = { size: 9 };
+      sheet.getCell(signRow + 1, midCol).alignment = { horizontal: 'right' };
     }
 
     if (workbook.worksheets.length === 0) {
