@@ -197,24 +197,52 @@ export const PrintBeritaAcaraSekolah = () => {
     const totalRuang = rooms.length;
     const totalPeserta = kelasData.reduce((s, r) => s + r.jumlah, 0);
 
-    // Kelas table rows
+    // Kelas table rows — grouped by tingkat with subtotals
+    const getTingkat = (namaKelas: string) => {
+      const m = namaKelas.trim().match(/^(XII|XI|X)\b/i);
+      return m ? m[1].toUpperCase() : namaKelas.trim().split(/[\s-]/)[0].toUpperCase();
+    };
+    // Group kelasData by tingkat, preserving order
+    const tingkatGroups: { tingkat: string; rows: typeof kelasData }[] = [];
+    for (const row of kelasData) {
+      const tingkat = getTingkat(row.kelas);
+      const last = tingkatGroups[tingkatGroups.length - 1];
+      if (last && last.tingkat === tingkat) {
+        last.rows.push(row);
+      } else {
+        tingkatGroups.push({ tingkat, rows: [row] });
+      }
+    }
     let kelasRows = '';
+    let rowNum = 1;
     let totalL = 0, totalP = 0;
-    kelasData.forEach((row, idx) => {
-      totalL += row.lakiLaki;
-      totalP += row.perempuan;
+    for (const group of tingkatGroups) {
+      const gL = group.rows.reduce((s, r) => s + r.lakiLaki, 0);
+      const gP = group.rows.reduce((s, r) => s + r.perempuan, 0);
+      totalL += gL;
+      totalP += gP;
+      for (const row of group.rows) {
+        kelasRows += `
+          <tr>
+            <td style="border:1px solid black;padding:3px 6px;text-align:center;">${rowNum++}</td>
+            <td style="border:1px solid black;padding:3px 6px;">${row.kelas}</td>
+            <td style="border:1px solid black;padding:3px 6px;text-align:center;">${row.lakiLaki}</td>
+            <td style="border:1px solid black;padding:3px 6px;text-align:center;">${row.perempuan}</td>
+            <td style="border:1px solid black;padding:3px 6px;text-align:center;">${row.jumlah}</td>
+          </tr>`;
+      }
       kelasRows += `
-        <tr>
-          <td style="border:1px solid black;padding:3px 6px;text-align:center;">${idx + 1}</td>
-          <td style="border:1px solid black;padding:3px 6px;">${row.kelas}</td>
-          <td style="border:1px solid black;padding:3px 6px;text-align:center;">${row.lakiLaki}</td>
-          <td style="border:1px solid black;padding:3px 6px;text-align:center;">${row.perempuan}</td>
-          <td style="border:1px solid black;padding:3px 6px;text-align:center;">${row.jumlah}</td>
+        <tr style="font-style:italic;">
+          <td style="border:1px solid black;padding:3px 6px;"></td>
+          <td style="border:1px solid black;padding:3px 6px;">Jumlah</td>
+          <td style="border:1px solid black;padding:3px 6px;text-align:center;">${gL}</td>
+          <td style="border:1px solid black;padding:3px 6px;text-align:center;">${gP}</td>
+          <td style="border:1px solid black;padding:3px 6px;text-align:center;">${gL + gP}</td>
         </tr>`;
-    });
+    }
     kelasRows += `
       <tr style="font-weight:bold;">
-        <td style="border:1px solid black;padding:3px 6px;text-align:center;" colspan="2">Jumlah</td>
+        <td style="border:1px solid black;padding:3px 6px;text-align:center;" colspan="2">Total</td>
         <td style="border:1px solid black;padding:3px 6px;text-align:center;">${totalL}</td>
         <td style="border:1px solid black;padding:3px 6px;text-align:center;">${totalP}</td>
         <td style="border:1px solid black;padding:3px 6px;text-align:center;">${totalL + totalP}</td>
@@ -524,15 +552,6 @@ export const PrintBeritaAcaraSekolah = () => {
                 </tr>
               </thead>
               <tbody>
-                {kelasData.map((row, idx) => (
-                  <tr key={idx}>
-                    <td className={`border border-black px-1.5 ${rowPy}`}>{idx + 1}</td>
-                    <td className={`border border-black px-1.5 ${rowPy} text-left`}>{row.kelas}</td>
-                    <td className={`border border-black px-1.5 ${rowPy}`}>{row.lakiLaki}</td>
-                    <td className={`border border-black px-1.5 ${rowPy}`}>{row.perempuan}</td>
-                    <td className={`border border-black px-1.5 ${rowPy}`}>{row.jumlah}</td>
-                  </tr>
-                ))}
                 {kelasData.length === 0 && (
                   <tr>
                     <td colSpan={5} className="border border-black px-2 py-4 text-gray-400 italic">
@@ -540,13 +559,55 @@ export const PrintBeritaAcaraSekolah = () => {
                     </td>
                   </tr>
                 )}
-                {/* Total row */}
-                <tr className="font-bold">
-                  <td className={`border border-black px-1.5 ${rowPy}`} colSpan={2}>Jumlah</td>
-                  <td className={`border border-black px-1.5 ${rowPy}`}>{totalL}</td>
-                  <td className={`border border-black px-1.5 ${rowPy}`}>{totalP}</td>
-                  <td className={`border border-black px-1.5 ${rowPy}`}>{totalPeserta}</td>
-                </tr>
+                {(() => {
+                  // Group by tingkat
+                  const getTingkat = (nama: string) => {
+                    const m = nama.trim().match(/^(XII|XI|X)\b/i);
+                    return m ? m[1].toUpperCase() : nama.trim().split(/[\s-]/)[0].toUpperCase();
+                  };
+                  const groups: { tingkat: string; rows: typeof kelasData }[] = [];
+                  for (const row of kelasData) {
+                    const t = getTingkat(row.kelas);
+                    const last = groups[groups.length - 1];
+                    if (last && last.tingkat === t) { last.rows.push(row); }
+                    else { groups.push({ tingkat: t, rows: [row] }); }
+                  }
+                  let num = 1;
+                  const rows: React.ReactNode[] = [];
+                  for (const group of groups) {
+                    const gL = group.rows.reduce((s, r) => s + r.lakiLaki, 0);
+                    const gP = group.rows.reduce((s, r) => s + r.perempuan, 0);
+                    for (const row of group.rows) {
+                      rows.push(
+                        <tr key={`row-${num}`}>
+                          <td className={`border border-black px-1.5 ${rowPy}`}>{num++}</td>
+                          <td className={`border border-black px-1.5 ${rowPy} text-left`}>{row.kelas}</td>
+                          <td className={`border border-black px-1.5 ${rowPy}`}>{row.lakiLaki}</td>
+                          <td className={`border border-black px-1.5 ${rowPy}`}>{row.perempuan}</td>
+                          <td className={`border border-black px-1.5 ${rowPy}`}>{row.jumlah}</td>
+                        </tr>
+                      );
+                    }
+                    rows.push(
+                      <tr key={`sub-${group.tingkat}`} className="italic">
+                        <td className={`border border-black px-1.5 ${rowPy}`}></td>
+                        <td className={`border border-black px-1.5 ${rowPy} text-left`}>Jumlah</td>
+                        <td className={`border border-black px-1.5 ${rowPy}`}>{gL}</td>
+                        <td className={`border border-black px-1.5 ${rowPy}`}>{gP}</td>
+                        <td className={`border border-black px-1.5 ${rowPy}`}>{gL + gP}</td>
+                      </tr>
+                    );
+                  }
+                  rows.push(
+                    <tr key="total" className="font-bold">
+                      <td className={`border border-black px-1.5 ${rowPy}`} colSpan={2}>Total</td>
+                      <td className={`border border-black px-1.5 ${rowPy}`}>{totalL}</td>
+                      <td className={`border border-black px-1.5 ${rowPy}`}>{totalP}</td>
+                      <td className={`border border-black px-1.5 ${rowPy}`}>{totalPeserta}</td>
+                    </tr>
+                  );
+                  return rows;
+                })()}
               </tbody>
             </table>
 
