@@ -2734,7 +2734,7 @@ export class ExamService {
       const cellRuang = sheet.getCell(5, ruangStartCol);
       cellRuang.value = `RUANG : ${dominantRuang}`;
       cellRuang.font = { bold: true, size: 14 };
-      cellRuang.alignment = { horizontal: 'right', vertical: 'middle' };
+      cellRuang.alignment = { horizontal: 'left', vertical: 'middle' };
 
       // ===== ROW 8: Spacer =====
       sheet.getRow(8).height = 4;
