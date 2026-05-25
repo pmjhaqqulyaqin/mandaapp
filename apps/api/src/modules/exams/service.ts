@@ -2815,7 +2815,7 @@ export class ExamService {
 
         const cellNomor = sheet.getCell(rowIdx, 2);
         cellNomor.value = nomorPeserta;
-        cellNomor.font = { size: 8 };
+        cellNomor.font = { size: 9 };
         cellNomor.alignment = { horizontal: 'left', vertical: 'middle' };
         cellNomor.border = thinBorder;
 
@@ -2842,7 +2842,9 @@ export class ExamService {
 
       // ===== COLUMN WIDTHS =====
       sheet.getColumn(1).width = 5;   // URUT
-      sheet.getColumn(2).width = 24;  // NOMOR PESERTA
+      // Auto-fit lebar kolom NOMOR PESERTA berdasarkan panjang string
+      const maxNomorLen = Math.max(nomorFirst.length, nomorLast.length);
+      sheet.getColumn(2).width = Math.max(16, maxNomorLen + 1.5);
       sheet.getColumn(3).width = 22;  // NAMA PESERTA
       sheet.getColumn(4).width = 4;   // L/P
       for (let c = fixedCols + 1; c <= totalCols; c++) {
