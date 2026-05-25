@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiClient } from '../../../lib/api';
 import { Loader2 } from 'lucide-react';
+import { smartUpperCase } from '../../../lib/normalizeGelar';
 
 const HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -189,9 +190,9 @@ export const PrintBeritaAcaraMapel = () => {
       }
       if (ruang?.namaRuang) ruangStr = ruang.namaRuang;
 
-      const p1Name = pengawas1?.name || '';
+      const p1Name = smartUpperCase(pengawas1?.name || '');
       const p1Nip = pengawas1?.nip || '';
-      const p2Name = pengawas2?.name || '';
+      const p2Name = smartUpperCase(pengawas2?.name || '');
       const p2Nip = pengawas2?.nip || '';
 
       const kop = ujian.pengaturan?.kop || {};
@@ -280,9 +281,9 @@ export const PrintBeritaAcaraMapel = () => {
             </tr>
             <tr style="height:45px;"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
             <tr>
-              <td style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:11pt;">${p1Name}${p1Name ? `<br/><span style="font-weight:normal;font-size:9pt;">NIP. ${p1Nip}</span>` : ''}</td>
+              <td style="text-align:center;font-weight:bold;font-size:11pt;">${p1Name}${p1Name ? `<br/><span style="font-weight:normal;font-size:9pt;">NIP. ${p1Nip}</span>` : ''}</td>
               <td>&nbsp;</td>
-              <td style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:11pt;">${p2Name}${p2Name ? `<br/><span style="font-weight:normal;font-size:9pt;">NIP. ${p2Nip}</span>` : ''}</td>
+              <td style="text-align:center;font-weight:bold;font-size:11pt;">${p2Name}${p2Name ? `<br/><span style="font-weight:normal;font-size:9pt;">NIP. ${p2Nip}</span>` : ''}</td>
             </tr>
           </table>
         </div>
@@ -522,7 +523,7 @@ export const PrintBeritaAcaraMapel = () => {
              <div className="text-center font-bold">
                  {pengawas1?.name ? (
                     <>
-                       <div className="uppercase pb-1 leading-snug">{pengawas1.name}</div>
+                       <div className="pb-1 leading-snug">{smartUpperCase(pengawas1.name)}</div>
                        <div className="font-normal text-sm">NIP. {pengawas1.nip || '-'}</div>
                     </>
                  ) : (
@@ -545,7 +546,7 @@ export const PrintBeritaAcaraMapel = () => {
              <div className="text-center font-bold">
                  {pengawas2?.name ? (
                     <>
-                       <div className="uppercase pb-1 leading-snug">{pengawas2.name}</div>
+                       <div className="pb-1 leading-snug">{smartUpperCase(pengawas2.name)}</div>
                        <div className="font-normal text-sm">NIP. {pengawas2.nip || '-'}</div>
                     </>
                  ) : (

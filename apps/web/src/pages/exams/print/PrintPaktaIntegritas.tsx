@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiClient } from '../../../lib/api';
 import { Loader2 } from 'lucide-react';
+import { normalizeGelar } from '../../../lib/normalizeGelar';
 
 const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
@@ -164,7 +165,7 @@ export const PrintPaktaIntegritas = () => {
                  <tr>
                    <td className="w-36 py-1 align-top">Nama</td>
                    <td className="w-4 py-1 align-top">:</td>
-                   <td className="py-1 align-top font-semibold">{person.name}</td>
+                   <td className="py-1 align-top font-semibold">{normalizeGelar(person.name)}</td>
                  </tr>
                  <tr>
                    <td className="py-1 align-top">NIP</td>
@@ -211,7 +212,7 @@ export const PrintPaktaIntegritas = () => {
                 <div className="w-72 text-left">
                   <div className="mb-1">{tempat}, {tanggalFormat}</div>
                   <div className="mb-16">Yang Membuat Pakta Integritas</div>
-                  <div className="font-bold underline text-[11pt]">{person.name}</div>
+                  <div className="font-bold underline text-[11pt]">{normalizeGelar(person.name)}</div>
                   {person.nip && person.nip !== '-' && (
                     <div className="text-[11pt]">NIP. {person.nip}</div>
                   )}

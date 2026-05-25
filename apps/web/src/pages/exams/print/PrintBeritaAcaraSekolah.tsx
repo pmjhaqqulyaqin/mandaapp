@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiClient } from '../../../lib/api';
-import { normalizeGelar } from '../../../lib/normalizeGelar';
+import { normalizeGelar, smartUpperCase } from '../../../lib/normalizeGelar';
 import { Loader2 } from 'lucide-react';
 
 const HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -233,12 +233,12 @@ export const PrintBeritaAcaraSekolah = () => {
 
     // Ketua panitia
     const ketua = panitia.find((p: any) => (p.jabatan || '').toLowerCase().includes('ketua'));
-    const ketuaName = normalizeGelar(ketua?.pegawai?.name || ketua?.name || '');
+    const ketuaName = smartUpperCase(ketua?.pegawai?.name || ketua?.name || '');
     const ketuaNip = ketua?.pegawai?.nip || ketua?.nip || '';
 
     // Kepala Madrasah from pengaturan cetak
     const ttdKepsek = ujian.pengaturan?.ttd || {};
-    const kepsekName = normalizeGelar(ttdKepsek.nama || '');
+    const kepsekName = smartUpperCase(ttdKepsek.nama || '');
     const kepsekNip = ttdKepsek.nip || '';
     const kepsekJabatan = ttdKepsek.jabatan || 'Kepala Madrasah';
 
@@ -388,12 +388,12 @@ export const PrintBeritaAcaraSekolah = () => {
 
   // Ketua panitia
   const ketua = panitia.find((p: any) => (p.jabatan || '').toLowerCase().includes('ketua'));
-  const ketuaName = normalizeGelar(ketua?.pegawai?.name || ketua?.name || '');
+  const ketuaName = smartUpperCase(ketua?.pegawai?.name || ketua?.name || '');
   const ketuaNip = ketua?.pegawai?.nip || ketua?.nip || '';
 
   // Kepala Madrasah
   const ttdKepsek = ujian.pengaturan?.ttd || {};
-  const kepsekName = normalizeGelar(ttdKepsek.nama || '');
+  const kepsekName = smartUpperCase(ttdKepsek.nama || '');
   const kepsekNip = ttdKepsek.nip || '';
   const kepsekJabatan = ttdKepsek.jabatan || 'Kepala Madrasah';
 
@@ -589,7 +589,7 @@ export const PrintBeritaAcaraSekolah = () => {
                 <div className="font-bold">
                   {ketuaName ? (
                     <>
-                      <div className="uppercase pb-1 leading-snug">{ketuaName}</div>
+                      <div className="pb-1 leading-snug">{ketuaName}</div>
                       <div className="font-normal text-[9pt]">NIP. {ketuaNip || '-'}</div>
                     </>
                   ) : (
@@ -607,7 +607,7 @@ export const PrintBeritaAcaraSekolah = () => {
                 <div className="font-bold">
                   {kepsekName ? (
                     <>
-                      <div className="uppercase pb-1 leading-snug">{kepsekName}</div>
+                      <div className="pb-1 leading-snug">{kepsekName}</div>
                       <div className="font-normal text-[9pt]">NIP. {kepsekNip || '-'}</div>
                     </>
                   ) : (

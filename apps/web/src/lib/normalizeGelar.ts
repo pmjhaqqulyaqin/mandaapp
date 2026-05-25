@@ -4,10 +4,16 @@
  */
 export function normalizeGelar(str: string): string {
   return str
+    // First normalize comma separators to dots (e.g. S,AG -> S.AG, S,UD -> S.UD)
+    .replace(/([SM])\s*,\s*(PD|AG|UD|SY|SOS|KOM|SI|HUM|KED|IP|FIL|AP|E|H|T)\b/gi, '$1.$2')
     .replace(/S\.PD\b/gi, 'S.Pd')
     .replace(/M\.PD\b/gi, 'M.Pd')
     .replace(/S\.AG\b/gi, 'S.Ag')
     .replace(/M\.AG\b/gi, 'M.Ag')
+    .replace(/S\.SY\b/gi, 'S.Sy')
+    .replace(/M\.SY\b/gi, 'M.Sy')
+    .replace(/S\.UD\b/gi, 'S.Ud')
+    .replace(/M\.UD\b/gi, 'M.Ud')
     .replace(/S\.SOS\b/gi, 'S.Sos')
     .replace(/S\.KOM\b/gi, 'S.Kom')
     .replace(/M\.SI\b/gi, 'M.Si')
@@ -34,6 +40,8 @@ export function smartUpperCase(str: string): string {
     /S\.Pd\.I\b/g, /M\.Pd\.I\b/g,
     /S\.Pd\b/g, /M\.Pd\b/g,
     /S\.Ag\b/g, /M\.Ag\b/g,
+    /S\.Sy\b/g, /M\.Sy\b/g,
+    /S\.Ud\b/g, /M\.Ud\b/g,
     /S\.Sos\b/g, /S\.Kom\b/g,
     /M\.Si\b/g, /S\.Hum\b/g, /M\.Hum\b/g,
     /S\.Ked\b/g, /S\.IP\b/g,
