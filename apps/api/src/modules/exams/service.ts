@@ -2717,10 +2717,12 @@ export class ExamService {
         sheet.mergeCells(row, 1, row, 2); // Merge col 1 & 2 for label
         sheet.getCell(row, 1).value = `${label} :`;
         sheet.getCell(row, 1).font = infoLabelStyle;
+        sheet.getCell(row, 1).alignment = { vertical: 'middle', wrapText: true };
         sheet.mergeCells(row, 3, row, Math.floor(totalCols * 0.7)); // Value starts at col 3
         sheet.getCell(row, 3).value = value;
         sheet.getCell(row, 3).font = infoValueStyle;
-        // Auto fit row height by not explicitly setting it
+        sheet.getCell(row, 3).alignment = { vertical: 'middle', wrapText: true };
+        sheet.getRow(row).height = 18;
       };
 
       setInfoRow(5, 'KELAS / JURUSAN', `${tingkatDisplay} / ${jurusan}`);
@@ -2791,10 +2793,9 @@ export class ExamService {
           cell.border = thinBorder;
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8E8E8' } };
         }
-        if (r !== HR2) {
-          sheet.getRow(r).height = 18;
-        }
-        // HR2 (Tanggal) auto-fit height
+        if (r === HR1) sheet.getRow(r).height = 20;
+        else if (r === HR2) sheet.getRow(r).height = 32; // Tanggal punya 2 baris (wrap text)
+        else if (r === HR3) sheet.getRow(r).height = 18;
       }
 
       // ===== DATA ROWS =====
@@ -2835,7 +2836,8 @@ export class ExamService {
           sheet.getCell(rowIdx, c).border = thinBorder;
         }
         
-        sheet.getRow(rowIdx).height = 25;
+        // Memperbesar tinggi baris untuk kotak tanda tangan
+        sheet.getRow(rowIdx).height = 35;
       });
 
       // ===== COLUMN WIDTHS =====
