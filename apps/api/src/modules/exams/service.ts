@@ -2720,7 +2720,7 @@ export class ExamService {
         sheet.mergeCells(row, 3, row, Math.floor(totalCols * 0.7)); // Value starts at col 3
         sheet.getCell(row, 3).value = value;
         sheet.getCell(row, 3).font = infoValueStyle;
-        sheet.getRow(row).height = 14;
+        // Auto fit row height by not explicitly setting it
       };
 
       setInfoRow(5, 'KELAS / JURUSAN', `${tingkatDisplay} / ${jurusan}`);
@@ -2791,7 +2791,10 @@ export class ExamService {
           cell.border = thinBorder;
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8E8E8' } };
         }
-        sheet.getRow(r).height = r === HR2 ? 28 : 18;
+        if (r !== HR2) {
+          sheet.getRow(r).height = 18;
+        }
+        // HR2 (Tanggal) auto-fit height
       }
 
       // ===== DATA ROWS =====
@@ -2831,16 +2834,17 @@ export class ExamService {
         for (let c = fixedCols + 1; c <= totalCols; c++) {
           sheet.getCell(rowIdx, c).border = thinBorder;
         }
-        // Auto fit row height (do not explicitly set height)
+        
+        sheet.getRow(rowIdx).height = 25;
       });
 
       // ===== COLUMN WIDTHS =====
       sheet.getColumn(1).width = 5;   // URUT
-      sheet.getColumn(2).width = 18;  // NOMOR PESERTA
+      sheet.getColumn(2).width = 24;  // NOMOR PESERTA
       sheet.getColumn(3).width = 22;  // NAMA PESERTA
       sheet.getColumn(4).width = 4;   // L/P
       for (let c = fixedCols + 1; c <= totalCols; c++) {
-        sheet.getColumn(c).width = 5; // Sesi columns
+        sheet.getColumn(c).width = 6.5; // Sesi columns
       }
 
       // ===== RINGKASAN JUMLAH =====
@@ -2852,11 +2856,11 @@ export class ExamService {
       const jumlahP = jumlahTotal - jumlahL;
 
       const summaryStartRow = dataStartRow + siswaList.length + 1;
-      const summaryLabelCols = 3; // label mencakup kolom 1-3
+      const summaryLabelCols = 3; // label mencakup kolom 2-3
 
       const addSummaryRow = (row: number, label: string, value: number) => {
-        sheet.mergeCells(row, 1, row, summaryLabelCols);
-        const cellLabel = sheet.getCell(row, 1);
+        sheet.mergeCells(row, 2, row, summaryLabelCols);
+        const cellLabel = sheet.getCell(row, 2);
         cellLabel.value = label;
         cellLabel.font = { bold: true, size: 9 };
         cellLabel.alignment = { horizontal: 'left', vertical: 'middle' };
