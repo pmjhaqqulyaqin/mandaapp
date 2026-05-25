@@ -283,6 +283,7 @@ export class ExamController {
     try {
       const type = req.query.type as string;
       const ruangId = req.query.ruangId as string | undefined;
+      const kelasId = req.query.kelasId as string | undefined;
 
       let buffer: any;
       let filename = 'Daftar_Hadir.xlsx';
@@ -293,6 +294,9 @@ export class ExamController {
       } else if (type === 'panitia') {
         buffer = await ExamService.exportDaftarHadirPanitiaExcel(req.params.ujianId); 
         filename = 'Daftar_Hadir_Panitia.xlsx';
+      } else if (type === 'kelas') {
+        buffer = await ExamService.exportDaftarHadirPerKelasExcel(req.params.ujianId, kelasId);
+        filename = 'Daftar_Hadir_Per_Kelas.xlsx';
       } else {
         buffer = await ExamService.exportDaftarHadirExcel(req.params.ujianId, ruangId);
         filename = 'Daftar_Hadir_Peserta.xlsx';

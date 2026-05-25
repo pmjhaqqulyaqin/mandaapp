@@ -2572,4 +2572,287 @@ export class ExamService {
     return await workbook.xlsx.writeBuffer();
   }
 
+
+  static async exportDaftarHadirPerKelasExcel(ujianId: string, kelasFilter?: string) {
+    const ujianData = await this.getUjianById(ujianId);
+    if (!ujianData) throw new Error('Ujian tidak ditemukan');
+
+    const config = (ujianData.pengaturan as any) || {};
+    const kop = config.kop || {};
+    const distribusi = await this.getDistribusi(ujianId);
+    const jadwalList = await this.getJadwal(ujianId);
+
+    const namaUjian = (ujianData.namaUjian || (ujianData as any).jenisUjian || 'UJIAN').toUpperCase();
+    const tahunAjaran = ujianData.tahunAjaran || '';
+    const instansi = kop.instansi || 'MADRASAH ALIYAH NEGERI 2 LOMBOK TIMUR';
+    const hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const bulanNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+
+    // Kumpulkan unique tanggal → sesi (waktu mulai) dari jadwal, sorted
+    const dateSessionMap = new Map<string, string[]>();
+    for (const j of jadwalList) {
+      const tgl = (j.tanggal || '').split('T')[0];
+      if (!tgl) continue;
+      if (!dateSessionMap.has(tgl)) dateSessionMap.set(tgl, []);
+      const wm = (j as any).waktuMulai || '';
+      if (wm && !dateSessionMap.get(tgl)!.includes(wm)) {
+        dateSessionMap.get(tgl)!.push(wm);
+      }
+    }
+    // Sort tanggal dan sesi per tanggal
+    const sortedDates = Array.from(dateSessionMap.keys()).sort().map(tgl => {
+      const sessions = dateSessionMap.get(tgl)!.sort();
+      return { tgl, sessions };
+    });
+
+    // Total kolom sesi = sum semua sesi per tanggal
+    const totalSessionCols = sortedDates.reduce((s, d) => s + d.sessions.length, 0);
+    // Kolom: URUT(1) + PESERTA(2) + NAMA(3) + LP(4) + sesi-kolom(5..)
+    const fixedCols = 4;
+    const totalCols = fixedCols + totalSessionCols;
+
+    const thinBorder: any = {
+      top: { style: 'thin' }, left: { style: 'thin' },
+      bottom: { style: 'thin' }, right: { style: 'thin' }
+    };
+    const medBorder: any = {
+      top: { style: 'medium' }, left: { style: 'medium' },
+      bottom: { style: 'medium' }, right: { style: 'medium' }
+    };
+
+    // Kelompokkan distribusi per kelas
+    const kelasMap = new Map<string, any[]>();
+    for (const d of distribusi) {
+      const kelas = (d.siswa?.fullClassName || d.siswa?.className || 'Tanpa Kelas').toUpperCase();
+      if (!kelasMap.has(kelas)) kelasMap.set(kelas, []);
+      kelasMap.get(kelas)!.push(d);
+    }
+
+    // Filter kelas jika ada
+    const kelasList = kelasFilter
+      ? Array.from(kelasMap.entries()).filter(([k]) => k === kelasFilter.toUpperCase())
+      : Array.from(kelasMap.entries()).sort(([a], [b]) => a.localeCompare(b));
+
+    if (kelasList.length === 0) throw new Error('Tidak ada data kelas untuk di-export');
+
+    const workbook = new ExcelJS.Workbook();
+
+    for (const [namaKelas, siswaList] of kelasList) {
+      // Sort siswa by fullName
+      siswaList.sort((a, b) => (a.siswa?.fullName || '').localeCompare(b.siswa?.fullName || ''));
+
+      // Tentukan info kelas
+      const firstSiswa = siswaList[0]?.siswa || {};
+      // Ambil jurusan dari nama kelas (bagian setelah tingkat, misal "XI IPA" → "IPA")
+      const jurusan = namaKelas.replace(/^(XII|XI|X)\s*/i, '').trim() || '-';
+
+      // Ruang (siswa bisa di ruang berbeda, ambil ruang pertama/terbanyak)
+      const ruangCounts: Record<string, { nama: string; count: number }> = {};
+      for (const d of siswaList) {
+        const rId = d.ruangId || '';
+        const rNama = d.ruang?.namaRuang || '-';
+        if (!ruangCounts[rId]) ruangCounts[rId] = { nama: rNama, count: 0 };
+        ruangCounts[rId].count++;
+      }
+      const dominantRuang = Object.values(ruangCounts).sort((a, b) => b.count - a.count)[0]?.nama || '-';
+
+      // Nomor peserta helper
+      const lastYearStr = tahunAjaran.length >= 2 ? tahunAjaran.slice(-2) : '00';
+      const semesterLower = (ujianData.semester || '').toLowerCase();
+      const semCode = semesterLower.includes('ganjil') ? '01' : semesterLower.includes('genap') ? '02' : '00';
+      const kelasStr2 = namaKelas.toUpperCase();
+      let gradeCode = '00';
+      if (kelasStr2.includes('XII')) gradeCode = '12';
+      else if (kelasStr2.includes('XI')) gradeCode = '11';
+      else if (kelasStr2.startsWith('X')) gradeCode = '10';
+
+      const makeNomor = (d: any, idx: number) => {
+        const ruangMatch = (d.ruang?.namaRuang || '').match(/\d+/);
+        const ruangNumber = ruangMatch ? parseInt(ruangMatch[0], 10) : 0;
+        const ruangCode = ruangNumber.toString().padStart(2, '0');
+        const urutCode = ((d.urutRuang || idx + 1)).toString().padStart(3, '0');
+        return `${lastYearStr}-${semCode}-${gradeCode}-${ruangCode}-${urutCode}`;
+      };
+
+      const nomorFirst = makeNomor(siswaList[0], 0);
+      const nomorLast = makeNomor(siswaList[siswaList.length - 1], siswaList.length - 1);
+
+      // Format nama tingkat kelas (misal XI → SEBELAS)
+      const tingkatMap: Record<string, string> = { 'X': 'SEPULUH', 'XI': 'SEBELAS', 'XII': 'DUA BELAS' };
+      const tingkatMatch = namaKelas.match(/^(XII|XI|X)\b/i);
+      const tingkatRoman = tingkatMatch ? tingkatMatch[1].toUpperCase() : '';
+      const tingkatLengkap = tingkatMap[tingkatRoman] || tingkatRoman;
+      const tingkatDisplay = tingkatRoman ? `${tingkatRoman} (${tingkatLengkap})` : namaKelas;
+
+      const sheetName = namaKelas.substring(0, 31);
+      const sheet = workbook.addWorksheet(sheetName, {
+        pageSetup: {
+          paperSize: 9, // A4
+          orientation: 'landscape',
+          fitToPage: true,
+          fitToWidth: 1,
+          fitToHeight: 0,
+          margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 }
+        }
+      });
+
+      // ===== ROW 1-3: JUDUL =====
+      const titleStyle = (row: number, val: string, size = 12) => {
+        sheet.mergeCells(row, 1, row, totalCols);
+        const cell = sheet.getCell(row, 1);
+        cell.value = val;
+        cell.font = { bold: true, size };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        sheet.getRow(row).height = 16;
+      };
+      titleStyle(1, 'DAFTAR HADIR PESERTA', 13);
+      titleStyle(2, `${namaUjian} ${instansi}`, 12);
+      titleStyle(3, `TAHUN PELAJARAN ${tahunAjaran}`, 12);
+
+      // ===== ROW 5-7: INFO KELAS (kiri) + RUANG (kanan) =====
+      // Kolom info: 1..3 untuk label+value, kolom kanan untuk RUANG
+      const infoLabelStyle = { bold: false, size: 10 };
+      const infoValueStyle = { bold: true, size: 10 };
+
+      const setInfoRow = (row: number, label: string, value: string) => {
+        sheet.getCell(row, 1).value = label;
+        sheet.getCell(row, 1).font = infoLabelStyle;
+        sheet.getCell(row, 2).value = ':';
+        sheet.getCell(row, 2).font = infoLabelStyle;
+        sheet.mergeCells(row, 3, row, Math.floor(totalCols / 2));
+        sheet.getCell(row, 3).value = value;
+        sheet.getCell(row, 3).font = infoValueStyle;
+        sheet.getRow(row).height = 14;
+      };
+
+      setInfoRow(5, 'KELAS', tingkatDisplay);
+      setInfoRow(6, 'JURUSAN', jurusan);
+      setInfoRow(7, 'NOMOR PESERTA', `${nomorFirst} S/D ${nomorLast}`);
+
+      // RUANG di kanan (row 5-6, merge)
+      const ruangStartCol = Math.floor(totalCols * 0.75);
+      sheet.mergeCells(5, ruangStartCol, 6, totalCols);
+      const cellRuang = sheet.getCell(5, ruangStartCol);
+      cellRuang.value = `RUANG : ${dominantRuang}`;
+      cellRuang.font = { bold: true, size: 14 };
+      cellRuang.alignment = { horizontal: 'right', vertical: 'middle' };
+
+      // ===== ROW 8: Spacer =====
+      sheet.getRow(8).height = 4;
+
+      // ===== HEADER TABEL: ROW 9, 10, 11 =====
+      const HR1 = 9; // Row header level 1
+      const HR2 = 10; // Row header level 2 (tanggal)
+      const HR3 = 11; // Row header level 3 (sesi I, II, ...)
+
+      const hdrFont = { bold: true, size: 9 };
+      const hdrAlign: any = { horizontal: 'center', vertical: 'middle', wrapText: true };
+
+      // NOMOR (span URUT + PESERTA, row 1-2)
+      sheet.mergeCells(HR1, 1, HR2, 1);
+      sheet.getCell(HR1, 1).value = 'URUT';
+      sheet.mergeCells(HR1, 2, HR2, 2);
+      sheet.getCell(HR1, 2).value = 'NOMOR\nPESERTA';
+      sheet.mergeCells(HR1, 3, HR2, 3);
+      sheet.getCell(HR1, 3).value = 'NAMA PESERTA';
+      sheet.mergeCells(HR1, 4, HR2, 4);
+      sheet.getCell(HR1, 4).value = 'L/P';
+
+      // HARI/TANGGAL header (span semua kolom sesi)
+      if (totalSessionCols > 0) {
+        if (totalSessionCols > 1) {
+          sheet.mergeCells(HR1, fixedCols + 1, HR1, totalCols);
+        }
+        sheet.getCell(HR1, fixedCols + 1).value = 'HARI/TANGGAL';
+      }
+
+      // Per tanggal: header hari+tanggal + sesi I, II, ...
+      let colCursor = fixedCols + 1;
+      for (const { tgl, sessions } of sortedDates) {
+        const d = new Date(tgl);
+        const dayName = hariNames[d.getDay()];
+        const dateDisplay = `${dayName}\n${d.getDate()}-${bulanNames[d.getMonth()]}-${d.getFullYear()}`;
+
+        if (sessions.length > 1) {
+          sheet.mergeCells(HR2, colCursor, HR2, colCursor + sessions.length - 1);
+        }
+        sheet.getCell(HR2, colCursor).value = dateDisplay;
+
+        for (let si = 0; si < sessions.length; si++) {
+          const romanSesi = ['I', 'II', 'III', 'IV', 'V', 'VI'][si] || (si + 1).toString();
+          sheet.getCell(HR3, colCursor + si).value = romanSesi;
+        }
+        colCursor += sessions.length;
+      }
+
+      // Style seluruh header
+      for (let r = HR1; r <= HR3; r++) {
+        for (let c = 1; c <= totalCols; c++) {
+          const cell = sheet.getCell(r, c);
+          cell.font = hdrFont;
+          cell.alignment = hdrAlign;
+          cell.border = thinBorder;
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8E8E8' } };
+        }
+        sheet.getRow(r).height = r === HR2 ? 28 : 18;
+      }
+
+      // ===== DATA ROWS =====
+      const dataStartRow = HR3 + 1;
+      siswaList.forEach((d: any, idx: number) => {
+        const siswa = d.siswa || {};
+        const rowIdx = dataStartRow + idx;
+        const gender = (siswa.gender || '').toLowerCase();
+        const lp = gender.includes('laki') ? 'L' : gender.includes('perempuan') ? 'P' : '-';
+        const nomorPeserta = makeNomor(d, idx);
+
+        const cellUrut = sheet.getCell(rowIdx, 1);
+        cellUrut.value = idx + 1;
+        cellUrut.font = { size: 9 };
+        cellUrut.alignment = { horizontal: 'center', vertical: 'middle' };
+        cellUrut.border = thinBorder;
+
+        const cellNomor = sheet.getCell(rowIdx, 2);
+        cellNomor.value = nomorPeserta;
+        cellNomor.font = { size: 8 };
+        cellNomor.alignment = { horizontal: 'left', vertical: 'middle' };
+        cellNomor.border = thinBorder;
+
+        const cellNama = sheet.getCell(rowIdx, 3);
+        cellNama.value = siswa.fullName || '';
+        cellNama.font = { size: 9 };
+        cellNama.alignment = { horizontal: 'left', vertical: 'middle' };
+        cellNama.border = thinBorder;
+
+        const cellLP = sheet.getCell(rowIdx, 4);
+        cellLP.value = lp;
+        cellLP.font = { size: 9 };
+        cellLP.alignment = { horizontal: 'center', vertical: 'middle' };
+        cellLP.border = thinBorder;
+
+        // Sesi kolom — kosong untuk isi tangan
+        for (let c = fixedCols + 1; c <= totalCols; c++) {
+          sheet.getCell(rowIdx, c).border = thinBorder;
+        }
+
+        sheet.getRow(rowIdx).height = 18;
+      });
+
+      // ===== COLUMN WIDTHS =====
+      sheet.getColumn(1).width = 5;   // URUT
+      sheet.getColumn(2).width = 18;  // NOMOR PESERTA
+      sheet.getColumn(3).width = 22;  // NAMA PESERTA
+      sheet.getColumn(4).width = 4;   // L/P
+      for (let c = fixedCols + 1; c <= totalCols; c++) {
+        sheet.getColumn(c).width = 5; // Sesi columns
+      }
+    }
+
+    if (workbook.worksheets.length === 0) {
+      throw new Error('Tidak ada data kelas untuk di-export');
+    }
+
+    return await workbook.xlsx.writeBuffer();
+  }
+
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
-import { Download, Users, UserCheck, ClipboardList, Search, Printer } from 'lucide-react';
+import { Download, Users, UserCheck, ClipboardList, Search, Printer, BookOpen } from 'lucide-react';
 
 interface Props {
   ujianId: string;
@@ -18,6 +18,7 @@ export const DaftarHadirTab = ({ ujianId, ujian }: Props) => {
   const [activePreview, setActivePreview] = useState<string>('dh-peserta');
   const [employees, setEmployees] = useState<any[]>([]);
   const [panitia, setPanitia] = useState<any[]>([]);
+  const [selectedKelas, setSelectedKelas] = useState<string>('ALL');
 
   useEffect(() => {
     if (ujianId) {
@@ -86,13 +87,26 @@ export const DaftarHadirTab = ({ ujianId, ujian }: Props) => {
       desc: 'Generate daftar hadir untuk seluruh anggota panitia ujian yang sudah terdaftar',
       color: 'violet' as const,
     },
+    {
+      key: 'dh-kelas',
+      icon: BookOpen,
+      label: 'Daftar Hadir Per Kelas (Landscape)',
+      desc: 'Export daftar hadir per kelas dalam format horizontal dengan kolom hari/tanggal ujian sesuai jadwal',
+      color: 'emerald' as const,
+    },
   ];
 
   const colorMap: Record<string, string> = {
     indigo: 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 border-indigo-100 dark:border-indigo-800/30',
     blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 border-blue-100 dark:border-blue-800/30',
     violet: 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 border-violet-100 dark:border-violet-800/30',
+    emerald: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-800/30',
   };
+
+  // Unique kelas list from distribusi for per-kelas dropdown
+  const kelasList = Array.from(
+    new Set(distribusi.map((d: any) => d.siswa?.fullClassName || d.siswa?.className).filter(Boolean))
+  ).sort() as string[];
 
   const handleExport = (key: string) => {
     const baseUrl = import.meta.env.VITE_API_URL;
@@ -110,6 +124,11 @@ export const DaftarHadirTab = ({ ujianId, ujian }: Props) => {
       const url = `${baseUrl}/exams/${ujianId}/daftar-hadir/export?type=panitia`;
       window.open(url, '_blank');
       toast.success('Mengunduh Daftar Hadir Panitia...');
+    } else if (key === 'dh-kelas') {
+      let url = `${baseUrl}/exams/${ujianId}/daftar-hadir/export?type=kelas`;
+      if (selectedKelas !== 'ALL') url += `&kelasId=${encodeURIComponent(selectedKelas)}`;
+      window.open(url, '_blank');
+      toast.success('Mengunduh Daftar Hadir Per Kelas...');
     }
   };
 
@@ -163,6 +182,19 @@ export const DaftarHadirTab = ({ ujianId, ujian }: Props) => {
                   >
                     <Printer size={12} /> Cetak PDF
                   </button>
+                )}
+                {doc.key === 'dh-kelas' && (
+                  <select
+                    value={selectedKelas}
+                    onChange={e => setSelectedKelas(e.target.value)}
+                    onClick={e => e.stopPropagation()}
+                    className="h-7 cursor-pointer text-[10px] font-semibold rounded-lg bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary focus:ring-1 focus:ring-emerald-500 outline-none"
+                  >
+                    <option value="ALL">Semua Kelas</option>
+                    {kelasList.map((k: string) => (
+                      <option key={k} value={k}>{k}</option>
+                    ))}
+                  </select>
                 )}
                 <button
                   className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-semibold bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
