@@ -4,8 +4,13 @@
  */
 export function normalizeGelar(str: string): string {
   return str
-    // First normalize comma separators to dots (e.g. S,AG -> S.AG, S,UD -> S.UD)
+    // Normalize comma separators to dots (e.g. S,AG -> S.AG)
     .replace(/([SM])\s*,\s*(PD|AG|UD|SY|SOS|KOM|SI|HUM|KED|IP|FIL|AP|E|H|T)\b/gi, '$1.$2')
+    // Normalize optional space after dot (e.g. "S. PD" or "M. PD" -> compact form first)
+    .replace(/([SM])\.\s+(PD\.I|PD|AG|SY|UD|SOS|KOM|SI|HUM|KED|IP|FIL|AP|SS)\b/gi, '$1.$2')
+    // Fix casing for each gelar (compact form, no space)
+    .replace(/M\.PD\.I\b/gi, 'M.Pd.I')
+    .replace(/S\.PD\.I\b/gi, 'S.Pd.I')
     .replace(/S\.PD\b/gi, 'S.Pd')
     .replace(/M\.PD\b/gi, 'M.Pd')
     .replace(/S\.AG\b/gi, 'S.Ag')
@@ -21,7 +26,7 @@ export function normalizeGelar(str: string): string {
     .replace(/M\.HUM\b/gi, 'M.Hum')
     .replace(/S\.KED\b/gi, 'S.Ked')
     .replace(/S\.IP\b/gi, 'S.IP')
-    .replace(/M\.PD\.I\b/gi, 'M.Pd.I');
+    .replace(/S\.SS\b/gi, 'S.SS');
 }
 
 /**
