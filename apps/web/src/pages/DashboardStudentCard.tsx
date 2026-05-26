@@ -355,13 +355,16 @@ export const DashboardStudentCard = () => {
   const handleFormSubmit = (data: StudentFormData) => {
     if (!editingStudent) return;
     const toastId = toast.loading('Menyimpan perubahan identitas...');
-    updateStudent.mutate({ id: editingStudent.id, data }, {
+    // Map 'name' → 'fullName' because the DB column is fullName, but the form uses 'name'
+    const { name, ...rest } = data;
+    const apiData = { ...rest, fullName: name };
+    updateStudent.mutate({ id: editingStudent.id, data: apiData }, {
       onSuccess: () => {
         toast.success('Identitas berhasil disimpan!', { id: toastId });
         setIsEditModalOpen(false);
         studentsQuery.refetch();
         if (selectedStudent && selectedStudent.id === editingStudent.id) {
-          setSelectedStudent(prev => prev ? { ...prev, ...data } : null);
+          setSelectedStudent(prev => prev ? { ...prev, ...apiData } : null);
         }
       },
       onError: () => toast.error('Gagal menyimpan perubahan identitas', { id: toastId })
