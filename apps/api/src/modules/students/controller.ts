@@ -321,14 +321,28 @@ export class StudentController {
 
   static async publicSearch(req: Request, res: Response) {
     try {
-      const { fullName, birthPlace, birthDate } = req.body;
-      if (!fullName || !birthPlace || !birthDate) {
-        return res.status(400).json({ error: "Kolom Nama Lengkap, Tempat Lahir, dan Tanggal Lahir harus diisi." });
-      }
+      const { fullName, birthPlace, birthDate, nisn, searchMode } = req.body;
 
-      const student = await StudentService.publicSearchStudent(fullName, birthPlace, birthDate);
-      if (!student) {
-        return res.status(404).json({ error: "Data siswa tidak ditemukan. Pastikan Nama, Tempat Lahir, dan Tanggal Lahir sudah benar." });
+      let student: any = null;
+
+      if (searchMode === 'nisn') {
+        // NISN-only search mode
+        if (!nisn) {
+          return res.status(400).json({ error: "Kolom NISN harus diisi." });
+        }
+        student = await StudentService.publicSearchByNisn(nisn);
+        if (!student) {
+          return res.status(404).json({ error: "Data siswa tidak ditemukan. Pastikan NISN yang dimasukkan sudah benar." });
+        }
+      } else {
+        // Default: fullName + birthPlace + birthDate search mode
+        if (!fullName || !birthPlace || !birthDate) {
+          return res.status(400).json({ error: "Kolom Nama Lengkap, Tempat Lahir, dan Tanggal Lahir harus diisi." });
+        }
+        student = await StudentService.publicSearchStudent(fullName, birthPlace, birthDate);
+        if (!student) {
+          return res.status(404).json({ error: "Data siswa tidak ditemukan. Pastikan Nama, Tempat Lahir, dan Tanggal Lahir sudah benar." });
+        }
       }
 
       res.json({

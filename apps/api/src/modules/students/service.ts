@@ -215,6 +215,14 @@ export class StudentService {
     return results[0] || null;
   }
 
+  static async publicSearchByNisn(nisn: string) {
+    const results = await db.select().from(studentProfiles).where(
+      eq(studentProfiles.nisn, nisn.trim())
+    ).limit(1);
+    
+    return results[0] || null;
+  }
+
   static async searchStudentsAutocomplete(q: string) {
     const results = await db.select({
       id: studentProfiles.id,
