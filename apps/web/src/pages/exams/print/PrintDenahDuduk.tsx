@@ -13,16 +13,18 @@ import { Loader2 } from 'lucide-react';
  * - Green/teal color scheme matching the reference
  */
 
-// ── Image Illustrations ──
+// ── Image paths ──
+const PENGAWAS_IMG = '/pengawas.png';
+const SISWA_IMG = '/siswa-duduk.png';
 
 /** Pengawas sitting at desk image */
 const PengawasImg = ({ style }: { style?: React.CSSProperties }) => (
-  <img src="/pengawas.png" alt="Pengawas" style={{ width: '100%', height: '100%', objectFit: 'contain', ...style }} />
+  <img src={PENGAWAS_IMG} alt="Pengawas" style={{ width: '100%', height: '100%', objectFit: 'contain', ...style }} />
 );
 
 /** Student sitting at desk image */
 const StudentImg = ({ style }: { style?: React.CSSProperties }) => (
-  <img src="/Siswa duduk.png" alt="Siswa" style={{ width: '100%', height: '100%', objectFit: 'contain', ...style }} />
+  <img src={SISWA_IMG} alt="Siswa" style={{ width: '100%', height: '100%', objectFit: 'contain', ...style }} />
 );
 
 export const PrintDenahDuduk = () => {
@@ -143,11 +145,21 @@ export const PrintDenahDuduk = () => {
     fetchData();
   }, [ujianId, filterRuangId]);
 
-  // Auto-print
+  // Auto-print: preload images first
   useEffect(() => {
     if (!loading && ujian && pages.length > 0 && searchParams.get('preview') !== 'true') {
-      const timer = setTimeout(() => window.print(), 1200);
-      return () => clearTimeout(timer);
+      // Preload both images before printing
+      const imgs = [PENGAWAS_IMG, SISWA_IMG].map(src => {
+        return new Promise<void>((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve();
+          img.onerror = () => resolve(); // resolve even on error to not block print
+          img.src = src;
+        });
+      });
+      Promise.all(imgs).then(() => {
+        setTimeout(() => window.print(), 500);
+      });
     }
   }, [loading, ujian, pages, searchParams]);
 
