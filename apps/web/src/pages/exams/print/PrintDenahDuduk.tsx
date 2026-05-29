@@ -209,10 +209,18 @@ export const PrintDenahDuduk = () => {
     }
     const colWidth = is5 ? '20%' : '25%';
 
+    // Calculate row height to fill the A4 page evenly
+    // A4 usable content height ≈ 281mm (297mm - 8mm×2 margins)
+    // Header (title+badge) ≈ 18mm, Pengawas row ≈ 32mm, border padding ≈ 7mm, footer ≈ 6mm
+    // Available for student grid ≈ 281 - 63 = 218mm
+    const availableGridHeight = 218; // mm
+    const numRows = rows.length;
+    const rowHeightMm = numRows > 0 ? Math.floor(availableGridHeight / numRows) : 80;
+
     return (
       <div
         className="relative box-border bg-white text-black"
-        style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+        style={{ fontFamily: 'Arial, Helvetica, sans-serif', display: 'flex', flexDirection: 'column', height: '281mm' }}
       >
         {/* Title */}
         <div style={{ textAlign: 'center', marginBottom: '6px' }}>
@@ -250,6 +258,9 @@ export const PrintDenahDuduk = () => {
           borderRadius: '4px',
           padding: '10px 12px',
           background: '#FCFFF9',
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
         }}>
           {/* Pengawas Row */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '18px', paddingBottom: '8px', borderBottom: '2px solid #C8E6C9' }}>
@@ -274,10 +285,10 @@ export const PrintDenahDuduk = () => {
           </div>
 
           {/* Students Grid */}
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', flex: 1 }}>
             <tbody>
               {rows.map((row, rowIdx) => (
-                <tr key={rowIdx}>
+                <tr key={rowIdx} style={{ height: `${rowHeightMm}mm` }}>
                   {row.map((student: any, colIdx: number) => {
                     const siswa = student.siswa || {};
                     return (
