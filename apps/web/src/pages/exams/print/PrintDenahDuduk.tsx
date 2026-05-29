@@ -210,17 +210,17 @@ export const PrintDenahDuduk = () => {
     const colWidth = is5 ? '20%' : '25%';
 
     // Calculate row height to fill the A4 page evenly
-    // A4 usable content height ≈ 281mm (297mm - 8mm×2 margins)
-    // Header (title+badge) ≈ 18mm, Pengawas row ≈ 32mm, border padding ≈ 7mm, footer ≈ 6mm
-    // Available for student grid ≈ 281 - 63 = 218mm
-    const availableGridHeight = 218; // mm
+    // A4 usable content height ≈ 270mm (with some bottom margin)
+    // Header (title+badge) ≈ 18mm, Pengawas row ≈ 35mm, border padding ≈ 7mm, footer ≈ 6mm
+    // Available for student grid ≈ 185mm
+    const availableGridHeight = 185; // mm
     const numRows = rows.length;
     const rowHeightMm = numRows > 0 ? Math.floor(availableGridHeight / numRows) : 80;
 
     return (
       <div
         className="relative box-border bg-white text-black"
-        style={{ fontFamily: 'Arial, Helvetica, sans-serif', display: 'flex', flexDirection: 'column', height: '281mm' }}
+        style={{ fontFamily: 'Arial, Helvetica, sans-serif', display: 'flex', flexDirection: 'column', height: '270mm' }}
       >
         {/* Title */}
         <div style={{ textAlign: 'center', marginBottom: '6px' }}>
