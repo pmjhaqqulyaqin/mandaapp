@@ -35,27 +35,19 @@ export const PrintDenahDuduk = () => {
   const [loading, setLoading] = useState(true);
   const [ujian, setUjian] = useState<any>(null);
   const [pages, setPages] = useState<any[]>([]);
-  const [schoolName, setSchoolName] = useState<string>('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [uRes, ruangRes, pengawasRes, empRes, distRes, settingsRes] = await Promise.all([
+        const [uRes, ruangRes, pengawasRes, empRes, distRes] = await Promise.all([
           apiClient(`/exams/${ujianId}`),
           apiClient(`/exams/${ujianId}/ruang`).catch(() => []),
           apiClient(`/exams/${ujianId}/pengawas`).catch(() => []),
           apiClient('/employees').catch(() => []),
           apiClient(`/exams/${ujianId}/distribusi`).catch(() => []),
-          apiClient('/settings').catch(() => []),
         ]);
 
         setUjian(uRes);
-
-        // School name from settings
-        const settingsArr = Array.isArray((settingsRes as any)?.data || settingsRes)
-          ? ((settingsRes as any)?.data || settingsRes) : [];
-        const sn = settingsArr.find((s: any) => s.key === 'school_name')?.value;
-        if (sn) setSchoolName(sn);
 
         const ruangData = Array.isArray(ruangRes) ? ruangRes : [];
         const pengawasData = Array.isArray(pengawasRes) ? pengawasRes : [];
@@ -178,7 +170,8 @@ export const PrintDenahDuduk = () => {
 
   const namaUjian = (ujian.namaUjian || ujian.jenisUjian || '').toUpperCase();
   const tahunAjaran = ujian.tahunAjaran || '';
-  const COLS = 4;
+  const colsParam = parseInt(searchParams.get('cols') || '4', 10);
+  const COLS = colsParam === 5 ? 5 : 4;
 
   const DenahPage = ({ item }: { item: any }) => {
     const { ruang, pengawas1, pengawas2, students } = item;
@@ -219,11 +212,12 @@ export const PrintDenahDuduk = () => {
           <div style={{ fontSize: '16pt', fontWeight: 'bold', letterSpacing: '3px', color: '#1a1a1a' }}>
             DENAH TEMPAT DUDUK PESERTA
           </div>
-          {schoolName && (
-            <div style={{ fontSize: '9pt', color: '#555', marginTop: '2px' }}>
-              {schoolName}
-            </div>
-          )}
+          <div style={{ fontSize: '10pt', fontWeight: 'bold', color: '#333', marginTop: '2px', letterSpacing: '1px' }}>
+            {namaUjian}
+          </div>
+          <div style={{ fontSize: '9pt', color: '#555', marginTop: '1px' }}>
+            TA {tahunAjaran}
+          </div>
         </div>
 
         {/* Room Badge */}
@@ -260,15 +254,8 @@ export const PrintDenahDuduk = () => {
               <div style={{ fontSize: '8pt', fontWeight: 'bold', marginTop: '2px', letterSpacing: '1px' }}>PENGAWAS I</div>
             </div>
 
-            {/* Nama Ujian di tengah */}
-            <div style={{ flex: 1, textAlign: 'center', paddingBottom: '4px' }}>
-              <div style={{ fontSize: '8pt', fontWeight: 'bold', color: '#444' }}>
-                {namaUjian}
-              </div>
-              <div style={{ fontSize: '7pt', color: '#666' }}>
-                TA {tahunAjaran}
-              </div>
-            </div>
+            {/* Spacer */}
+            <div style={{ flex: 1 }} />
 
             {/* Pengawas II */}
             <div style={{ textAlign: 'center', width: '120px' }}>
@@ -290,7 +277,7 @@ export const PrintDenahDuduk = () => {
                       <td
                         key={colIdx}
                         style={{
-                          width: '25%',
+                          width: COLS === 5 ? '20%' : '25%',
                           textAlign: 'center',
                           verticalAlign: 'top',
                           padding: '3px 2px',
@@ -338,9 +325,8 @@ export const PrintDenahDuduk = () => {
         </div>
 
         {/* Footer */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '7pt', color: '#888', padding: '0 4px' }}>
+        <div style={{ marginTop: '6px', fontSize: '7pt', color: '#888', padding: '0 4px' }}>
           <span>Jumlah Peserta: {students.length}</span>
-          <span>Pengawas I: {pengawas1?.name || '_______________'} / Pengawas II: {pengawas2?.name || '_______________'}</span>
         </div>
       </div>
     );

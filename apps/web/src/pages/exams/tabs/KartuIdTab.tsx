@@ -67,6 +67,7 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
 
   const [rooms, setRooms] = useState<any[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string>('ALL');
+  const [denahCols, setDenahCols] = useState<number>(4);
 
   useEffect(() => {
     if (ujianId) {
@@ -84,8 +85,8 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
     } else if (key === 'id-pengawas') {
       window.open(`/dashboard/print-id-pegawai/${ujianId}?type=pengawas`, '_blank');
     } else if (key === 'denah-duduk') {
-      let url = `/dashboard/print-denah-duduk/${ujianId}`;
-      if (selectedRoomId !== 'ALL') url += `?ruangId=${selectedRoomId}`;
+      let url = `/dashboard/print-denah-duduk/${ujianId}?cols=${denahCols}`;
+      if (selectedRoomId !== 'ALL') url += `&ruangId=${selectedRoomId}`;
       window.open(url, '_blank');
     } else {
       alert('Fitur cetak ini belum dikonfigurasikan');
@@ -154,17 +155,28 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
                   <Printer size={12} /> Cetak PDF
                 </button>
                 {doc.key === 'denah-duduk' && (
-                  <select 
-                    value={selectedRoomId}
-                    onChange={e => setSelectedRoomId(e.target.value)}
-                    onClick={e => e.stopPropagation()}
-                    className="h-7 cursor-pointer text-[10px] font-semibold rounded-lg bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary focus:ring-1 focus:ring-emerald-500 outline-none"
-                  >
-                    <option value="ALL">Semua Ruang</option>
-                    {rooms.map((r: any) => (
-                      <option key={r.id} value={r.id}>{r.namaRuang}</option>
-                    ))}
-                  </select>
+                  <>
+                    <select 
+                      value={selectedRoomId}
+                      onChange={e => setSelectedRoomId(e.target.value)}
+                      onClick={e => e.stopPropagation()}
+                      className="h-7 cursor-pointer text-[10px] font-semibold rounded-lg bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary focus:ring-1 focus:ring-emerald-500 outline-none"
+                    >
+                      <option value="ALL">Semua Ruang</option>
+                      {rooms.map((r: any) => (
+                        <option key={r.id} value={r.id}>{r.namaRuang}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={denahCols}
+                      onChange={e => setDenahCols(parseInt(e.target.value, 10))}
+                      onClick={e => e.stopPropagation()}
+                      className="h-7 cursor-pointer text-[10px] font-semibold rounded-lg bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary focus:ring-1 focus:ring-emerald-500 outline-none"
+                    >
+                      <option value={4}>4 Baris</option>
+                      <option value={5}>5 Baris</option>
+                    </select>
+                  </>
                 )}
                 {doc.key === 'id-panitia' && (
                   <button className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-medium bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
@@ -275,7 +287,7 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
           )}
           {activePreview === 'denah-duduk' && (
             <iframe 
-              src={`/dashboard/print-denah-duduk/${ujianId}?preview=true${selectedRoomId !== 'ALL' ? `&ruangId=${selectedRoomId}` : ''}`}
+              src={`/dashboard/print-denah-duduk/${ujianId}?preview=true&cols=${denahCols}${selectedRoomId !== 'ALL' ? `&ruangId=${selectedRoomId}` : ''}`}
               className="w-full h-full"
             />
           )}
