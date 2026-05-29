@@ -13,64 +13,16 @@ import { Loader2 } from 'lucide-react';
  * - Green/teal color scheme matching the reference
  */
 
-// ── SVG Illustrations ──
+// ── Image Illustrations ──
 
-/** Pengawas sitting at desk (front-facing, cartoon style) */
-const PengawasSvg = () => (
-  <svg viewBox="0 0 120 100" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-    {/* Desk */}
-    <rect x="10" y="65" width="100" height="8" rx="2" fill="#8B7355" />
-    <rect x="15" y="73" width="5" height="20" rx="1" fill="#6B5B3E" />
-    <rect x="100" y="73" width="5" height="20" rx="1" fill="#6B5B3E" />
-    <rect x="20" y="58" width="25" height="10" rx="2" fill="#E8E8E8" stroke="#CCC" strokeWidth="0.5" />
-    <rect x="75" y="60" width="20" height="8" rx="1" fill="#F5F5DC" stroke="#CCC" strokeWidth="0.5" />
-    <line x1="78" y1="62" x2="92" y2="62" stroke="#DDD" strokeWidth="0.5" />
-    <line x1="78" y1="64" x2="90" y2="64" stroke="#DDD" strokeWidth="0.5" />
-    <line x1="78" y1="66" x2="88" y2="66" stroke="#DDD" strokeWidth="0.5" />
-    {/* Body */}
-    <rect x="45" y="35" width="30" height="30" rx="4" fill="#5AAFA8" />
-    {/* Head */}
-    <circle cx="60" cy="24" r="14" fill="#F5D5B8" />
-    {/* Hair */}
-    <ellipse cx="60" cy="16" rx="14" ry="7" fill="#333" />
-    {/* Eyes */}
-    <circle cx="54" cy="24" r="1.8" fill="#333" />
-    <circle cx="66" cy="24" r="1.8" fill="#333" />
-    {/* Smile */}
-    <path d="M55 29 Q60 33 65 29" fill="none" stroke="#333" strokeWidth="1" strokeLinecap="round" />
-    {/* Arms */}
-    <rect x="35" y="42" width="12" height="6" rx="3" fill="#F5D5B8" />
-    <rect x="73" y="42" width="12" height="6" rx="3" fill="#F5D5B8" />
-  </svg>
+/** Pengawas sitting at desk image */
+const PengawasImg = ({ style }: { style?: React.CSSProperties }) => (
+  <img src="/pengawas.png" alt="Pengawas" style={{ width: '100%', height: '100%', objectFit: 'contain', ...style }} />
 );
 
-/** Student sitting at desk (back-facing, showing back of head with open book) */
-const StudentSvg = () => (
-  <svg viewBox="0 0 80 70" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-    {/* Desk */}
-    <rect x="5" y="42" width="70" height="5" rx="1.5" fill="#8B7355" />
-    <rect x="8" y="47" width="4" height="14" rx="1" fill="#6B5B3E" />
-    <rect x="68" y="47" width="4" height="14" rx="1" fill="#6B5B3E" />
-    {/* Open book on desk */}
-    <rect x="22" y="35" width="18" height="10" rx="1" fill="#FFF" stroke="#CCC" strokeWidth="0.4" />
-    <rect x="40" y="35" width="18" height="10" rx="1" fill="#FFF" stroke="#CCC" strokeWidth="0.4" />
-    <line x1="40" y1="35" x2="40" y2="45" stroke="#AAA" strokeWidth="0.5" />
-    <line x1="25" y1="38" x2="37" y2="38" stroke="#DDD" strokeWidth="0.4" />
-    <line x1="25" y1="40" x2="36" y2="40" stroke="#DDD" strokeWidth="0.4" />
-    <line x1="25" y1="42" x2="34" y2="42" stroke="#DDD" strokeWidth="0.4" />
-    <line x1="43" y1="38" x2="55" y2="38" stroke="#DDD" strokeWidth="0.4" />
-    <line x1="43" y1="40" x2="54" y2="40" stroke="#DDD" strokeWidth="0.4" />
-    {/* Body (back) */}
-    <rect x="28" y="15" width="24" height="26" rx="4" fill="#5AAFA8" />
-    {/* Head (back of head) */}
-    <circle cx="40" cy="10" r="11" fill="#333" />
-    {/* Ears */}
-    <ellipse cx="29" cy="11" rx="3" ry="4" fill="#F5D5B8" />
-    <ellipse cx="51" cy="11" rx="3" ry="4" fill="#F5D5B8" />
-    {/* Arms reaching forward */}
-    <rect x="18" y="24" width="12" height="5" rx="2.5" fill="#F5D5B8" />
-    <rect x="50" y="24" width="12" height="5" rx="2.5" fill="#F5D5B8" />
-  </svg>
+/** Student sitting at desk image */
+const StudentImg = ({ style }: { style?: React.CSSProperties }) => (
+  <img src="/Siswa duduk.png" alt="Siswa" style={{ width: '100%', height: '100%', objectFit: 'contain', ...style }} />
 );
 
 export const PrintDenahDuduk = () => {
@@ -291,7 +243,7 @@ export const PrintDenahDuduk = () => {
             {/* Pengawas I */}
             <div style={{ textAlign: 'center', width: '120px' }}>
               <div style={{ width: '80px', height: '65px', margin: '0 auto' }}>
-                <PengawasSvg />
+                <PengawasImg />
               </div>
               <div style={{ fontSize: '8pt', fontWeight: 'bold', marginTop: '2px', letterSpacing: '1px' }}>PENGAWAS I</div>
             </div>
@@ -309,7 +261,7 @@ export const PrintDenahDuduk = () => {
             {/* Pengawas II */}
             <div style={{ textAlign: 'center', width: '120px' }}>
               <div style={{ width: '80px', height: '65px', margin: '0 auto' }}>
-                <PengawasSvg />
+                <PengawasImg />
               </div>
               <div style={{ fontSize: '8pt', fontWeight: 'bold', marginTop: '2px', letterSpacing: '1px' }}>PENGAWAS II</div>
             </div>
@@ -358,7 +310,7 @@ export const PrintDenahDuduk = () => {
                         </div>
                         {/* Student Icon */}
                         <div style={{ width: iconHeight, height: iconHeight, margin: '0 auto' }}>
-                          <StudentSvg />
+                          <StudentImg />
                         </div>
                       </td>
                     );
