@@ -184,23 +184,30 @@ export const PrintDenahDuduk = () => {
       rows.push([...row].reverse());
     }
 
-    // Determine font size based on student count
+    // Determine font size based on student count and column count
     const count = students.length;
-    let nameFontSize = '7pt';
-    let nomorFontSize = '6.5pt';
-    let studentCellHeight = '88px';
-    let iconHeight = '42px';
-    if (count <= 16) {
+    const is5 = COLS === 5;
+    let nameFontSize = is5 ? '6pt' : '7pt';
+    let nomorFontSize = is5 ? '5.5pt' : '6.5pt';
+    let iconHeight = is5 ? '34px' : '42px';
+    let cellPadding = is5 ? '2px 1px' : '4px 2px';
+    if (!is5 && count <= 16) {
       nameFontSize = '8pt';
       nomorFontSize = '7.5pt';
-      studentCellHeight = '100px';
       iconHeight = '48px';
-    } else if (count > 28) {
+      cellPadding = '5px 3px';
+    } else if (is5 && count > 20) {
+      nameFontSize = '5.5pt';
+      nomorFontSize = '5pt';
+      iconHeight = '28px';
+      cellPadding = '2px 1px';
+    } else if (!is5 && count > 28) {
       nameFontSize = '6pt';
       nomorFontSize = '5.5pt';
-      studentCellHeight = '75px';
       iconHeight = '36px';
+      cellPadding = '3px 2px';
     }
+    const colWidth = is5 ? '20%' : '25%';
 
     return (
       <div
@@ -245,7 +252,7 @@ export const PrintDenahDuduk = () => {
           background: '#FCFFF9',
         }}>
           {/* Pengawas Row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px solid #C8E6C9' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '18px', paddingBottom: '8px', borderBottom: '2px solid #C8E6C9' }}>
             {/* Pengawas I */}
             <div style={{ textAlign: 'center', width: '120px' }}>
               <div style={{ width: '80px', height: '65px', margin: '0 auto' }}>
@@ -277,11 +284,10 @@ export const PrintDenahDuduk = () => {
                       <td
                         key={colIdx}
                         style={{
-                          width: COLS === 5 ? '20%' : '25%',
+                          width: colWidth,
                           textAlign: 'center',
                           verticalAlign: 'top',
-                          padding: '3px 2px',
-                          height: studentCellHeight,
+                          padding: cellPadding,
                         }}
                       >
                         {/* Nomor Peserta */}
@@ -299,11 +305,12 @@ export const PrintDenahDuduk = () => {
                           fontSize: nameFontSize,
                           fontWeight: 'bold',
                           textTransform: 'uppercase',
-                          lineHeight: '1.2',
+                          lineHeight: '1.15',
                           marginBottom: '2px',
                           overflow: 'hidden',
-                          maxHeight: '22px',
+                          maxHeight: is5 ? '18px' : '22px',
                           color: '#111',
+                          wordBreak: 'break-word',
                         }}>
                           {siswa.fullName || '-'}
                         </div>
@@ -314,9 +321,8 @@ export const PrintDenahDuduk = () => {
                       </td>
                     );
                   })}
-                  {/* Fill empty cells if last row is incomplete */}
                   {row.length < COLS && Array.from({ length: COLS - row.length }).map((_, i) => (
-                    <td key={`empty-${i}`} style={{ width: '25%' }} />
+                    <td key={`empty-${i}`} style={{ width: colWidth }} />
                   ))}
                 </tr>
               ))}
