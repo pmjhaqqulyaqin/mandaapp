@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../../../lib/api';
 import { Loader2 } from 'lucide-react';
+import { smartUpperCase } from '../../../lib/normalizeGelar';
 
 export const PrintIdCardPegawai = () => {
   const { ujianId } = useParams();
@@ -184,8 +185,8 @@ export const PrintIdCardPegawai = () => {
           </div>
 
           {/* Nama Pegawai */}
-          <div className="text-[11px] font-bold uppercase mt-auto mb-1.5 px-1 line-clamp-2 max-h-[32px] overflow-hidden leading-tight bg-white/90 rounded w-full">
-            {p.name}
+          <div className="text-[11px] font-bold mt-auto mb-1.5 px-1 line-clamp-2 max-h-[32px] overflow-hidden leading-tight bg-white/90 rounded w-full">
+            {smartUpperCase(p.name || '')}
           </div>
           
           {/* Jabatan/Role Bottom Bar */}
