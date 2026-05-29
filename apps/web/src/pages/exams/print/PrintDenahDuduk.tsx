@@ -189,22 +189,22 @@ export const PrintDenahDuduk = () => {
     const is5 = COLS === 5;
     let nameFontSize = is5 ? '6pt' : '7pt';
     let nomorFontSize = is5 ? '5.5pt' : '6.5pt';
-    let iconHeight = is5 ? '34px' : '42px';
+    let iconHeight = is5 ? '55px' : '70px';
     let cellPadding = is5 ? '2px 1px' : '4px 2px';
     if (!is5 && count <= 16) {
       nameFontSize = '8pt';
       nomorFontSize = '7.5pt';
-      iconHeight = '48px';
+      iconHeight = '80px';
       cellPadding = '5px 3px';
     } else if (is5 && count > 20) {
       nameFontSize = '5.5pt';
       nomorFontSize = '5pt';
-      iconHeight = '28px';
+      iconHeight = '48px';
       cellPadding = '2px 1px';
     } else if (!is5 && count > 28) {
       nameFontSize = '6pt';
       nomorFontSize = '5.5pt';
-      iconHeight = '36px';
+      iconHeight = '60px';
       cellPadding = '3px 2px';
     }
     const colWidth = is5 ? '20%' : '25%';
