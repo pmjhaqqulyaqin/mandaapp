@@ -1,92 +1,92 @@
-import { Hono } from "hono";
+import { Router, Request, Response } from 'express';
 import { getMasterDutyTypes, createMasterDutyType, updateMasterDutyType, deleteMasterDutyType, getTeacherDuties, createTeacherDuty, updateTeacherDuty, deleteTeacherDuty } from "./controller";
 
-export const teacherDutiesRouter = new Hono();
+export const teacherDutiesRouter = Router();
 
 // ─── MASTER DUTY TYPES ───
 
-teacherDutiesRouter.get("/master-types", async (c) => {
+teacherDutiesRouter.get("/master-types", async (req: Request, res: Response) => {
   try {
     const types = await getMasterDutyTypes();
-    return c.json(types);
+    res.json(types);
   } catch (error: any) {
-    return c.json({ error: error.message }, 500);
+    res.status(500).json({ error: error.message });
   }
 });
 
-teacherDutiesRouter.post("/master-types", async (c) => {
+teacherDutiesRouter.post("/master-types", async (req: Request, res: Response) => {
   try {
-    const data = await c.req.json();
+    const data = req.body;
     const result = await createMasterDutyType(data);
-    return c.json(result, 201);
+    res.status(201).json(result);
   } catch (error: any) {
-    return c.json({ error: error.message }, 500);
+    res.status(500).json({ error: error.message });
   }
 });
 
-teacherDutiesRouter.put("/master-types/:id", async (c) => {
+teacherDutiesRouter.put("/master-types/:id", async (req: Request, res: Response) => {
   try {
-    const id = c.req.param("id");
-    const data = await c.req.json();
+    const id = req.params.id;
+    const data = req.body;
     const result = await updateMasterDutyType(id, data);
-    return c.json(result);
+    res.json(result);
   } catch (error: any) {
-    return c.json({ error: error.message }, 500);
+    res.status(500).json({ error: error.message });
   }
 });
 
-teacherDutiesRouter.delete("/master-types/:id", async (c) => {
+teacherDutiesRouter.delete("/master-types/:id", async (req: Request, res: Response) => {
   try {
-    const id = c.req.param("id");
+    const id = req.params.id;
     await deleteMasterDutyType(id);
-    return c.json({ success: true });
+    res.json({ success: true });
   } catch (error: any) {
-    return c.json({ error: error.message }, 500);
+    res.status(500).json({ error: error.message });
   }
 });
 
 // ─── TEACHER DUTIES ───
 
-teacherDutiesRouter.get("/", async (c) => {
+teacherDutiesRouter.get("/", async (req: Request, res: Response) => {
   try {
-    const startDate = c.req.query("startDate");
-    const endDate = c.req.query("endDate");
-    const teacherId = c.req.query("teacherId");
-    const academicYear = c.req.query("academicYear");
+    const startDate = req.query.startDate as string;
+    const endDate = req.query.endDate as string;
+    const teacherId = req.query.teacherId as string;
+    const academicYear = req.query.academicYear as string;
     const duties = await getTeacherDuties({ startDate, endDate, teacherId, academicYear });
-    return c.json(duties);
+    res.json(duties);
   } catch (error: any) {
-    return c.json({ error: error.message }, 500);
+    res.status(500).json({ error: error.message });
   }
 });
 
-teacherDutiesRouter.post("/", async (c) => {
+teacherDutiesRouter.post("/", async (req: Request, res: Response) => {
   try {
-    const data = await c.req.json();
+    const data = req.body;
     const result = await createTeacherDuty(data);
-    return c.json(result, 201);
+    res.status(201).json(result);
   } catch (error: any) {
-    return c.json({ error: error.message }, 500);
+    res.status(500).json({ error: error.message });
   }
 });
 
-teacherDutiesRouter.put("/:id", async (c) => {
+teacherDutiesRouter.put("/:id", async (req: Request, res: Response) => {
   try {
-    const id = c.req.param("id");
-    const data = await c.req.json();
+    const id = req.params.id;
+    const data = req.body;
     const result = await updateTeacherDuty(id, data);
-    return c.json(result);
+    res.json(result);
   } catch (error: any) {
-    return c.json({ error: error.message }, 500);
+    res.status(500).json({ error: error.message });
   }
 });
 
-teacherDutiesRouter.delete("/:id", async (c) => {
+teacherDutiesRouter.delete("/:id", async (req: Request, res: Response) => {
   try {
-    const id = c.req.param("id");
+    const id = req.params.id;
     await deleteTeacherDuty(id);
-    return c.json({ success: true });
+    res.json({ success: true });
   } catch (error: any) {
-    return c.json({ error: error.message }, 500);
+    res.status(500).json({ error: error.message });
   }
 });
