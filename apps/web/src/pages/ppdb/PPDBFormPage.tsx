@@ -188,7 +188,14 @@ export const PPDBFormPage = () => {
       });
       sessionStorage.removeItem(STORAGE_KEY);
       toast.success(`Pendaftaran berhasil! No: ${result.noPendaftaran}`);
-      navigate('/ppdb', { state: { success: true, noPendaftaran: result.noPendaftaran, nisn: formData.dataDiri.nisn, nama: formData.dataDiri.namaLengkap } });
+      navigate('/ppdb', { state: { 
+        success: true, 
+        noPendaftaran: result.noPendaftaran, 
+        nisn: formData.dataDiri.nisn, 
+        nama: formData.dataDiri.namaLengkap,
+        formData: formData,
+        jalur: jalur
+      } });
     } catch (err: any) {
       toast.error(err.message || 'Gagal mengirim pendaftaran');
     } finally {

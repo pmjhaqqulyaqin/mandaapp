@@ -287,19 +287,13 @@ export const PPDBInfoPage = () => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const handleExportPDF = async () => {
-    const printArea = document.getElementById('print-area');
+    const printArea = document.getElementById('print-area-hidden');
     if (!printArea) return;
     
     try {
       setIsExporting(true);
-      // Sembunyikan pesan penting dan tombol sebelum capture
-      const warningText = printArea.querySelector('.print-warning') as HTMLElement;
-      const buttons = printArea.querySelector('.print-action-buttons') as HTMLElement;
-      if (warningText) warningText.style.display = 'none';
-      if (buttons) buttons.style.display = 'none';
-
-      // Pastikan border radius dan elemen terlihat rapi di canvas
-      printArea.style.borderRadius = '0px';
+      // Temporarily display the hidden area for html2canvas to render properly
+      printArea.style.display = 'block';
 
       const canvas = await html2canvas(printArea, {
         scale: 2,
@@ -307,10 +301,7 @@ export const PPDBInfoPage = () => {
         backgroundColor: '#ffffff'
       });
       
-      // Kembalikan tampilan semula
-      if (warningText) warningText.style.display = 'block';
-      if (buttons) buttons.style.display = 'flex';
-      printArea.style.borderRadius = '1rem';
+      printArea.style.display = 'none';
 
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
@@ -328,12 +319,7 @@ export const PPDBInfoPage = () => {
     } catch (error) {
       console.error(error);
       toast.error('Gagal mengunduh PDF');
-      // Kembalikan style jika error
-      const warningText = printArea.querySelector('.print-warning') as HTMLElement;
-      const buttons = printArea.querySelector('.print-action-buttons') as HTMLElement;
-      if (warningText) warningText.style.display = 'block';
-      if (buttons) buttons.style.display = 'flex';
-      printArea.style.borderRadius = '1rem';
+      if (printArea) printArea.style.display = 'none';
     } finally {
       setIsExporting(false);
     }
@@ -345,6 +331,8 @@ export const PPDBInfoPage = () => {
         noPendaftaran: location.state.noPendaftaran,
         nisn: location.state.nisn,
         nama: location.state.nama,
+        formData: location.state.formData,
+        jalur: location.state.jalur
       });
       setShowSuccessModal(true);
       // Automatically prefill the tracker form
@@ -921,6 +909,146 @@ export const PPDBInfoPage = () => {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* PDF Template Area (Hidden on screen) */}
+          <div id="print-area-hidden" style={{ display: 'none', position: 'absolute', left: '-9999px', top: 0, width: '210mm', minHeight: '297mm', padding: '15mm', backgroundColor: 'white', color: 'black', fontFamily: 'Arial, sans-serif', boxSizing: 'border-box' }}>
+            {/* KOP SURAT */}
+            <div className="text-center border-b-[3px] border-black pb-3 mb-8 relative">
+              <div className="font-bold text-[13pt] leading-snug uppercase">Kementerian Agama Republik Indonesia</div>
+              <div className="font-black text-[18pt] leading-tight uppercase">Madrasah Aliyah Negeri 2 Lombok Timur</div>
+              <div className="font-bold text-[14pt] leading-snug uppercase mt-1">Penerimaan Murid Baru (PMB)</div>
+              <div className="font-bold text-[12pt] leading-snug uppercase">Tahun Pelajaran {config?.tahunAjaran || '2026/2027'}</div>
+            </div>
+
+            {/* TITLE & PHOTO */}
+            <div className="flex justify-between items-start mb-10">
+              <div className="flex-1 text-center mt-6">
+                <h2 className="text-[14pt] font-bold uppercase underline underline-offset-4 decoration-2">Tanda Bukti Pendaftaran Online</h2>
+              </div>
+              <div className="w-[30mm] h-[40mm] border-2 border-gray-400 flex flex-col items-center justify-center text-gray-500 font-bold ml-4 shrink-0 bg-gray-50">
+                <span className="text-[10pt]">PAS FOTO</span>
+                <span className="text-[10pt]">3 X 4</span>
+                <span className="text-[8pt] font-normal mt-2">(Otomatis)</span>
+              </div>
+            </div>
+
+            {/* DATA SISTEM */}
+            <div className="mb-8">
+              <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">I. DATA SISTEM & PENDAFTARAN</h3>
+              <table className="w-full text-[11pt]">
+                <tbody>
+                  <tr>
+                    <td className="w-[45%] py-1.5">Nomor Pendaftaran</td>
+                    <td className="w-4 py-1.5">:</td>
+                    <td className="font-bold">{successData.noPendaftaran}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5">Tanggal Cetak</td>
+                    <td className="py-1.5">:</td>
+                    <td>{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} / {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5">Jalur Pendaftaran</td>
+                    <td className="py-1.5">:</td>
+                    <td>Jalur {successData.jalur?.namaJalur || 'Reguler'}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* DATA SISWA */}
+            <div className="mb-8">
+              <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">II. DATA CALON PESERTA DIDIK</h3>
+              <table className="w-full text-[11pt]">
+                <tbody>
+                  <tr>
+                    <td className="w-[45%] py-1.5">Nama Lengkap</td>
+                    <td className="w-4 py-1.5">:</td>
+                    <td className="font-bold uppercase">{successData.formData?.dataDiri?.namaLengkap || successData.nama || '-'}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5">NISN</td>
+                    <td className="py-1.5">:</td>
+                    <td>{successData.formData?.dataDiri?.nisn || successData.nisn || '-'}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5">Tempat, Tanggal Lahir</td>
+                    <td className="py-1.5">:</td>
+                    <td>
+                      {successData.formData?.dataDiri?.tempatLahir || '-'},{' '}
+                      {successData.formData?.dataDiri?.tanggalLahir ? new Date(successData.formData.dataDiri.tanggalLahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5">Jenis Kelamin</td>
+                    <td className="py-1.5">:</td>
+                    <td>{successData.formData?.dataDiri?.jenisKelamin || '-'}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5">Sekolah Asal</td>
+                    <td className="py-1.5">:</td>
+                    <td>{successData.formData?.dataSekolah?.namaSekolah || '-'}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 align-top">Alamat Rumah</td>
+                    <td className="py-1.5 align-top">:</td>
+                    <td className="align-top leading-snug">{successData.formData?.dataDiri?.alamat || '-'}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* DATA ORANG TUA */}
+            <div className="mb-10">
+              <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">III. DATA ORANG TUA / WALI</h3>
+              <table className="w-full text-[11pt]">
+                <tbody>
+                  <tr>
+                    <td className="w-[45%] py-1.5">Nama Ayah / Ibu</td>
+                    <td className="w-4 py-1.5">:</td>
+                    <td>{successData.formData?.dataDiri?.namaAyah || successData.formData?.dataDiri?.namaIbu || '-'}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5">No. HP / Telepon</td>
+                    <td className="py-1.5">:</td>
+                    <td>{successData.formData?.dataDiri?.noHpOrtu || '-'}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* PERNYATAAN */}
+            <div className="mb-10 border-t border-dashed border-gray-400 pt-6 text-[11pt] text-justify leading-snug">
+              <div className="font-bold mb-2">PERNYATAAN:</div>
+              Dengan mencetak bukti ini, saya menyatakan bahwa seluruh data yang diisikan di atas adalah benar dan sesuai dengan dokumen asli yang sah.
+            </div>
+
+            {/* TANDA TANGAN */}
+            <div className="flex justify-between text-[11pt] mb-16">
+              <div className="text-center w-64">
+                <br/>
+                <div className="mb-24">Tanda Tangan Orang Tua/Wali,</div>
+                <div className="font-bold">( _______________________ )</div>
+              </div>
+              <div className="text-center w-64">
+                <div className="mb-1">Lombok Timur, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                <div className="mb-24">Calon Peserta Didik,</div>
+                <div className="font-bold">( _______________________ )</div>
+              </div>
+            </div>
+
+            {/* CATATAN PANITIA */}
+            <div className="border-t-[3px] border-black pt-6 text-[11pt]">
+              <div className="font-bold mb-4">CATATAN PANITIA VERIFIKASI (Diisi saat penyerahan berkas fisik):</div>
+              <div className="mb-8 font-bold text-[12pt]">Status Berkas: [ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ] VALID &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ] TIDAK VALID</div>
+              <div className="w-64 text-center mt-12">
+                <div className="mb-24">Petugas Verifikator,</div>
+                <div className="font-bold">( _______________________ )</div>
+                <div className="text-left ml-4 mt-2 font-bold">NIP.</div>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
