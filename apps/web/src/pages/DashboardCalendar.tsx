@@ -413,7 +413,7 @@ export const DashboardCalendar = () => {
           <>
             <div className="fixed inset-0 z-[9997]" onClick={() => setMobilePopup(null)} />
             <div
-              className="fixed left-3 right-3 z-[9998] bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-3 max-h-[40vh] overflow-y-auto"
+              className="fixed left-1/2 -translate-x-1/2 z-[9998] w-[70%] max-w-[260px] bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-3 max-h-[40vh] overflow-y-auto"
               style={{ top: Math.min(mobilePopup.y + 4, window.innerHeight - 200) }}
             >
               {/* Header */}
