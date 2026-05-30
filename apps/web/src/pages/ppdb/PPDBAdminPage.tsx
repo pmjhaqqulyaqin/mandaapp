@@ -439,6 +439,12 @@ const PendaftarTab = ({ stats, configId }: { stats: any; configId: string }) => 
                   <span className={`px-3 py-1 rounded-full text-xs font-bold ${STATUS_MAP[detail.status]?.color || ''}`}>
                     {STATUS_MAP[detail.status]?.label || detail.status}
                   </span>
+                  <button
+                    onClick={() => window.open(`/dashboard/print-detail-peserta/${detail.id}`, '_blank')}
+                    className="px-3 py-1 bg-blue-500 text-white rounded-lg text-[10px] font-bold hover:bg-blue-600 shadow-sm transition-colors"
+                  >
+                    🖨️ Cetak Formulir
+                  </button>
                   {(detail.status === 'diterima' || detail.status === 'cadangan') && (
                     <button
                       onClick={() => window.open(`/dashboard/print-bukti-kelulusan/${detail.id}`, '_blank')}
