@@ -161,10 +161,12 @@ export class PPDBService {
 
     // 2. Execute all inserts inside a single atomic transaction
     const result = await db.transaction(async (tx) => {
-      // Generate noPendaftaran inside transaction to prevent race condition
-      // Use FOR UPDATE lock to serialize concurrent registrations
+      // Use FOR UPDATE lock on the jalur row to serialize concurrent registrations
+      await tx.execute(
+        sql`SELECT id FROM ppdb_jalur WHERE id = ${data.jalurId} FOR UPDATE`
+      );
       const countResult = await tx.execute(
-        sql`SELECT COUNT(*) as cnt FROM ppdb_pendaftar FOR UPDATE`
+        sql`SELECT COUNT(*) as cnt FROM ppdb_pendaftar`
       );
       const nextNum = (Number((countResult as any).rows?.[0]?.cnt) || 0) + 1;
 
