@@ -92,6 +92,25 @@ export const DashboardCalendar = () => {
   );
   const [mobilePopup, setMobilePopup] = useState<{ date: string; y: number } | null>(null);
 
+  // Swipe gesture state
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const minSwipeDistance = 50;
+    if (distance > minSwipeDistance) goNext(); // Swipe left -> next month
+    if (distance < -minSwipeDistance) goPrev(); // Swipe right -> prev month
+  };
+
   // When academic year changes, jump to July of that year (start of tahun ajaran)
   useEffect(() => {
     const [startY] = selectedYear.split('/').map(Number);
@@ -335,7 +354,12 @@ export const DashboardCalendar = () => {
 
       {/* Mobile Calendar Layout */}
       <div className="md:hidden space-y-5">
-        <div className="bg-white dark:bg-[#1a1a1a] rounded-[24px] p-5 shadow-sm border border-gray-100 dark:border-gray-800">
+        <div 
+          className="bg-white dark:bg-[#1a1a1a] rounded-[24px] p-5 shadow-sm border border-gray-100 dark:border-gray-800"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
           {/* Month Navigation */}
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
