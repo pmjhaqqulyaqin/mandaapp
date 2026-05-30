@@ -5,7 +5,6 @@ import { SchoolEvent } from '../lib/services/events';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { Calendar } from 'lucide-react';
-import { TeacherDutiesWidget } from './components/TeacherDutiesWidget';
 
 // ── Category Config ──
 const EVENT_CATEGORIES: Record<string, { label: string; color: string; emoji: string }> = {
@@ -548,7 +547,7 @@ export const DashboardCalendar = () => {
             </div>
           </div>
           
-          <TeacherDutiesWidget academicYear={selectedYear} />
+          
         </div>
       </div>
 
@@ -732,7 +731,7 @@ export const DashboardCalendar = () => {
             </div>
           </div>
           
-          <TeacherDutiesWidget academicYear={selectedYear} />
+          
         </div>
       </div>
 

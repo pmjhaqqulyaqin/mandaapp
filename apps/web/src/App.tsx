@@ -23,6 +23,7 @@ const DashboardLayout = React.lazy(() => import('./layouts/DashboardLayout').the
 const DashboardOverview = React.lazy(() => import('./pages/DashboardOverview').then(m => ({ default: m.DashboardOverview })));
 const DashboardNews = React.lazy(() => import('./pages/DashboardNews').then(m => ({ default: m.DashboardNews })));
 const DashboardCalendar = React.lazy(() => import('./pages/DashboardCalendar').then(m => ({ default: m.DashboardCalendar })));
+const TeacherDutiesPage = React.lazy(() => import('./pages/TeacherDutiesPage').then(m => ({ default: m.TeacherDutiesPage })));
 const DashboardStudentCard = React.lazy(() => import('./pages/DashboardStudentCard').then(m => ({ default: m.DashboardStudentCard })));
 const DashboardGallery = React.lazy(() => import('./pages/DashboardGallery').then(m => ({ default: m.DashboardGallery })));
 const DashboardContacts = React.lazy(() => import('./pages/DashboardContacts').then(m => ({ default: m.DashboardContacts })));
@@ -174,6 +175,7 @@ function App() {
               <Route index element={<DashboardOverview />} />
               <Route path="news" element={<DashboardNews />} />
               <Route path="calendar" element={<DashboardCalendar />} />
+              <Route path="teacher-duties" element={<TeacherDutiesPage />} />
               <Route path="student-card" element={<DashboardStudentCard />} />
               <Route path="gallery" element={<DashboardGallery />} />
               <Route path="contacts" element={<DashboardContacts />} />

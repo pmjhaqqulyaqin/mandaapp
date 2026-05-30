@@ -1,97 +1,107 @@
 import React, { useState } from 'react';
-import { useTeacherDuties, useMasterDutyTypes, useCreateTeacherDuty, useUpdateTeacherDuty, useDeleteTeacherDuty, TeacherDuty } from '../../hooks/api/useTeacherDuties';
-import { useAuth } from '../../contexts/AuthContext';
+import { useTeacherDuties, useMasterDutyTypes, useCreateTeacherDuty, useUpdateTeacherDuty, useDeleteTeacherDuty, TeacherDuty } from '../hooks/api/useTeacherDuties';
+import { useAuth } from '../contexts/AuthContext';
 import { Settings, Plus, X, Calendar, Edit2, Trash2 } from 'lucide-react';
-import { useEmployees } from '../../hooks/api/useEmployeeProfile';
+import { useEmployees } from '../hooks/api/useEmployeeProfile';
+import { PageHeader } from '../components/PageHeader';
 
-export const TeacherDutiesWidget: React.FC<{ academicYear: string }> = ({ academicYear }) => {
+export const TeacherDutiesPage: React.FC = () => {
+  // Use current year as default or let the API handle it if we don't pass one, 
+  // but for now let's pass a default academicYear or fetch the active one.
+  // Actually let's assume it gets the active one from a global state, or pass a hardcoded '2026/2027' for now.
+  const academicYear = '2026/2027'; 
   const { data: duties, isLoading } = useTeacherDuties({ academicYear });
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin' || user?.role === 'kepsek';
   
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Get duties from today onwards, limited to next 7-10 upcoming duties
-  const todayStr = new Date().toISOString().split('T')[0];
-  const upcomingDuties = duties
-    ?.filter(d => d.dutyDate >= todayStr)
-    .sort((a, b) => a.dutyDate.localeCompare(b.dutyDate))
-    .slice(0, 10) || [];
-
   return (
-    <>
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-[24px] p-5 shadow-sm border border-gray-100 dark:border-gray-800 mt-4 md:mt-0">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            👨‍🏫 Jadwal Tugas Guru
-          </h3>
-          {isAdmin && (
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="text-xs font-semibold text-primary hover:bg-primary/10 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
-            >
-              <Settings size={14} />
-              Atur
-            </button>
+    <div className="flex-1 overflow-auto bg-gray-50/50 dark:bg-[#111] p-4 md:p-6 lg:p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <PageHeader 
+          title="Jadwal Tugas Guru" 
+          description="Daftar jadwal tugas pembina upacara, piket, dan imtaq." 
+        />
+
+        <div className="bg-white dark:bg-[#1a1a1a] rounded-[24px] p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
+              👨‍🏫 Jadwal Tugas Guru (TA {academicYear})
+            </h3>
+            {isAdmin && (
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="text-sm font-semibold text-white bg-primary hover:bg-primary/90 px-4 py-2 rounded-xl transition-colors flex items-center gap-2 shadow-sm"
+              >
+                <Settings size={16} />
+                Atur Jadwal
+              </button>
+            )}
+          </div>
+          
+          {isLoading ? (
+            <div className="animate-pulse space-y-3">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="h-14 bg-gray-100 dark:bg-gray-800 rounded-xl" />
+              ))}
+            </div>
+          ) : !duties || duties.length === 0 ? (
+            <div className="py-12 flex flex-col items-center justify-center text-gray-400">
+              <Calendar size={48} className="mb-4 opacity-20" />
+              <p>Belum ada jadwal tugas tersimpan.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {duties
+                .sort((a, b) => a.dutyDate.localeCompare(b.dutyDate))
+                .map(duty => {
+                  const d = new Date(duty.dutyDate);
+                  return (
+                    <div 
+                      key={duty.id} 
+                      className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                    >
+                      <div 
+                        className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
+                        style={{ backgroundColor: `${duty.dutyTypeColor}20`, color: duty.dutyTypeColor }}
+                      >
+                        {duty.dutyTypeIcon}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[15px] font-bold text-gray-800 dark:text-white truncate">
+                          {duty.teacherName}
+                        </div>
+                        <div className="text-xs font-medium mt-1 flex items-center gap-1.5" style={{ color: duty.dutyTypeColor }}>
+                          {duty.dutyTypeName}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                          {d.getDate()} {d.toLocaleString('id-ID', { month: 'short' })} {d.getFullYear()}
+                        </div>
+                        {duty.notes && (
+                          <div className="text-xs text-gray-500 max-w-[120px] truncate mt-1" title={duty.notes}>
+                            {duty.notes}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
           )}
         </div>
-        
-        {isLoading ? (
-          <div className="animate-pulse space-y-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-12 bg-gray-100 dark:bg-gray-800 rounded-xl" />
-            ))}
-          </div>
-        ) : upcomingDuties.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400 py-2">Belum ada jadwal tugas mendatang</p>
-        ) : (
-          <div className="space-y-2">
-            {upcomingDuties.map(duty => {
-              const d = new Date(duty.dutyDate);
-              return (
-                <div 
-                  key={duty.id} 
-                  className="flex items-center gap-3 p-2.5 rounded-xl border border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-                >
-                  <div 
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0"
-                    style={{ backgroundColor: `${duty.dutyTypeColor}20`, color: duty.dutyTypeColor }}
-                  >
-                    {duty.dutyTypeIcon}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13px] font-bold text-gray-800 dark:text-white truncate">
-                      {duty.teacherName}
-                    </div>
-                    <div className="text-[11px] font-medium mt-0.5 flex items-center gap-1.5" style={{ color: duty.dutyTypeColor }}>
-                      {duty.dutyTypeName}
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                      {d.getDate()} {d.toLocaleString('id-ID', { month: 'short' })}
-                    </div>
-                    {duty.notes && (
-                      <div className="text-[9px] text-gray-500 max-w-[80px] truncate mt-0.5" title={duty.notes}>
-                        {duty.notes}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+
+        {isModalOpen && (
+          <TeacherDutiesManagerModal 
+            onClose={() => setIsModalOpen(false)} 
+            academicYear={academicYear}
+            duties={duties || []}
+          />
         )}
       </div>
-
-      {isModalOpen && (
-        <TeacherDutiesManagerModal 
-          onClose={() => setIsModalOpen(false)} 
-          academicYear={academicYear}
-          duties={duties || []}
-        />
-      )}
-    </>
+    </div>
   );
 };
 
@@ -153,7 +163,6 @@ const TeacherDutiesManagerModal: React.FC<{ onClose: () => void, academicYear: s
               {editingId ? <Edit2 size={18} className="text-primary" /> : <Plus size={18} className="text-primary" />}
               {editingId ? 'Edit Jadwal' : 'Tambah Jadwal'}
             </h2>
-            {/* Mobile close button only */}
             <button onClick={onClose} className="md:hidden p-1 text-gray-500 hover:text-gray-800">
               <X size={20} />
             </button>

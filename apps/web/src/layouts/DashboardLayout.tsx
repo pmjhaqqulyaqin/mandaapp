@@ -109,6 +109,13 @@ const ALL_MENU_ITEMS = [
     group: 'main',
   },
   {
+    key: 'teacher-duties',
+    label: 'Jadwal Tugas Guru',
+    href: '/dashboard/teacher-duties',
+    icon: <ClipboardList size={16} />,
+    group: 'main',
+  },
+  {
     key: 'student-card',
     label: 'Kartu Pelajar',
     href: '/dashboard/student-card',
