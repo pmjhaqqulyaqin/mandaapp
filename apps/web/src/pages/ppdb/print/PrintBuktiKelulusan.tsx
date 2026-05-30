@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { apiClient } from '../../../../lib/api';
+import { apiClient } from '../../../lib/api';
 import { Loader2 } from 'lucide-react';
 import QRCode from 'qrcode';
 
