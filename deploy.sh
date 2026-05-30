@@ -40,6 +40,8 @@ echo ""
 
 # 3. Build only API and Web (SKIP database!)
 echo "🔨 [3/6] Rebuild image API dan Web..."
+echo "    -> Membersihkan cache builder (mencegah error dist not found)..."
+docker builder prune -f
 docker compose build api web
 echo ""
 
