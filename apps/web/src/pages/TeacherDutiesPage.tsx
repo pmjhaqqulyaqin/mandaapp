@@ -3,7 +3,6 @@ import { useTeacherDuties, useMasterDutyTypes, useCreateTeacherDuty, useUpdateTe
 import { useAuth } from '../contexts/AuthContext';
 import { Settings, Plus, X, Calendar, Edit2, Trash2 } from 'lucide-react';
 import { useEmployees } from '../hooks/api/useEmployeeProfile';
-import { PageHeader } from '../components/PageHeader';
 
 export const TeacherDutiesPage: React.FC = () => {
   // Use current year as default or let the API handle it if we don't pass one, 
@@ -19,10 +18,10 @@ export const TeacherDutiesPage: React.FC = () => {
   return (
     <div className="flex-1 overflow-auto bg-gray-50/50 dark:bg-[#111] p-4 md:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
-        <PageHeader 
-          title="Jadwal Tugas Guru" 
-          description="Daftar jadwal tugas pembina upacara, piket, dan imtaq." 
-        />
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Jadwal Tugas Guru</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Daftar jadwal tugas pembina upacara, piket, dan imtaq.</p>
+        </div>
 
         <div className="bg-white dark:bg-[#1a1a1a] rounded-[24px] p-6 shadow-sm border border-gray-100 dark:border-gray-800">
           <div className="flex items-center justify-between mb-6">
