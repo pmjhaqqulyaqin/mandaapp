@@ -316,8 +316,21 @@ export const PPDBInfoPage = () => {
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pageHeight = pdf.internal.pageSize.getHeight();
       
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      let heightLeft = pdfHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = position - pageHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
+      }
+      
       pdf.save(`Bukti_Pendaftaran_${successData?.noPendaftaran?.replace(/[^a-zA-Z0-9]/g, '_') || 'Siswa'}.pdf`);
       toast.success('Bukti pendaftaran berhasil diunduh sebagai PDF');
     } catch (error) {
@@ -911,12 +924,11 @@ export const PPDBInfoPage = () => {
                 >
                   <X size={18} />
                 </button>
-              </div>
-            </div>
           </div>
+        </div>
 
-          {/* PDF Template Area (Hidden on screen) */}
-          <div id="print-area-hidden" style={{ display: 'none', position: 'absolute', left: '-9999px', top: 0, width: '210mm', minHeight: '297mm', padding: '15mm', backgroundColor: 'white', color: 'black', fontFamily: 'Arial, sans-serif', boxSizing: 'border-box' }}>
+        {/* PDF Template Area (Hidden on screen) */}
+        <div id="print-area-hidden" style={{ display: 'none', position: 'absolute', left: '-9999px', top: 0, width: '210mm', minHeight: '297mm', padding: '15mm', backgroundColor: 'white', color: 'black', fontFamily: 'Arial, sans-serif', boxSizing: 'border-box' }}>
             {/* KOP SURAT */}
             <div className="text-center border-b-[3px] border-black pb-3 mb-8 relative">
               <div className="font-bold text-[13pt] leading-snug uppercase">Kementerian Agama Republik Indonesia</div>
@@ -1033,6 +1045,52 @@ export const PPDBInfoPage = () => {
               </table>
             </div>
 
+            {/* DATA NILAI & PRESTASI */}
+            <div className="mb-10">
+              <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">IV. DATA NILAI RAPORT & PRESTASI</h3>
+              
+              <div className="mb-4">
+                <div className="font-bold text-[10pt] mb-2">Nilai Raport:</div>
+                <table className="w-full text-[10pt] border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="border border-black px-2 py-1 text-left bg-gray-50">Semester</th>
+                      <th className="border border-black px-2 py-1 text-center bg-gray-50">B. Ind</th>
+                      <th className="border border-black px-2 py-1 text-center bg-gray-50">B. Ing</th>
+                      <th className="border border-black px-2 py-1 text-center bg-gray-50">MTK</th>
+                      <th className="border border-black px-2 py-1 text-center bg-gray-50">IPA</th>
+                      <th className="border border-black px-2 py-1 text-center bg-gray-50">IPS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {successData.formData?.nilaiRaport?.map((n: any, i: number) => (
+                      <tr key={i}>
+                        <td className="border border-black px-2 py-1 font-medium">Semester {n.semester}</td>
+                        <td className="border border-black px-2 py-1 text-center">{n.bIndonesia || '-'}</td>
+                        <td className="border border-black px-2 py-1 text-center">{n.bInggris || '-'}</td>
+                        <td className="border border-black px-2 py-1 text-center">{n.matematika || '-'}</td>
+                        <td className="border border-black px-2 py-1 text-center">{n.ipa || '-'}</td>
+                        <td className="border border-black px-2 py-1 text-center">{n.ips || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div>
+                <div className="font-bold text-[10pt] mb-2">Prestasi:</div>
+                {successData.formData?.prestasi?.length > 0 ? (
+                  <ul className="list-disc pl-5 text-[10pt] space-y-1">
+                    {successData.formData.prestasi.map((p: any, i: number) => (
+                      <li key={i}>{p.namaKegiatan} - {p.peringkat} Tingkat {p.tingkat} ({p.tahun})</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-[10pt] italic text-gray-500">Tidak ada data prestasi</div>
+                )}
+              </div>
+            </div>
+
             {/* PERNYATAAN */}
             <div className="mb-10 border-t border-dashed border-gray-400 pt-6 text-[11pt] text-justify leading-snug">
               <div className="font-bold mb-2">PERNYATAAN:</div>
@@ -1065,7 +1123,6 @@ export const PPDBInfoPage = () => {
             </div>
 
           </div>
-        </div>
       )}
 
       {/* Shimmer animation & Print Styles */}
