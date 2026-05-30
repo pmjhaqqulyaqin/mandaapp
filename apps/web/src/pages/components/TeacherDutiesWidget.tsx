@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTeacherDuties, useMasterDutyTypes, useCreateTeacherDuty, useUpdateTeacherDuty, useDeleteTeacherDuty, TeacherDuty } from '../../hooks/api/useTeacherDuties';
 import { useAuth } from '../../contexts/AuthContext';
 import { Settings, Plus, X, Calendar, Edit2, Trash2 } from 'lucide-react';
-import { useEmployees } from '../../hooks/api/useEmployees';
+import { useEmployees } from '../../hooks/api/useEmployeeProfile';
 
 export const TeacherDutiesWidget: React.FC<{ academicYear: string }> = ({ academicYear }) => {
   const { data: duties, isLoading } = useTeacherDuties({ academicYear });

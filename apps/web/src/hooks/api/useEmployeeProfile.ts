@@ -37,6 +37,15 @@ export interface NipLookupResult {
 
 // ── Hooks ──
 
+/** Get all employees */
+export function useEmployees() {
+  return useQuery<EmployeeProfile[]>({
+    queryKey: ['employees'],
+    queryFn: () => apiClient<EmployeeProfile[]>('/employees'),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 /** Get the current user's linked employee record */
 export function useMyEmployee() {
   return useQuery<EmployeeProfile | null>({
