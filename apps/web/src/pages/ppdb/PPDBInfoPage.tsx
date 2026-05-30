@@ -875,6 +875,8 @@ export const PPDBInfoPage = () => {
       {showSuccessModal && successData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm print:bg-white print:p-0">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative print:shadow-none print:max-w-none print:rounded-none" id="print-area">
+            
+            {/* The visible part on the screen */}
             <div className="bg-emerald-500 p-6 text-center text-white print:bg-emerald-500">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
                 <CheckCircle className="w-10 h-10 text-emerald-500" />
@@ -882,6 +884,7 @@ export const PPDBInfoPage = () => {
               <h2 className="text-xl font-bold">Pendaftaran Berhasil!</h2>
               <p className="text-emerald-100 text-sm mt-1">Data Anda telah kami terima.</p>
             </div>
+            
             <div className="p-6">
               <p className="text-gray-600 text-center text-sm mb-4">Harap simpan atau cetak nomor pendaftaran ini sebagai bukti pendaftaran Anda.</p>
               
@@ -925,272 +928,266 @@ export const PPDBInfoPage = () => {
                 >
                   <X size={18} />
                 </button>
-          </div>
-        </div>
-
-        {/* PDF Template Area (Hidden on screen) */}
-        <div id="print-area-hidden" style={{ display: 'none', position: 'absolute', left: '-9999px', top: 0, width: '210mm', minHeight: '297mm', padding: '15mm', backgroundColor: 'white', color: 'black', fontFamily: 'Arial, sans-serif', boxSizing: 'border-box' }}>
-            {/* KOP SURAT */}
-            <div className="text-center border-b-[3px] border-black pb-3 mb-8 relative">
-              <div className="font-bold text-[13pt] leading-snug uppercase">Kementerian Agama Republik Indonesia</div>
-              <div className="font-black text-[18pt] leading-tight uppercase">Madrasah Aliyah Negeri 2 Lombok Timur</div>
-              <div className="font-bold text-[14pt] leading-snug uppercase mt-1">Penerimaan Murid Baru (PMB)</div>
-              <div className="font-bold text-[12pt] leading-snug uppercase">Tahun Pelajaran {config?.tahunAjaran || '2026/2027'}</div>
-            </div>
-
-            {/* TITLE & PHOTO */}
-            <div className="flex justify-between items-start mb-10">
-              <div className="flex-1 text-center mt-6">
-                <h2 className="text-[14pt] font-bold uppercase underline underline-offset-4 decoration-2">Tanda Bukti Pendaftaran Online</h2>
-              </div>
-              <div className="w-[30mm] h-[40mm] border-2 border-gray-400 flex flex-col items-center justify-center text-gray-500 font-bold ml-4 shrink-0 bg-gray-50 overflow-hidden">
-                {successData.formData?.dokumen?.find((d: any) => d.jenisDokumen === 'Pas Foto 3x4') ? (
-                  <img 
-                    src={`${API_BASE_URL.replace('/api', '')}${successData.formData.dokumen.find((d: any) => d.jenisDokumen === 'Pas Foto 3x4').filePath}`} 
-                    alt="Pas Foto" 
-                    className="w-full h-full object-cover" 
-                    crossOrigin="anonymous" 
-                  />
-                ) : (
-                  <>
-                    <span className="text-[10pt]">PAS FOTO</span>
-                    <span className="text-[10pt]">3 X 4</span>
-                    <span className="text-[8pt] font-normal mt-2">(Otomatis)</span>
-                  </>
-                )}
               </div>
             </div>
-          </div>
 
-          <div className="bg-white absolute left-[200vw] top-0 w-[210mm] text-black" id="print-area-hidden" style={{ display: 'none' }}>
-            {/* PAGE 1 */}
-            <div id="print-page-1" className="bg-white w-[210mm] min-h-[297mm] p-10 font-sans text-black relative box-border">
-              {/* HEADER */}
-              <div className="border-b-4 border-black pb-4 mb-6 flex items-center gap-6">
-                <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
-                <div className="text-center flex-1 pr-12">
-                  <h1 className="font-bold text-xl uppercase tracking-wide">KEMENTERIAN AGAMA REPUBLIK INDONESIA</h1>
-                  <h2 className="font-black text-2xl uppercase mt-1 mb-1 tracking-wider">MAN 2 LOMBOK TIMUR</h2>
-                  <p className="text-[10pt]">Jl. Pendidikan No. 123, Selong, Lombok Timur, NTB 83611</p>
-                  <p className="text-[10pt]">Website: mandualotim.sch.id | Email: info@mandualotim.sch.id</p>
-                </div>
-              </div>
-
-              {/* JUDUL */}
-              <div className="text-center mb-8">
-                <h2 className="font-black text-lg uppercase underline underline-offset-4 mb-1">BUKTI PENDAFTARAN PESERTA DIDIK BARU</h2>
-                <p className="font-bold text-[11pt]">Tahun Ajaran {config?.tahunAjaran || '2026/2027'}</p>
-              </div>
-
-              {/* NO PENDAFTARAN KOTAK */}
-              <div className="border-2 border-black p-3 text-center mb-8 w-max mx-auto rounded-md shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-gray-50">
-                <div className="text-[10pt] font-bold uppercase tracking-wider mb-1">Nomor Pendaftaran</div>
-                <div className="text-2xl font-black font-mono tracking-widest">{successData.noPendaftaran}</div>
-              </div>
-
-              {/* JALUR */}
-              <div className="mb-8">
-                <table className="w-full text-[11pt]">
-                  <tbody>
-                    <tr>
-                      <td className="w-[45%] py-1.5 font-bold">Jalur Pendaftaran</td>
-                      <td className="w-4 py-1.5 font-bold">:</td>
-                      <td className="font-bold uppercase bg-gray-100 px-2 py-1 rounded inline-block">{successData.jalur?.namaJalur || '-'}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-1.5">Tanggal Pendaftaran</td>
-                      <td className="py-1.5">:</td>
-                      <td>{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })} WITA</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* DATA DIRI */}
-              <div className="mb-6">
-                <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">I. IDENTITAS CALON PESERTA DIDIK</h3>
-                <table className="w-full text-[11pt]">
-                  <tbody>
-                    <tr>
-                      <td className="w-[45%] py-1.5">Nama Lengkap</td>
-                      <td className="w-4 py-1.5">:</td>
-                      <td className="font-bold">{successData.formData?.dataDiri?.namaLengkap || successData.nama || '-'}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-1.5">NIK (Nomor Induk Kependudukan)</td>
-                      <td className="py-1.5">:</td>
-                      <td>{successData.formData?.dataDiri?.nik || '-'}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-1.5">NISN</td>
-                      <td className="py-1.5">:</td>
-                      <td>{successData.formData?.dataDiri?.nisn || successData.nisn || '-'}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-1.5">Tempat, Tanggal Lahir</td>
-                      <td className="py-1.5">:</td>
-                      <td>
-                        {successData.formData?.dataDiri?.tempatLahir || '-'},{' '}
-                        {successData.formData?.dataDiri?.tanggalLahir ? new Date(successData.formData.dataDiri.tanggalLahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="py-1.5">Jenis Kelamin</td>
-                      <td className="py-1.5">:</td>
-                      <td>{successData.formData?.dataDiri?.jenisKelamin || '-'}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-1.5 align-top">Alamat Rumah</td>
-                      <td className="py-1.5 align-top">:</td>
-                      <td className="align-top leading-snug">{successData.formData?.dataDiri?.alamat || '-'}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* DATA SEKOLAH */}
-              <div className="mb-6">
-                <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">II. DATA SEKOLAH ASAL</h3>
-                <table className="w-full text-[11pt]">
-                  <tbody>
-                    <tr>
-                      <td className="w-[45%] py-1.5">Sekolah Asal</td>
-                      <td className="w-4 py-1.5">:</td>
-                      <td className="font-bold">{successData.formData?.dataSekolah?.namaSekolah || '-'}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-1.5">NPSN</td>
-                      <td className="py-1.5">:</td>
-                      <td>{successData.formData?.dataSekolah?.npsn || '-'}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-1.5">Tahun Lulus</td>
-                      <td className="py-1.5">:</td>
-                      <td>{successData.formData?.dataSekolah?.tahunLulus || '-'}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+            {/* PDF Template Area (Hidden on screen) */}
+            <div className="bg-white absolute left-[200vw] top-0 w-[210mm] text-black" id="print-area-hidden" style={{ display: 'none' }}>
               
-              {/* DATA ORANG TUA */}
-              <div className="mb-6">
-                <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">III. DATA ORANG TUA / WALI</h3>
-                <table className="w-full text-[11pt]">
-                  <tbody>
-                    <tr>
-                      <td className="w-[45%] py-1.5">Nama Ayah / Ibu</td>
-                      <td className="w-4 py-1.5">:</td>
-                      <td>{successData.formData?.dataDiri?.namaAyah || successData.formData?.dataDiri?.namaIbu || '-'}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-1.5">No. HP / Telepon</td>
-                      <td className="py-1.5">:</td>
-                      <td>{successData.formData?.dataDiri?.noHpOrtu || '-'}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+              {/* PAGE 1 */}
+              <div id="print-page-1" className="bg-white w-[210mm] min-h-[297mm] p-10 font-sans text-black relative box-border">
+                {/* HEADER */}
+                <div className="border-b-4 border-black pb-4 mb-6 flex items-center gap-6">
+                  <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
+                  <div className="text-center flex-1 pr-12">
+                    <h1 className="font-bold text-xl uppercase tracking-wide">KEMENTERIAN AGAMA REPUBLIK INDONESIA</h1>
+                    <h2 className="font-black text-2xl uppercase mt-1 mb-1 tracking-wider">MAN 2 LOMBOK TIMUR</h2>
+                    <p className="text-[10pt]">Jl. Pendidikan No. 123, Selong, Lombok Timur, NTB 83611</p>
+                    <p className="text-[10pt]">Website: mandualotim.sch.id | Email: info@mandualotim.sch.id</p>
+                  </div>
+                </div>
 
-            {/* PAGE 2 */}
-            <div id="print-page-2" className="bg-white w-[210mm] min-h-[297mm] p-10 font-sans text-black relative box-border">
-              {/* DATA NILAI & PRESTASI */}
-              <div className="mb-10">
-                <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">IV. DATA NILAI RAPORT & PRESTASI</h3>
-                
+                {/* JUDUL & FOTO */}
+                <div className="flex justify-between items-start mb-8">
+                  <div className="flex-1 text-center mt-2">
+                    <h2 className="font-black text-lg uppercase underline underline-offset-4 mb-1">BUKTI PENDAFTARAN PESERTA DIDIK BARU</h2>
+                    <p className="font-bold text-[11pt]">Tahun Ajaran {config?.tahunAjaran || '2026/2027'}</p>
+                    
+                    {/* NO PENDAFTARAN KOTAK */}
+                    <div className="border-2 border-black p-3 text-center mt-6 w-max mx-auto rounded-md shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-gray-50">
+                      <div className="text-[10pt] font-bold uppercase tracking-wider mb-1">Nomor Pendaftaran</div>
+                      <div className="text-2xl font-black font-mono tracking-widest">{successData.noPendaftaran}</div>
+                    </div>
+                  </div>
+                  <div className="w-[30mm] h-[40mm] border-2 border-gray-400 flex flex-col items-center justify-center text-gray-500 font-bold ml-4 shrink-0 bg-gray-50 overflow-hidden">
+                    {successData.formData?.dokumen?.find((d: any) => d.jenisDokumen === 'Pas Foto 3x4') ? (
+                      <img 
+                        src={`${API_BASE_URL.replace('/api', '')}${successData.formData.dokumen.find((d: any) => d.jenisDokumen === 'Pas Foto 3x4').filePath}`} 
+                        alt="Pas Foto" 
+                        className="w-full h-full object-cover" 
+                        crossOrigin="anonymous" 
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center w-full h-full">
+                        <span className="text-[10pt]">PAS FOTO</span>
+                        <span className="text-[10pt]">3 X 4</span>
+                        <span className="text-[8pt] font-normal mt-2">(Otomatis)</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* JALUR */}
                 <div className="mb-6">
-                  <div className="font-bold text-[10pt] mb-2">Nilai Raport:</div>
-                  <table className="w-full text-[10pt] border-collapse">
-                    <thead>
-                      <tr>
-                        <th className="border border-black px-2 py-1 text-left bg-gray-50">Semester</th>
-                        <th className="border border-black px-2 py-1 text-center bg-gray-50">B. Ind</th>
-                        <th className="border border-black px-2 py-1 text-center bg-gray-50">B. Ing</th>
-                        <th className="border border-black px-2 py-1 text-center bg-gray-50">MTK</th>
-                        <th className="border border-black px-2 py-1 text-center bg-gray-50">IPA</th>
-                        <th className="border border-black px-2 py-1 text-center bg-gray-50">IPS</th>
-                      </tr>
-                    </thead>
+                  <table className="w-full text-[11pt]">
                     <tbody>
-                      {successData.formData?.nilaiRaport?.length > 0 ? (
-                        successData.formData.nilaiRaport.map((n: any, i: number) => (
-                          <tr key={i}>
-                            <td className="border border-black px-2 py-1 font-medium">Semester {n.semester}</td>
-                            <td className="border border-black px-2 py-1 text-center">{n.bIndonesia || '-'}</td>
-                            <td className="border border-black px-2 py-1 text-center">{n.bInggris || '-'}</td>
-                            <td className="border border-black px-2 py-1 text-center">{n.matematika || '-'}</td>
-                            <td className="border border-black px-2 py-1 text-center">{n.ipa || '-'}</td>
-                            <td className="border border-black px-2 py-1 text-center">{n.ips || '-'}</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={6} className="border border-black px-2 py-3 text-center italic text-gray-500">Tidak ada data nilai raport yang diinputkan</td>
-                        </tr>
-                      )}
+                      <tr>
+                        <td className="w-[45%] py-1.5 font-bold">Jalur Pendaftaran</td>
+                        <td className="w-4 py-1.5 font-bold">:</td>
+                        <td className="font-bold uppercase bg-gray-100 px-2 py-1 rounded inline-block">{successData.jalur?.namaJalur || '-'}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1.5">Tanggal Pendaftaran</td>
+                        <td className="py-1.5">:</td>
+                        <td>{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })} WITA</td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
 
-                <div>
-                  <div className="font-bold text-[10pt] mb-2">Prestasi:</div>
-                  {successData.formData?.prestasi?.length > 0 ? (
-                    <ul className="list-disc pl-5 text-[10pt] space-y-2">
-                      {successData.formData.prestasi.map((p: any, i: number) => (
-                        <li key={i}>
-                          <span className="font-bold">{p.namaKegiatan}</span> - {p.peringkat} Tingkat {p.tingkat} ({p.tahun})
-                          <br/>
-                          <span className="text-[9pt] italic text-gray-500">Kategori: {p.jenis}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="text-[10pt] italic text-gray-500 border border-dashed border-gray-300 p-3 rounded">Tidak ada data prestasi tambahan yang diinputkan</div>
-                  )}
+                {/* DATA DIRI */}
+                <div className="mb-6">
+                  <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">I. IDENTITAS CALON PESERTA DIDIK</h3>
+                  <table className="w-full text-[11pt]">
+                    <tbody>
+                      <tr>
+                        <td className="w-[45%] py-1.5">Nama Lengkap</td>
+                        <td className="w-4 py-1.5">:</td>
+                        <td className="font-bold">{successData.formData?.dataDiri?.namaLengkap || successData.nama || '-'}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1.5">NIK (Nomor Induk Kependudukan)</td>
+                        <td className="py-1.5">:</td>
+                        <td>{successData.formData?.dataDiri?.nik || '-'}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1.5">NISN</td>
+                        <td className="py-1.5">:</td>
+                        <td>{successData.formData?.dataDiri?.nisn || successData.nisn || '-'}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1.5">Tempat, Tanggal Lahir</td>
+                        <td className="py-1.5">:</td>
+                        <td>
+                          {successData.formData?.dataDiri?.tempatLahir || '-'},{' '}
+                          {successData.formData?.dataDiri?.tanggalLahir ? new Date(successData.formData.dataDiri.tanggalLahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="py-1.5">Jenis Kelamin</td>
+                        <td className="py-1.5">:</td>
+                        <td>{successData.formData?.dataDiri?.jenisKelamin || '-'}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1.5">Sekolah Asal</td>
+                        <td className="py-1.5">:</td>
+                        <td>{successData.formData?.dataSekolah?.namaSekolah || '-'}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1.5 align-top">Alamat Rumah</td>
+                        <td className="py-1.5 align-top">:</td>
+                        <td className="align-top leading-snug">{successData.formData?.dataDiri?.alamat || '-'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* DATA SEKOLAH */}
+                <div className="mb-6">
+                  <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">II. DATA SEKOLAH ASAL</h3>
+                  <table className="w-full text-[11pt]">
+                    <tbody>
+                      <tr>
+                        <td className="w-[45%] py-1.5">Sekolah Asal</td>
+                        <td className="w-4 py-1.5">:</td>
+                        <td className="font-bold">{successData.formData?.dataSekolah?.namaSekolah || '-'}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1.5">NPSN</td>
+                        <td className="py-1.5">:</td>
+                        <td>{successData.formData?.dataSekolah?.npsn || '-'}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1.5">Tahun Lulus</td>
+                        <td className="py-1.5">:</td>
+                        <td>{successData.formData?.dataSekolah?.tahunLulus || '-'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* DATA ORANG TUA */}
+                <div className="mb-6">
+                  <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">III. DATA ORANG TUA / WALI</h3>
+                  <table className="w-full text-[11pt]">
+                    <tbody>
+                      <tr>
+                        <td className="w-[45%] py-1.5">Nama Ayah / Ibu</td>
+                        <td className="w-4 py-1.5">:</td>
+                        <td>{successData.formData?.dataDiri?.namaAyah || successData.formData?.dataDiri?.namaIbu || '-'}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1.5">No. HP / Telepon</td>
+                        <td className="py-1.5">:</td>
+                        <td>{successData.formData?.dataDiri?.noHpOrtu || '-'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
-              {/* PERNYATAAN */}
-              <div className="mb-10 border-t border-dashed border-gray-400 pt-6 text-[11pt] text-justify leading-snug">
-                <div className="font-bold mb-2">V. PERNYATAAN</div>
-                Dengan mencetak bukti ini, saya menyatakan bahwa seluruh data yang diisikan di atas adalah benar dan sesuai dengan dokumen asli yang sah. Apabila di kemudian hari terbukti ada pemalsuan data, maka kami bersedia menerima sanksi sesuai dengan ketentuan yang berlaku di MAN 2 Lombok Timur.
-              </div>
+              {/* PAGE 2 */}
+              <div id="print-page-2" className="bg-white w-[210mm] min-h-[297mm] p-10 font-sans text-black relative box-border">
+                {/* DATA NILAI & PRESTASI */}
+                <div className="mb-10">
+                  <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">IV. DATA NILAI RAPORT & PRESTASI</h3>
+                  
+                  <div className="mb-6">
+                    <div className="font-bold text-[10pt] mb-2">Nilai Raport:</div>
+                    <table className="w-full text-[10pt] border-collapse">
+                      <thead>
+                        <tr>
+                          <th className="border border-black px-2 py-1 text-left bg-gray-50">Semester</th>
+                          <th className="border border-black px-2 py-1 text-center bg-gray-50">B. Ind</th>
+                          <th className="border border-black px-2 py-1 text-center bg-gray-50">B. Ing</th>
+                          <th className="border border-black px-2 py-1 text-center bg-gray-50">MTK</th>
+                          <th className="border border-black px-2 py-1 text-center bg-gray-50">IPA</th>
+                          <th className="border border-black px-2 py-1 text-center bg-gray-50">IPS</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {successData.formData?.nilaiRaport?.length > 0 ? (
+                          successData.formData.nilaiRaport.map((n: any, i: number) => (
+                            <tr key={i}>
+                              <td className="border border-black px-2 py-1 font-medium">Semester {n.semester}</td>
+                              <td className="border border-black px-2 py-1 text-center">{n.bIndonesia || '-'}</td>
+                              <td className="border border-black px-2 py-1 text-center">{n.bInggris || '-'}</td>
+                              <td className="border border-black px-2 py-1 text-center">{n.matematika || '-'}</td>
+                              <td className="border border-black px-2 py-1 text-center">{n.ipa || '-'}</td>
+                              <td className="border border-black px-2 py-1 text-center">{n.ips || '-'}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="border border-black px-2 py-3 text-center italic text-gray-500">Tidak ada data nilai raport yang diinputkan</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
 
-              {/* TANDA TANGAN */}
-              <div className="flex justify-between text-[11pt] mb-16">
-                <div className="text-center w-64">
-                  <br/>
-                  <div className="mb-24">Tanda Tangan Orang Tua/Wali,</div>
-                  <div className="font-bold border-b border-black inline-block px-8 pb-1">( _______________________ )</div>
-                </div>
-                <div className="text-center w-64">
-                  <div className="mb-1">Lombok Timur, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-                  <div className="mb-24">Calon Peserta Didik,</div>
-                  <div className="font-bold border-b border-black inline-block px-8 pb-1">( _______________________ )</div>
-                </div>
-              </div>
-
-              {/* CATATAN PANITIA */}
-              <div className="border-[3px] border-black p-5 text-[11pt] rounded-xl relative overflow-hidden">
-                <div className="absolute -right-4 -top-4 opacity-5 pointer-events-none">
-                  <img src="/logo.png" className="w-40 h-40" />
-                </div>
-                <div className="font-black mb-4 uppercase text-[12pt] border-b-2 border-black inline-block pb-1">CATATAN PANITIA VERIFIKASI</div>
-                <div className="text-[10pt] italic text-gray-600 mb-6">(Diisi oleh panitia saat penyerahan berkas fisik di madrasah)</div>
-                <div className="mb-8 font-bold text-[12pt] flex items-center gap-10">
-                  <span>Status Berkas:</span>
-                  <span className="flex items-center gap-2"><div className="w-6 h-6 border-2 border-black inline-block" /> VALID</span>
-                  <span className="flex items-center gap-2"><div className="w-6 h-6 border-2 border-black inline-block" /> TIDAK VALID</span>
-                </div>
-                <div className="flex justify-end mt-4">
-                  <div className="w-64 text-center">
-                    <div className="mb-24">Petugas Verifikator,</div>
-                    <div className="font-bold border-b border-black inline-block px-8 pb-1">( _______________________ )</div>
-                    <div className="text-left mt-2 font-bold text-[10pt]">NIP.</div>
+                  <div>
+                    <div className="font-bold text-[10pt] mb-2">Prestasi:</div>
+                    {successData.formData?.prestasi?.length > 0 ? (
+                      <ul className="list-disc pl-5 text-[10pt] space-y-2">
+                        {successData.formData.prestasi.map((p: any, i: number) => (
+                          <li key={i}>
+                            <span className="font-bold">{p.namaKegiatan}</span> - {p.peringkat} Tingkat {p.tingkat} ({p.tahun})
+                            <br/>
+                            <span className="text-[9pt] italic text-gray-500">Kategori: {p.jenis}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="text-[10pt] italic text-gray-500 border border-dashed border-gray-300 p-3 rounded">Tidak ada data prestasi tambahan yang diinputkan</div>
+                    )}
                   </div>
                 </div>
+
+                {/* PERNYATAAN */}
+                <div className="mb-10 border-t border-dashed border-gray-400 pt-6 text-[11pt] text-justify leading-snug">
+                  <div className="font-bold mb-2">V. PERNYATAAN</div>
+                  Dengan mencetak bukti ini, saya menyatakan bahwa seluruh data yang diisikan di atas adalah benar dan sesuai dengan dokumen asli yang sah. Apabila di kemudian hari terbukti ada pemalsuan data, maka kami bersedia menerima sanksi sesuai dengan ketentuan yang berlaku di MAN 2 Lombok Timur.
+                </div>
+
+                {/* TANDA TANGAN */}
+                <div className="flex justify-between text-[11pt] mb-16">
+                  <div className="text-center w-64">
+                    <br/>
+                    <div className="mb-24">Tanda Tangan Orang Tua/Wali,</div>
+                    <div className="font-bold border-b border-black inline-block px-8 pb-1">( _______________________ )</div>
+                  </div>
+                  <div className="text-center w-64">
+                    <div className="mb-1">Lombok Timur, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                    <div className="mb-24">Calon Peserta Didik,</div>
+                    <div className="font-bold border-b border-black inline-block px-8 pb-1">( _______________________ )</div>
+                  </div>
+                </div>
+
+                {/* CATATAN PANITIA */}
+                <div className="border-[3px] border-black p-5 text-[11pt] rounded-xl relative overflow-hidden">
+                  <div className="absolute -right-4 -top-4 opacity-5 pointer-events-none">
+                    <img src="/logo.png" className="w-40 h-40" />
+                  </div>
+                  <div className="font-black mb-4 uppercase text-[12pt] border-b-2 border-black inline-block pb-1">CATATAN PANITIA VERIFIKASI</div>
+                  <div className="text-[10pt] italic text-gray-600 mb-6">(Diisi oleh panitia saat penyerahan berkas fisik di madrasah)</div>
+                  <div className="mb-8 font-bold text-[12pt] flex items-center gap-10">
+                    <span>Status Berkas:</span>
+                    <span className="flex items-center gap-2"><div className="w-6 h-6 border-2 border-black inline-block"></div> VALID</span>
+                    <span className="flex items-center gap-2"><div className="w-6 h-6 border-2 border-black inline-block"></div> TIDAK VALID</span>
+                  </div>
+                  <div className="flex justify-end mt-4">
+                    <div className="w-64 text-center">
+                      <div className="mb-24">Petugas Verifikator,</div>
+                      <div className="font-bold border-b border-black inline-block px-8 pb-1">( _______________________ )</div>
+                      <div className="text-left mt-2 font-bold text-[10pt]">NIP.</div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
+
           </div>
         </div>
       )}
