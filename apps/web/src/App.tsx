@@ -66,6 +66,7 @@ const PrintPaktaIntegritas = React.lazy(() => import('./pages/exams/print/PrintP
 const PrintDaftarHadirPeserta = React.lazy(() => import('./pages/exams/print/PrintDaftarHadirPeserta').then(m => ({ default: m.PrintDaftarHadirPeserta })));
 const PrintFormatNilai = React.lazy(() => import('./pages/exams/print/PrintFormatNilai').then(m => ({ default: m.PrintFormatNilai })));
 const PrintDenahDuduk = React.lazy(() => import('./pages/exams/print/PrintDenahDuduk').then(m => ({ default: m.PrintDenahDuduk })));
+const PrintBuktiKelulusan = React.lazy(() => import('./pages/ppdb/print/PrintBuktiKelulusan').then(m => ({ default: m.PrintBuktiKelulusan })));
 
 // Loading fallback component
 const PageSpinner = () => (
@@ -164,6 +165,11 @@ function App() {
             <Route path="/dashboard/print-denah-duduk/:ujianId" element={
               <ProtectedRoute>
                 <PrintDenahDuduk />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/print-bukti-kelulusan/:id" element={
+              <ProtectedRoute>
+                <PrintBuktiKelulusan />
               </ProtectedRoute>
             } />
             

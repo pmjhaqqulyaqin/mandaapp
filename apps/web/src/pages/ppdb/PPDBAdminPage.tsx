@@ -735,13 +735,14 @@ const SeleksiTab = ({ stats }: { stats: any }) => {
               <th className="px-3 py-2.5 text-left font-semibold text-gray-600 border-b">Asal Sekolah</th>
               <th className="px-3 py-2.5 text-center font-semibold text-gray-600 border-b">Nilai Akhir</th>
               <th className="px-3 py-2.5 text-center font-semibold text-gray-600 border-b">Status</th>
+              <th className="px-3 py-2.5 text-center font-semibold text-gray-600 border-b">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
             {loading ? (
-              <tr><td colSpan={7} className="py-12 text-center"><Loader2 className="animate-spin mx-auto text-emerald-500" size={20} /></td></tr>
+              <tr><td colSpan={8} className="py-12 text-center"><Loader2 className="animate-spin mx-auto text-emerald-500" size={20} /></td></tr>
             ) : data.length === 0 ? (
-              <tr><td colSpan={7} className="py-12 text-center text-gray-400">Belum ada data pendaftar</td></tr>
+              <tr><td colSpan={8} className="py-12 text-center text-gray-400">Belum ada data pendaftar</td></tr>
             ) : data.map((row: any) => {
               const p = row.pendaftar;
               const statusMeta = STATUS_MAP[p.status] || STATUS_MAP.menunggu;
@@ -757,6 +758,17 @@ const SeleksiTab = ({ stats }: { stats: any }) => {
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${statusMeta.color}`}>
                       {statusMeta.label}
                     </span>
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    {(p.status === 'diterima' || p.status === 'cadangan') && (
+                      <button
+                        onClick={() => window.open(`/dashboard/print-bukti-kelulusan/${p.id}`, '_blank')}
+                        className="px-2.5 py-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 rounded text-[10px] font-bold transition-colors"
+                        title="Cetak Bukti Kelulusan"
+                      >
+                        🖨️ Cetak
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
