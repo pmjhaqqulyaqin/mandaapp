@@ -491,7 +491,8 @@ export class PPDBService {
 
     // Count total
     let countQuery = db.select({ count: count() }).from(ppdbPendaftar)
-      .leftJoin(ppdbDataDiri, eq(ppdbDataDiri.pendaftarId, ppdbPendaftar.id));
+      .leftJoin(ppdbDataDiri, eq(ppdbDataDiri.pendaftarId, ppdbPendaftar.id))
+      .leftJoin(ppdbJalur, eq(ppdbJalur.id, ppdbPendaftar.jalurId));
     
     const totalResult = whereClause 
       ? await (countQuery as any).where(whereClause)
