@@ -329,16 +329,16 @@ export const PrintBeritaAcaraSekolah = () => {
         <!-- TANDA TANGAN -->
         <table style="width:100%;margin-top:10px;font-size:11pt;">
           <tr>
-            <td style="width:50%;text-align:center;vertical-align:top;">Ketua Panitia</td>
             <td style="width:50%;text-align:center;vertical-align:top;">${kepsekJabatan}</td>
+            <td style="width:50%;text-align:center;vertical-align:top;">Ketua Panitia</td>
           </tr>
           <tr style="height:50px;"><td>&nbsp;</td><td>&nbsp;</td></tr>
           <tr>
             <td style="text-align:center;font-weight:bold;">
-              ${ketuaName ? `${ketuaName}<br/><span style="font-weight:normal;font-size:9pt;">NIP. ${ketuaNip}</span>` : '(......................................)<br/><span style="font-weight:normal;font-size:9pt;">NIP. ........................................</span>'}
+              ${kepsekName ? `${kepsekName}<br/><span style="font-weight:normal;font-size:9pt;">NIP. ${kepsekNip}</span>` : '(......................................)<br/><span style="font-weight:normal;font-size:9pt;">NIP. ........................................</span>'}
             </td>
             <td style="text-align:center;font-weight:bold;">
-              ${kepsekName ? `${kepsekName}<br/><span style="font-weight:normal;font-size:9pt;">NIP. ${kepsekNip}</span>` : '(......................................)<br/><span style="font-weight:normal;font-size:9pt;">NIP. ........................................</span>'}
+              ${ketuaName ? `${ketuaName}<br/><span style="font-weight:normal;font-size:9pt;">NIP. ${ketuaNip}</span>` : '(......................................)<br/><span style="font-weight:normal;font-size:9pt;">NIP. ........................................</span>'}
             </td>
           </tr>
         </table>
@@ -644,14 +644,14 @@ export const PrintBeritaAcaraSekolah = () => {
 
             {/* TANDA TANGAN */}
             <div className="flex justify-between mt-4" style={{ fontSize }}>
-              {/* Ketua Panitia */}
+              {/* Kepala Madrasah */}
               <div className="w-[45%] text-center">
-                <div className={`font-semibold ${ttdMb}`}>Ketua Panitia</div>
+                <div className={`font-semibold ${ttdMb}`}>{kepsekJabatan}</div>
                 <div className="font-bold">
-                  {ketuaName ? (
+                  {kepsekName ? (
                     <>
-                      <div className="pb-1 leading-snug">{ketuaName}</div>
-                      <div className="font-normal text-[9pt]">NIP. {ketuaNip || '-'}</div>
+                      <div className="pb-1 leading-snug">{kepsekName}</div>
+                      <div className="font-normal text-[9pt]">NIP. {kepsekNip || '-'}</div>
                     </>
                   ) : (
                     <>
@@ -662,14 +662,14 @@ export const PrintBeritaAcaraSekolah = () => {
                 </div>
               </div>
 
-              {/* Kepala Madrasah */}
+              {/* Ketua Panitia */}
               <div className="w-[45%] text-center">
-                <div className={`font-semibold ${ttdMb}`}>{kepsekJabatan}</div>
+                <div className={`font-semibold ${ttdMb}`}>Ketua Panitia</div>
                 <div className="font-bold">
-                  {kepsekName ? (
+                  {ketuaName ? (
                     <>
-                      <div className="pb-1 leading-snug">{kepsekName}</div>
-                      <div className="font-normal text-[9pt]">NIP. {kepsekNip || '-'}</div>
+                      <div className="pb-1 leading-snug">{ketuaName}</div>
+                      <div className="font-normal text-[9pt]">NIP. {ketuaNip || '-'}</div>
                     </>
                   ) : (
                     <>
