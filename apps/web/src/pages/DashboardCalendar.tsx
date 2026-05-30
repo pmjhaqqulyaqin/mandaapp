@@ -350,7 +350,7 @@ export const DashboardCalendar = () => {
 
           {/* Days Header */}
           <div className="grid grid-cols-7 gap-2 mb-2">
-            {DAY_NAMES_SHORT.map((d, i) => (
+            {DAY_NAMES_SHORT.map((d) => (
               <div key={d} className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                 {d}
               </div>
