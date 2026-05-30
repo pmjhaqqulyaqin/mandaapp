@@ -90,7 +90,7 @@ export const DashboardCalendar = () => {
   const [categoryFilters, setCategoryFilters] = useState<Record<string, boolean>>(
     Object.fromEntries(CATEGORY_KEYS.map((k) => [k, true]))
   );
-  const [selectedDateStr, setSelectedDateStr] = useState<string>(fmt(today));
+  const [mobilePopupDate, setMobilePopupDate] = useState<string | null>(null);
 
   // When academic year changes, jump to July of that year (start of tahun ajaran)
   useEffect(() => {
@@ -274,6 +274,10 @@ export const DashboardCalendar = () => {
     }
   }
 
+  // Mobile popup data
+  const mobilePopupEvents = mobilePopupDate ? (eventsByDate.get(mobilePopupDate) || []) : [];
+  const mobilePopupDateObj = mobilePopupDate ? parseDate(mobilePopupDate) : null;
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -358,85 +362,106 @@ export const DashboardCalendar = () => {
           </div>
 
           {/* Days Grid */}
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1.5">
             {gridCells.map((cell, idx) => {
               if (!cell.isCurrentMonth) {
                 return <div key={idx} className="aspect-square" />;
               }
 
               const dayEvents = eventsByDate.get(cell.date) || [];
-              const isSelected = cell.date === selectedDateStr;
+              const isToday = cell.date === todayStr;
               const isSunday = new Date(cell.date).getDay() === 0;
-              const hasHoliday = dayEvents.some(e => HOLIDAY_CATEGORIES.has(e.category));
+              const hasHoliday = dayEvents.some(ev => HOLIDAY_CATEGORIES.has(ev.category));
               const hasEvent = dayEvents.length > 0;
-              
-              let bgClass = "bg-transparent";
-              let textClass = "text-gray-700 dark:text-gray-300 font-medium";
-              
-              if (hasEvent && !hasHoliday) {
-                bgClass = "bg-teal-500";
-                textClass = "text-white font-bold shadow-sm";
-              } else if (hasHoliday || isSunday) {
-                bgClass = "bg-red-50 dark:bg-red-900/20";
-                textClass = "text-red-500 font-bold";
-              } else if (isSelected) {
-                bgClass = "bg-gray-100 dark:bg-gray-800";
-                textClass = "text-gray-900 dark:text-white font-bold";
-              }
 
               return (
                 <button
                   key={idx}
-                  onClick={() => setSelectedDateStr(cell.date)}
-                  className={`aspect-square rounded-xl flex items-center justify-center text-[13px] transition-all active:scale-95 ${bgClass} ${textClass} ${isSelected && (hasEvent || hasHoliday) ? 'ring-2 ring-offset-2 ring-teal-500 dark:ring-offset-[#1a1a1a]' : ''}`}
+                  onClick={() => { if (hasEvent) setMobilePopupDate(cell.date); }}
+                  className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all ${hasEvent ? 'active:scale-95 cursor-pointer' : 'cursor-default'} ${
+                    isToday ? 'bg-primary text-white font-bold shadow-sm' :
+                    hasHoliday ? 'bg-red-50 dark:bg-red-900/20' : ''
+                  }`}
                 >
-                  {cell.day}
+                  <span className={`text-[13px] leading-none ${
+                    isToday ? '' :
+                    hasHoliday || isSunday ? 'text-red-500 font-bold' :
+                    hasEvent ? 'text-gray-900 dark:text-white font-semibold' :
+                    'text-gray-600 dark:text-gray-400'
+                  }`}>
+                    {cell.day}
+                  </span>
+                  {hasEvent && (
+                    <div className="flex gap-[3px] mt-0.5">
+                      {dayEvents.slice(0, 3).map((ev, evIdx) => (
+                        <span
+                          key={evIdx}
+                          className="w-[5px] h-[5px] rounded-full"
+                          style={{ backgroundColor: isToday ? 'rgba(255,255,255,0.7)' : getCategoryColor(ev.category, ev.color) }}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Aktivitas Terakhir */}
-        <div>
-          <div className="flex justify-between items-end mb-3 px-1">
-            <h3 className="font-bold text-gray-800 dark:text-white">Aktivitas Terakhir</h3>
-            <span className="text-[11px] font-bold text-teal-600">Lihat Semua</span>
-          </div>
-          
-          <div className="space-y-3">
-            {(eventsByDate.get(selectedDateStr) || []).length === 0 ? (
-              <div className="bg-white dark:bg-[#1a1a1a] rounded-[16px] p-5 text-center shadow-sm border border-gray-100 dark:border-gray-800">
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Tidak ada agenda pada tanggal ini.</p>
+        {/* Mobile Event Popup (Bottom Sheet) */}
+        {mobilePopupDate && mobilePopupEvents.length > 0 && mobilePopupDateObj && (
+          <div className="fixed inset-0 z-[9998] bg-black/40 backdrop-blur-sm flex items-end" onClick={() => setMobilePopupDate(null)}>
+            <div
+              className="relative bg-white dark:bg-[#1a1a1a] rounded-t-[24px] w-full p-5 pb-8 shadow-xl border-t border-gray-200 dark:border-gray-700"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drag handle */}
+              <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4 mt-2">
+                <h3 className="font-bold text-gray-800 dark:text-white text-base">
+                  📅 {mobilePopupDateObj.getDate()} {MONTH_NAMES_ID[mobilePopupDateObj.getMonth()]} {mobilePopupDateObj.getFullYear()}
+                </h3>
+                <button
+                  onClick={() => setMobilePopupDate(null)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
               </div>
-            ) : (
-              (eventsByDate.get(selectedDateStr) || []).map((ev) => {
-                const cat = EVENT_CATEGORIES[ev.category] || EVENT_CATEGORIES.general;
-                return (
-                  <div key={ev.id} onClick={() => isAdmin && openEditModal(ev)} className={`bg-white dark:bg-[#1a1a1a] rounded-[16px] p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 ${isAdmin ? 'cursor-pointer active:scale-95' : ''}`}>
-                    <div className="w-12 h-12 rounded-[12px] bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800 flex items-center justify-center shrink-0">
-                      <span className="text-xl leading-none">{cat.emoji || '📅'}</span>
+              {/* Events List */}
+              <div className="space-y-2.5 max-h-[50vh] overflow-y-auto">
+                {mobilePopupEvents.map((ev) => {
+                  const cat = EVENT_CATEGORIES[ev.category] || EVENT_CATEGORIES.general;
+                  const color = getCategoryColor(ev.category, ev.color);
+                  return (
+                    <div
+                      key={ev.id}
+                      onClick={() => { if (isAdmin) { setMobilePopupDate(null); openEditModal(ev); } }}
+                      className={`rounded-xl p-3.5 flex items-center gap-3 ${isAdmin ? 'cursor-pointer active:scale-[0.98]' : ''} transition-all`}
+                      style={{ backgroundColor: color + '15', borderLeft: `3px solid ${color}` }}
+                    >
+                      <span className="text-lg leading-none shrink-0">{cat.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-gray-800 dark:text-white text-sm truncate">{ev.title}</h4>
+                        <p className="text-[10px] mt-0.5 font-medium" style={{ color }}>{cat.label}</p>
+                        {ev.description && <p className="text-[11px] text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">{ev.description}</p>}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-gray-800 dark:text-white truncate">{ev.title}</h4>
-                      <p className="text-[10px] text-gray-500 mt-1 truncate uppercase tracking-wider font-bold">
-                        {cat.label} • {new Date(ev.eventDate).getDate()} {MONTH_NAMES_ID[new Date(ev.eventDate).getMonth()].slice(0,3)}
-                      </p>
-                    </div>
-                    <div className="text-gray-300 dark:text-gray-600 shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-            {isAdmin && (
-              <button onClick={() => openAddModal(selectedDateStr)} className="w-full bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 border border-teal-200 dark:border-teal-800/50 rounded-[16px] p-3 text-sm font-bold shadow-sm active:scale-95 transition-all">
-                + Tambah Agenda
-              </button>
-            )}
+                  );
+                })}
+              </div>
+              {isAdmin && mobilePopupDate && (
+                <button
+                  onClick={() => { if (mobilePopupDate) { openAddModal(mobilePopupDate); setMobilePopupDate(null); } }}
+                  className="w-full mt-3 bg-primary/10 text-primary border border-primary/20 rounded-xl p-3 text-sm font-bold active:scale-95 transition-all"
+                >
+                  + Tambah Agenda
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Main Layout - Desktop */}
