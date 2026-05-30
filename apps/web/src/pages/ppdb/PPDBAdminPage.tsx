@@ -384,9 +384,20 @@ const PendaftarTab = ({ stats, configId }: { stats: any; configId: string }) => 
                     </span>
                   </td>
                   <td className="px-3 py-2.5 text-center">
-                    <button onClick={() => openDetail(row.id)} className="px-2.5 py-1 bg-gray-100 dark:bg-[#222] rounded text-[10px] font-semibold text-gray-600 hover:text-emerald-600 transition-colors">
-                      <Eye size={12} className="inline mr-1" />Detail
-                    </button>
+                    <div className="flex items-center justify-center gap-2">
+                      <button onClick={() => openDetail(row.id)} className="px-2.5 py-1 bg-gray-100 dark:bg-[#222] rounded text-[10px] font-semibold text-gray-600 hover:text-emerald-600 transition-colors">
+                        <Eye size={12} className="inline mr-1" />Detail
+                      </button>
+                      {(row.status === 'diterima' || row.status === 'cadangan') && (
+                        <button
+                          onClick={() => window.open(`/dashboard/print-bukti-kelulusan/${row.id}`, '_blank')}
+                          className="px-2.5 py-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 rounded text-[10px] font-bold transition-colors"
+                          title="Cetak Bukti Kelulusan"
+                        >
+                          🖨️ Cetak
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -428,6 +439,14 @@ const PendaftarTab = ({ stats, configId }: { stats: any; configId: string }) => 
                   <span className={`px-3 py-1 rounded-full text-xs font-bold ${STATUS_MAP[detail.status]?.color || ''}`}>
                     {STATUS_MAP[detail.status]?.label || detail.status}
                   </span>
+                  {(detail.status === 'diterima' || detail.status === 'cadangan') && (
+                    <button
+                      onClick={() => window.open(`/dashboard/print-bukti-kelulusan/${detail.id}`, '_blank')}
+                      className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-[10px] font-bold hover:bg-emerald-600 shadow-sm transition-colors"
+                    >
+                      🖨️ Cetak Bukti Kelulusan
+                    </button>
+                  )}
                   <div className="flex-1" />
                   
                   {showDeleteConfirm ? (
