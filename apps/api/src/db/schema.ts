@@ -1114,3 +1114,25 @@ export const tracerResponses = pgTable("tracer_responses", {
   isVerified: boolean("is_verified").default(false),
   createdAt: timestamp("created_at").defaultNow()
 });
+
+// Jadwal Tugas Guru
+export const masterDutyTypes = pgTable("master_duty_types", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 150 }).notNull(), // e.g., "Pembina Upacara", "Piket Pagi"
+  color: varchar("color", { length: 20 }).default("#14b8a6"), // hex color
+  icon: varchar("icon", { length: 20 }).default("📋"), // emoji or icon name
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const teacherDuties = pgTable("teacher_duties", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  dutyDate: date("duty_date").notNull(),
+  teacherId: uuid("teacher_id").references(() => employees.id, { onDelete: "cascade" }).notNull(),
+  dutyTypeId: uuid("duty_type_id").references(() => masterDutyTypes.id, { onDelete: "cascade" }).notNull(),
+  notes: text("notes"),
+  academicYear: varchar("academic_year", { length: 20 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});

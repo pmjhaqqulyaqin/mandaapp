@@ -38,6 +38,7 @@ import { parentPortalRoutes } from './modules/parent-portal/routes';
 import { kbmRoutes } from './modules/kbm/routes';
 import { tracerRoutes } from './modules/tracer/routes';
 import mutationRoutes from './modules/mutation';
+import { teacherDutiesRouter } from './modules/teacher-duties/routes';
 
 dotenv.config();
 
@@ -198,6 +199,7 @@ app.use("/api/parent-portal", parentPortalRoutes);
 app.use("/api/kbm", kbmRoutes);
 app.use("/api/tracer", tracerRoutes);
 app.use("/api/mutations", mutationRoutes);
+app.use("/api/teacher-duties", teacherDutiesRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -642,6 +644,49 @@ async function runAutoMigration() {
       );
     `);
     logger.info("Mutation tables ready.");
+
+    // Auto-create Teacher Duties tables
+    logger.info("Checking teacher duties tables...");
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "master_duty_types" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        "name" varchar(150) NOT NULL,
+        "color" varchar(20) DEFAULT '#14b8a6',
+        "icon" varchar(20) DEFAULT '📋',
+        "is_active" boolean DEFAULT true,
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `);
+    
+    // Seed default master duty types if empty
+    try {
+      const dutyTypesCheck = await db.execute(sql`SELECT COUNT(*) as c FROM master_duty_types;`);
+      const rows = (dutyTypesCheck as any).rows || dutyTypesCheck;
+      if (rows[0] && (Number(rows[0].c) === 0 || Number(rows[0].count) === 0)) {
+        await db.execute(sql`
+          INSERT INTO "master_duty_types" (id, name, color, icon) VALUES 
+          (gen_random_uuid(), 'Pembina Upacara', '#ef4444', '🇮🇩'),
+          (gen_random_uuid(), 'Imtaq Pagi', '#10b981', '🕌'),
+          (gen_random_uuid(), 'Piket Pagi', '#f59e0b', '🌅'),
+          (gen_random_uuid(), 'Piket Guru', '#3b82f6', '👨‍🏫');
+        `);
+      }
+    } catch (e) { /* ignore */ }
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "teacher_duties" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        "duty_date" date NOT NULL,
+        "teacher_id" uuid NOT NULL REFERENCES "employees"("id") ON DELETE CASCADE,
+        "duty_type_id" uuid NOT NULL REFERENCES "master_duty_types"("id") ON DELETE CASCADE,
+        "notes" text,
+        "academic_year" varchar(20),
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `);
+    logger.info("Teacher duties tables ready.");
 
   } catch (err) {
     logger.error({ err }, "Auto-migration failed");
