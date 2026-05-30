@@ -89,6 +89,7 @@ export const DashboardCalendar = () => {
   const [categoryFilters, setCategoryFilters] = useState<Record<string, boolean>>(
     Object.fromEntries(CATEGORY_KEYS.map((k) => [k, true]))
   );
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(fmt(today));
 
   // When academic year changes, jump to July of that year (start of tahun ajaran)
   useEffect(() => {
@@ -327,8 +328,118 @@ export const DashboardCalendar = () => {
         </div>
       </div>
 
-      {/* Main Layout */}
-      <div className="flex flex-col lg:flex-row gap-4">
+      {/* Mobile Calendar Layout */}
+      <div className="md:hidden space-y-5">
+        <div className="bg-white dark:bg-[#1a1a1a] rounded-[24px] p-5 shadow-sm border border-gray-100 dark:border-gray-800">
+          {/* Month Navigation */}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
+              <Calendar size={18} className="text-teal-600" />
+              {MONTH_NAMES_ID[viewMonth]} {viewYear}
+            </h3>
+            <div className="flex items-center gap-1.5">
+              <button onClick={goPrev} className="w-8 h-8 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+              <button onClick={goNext} className="w-8 h-8 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Days Header */}
+          <div className="grid grid-cols-7 gap-2 mb-2">
+            {DAY_NAMES_SHORT.map((d, i) => (
+              <div key={d} className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                {d}
+              </div>
+            ))}
+          </div>
+
+          {/* Days Grid */}
+          <div className="grid grid-cols-7 gap-2">
+            {gridCells.map((cell, idx) => {
+              if (!cell.isCurrentMonth) {
+                return <div key={idx} className="aspect-square" />;
+              }
+
+              const dayEvents = eventsByDate.get(cell.date) || [];
+              const isSelected = cell.date === selectedDateStr;
+              const isSunday = new Date(cell.date).getDay() === 0;
+              const hasHoliday = dayEvents.some(e => HOLIDAY_CATEGORIES.has(e.category));
+              const hasEvent = dayEvents.length > 0;
+              
+              let bgClass = "bg-transparent";
+              let textClass = "text-gray-700 dark:text-gray-300 font-medium";
+              
+              if (hasEvent && !hasHoliday) {
+                bgClass = "bg-teal-500";
+                textClass = "text-white font-bold shadow-sm";
+              } else if (hasHoliday || isSunday) {
+                bgClass = "bg-red-50 dark:bg-red-900/20";
+                textClass = "text-red-500 font-bold";
+              } else if (isSelected) {
+                bgClass = "bg-gray-100 dark:bg-gray-800";
+                textClass = "text-gray-900 dark:text-white font-bold";
+              }
+
+              return (
+                <button
+                  key={idx}
+                  onClick={() => setSelectedDateStr(cell.date)}
+                  className={`aspect-square rounded-xl flex items-center justify-center text-[13px] transition-all active:scale-95 ${bgClass} ${textClass} ${isSelected && (hasEvent || hasHoliday) ? 'ring-2 ring-offset-2 ring-teal-500 dark:ring-offset-[#1a1a1a]' : ''}`}
+                >
+                  {cell.day}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Aktivitas Terakhir */}
+        <div>
+          <div className="flex justify-between items-end mb-3 px-1">
+            <h3 className="font-bold text-gray-800 dark:text-white">Aktivitas Terakhir</h3>
+            <span className="text-[11px] font-bold text-teal-600">Lihat Semua</span>
+          </div>
+          
+          <div className="space-y-3">
+            {(eventsByDate.get(selectedDateStr) || []).length === 0 ? (
+              <div className="bg-white dark:bg-[#1a1a1a] rounded-[16px] p-5 text-center shadow-sm border border-gray-100 dark:border-gray-800">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Tidak ada agenda pada tanggal ini.</p>
+              </div>
+            ) : (
+              (eventsByDate.get(selectedDateStr) || []).map((ev) => {
+                const cat = EVENT_CATEGORIES[ev.category] || EVENT_CATEGORIES.general;
+                return (
+                  <div key={ev.id} onClick={() => isAdmin && openEditModal(ev)} className={`bg-white dark:bg-[#1a1a1a] rounded-[16px] p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 ${isAdmin ? 'cursor-pointer active:scale-95' : ''}`}>
+                    <div className="w-12 h-12 rounded-[12px] bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800 flex items-center justify-center shrink-0">
+                      <span className="text-xl leading-none">{cat.emoji || '📅'}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-gray-800 dark:text-white truncate">{ev.title}</h4>
+                      <p className="text-[10px] text-gray-500 mt-1 truncate uppercase tracking-wider font-bold">
+                        {cat.label} • {new Date(ev.eventDate).getDate()} {MONTH_NAMES_ID[new Date(ev.eventDate).getMonth()].slice(0,3)}
+                      </p>
+                    </div>
+                    <div className="text-gray-300 dark:text-gray-600 shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+            {isAdmin && (
+              <button onClick={() => openAddModal(selectedDateStr)} className="w-full bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 border border-teal-200 dark:border-teal-800/50 rounded-[16px] p-3 text-sm font-bold shadow-sm active:scale-95 transition-all">
+                + Tambah Agenda
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Layout - Desktop */}
+      <div className="hidden md:flex flex-col lg:flex-row gap-4">
         {/* Calendar Grid */}
         <div className="flex-1 min-w-0">
           <div className="bg-white dark:bg-[#0a0a0a] rounded-xl border border-border-light dark:border-border-dark overflow-hidden">
