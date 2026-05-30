@@ -303,6 +303,7 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   '': 'overview',
   'news': 'news',
   'calendar': 'calendar',
+  'teacher-duties': 'teacher-duties',
   'student-card': 'student-card',
   'gallery': 'gallery',
   'contacts': 'contacts',
