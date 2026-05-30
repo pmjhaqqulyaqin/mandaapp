@@ -298,7 +298,11 @@ export const PPDBInfoPage = () => {
       const canvas = await html2canvas(printArea, {
         scale: 2,
         useCORS: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        width: printArea.offsetWidth,
+        height: printArea.scrollHeight,
+        windowWidth: printArea.offsetWidth,
+        windowHeight: printArea.scrollHeight,
       });
       
       printArea.style.display = 'none';
@@ -926,10 +930,21 @@ export const PPDBInfoPage = () => {
               <div className="flex-1 text-center mt-6">
                 <h2 className="text-[14pt] font-bold uppercase underline underline-offset-4 decoration-2">Tanda Bukti Pendaftaran Online</h2>
               </div>
-              <div className="w-[30mm] h-[40mm] border-2 border-gray-400 flex flex-col items-center justify-center text-gray-500 font-bold ml-4 shrink-0 bg-gray-50">
-                <span className="text-[10pt]">PAS FOTO</span>
-                <span className="text-[10pt]">3 X 4</span>
-                <span className="text-[8pt] font-normal mt-2">(Otomatis)</span>
+              <div className="w-[30mm] h-[40mm] border-2 border-gray-400 flex flex-col items-center justify-center text-gray-500 font-bold ml-4 shrink-0 bg-gray-50 overflow-hidden">
+                {successData.formData?.dokumen?.find((d: any) => d.jenisDokumen === 'Pas Foto 3x4') ? (
+                  <img 
+                    src={`${API_BASE_URL.replace('/api', '')}${successData.formData.dokumen.find((d: any) => d.jenisDokumen === 'Pas Foto 3x4').filePath}`} 
+                    alt="Pas Foto" 
+                    className="w-full h-full object-cover" 
+                    crossOrigin="anonymous" 
+                  />
+                ) : (
+                  <>
+                    <span className="text-[10pt]">PAS FOTO</span>
+                    <span className="text-[10pt]">3 X 4</span>
+                    <span className="text-[8pt] font-normal mt-2">(Otomatis)</span>
+                  </>
+                )}
               </div>
             </div>
 
