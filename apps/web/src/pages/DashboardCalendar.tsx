@@ -457,6 +457,72 @@ export const DashboardCalendar = () => {
             </div>
           </>
         )}
+
+        {/* Agenda Mendatang & Statistik (Mobile) */}
+        <div className="space-y-4 pt-2">
+          {/* Upcoming Events */}
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-[24px] p-5 shadow-sm border border-gray-100 dark:border-gray-800">
+             <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+               📋 Agenda Mendatang
+             </h3>
+             {upcomingEvents.length === 0 ? (
+               <p className="text-sm text-gray-500 dark:text-gray-400 py-2">Belum ada agenda mendatang</p>
+             ) : (
+               <div className="space-y-3">
+                 {upcomingEvents.map((ev) => {
+                   const d = parseDate(ev.eventDate);
+                   const cat = EVENT_CATEGORIES[ev.category] || EVENT_CATEGORIES.general;
+                   return (
+                     <button
+                       key={ev.id}
+                       onClick={() => { if (isAdmin) openEditModal(ev); }}
+                       className={`w-full text-left flex items-start gap-4 hover:bg-gray-50 dark:hover:bg-white/5 p-3 rounded-[16px] transition-colors -mx-3 ${isAdmin ? 'active:scale-95 cursor-pointer' : 'cursor-default'}`}
+                     >
+                       <div className="text-center shrink-0 w-12 bg-gray-50 dark:bg-gray-800 rounded-xl py-2 border border-gray-100 dark:border-gray-700">
+                         <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: cat.color }}>
+                           {MONTH_NAMES_ID[d.getMonth()].slice(0, 3)}
+                         </div>
+                         <div className="text-xl font-bold text-gray-800 dark:text-white leading-tight">
+                           {d.getDate()}
+                         </div>
+                       </div>
+                       <div className="min-w-0 pt-1">
+                         <div className="text-sm font-bold text-gray-800 dark:text-white truncate">{ev.title}</div>
+                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-medium flex items-center gap-1.5">
+                           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                           {cat.label}
+                         </div>
+                       </div>
+                     </button>
+                   );
+                 })}
+               </div>
+             )}
+          </div>
+
+          {/* Quick Stats */}
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-[24px] p-5 shadow-sm border border-gray-100 dark:border-gray-800">
+            <h3 className="font-bold text-gray-800 dark:text-white mb-4">📊 Statistik TA {selectedYear}</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-teal-50 dark:bg-teal-900/20 rounded-2xl p-4 text-center border border-teal-100 dark:border-teal-800/50">
+                <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">{events.length}</div>
+                <div className="text-[11px] font-semibold text-teal-700/70 dark:text-teal-300/70 mt-1 uppercase tracking-wide">Total Kegiatan</div>
+              </div>
+              <div className="bg-red-50 dark:bg-red-900/20 rounded-2xl p-4 text-center border border-red-100 dark:border-red-800/50">
+                <div className="text-2xl font-bold text-red-500">{events.filter((e) => e.category === 'holiday').length}</div>
+                <div className="text-[11px] font-semibold text-red-700/70 dark:text-red-300/70 mt-1 uppercase tracking-wide">Hari Libur</div>
+              </div>
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4 text-center border border-blue-100 dark:border-blue-800/50">
+                <div className="text-2xl font-bold text-blue-500">{events.filter((e) => e.category.startsWith('exam')).length}</div>
+                <div className="text-[11px] font-semibold text-blue-700/70 dark:text-blue-300/70 mt-1 uppercase tracking-wide">Ujian/Asesmen</div>
+              </div>
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-4 text-center border border-green-100 dark:border-green-800/50">
+                <div className="text-2xl font-bold text-green-500">{events.filter((e) => !['holiday', 'semester_ganjil', 'semester_genap'].includes(e.category)).length}</div>
+                <div className="text-[11px] font-semibold text-green-700/70 dark:text-green-300/70 mt-1 uppercase tracking-wide">Kegiatan Aktif</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main Layout - Desktop */}
