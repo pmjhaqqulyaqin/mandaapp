@@ -90,7 +90,7 @@ export const DashboardCalendar = () => {
   const [categoryFilters, setCategoryFilters] = useState<Record<string, boolean>>(
     Object.fromEntries(CATEGORY_KEYS.map((k) => [k, true]))
   );
-  const [mobilePopupDate, setMobilePopupDate] = useState<string | null>(null);
+  const [mobilePopup, setMobilePopup] = useState<{ date: string; y: number } | null>(null);
 
   // When academic year changes, jump to July of that year (start of tahun ajaran)
   useEffect(() => {
@@ -275,8 +275,8 @@ export const DashboardCalendar = () => {
   }
 
   // Mobile popup data
-  const mobilePopupEvents = mobilePopupDate ? (eventsByDate.get(mobilePopupDate) || []) : [];
-  const mobilePopupDateObj = mobilePopupDate ? parseDate(mobilePopupDate) : null;
+  const mobilePopupEvents = mobilePopup ? (eventsByDate.get(mobilePopup.date) || []) : [];
+  const mobilePopupDateObj = mobilePopup ? parseDate(mobilePopup.date) : null;
 
   return (
     <div className="space-y-4">
@@ -377,7 +377,7 @@ export const DashboardCalendar = () => {
               return (
                 <button
                   key={idx}
-                  onClick={() => { if (hasEvent) setMobilePopupDate(cell.date); }}
+                  onClick={(e) => { if (hasEvent) { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); setMobilePopup({ date: cell.date, y: r.bottom }); } }}
                   className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all ${hasEvent ? 'active:scale-95 cursor-pointer' : 'cursor-default'} ${
                     isToday ? 'bg-primary text-white font-bold shadow-sm' :
                     hasHoliday ? 'bg-red-50 dark:bg-red-900/20' : ''
@@ -408,59 +408,54 @@ export const DashboardCalendar = () => {
           </div>
         </div>
 
-        {/* Mobile Event Popup (Bottom Sheet) */}
-        {mobilePopupDate && mobilePopupEvents.length > 0 && mobilePopupDateObj && (
-          <div className="fixed inset-0 z-[9998] bg-black/40 backdrop-blur-sm flex items-end" onClick={() => setMobilePopupDate(null)}>
+        {/* Mobile Event Tooltip */}
+        {mobilePopup && mobilePopupEvents.length > 0 && mobilePopupDateObj && (
+          <>
+            <div className="fixed inset-0 z-[9997]" onClick={() => setMobilePopup(null)} />
             <div
-              className="relative bg-white dark:bg-[#1a1a1a] rounded-t-[24px] w-full p-5 pb-8 shadow-xl border-t border-gray-200 dark:border-gray-700"
-              onClick={(e) => e.stopPropagation()}
+              className="fixed left-3 right-3 z-[9998] bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-3 max-h-[40vh] overflow-y-auto"
+              style={{ top: Math.min(mobilePopup.y + 4, window.innerHeight - 200) }}
             >
-              {/* Drag handle */}
-              <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
               {/* Header */}
-              <div className="flex items-center justify-between mb-4 mt-2">
-                <h3 className="font-bold text-gray-800 dark:text-white text-base">
-                  📅 {mobilePopupDateObj.getDate()} {MONTH_NAMES_ID[mobilePopupDateObj.getMonth()]} {mobilePopupDateObj.getFullYear()}
-                </h3>
-                <button
-                  onClick={() => setMobilePopupDate(null)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-gray-800 dark:text-white">
+                  {mobilePopupDateObj.getDate()} {MONTH_NAMES_ID[mobilePopupDateObj.getMonth()]} {mobilePopupDateObj.getFullYear()}
+                </span>
+                <button onClick={() => setMobilePopup(null)} className="w-5 h-5 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                 </button>
               </div>
-              {/* Events List */}
-              <div className="space-y-2.5 max-h-[50vh] overflow-y-auto">
+              {/* Events */}
+              <div className="space-y-1.5">
                 {mobilePopupEvents.map((ev) => {
                   const cat = EVENT_CATEGORIES[ev.category] || EVENT_CATEGORIES.general;
                   const color = getCategoryColor(ev.category, ev.color);
                   return (
                     <div
                       key={ev.id}
-                      onClick={() => { if (isAdmin) { setMobilePopupDate(null); openEditModal(ev); } }}
-                      className={`rounded-xl p-3.5 flex items-center gap-3 ${isAdmin ? 'cursor-pointer active:scale-[0.98]' : ''} transition-all`}
-                      style={{ backgroundColor: color + '15', borderLeft: `3px solid ${color}` }}
+                      onClick={() => { if (isAdmin) { setMobilePopup(null); openEditModal(ev); } }}
+                      className={`rounded-lg px-2.5 py-1.5 flex items-center gap-2 ${isAdmin ? 'cursor-pointer active:scale-[0.98]' : ''} transition-all`}
+                      style={{ backgroundColor: color + '12', borderLeft: `2px solid ${color}` }}
                     >
-                      <span className="text-lg leading-none shrink-0">{cat.emoji}</span>
+                      <span className="text-sm leading-none shrink-0">{cat.emoji}</span>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-gray-800 dark:text-white text-sm truncate">{ev.title}</h4>
-                        <p className="text-[10px] mt-0.5 font-medium" style={{ color }}>{cat.label}</p>
-                        {ev.description && <p className="text-[11px] text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">{ev.description}</p>}
+                        <h4 className="font-semibold text-gray-800 dark:text-white text-[11px] truncate">{ev.title}</h4>
+                        <p className="text-[9px] font-medium" style={{ color }}>{cat.label}</p>
                       </div>
                     </div>
                   );
                 })}
               </div>
-              {isAdmin && mobilePopupDate && (
+              {isAdmin && mobilePopup && (
                 <button
-                  onClick={() => { if (mobilePopupDate) { openAddModal(mobilePopupDate); setMobilePopupDate(null); } }}
-                  className="w-full mt-3 bg-primary/10 text-primary border border-primary/20 rounded-xl p-3 text-sm font-bold active:scale-95 transition-all"
+                  onClick={() => { if (mobilePopup) { openAddModal(mobilePopup.date); setMobilePopup(null); } }}
+                  className="w-full mt-2 bg-primary/10 text-primary border border-primary/20 rounded-lg py-1.5 text-[11px] font-bold active:scale-95 transition-all"
                 >
-                  + Tambah Agenda
+                  + Tambah
                 </button>
               )}
             </div>
-          </div>
+          </>
         )}
       </div>
 
