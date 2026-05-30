@@ -295,41 +295,42 @@ export const PPDBInfoPage = () => {
       // Temporarily display the hidden area for html2canvas to render properly
       printArea.style.display = 'block';
 
-      const canvas = await html2canvas(printArea, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        width: printArea.offsetWidth,
-        height: printArea.scrollHeight,
-        windowWidth: printArea.offsetWidth,
-        windowHeight: printArea.scrollHeight,
-      });
+      // Process Page 1
+      const printPage1 = document.getElementById('print-page-1');
+      const printPage2 = document.getElementById('print-page-2');
       
-      printArea.style.display = 'none';
-
-      const imgData = canvas.toDataURL('image/png');
+      if (!printPage1 || !printPage2) throw new Error('Elemen cetak tidak ditemukan');
+      
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4'
       });
-
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      
-      let heightLeft = pdfHeight;
-      let position = 0;
+      const pdfHeight = pdf.internal.pageSize.getHeight();
 
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pageHeight;
+      // Helper function to render a page
+      const renderPageToPdf = async (element: HTMLElement, isFirstPage: boolean) => {
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          width: element.offsetWidth,
+          windowWidth: element.offsetWidth,
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        const imgProps = pdf.getImageProperties(imgData);
+        const ratio = imgProps.width / imgProps.height;
+        let renderedHeight = pdfWidth / ratio;
+        
+        if (!isFirstPage) pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, renderedHeight);
+      };
 
-      while (heightLeft >= 0) {
-        position = position - pageHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-        heightLeft -= pageHeight;
-      }
+      await renderPageToPdf(printPage1, true);
+      await renderPageToPdf(printPage2, false);
+
       
       pdf.save(`Bukti_Pendaftaran_${successData?.noPendaftaran?.replace(/[^a-zA-Z0-9]/g, '_') || 'Siswa'}.pdf`);
       toast.success('Bukti pendaftaran berhasil diunduh sebagai PDF');
@@ -959,170 +960,239 @@ export const PPDBInfoPage = () => {
                 )}
               </div>
             </div>
+          </div>
 
-            {/* DATA SISTEM */}
-            <div className="mb-8">
-              <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">I. DATA SISTEM & PENDAFTARAN</h3>
-              <table className="w-full text-[11pt]">
-                <tbody>
-                  <tr>
-                    <td className="w-[45%] py-1.5">Nomor Pendaftaran</td>
-                    <td className="w-4 py-1.5">:</td>
-                    <td className="font-bold">{successData.noPendaftaran}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1.5">Tanggal Cetak</td>
-                    <td className="py-1.5">:</td>
-                    <td>{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} / {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1.5">Jalur Pendaftaran</td>
-                    <td className="py-1.5">:</td>
-                    <td>Jalur {successData.jalur?.namaJalur || 'Reguler'}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+          <div className="bg-white absolute left-[200vw] top-0 w-[210mm] text-black" id="print-area-hidden" style={{ display: 'none' }}>
+            {/* PAGE 1 */}
+            <div id="print-page-1" className="bg-white w-[210mm] min-h-[297mm] p-10 font-sans text-black relative box-border">
+              {/* HEADER */}
+              <div className="border-b-4 border-black pb-4 mb-6 flex items-center gap-6">
+                <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
+                <div className="text-center flex-1 pr-12">
+                  <h1 className="font-bold text-xl uppercase tracking-wide">KEMENTERIAN AGAMA REPUBLIK INDONESIA</h1>
+                  <h2 className="font-black text-2xl uppercase mt-1 mb-1 tracking-wider">MAN 2 LOMBOK TIMUR</h2>
+                  <p className="text-[10pt]">Jl. Pendidikan No. 123, Selong, Lombok Timur, NTB 83611</p>
+                  <p className="text-[10pt]">Website: mandualotim.sch.id | Email: info@mandualotim.sch.id</p>
+                </div>
+              </div>
 
-            {/* DATA SISWA */}
-            <div className="mb-8">
-              <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">II. DATA CALON PESERTA DIDIK</h3>
-              <table className="w-full text-[11pt]">
-                <tbody>
-                  <tr>
-                    <td className="w-[45%] py-1.5">Nama Lengkap</td>
-                    <td className="w-4 py-1.5">:</td>
-                    <td className="font-bold uppercase">{successData.formData?.dataDiri?.namaLengkap || successData.nama || '-'}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1.5">NISN</td>
-                    <td className="py-1.5">:</td>
-                    <td>{successData.formData?.dataDiri?.nisn || successData.nisn || '-'}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1.5">Tempat, Tanggal Lahir</td>
-                    <td className="py-1.5">:</td>
-                    <td>
-                      {successData.formData?.dataDiri?.tempatLahir || '-'},{' '}
-                      {successData.formData?.dataDiri?.tanggalLahir ? new Date(successData.formData.dataDiri.tanggalLahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-1.5">Jenis Kelamin</td>
-                    <td className="py-1.5">:</td>
-                    <td>{successData.formData?.dataDiri?.jenisKelamin || '-'}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1.5">Sekolah Asal</td>
-                    <td className="py-1.5">:</td>
-                    <td>{successData.formData?.dataSekolah?.namaSekolah || '-'}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1.5 align-top">Alamat Rumah</td>
-                    <td className="py-1.5 align-top">:</td>
-                    <td className="align-top leading-snug">{successData.formData?.dataDiri?.alamat || '-'}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+              {/* JUDUL */}
+              <div className="text-center mb-8">
+                <h2 className="font-black text-lg uppercase underline underline-offset-4 mb-1">BUKTI PENDAFTARAN PESERTA DIDIK BARU</h2>
+                <p className="font-bold text-[11pt]">Tahun Ajaran {config?.tahunAjaran || '2026/2027'}</p>
+              </div>
 
-            {/* DATA ORANG TUA */}
-            <div className="mb-10">
-              <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">III. DATA ORANG TUA / WALI</h3>
-              <table className="w-full text-[11pt]">
-                <tbody>
-                  <tr>
-                    <td className="w-[45%] py-1.5">Nama Ayah / Ibu</td>
-                    <td className="w-4 py-1.5">:</td>
-                    <td>{successData.formData?.dataDiri?.namaAyah || successData.formData?.dataDiri?.namaIbu || '-'}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1.5">No. HP / Telepon</td>
-                    <td className="py-1.5">:</td>
-                    <td>{successData.formData?.dataDiri?.noHpOrtu || '-'}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+              {/* NO PENDAFTARAN KOTAK */}
+              <div className="border-2 border-black p-3 text-center mb-8 w-max mx-auto rounded-md shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-gray-50">
+                <div className="text-[10pt] font-bold uppercase tracking-wider mb-1">Nomor Pendaftaran</div>
+                <div className="text-2xl font-black font-mono tracking-widest">{successData.noPendaftaran}</div>
+              </div>
 
-            {/* DATA NILAI & PRESTASI */}
-            <div className="mb-10">
-              <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">IV. DATA NILAI RAPORT & PRESTASI</h3>
-              
-              <div className="mb-4">
-                <div className="font-bold text-[10pt] mb-2">Nilai Raport:</div>
-                <table className="w-full text-[10pt] border-collapse">
-                  <thead>
-                    <tr>
-                      <th className="border border-black px-2 py-1 text-left bg-gray-50">Semester</th>
-                      <th className="border border-black px-2 py-1 text-center bg-gray-50">B. Ind</th>
-                      <th className="border border-black px-2 py-1 text-center bg-gray-50">B. Ing</th>
-                      <th className="border border-black px-2 py-1 text-center bg-gray-50">MTK</th>
-                      <th className="border border-black px-2 py-1 text-center bg-gray-50">IPA</th>
-                      <th className="border border-black px-2 py-1 text-center bg-gray-50">IPS</th>
-                    </tr>
-                  </thead>
+              {/* JALUR */}
+              <div className="mb-8">
+                <table className="w-full text-[11pt]">
                   <tbody>
-                    {successData.formData?.nilaiRaport?.map((n: any, i: number) => (
-                      <tr key={i}>
-                        <td className="border border-black px-2 py-1 font-medium">Semester {n.semester}</td>
-                        <td className="border border-black px-2 py-1 text-center">{n.bIndonesia || '-'}</td>
-                        <td className="border border-black px-2 py-1 text-center">{n.bInggris || '-'}</td>
-                        <td className="border border-black px-2 py-1 text-center">{n.matematika || '-'}</td>
-                        <td className="border border-black px-2 py-1 text-center">{n.ipa || '-'}</td>
-                        <td className="border border-black px-2 py-1 text-center">{n.ips || '-'}</td>
-                      </tr>
-                    ))}
+                    <tr>
+                      <td className="w-[45%] py-1.5 font-bold">Jalur Pendaftaran</td>
+                      <td className="w-4 py-1.5 font-bold">:</td>
+                      <td className="font-bold uppercase bg-gray-100 px-2 py-1 rounded inline-block">{successData.jalur?.namaJalur || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5">Tanggal Pendaftaran</td>
+                      <td className="py-1.5">:</td>
+                      <td>{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })} WITA</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
 
-              <div>
-                <div className="font-bold text-[10pt] mb-2">Prestasi:</div>
-                {successData.formData?.prestasi?.length > 0 ? (
-                  <ul className="list-disc pl-5 text-[10pt] space-y-1">
-                    {successData.formData.prestasi.map((p: any, i: number) => (
-                      <li key={i}>{p.namaKegiatan} - {p.peringkat} Tingkat {p.tingkat} ({p.tahun})</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="text-[10pt] italic text-gray-500">Tidak ada data prestasi</div>
-                )}
+              {/* DATA DIRI */}
+              <div className="mb-6">
+                <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">I. IDENTITAS CALON PESERTA DIDIK</h3>
+                <table className="w-full text-[11pt]">
+                  <tbody>
+                    <tr>
+                      <td className="w-[45%] py-1.5">Nama Lengkap</td>
+                      <td className="w-4 py-1.5">:</td>
+                      <td className="font-bold">{successData.formData?.dataDiri?.namaLengkap || successData.nama || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5">NIK (Nomor Induk Kependudukan)</td>
+                      <td className="py-1.5">:</td>
+                      <td>{successData.formData?.dataDiri?.nik || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5">NISN</td>
+                      <td className="py-1.5">:</td>
+                      <td>{successData.formData?.dataDiri?.nisn || successData.nisn || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5">Tempat, Tanggal Lahir</td>
+                      <td className="py-1.5">:</td>
+                      <td>
+                        {successData.formData?.dataDiri?.tempatLahir || '-'},{' '}
+                        {successData.formData?.dataDiri?.tanggalLahir ? new Date(successData.formData.dataDiri.tanggalLahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5">Jenis Kelamin</td>
+                      <td className="py-1.5">:</td>
+                      <td>{successData.formData?.dataDiri?.jenisKelamin || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5 align-top">Alamat Rumah</td>
+                      <td className="py-1.5 align-top">:</td>
+                      <td className="align-top leading-snug">{successData.formData?.dataDiri?.alamat || '-'}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* DATA SEKOLAH */}
+              <div className="mb-6">
+                <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">II. DATA SEKOLAH ASAL</h3>
+                <table className="w-full text-[11pt]">
+                  <tbody>
+                    <tr>
+                      <td className="w-[45%] py-1.5">Sekolah Asal</td>
+                      <td className="w-4 py-1.5">:</td>
+                      <td className="font-bold">{successData.formData?.dataSekolah?.namaSekolah || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5">NPSN</td>
+                      <td className="py-1.5">:</td>
+                      <td>{successData.formData?.dataSekolah?.npsn || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5">Tahun Lulus</td>
+                      <td className="py-1.5">:</td>
+                      <td>{successData.formData?.dataSekolah?.tahunLulus || '-'}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* DATA ORANG TUA */}
+              <div className="mb-6">
+                <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">III. DATA ORANG TUA / WALI</h3>
+                <table className="w-full text-[11pt]">
+                  <tbody>
+                    <tr>
+                      <td className="w-[45%] py-1.5">Nama Ayah / Ibu</td>
+                      <td className="w-4 py-1.5">:</td>
+                      <td>{successData.formData?.dataDiri?.namaAyah || successData.formData?.dataDiri?.namaIbu || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5">No. HP / Telepon</td>
+                      <td className="py-1.5">:</td>
+                      <td>{successData.formData?.dataDiri?.noHpOrtu || '-'}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
-            {/* PERNYATAAN */}
-            <div className="mb-10 border-t border-dashed border-gray-400 pt-6 text-[11pt] text-justify leading-snug">
-              <div className="font-bold mb-2">PERNYATAAN:</div>
-              Dengan mencetak bukti ini, saya menyatakan bahwa seluruh data yang diisikan di atas adalah benar dan sesuai dengan dokumen asli yang sah.
-            </div>
+            {/* PAGE 2 */}
+            <div id="print-page-2" className="bg-white w-[210mm] min-h-[297mm] p-10 font-sans text-black relative box-border">
+              {/* DATA NILAI & PRESTASI */}
+              <div className="mb-10">
+                <h3 className="font-bold border-b border-black pb-1 mb-3 text-[11pt]">IV. DATA NILAI RAPORT & PRESTASI</h3>
+                
+                <div className="mb-6">
+                  <div className="font-bold text-[10pt] mb-2">Nilai Raport:</div>
+                  <table className="w-full text-[10pt] border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="border border-black px-2 py-1 text-left bg-gray-50">Semester</th>
+                        <th className="border border-black px-2 py-1 text-center bg-gray-50">B. Ind</th>
+                        <th className="border border-black px-2 py-1 text-center bg-gray-50">B. Ing</th>
+                        <th className="border border-black px-2 py-1 text-center bg-gray-50">MTK</th>
+                        <th className="border border-black px-2 py-1 text-center bg-gray-50">IPA</th>
+                        <th className="border border-black px-2 py-1 text-center bg-gray-50">IPS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {successData.formData?.nilaiRaport?.length > 0 ? (
+                        successData.formData.nilaiRaport.map((n: any, i: number) => (
+                          <tr key={i}>
+                            <td className="border border-black px-2 py-1 font-medium">Semester {n.semester}</td>
+                            <td className="border border-black px-2 py-1 text-center">{n.bIndonesia || '-'}</td>
+                            <td className="border border-black px-2 py-1 text-center">{n.bInggris || '-'}</td>
+                            <td className="border border-black px-2 py-1 text-center">{n.matematika || '-'}</td>
+                            <td className="border border-black px-2 py-1 text-center">{n.ipa || '-'}</td>
+                            <td className="border border-black px-2 py-1 text-center">{n.ips || '-'}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="border border-black px-2 py-3 text-center italic text-gray-500">Tidak ada data nilai raport yang diinputkan</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
 
-            {/* TANDA TANGAN */}
-            <div className="flex justify-between text-[11pt] mb-16">
-              <div className="text-center w-64">
-                <br/>
-                <div className="mb-24">Tanda Tangan Orang Tua/Wali,</div>
-                <div className="font-bold">( _______________________ )</div>
+                <div>
+                  <div className="font-bold text-[10pt] mb-2">Prestasi:</div>
+                  {successData.formData?.prestasi?.length > 0 ? (
+                    <ul className="list-disc pl-5 text-[10pt] space-y-2">
+                      {successData.formData.prestasi.map((p: any, i: number) => (
+                        <li key={i}>
+                          <span className="font-bold">{p.namaKegiatan}</span> - {p.peringkat} Tingkat {p.tingkat} ({p.tahun})
+                          <br/>
+                          <span className="text-[9pt] italic text-gray-500">Kategori: {p.jenis}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="text-[10pt] italic text-gray-500 border border-dashed border-gray-300 p-3 rounded">Tidak ada data prestasi tambahan yang diinputkan</div>
+                  )}
+                </div>
               </div>
-              <div className="text-center w-64">
-                <div className="mb-1">Lombok Timur, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-                <div className="mb-24">Calon Peserta Didik,</div>
-                <div className="font-bold">( _______________________ )</div>
+
+              {/* PERNYATAAN */}
+              <div className="mb-10 border-t border-dashed border-gray-400 pt-6 text-[11pt] text-justify leading-snug">
+                <div className="font-bold mb-2">V. PERNYATAAN</div>
+                Dengan mencetak bukti ini, saya menyatakan bahwa seluruh data yang diisikan di atas adalah benar dan sesuai dengan dokumen asli yang sah. Apabila di kemudian hari terbukti ada pemalsuan data, maka kami bersedia menerima sanksi sesuai dengan ketentuan yang berlaku di MAN 2 Lombok Timur.
+              </div>
+
+              {/* TANDA TANGAN */}
+              <div className="flex justify-between text-[11pt] mb-16">
+                <div className="text-center w-64">
+                  <br/>
+                  <div className="mb-24">Tanda Tangan Orang Tua/Wali,</div>
+                  <div className="font-bold border-b border-black inline-block px-8 pb-1">( _______________________ )</div>
+                </div>
+                <div className="text-center w-64">
+                  <div className="mb-1">Lombok Timur, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                  <div className="mb-24">Calon Peserta Didik,</div>
+                  <div className="font-bold border-b border-black inline-block px-8 pb-1">( _______________________ )</div>
+                </div>
+              </div>
+
+              {/* CATATAN PANITIA */}
+              <div className="border-[3px] border-black p-5 text-[11pt] rounded-xl relative overflow-hidden">
+                <div className="absolute -right-4 -top-4 opacity-5 pointer-events-none">
+                  <img src="/logo.png" className="w-40 h-40" />
+                </div>
+                <div className="font-black mb-4 uppercase text-[12pt] border-b-2 border-black inline-block pb-1">CATATAN PANITIA VERIFIKASI</div>
+                <div className="text-[10pt] italic text-gray-600 mb-6">(Diisi oleh panitia saat penyerahan berkas fisik di madrasah)</div>
+                <div className="mb-8 font-bold text-[12pt] flex items-center gap-10">
+                  <span>Status Berkas:</span>
+                  <span className="flex items-center gap-2"><div className="w-6 h-6 border-2 border-black inline-block" /> VALID</span>
+                  <span className="flex items-center gap-2"><div className="w-6 h-6 border-2 border-black inline-block" /> TIDAK VALID</span>
+                </div>
+                <div className="flex justify-end mt-4">
+                  <div className="w-64 text-center">
+                    <div className="mb-24">Petugas Verifikator,</div>
+                    <div className="font-bold border-b border-black inline-block px-8 pb-1">( _______________________ )</div>
+                    <div className="text-left mt-2 font-bold text-[10pt]">NIP.</div>
+                  </div>
+                </div>
               </div>
             </div>
-
-            {/* CATATAN PANITIA */}
-            <div className="border-t-[3px] border-black pt-6 text-[11pt]">
-              <div className="font-bold mb-4">CATATAN PANITIA VERIFIKASI (Diisi saat penyerahan berkas fisik):</div>
-              <div className="mb-8 font-bold text-[12pt]">Status Berkas: [ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ] VALID &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ] TIDAK VALID</div>
-              <div className="w-64 text-center mt-12">
-                <div className="mb-24">Petugas Verifikator,</div>
-                <div className="font-bold">( _______________________ )</div>
-                <div className="text-left ml-4 mt-2 font-bold">NIP.</div>
-              </div>
-            </div>
-
           </div>
+        </div>
       )}
 
       {/* Shimmer animation & Print Styles */}
