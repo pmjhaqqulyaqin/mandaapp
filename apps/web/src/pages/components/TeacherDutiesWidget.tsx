@@ -15,7 +15,8 @@ export const TeacherDutiesWidget: React.FC<{ academicYear: string }> = ({ academ
   const todayStr = new Date().toISOString().split('T')[0];
   const upcomingDuties = duties
     ?.filter(d => d.dutyDate >= todayStr)
-    .sort((a, b) => a.dutyDate.localeCompare(b.dutyDate)) || [];
+    .sort((a, b) => a.dutyDate.localeCompare(b.dutyDate))
+    .slice(0, 10) || [];
 
   return (
     <>
