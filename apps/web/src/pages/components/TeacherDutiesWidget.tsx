@@ -11,12 +11,11 @@ export const TeacherDutiesWidget: React.FC<{ academicYear: string }> = ({ academ
   
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Get duties from today onwards, limited to next 7-10 upcoming duties
+  // Get duties from today onwards (all upcoming duties)
   const todayStr = new Date().toISOString().split('T')[0];
   const upcomingDuties = duties
     ?.filter(d => d.dutyDate >= todayStr)
-    .sort((a, b) => a.dutyDate.localeCompare(b.dutyDate))
-    .slice(0, 10) || [];
+    .sort((a, b) => a.dutyDate.localeCompare(b.dutyDate)) || [];
 
   return (
     <>
@@ -45,7 +44,7 @@ export const TeacherDutiesWidget: React.FC<{ academicYear: string }> = ({ academ
         ) : upcomingDuties.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400 py-2">Belum ada jadwal tugas mendatang</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
             {upcomingDuties.map(duty => {
               const d = new Date(duty.dutyDate);
               return (
