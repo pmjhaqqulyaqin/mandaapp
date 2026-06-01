@@ -5,7 +5,9 @@ import { Settings, Plus, X, Calendar, Edit2, Trash2 } from 'lucide-react';
 import { useEmployees } from '../../hooks/api/useEmployeeProfile';
 
 export const TeacherDutiesWidget: React.FC<{ academicYear: string }> = ({ academicYear }) => {
-  const { data: duties, isLoading } = useTeacherDuties({ academicYear });
+  // Fetch ALL duties (no academicYear filter) so the widget always shows upcoming duties
+  // regardless of which academic year they were created under
+  const { data: duties, isLoading } = useTeacherDuties();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin' || user?.role === 'kepsek';
   
