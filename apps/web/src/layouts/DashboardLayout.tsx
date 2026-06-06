@@ -769,7 +769,7 @@ export const DashboardLayout = () => {
           )}
 
           {/* ── Normal Categories ── */}
-          {SIDEBAR_CATEGORIES.map(cat => {
+          {(activeSubApp ? SIDEBAR_CATEGORIES.filter(c => c.key === 'app-dashboard') : SIDEBAR_CATEGORIES).map(cat => {
             const catItems = categorizedMenuItems[cat.key];
             if (!catItems || catItems.length === 0) return null;
 
