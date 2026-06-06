@@ -311,6 +311,18 @@ export const cardSettings = pgTable("card_settings", {
   customTemplateVerticalBackUrl: text("custom_template_vertical_back_url"),
 });
 
+export const cardPrintHistory = pgTable("card_print_history", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  printType: varchar("print_type", { length: 20 }).notNull().default("single"), // single, batch
+  studentCount: integer("student_count").notNull().default(1),
+  classFilter: varchar("class_filter", { length: 100 }),
+  orientation: varchar("orientation", { length: 20 }).default("vertical"),
+  templateUsed: varchar("template_used", { length: 50 }).default("classic-blue"),
+  studentNames: text("student_names"), // comma-separated for quick display
+  printedBy: text("printed_by").references(() => user.id),
+  printedAt: timestamp("printed_at").defaultNow(),
+});
+
 export const newsAnnouncements = pgTable("news_announcements", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: varchar("title", { length: 255 }).notNull(),

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
-import { CardSettingsService } from "./service";
+import { CardSettingsService } from "./settingsService";
+import { CardPrintHistoryService } from "./service";
 
 // Whitelist of columns that exist in the card_settings table.
 // Any other field sent by the frontend will be stripped to prevent Drizzle errors.
@@ -54,6 +55,48 @@ export class CardSettingsController {
     } catch (error: any) {
       console.error("Card settings update error:", error?.message || error, error?.stack);
       res.status(500).json({ error: "Failed to update card settings", details: error?.message });
+    }
+  }
+}
+
+export class CardPrintHistoryController {
+  static async getHistory(req: Request, res: Response) {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const history = await CardPrintHistoryService.getHistory(limit);
+      res.json(history);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch print history", details: error?.message });
+    }
+  }
+
+  static async getStats(req: Request, res: Response) {
+    try {
+      const stats = await CardPrintHistoryService.getStats();
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch print stats", details: error?.message });
+    }
+  }
+
+  static async logPrint(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+      const { printType, studentCount, classFilter, orientation, templateUsed, studentNames } = req.body;
+      
+      const record = await CardPrintHistoryService.logPrint({
+        printType: printType || 'single',
+        studentCount: studentCount || 1,
+        classFilter,
+        orientation,
+        templateUsed,
+        studentNames,
+        printedBy: userId,
+      });
+      res.json(record);
+    } catch (error: any) {
+      console.error("Log print error:", error?.message || error);
+      res.status(500).json({ error: "Failed to log print", details: error?.message });
     }
   }
 }

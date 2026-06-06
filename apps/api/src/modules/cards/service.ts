@@ -1,20 +1,50 @@
 import { db } from "../../db";
-import { cardSettings } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { cardPrintHistory } from "../../db/schema";
+import { desc, sql } from "drizzle-orm";
 
-export class CardSettingsService {
-  static async getSettings() {
-    const results = await db.select().from(cardSettings).limit(1);
-    // Return first row or default if empty
-    return results[0] || null;
+export class CardPrintHistoryService {
+  static async getHistory(limit = 50) {
+    return db
+      .select()
+      .from(cardPrintHistory)
+      .orderBy(desc(cardPrintHistory.printedAt))
+      .limit(limit);
   }
 
-  static async updateSettings(id: string, data: any) {
-    if (!id) {
-      const results = await db.insert(cardSettings).values(data).returning();
-      return results[0];
-    }
-    const results = await db.update(cardSettings).set(data).where(eq(cardSettings.id, id)).returning();
-    return results[0];
+  static async getStats() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [totalResult] = await db
+      .select({ count: sql<number>`count(*)::int`, totalCards: sql<number>`coalesce(sum(${cardPrintHistory.studentCount}), 0)::int` })
+      .from(cardPrintHistory);
+
+    const [todayResult] = await db
+      .select({ count: sql<number>`count(*)::int`, totalCards: sql<number>`coalesce(sum(${cardPrintHistory.studentCount}), 0)::int` })
+      .from(cardPrintHistory)
+      .where(sql`${cardPrintHistory.printedAt} >= ${today.toISOString()}`);
+
+    return {
+      totalPrints: totalResult?.count || 0,
+      totalCards: totalResult?.totalCards || 0,
+      todayPrints: todayResult?.count || 0,
+      todayCards: todayResult?.totalCards || 0,
+    };
+  }
+
+  static async logPrint(data: {
+    printType: string;
+    studentCount: number;
+    classFilter?: string;
+    orientation?: string;
+    templateUsed?: string;
+    studentNames?: string;
+    printedBy?: string;
+  }) {
+    const [result] = await db
+      .insert(cardPrintHistory)
+      .values(data)
+      .returning();
+    return result;
   }
 }

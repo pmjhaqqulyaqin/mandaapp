@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { cardPrintService } from '../lib/services/cardPrint';
 import {
   Breadcrumbs,
   Skeleton,
@@ -25,14 +27,17 @@ import { useCards } from '../hooks/api/useCards';
 import { useSiteSettings } from '../hooks/api/useSettings';
 import { CameraCapture } from '../components/CameraCapture';
 import { galleryService } from '../lib/services/gallery';
-import { Edit2, Image as ImageIcon, Camera, X, Loader2, Eye, History, Palette } from 'lucide-react';
+import { Edit2, Image as ImageIcon, Camera, X, Loader2, Eye, History, Palette, Printer } from 'lucide-react';
 
 export const DashboardStudentCard = () => {
   const { user } = useAuth();
   const { queryAll: studentsQuery, updateMutation: updateStudent } = useStudents();
   const { querySettings: cardSettingsQuery, updateSettingsMutation } = useCards();
   const { get: getSiteSetting, isLoading: isSiteSettingsLoading } = useSiteSettings();
-  
+
+  // Print History queries
+  const printHistoryQuery = useQuery({ queryKey: ['card-print-history'], queryFn: () => cardPrintService.getHistory(100), enabled: activeTab === 'history' });
+  const printStatsQuery = useQuery({ queryKey: ['card-print-stats'], queryFn: () => cardPrintService.getStats(), enabled: activeTab === 'history' });
   const globalLogoUrl = getSiteSetting('logo_url', '');
   const globalKemenagLogoUrl = getSiteSetting('kemenag_logo_url', '');
   const globalSchoolName = getSiteSetting('school_name', '');
@@ -353,6 +358,15 @@ export const DashboardStudentCard = () => {
       localStorage.setItem('batch-print-data', JSON.stringify(printData));
       // Both single and batch prints use the same print page
       window.open('/dashboard/print-batch', '_blank');
+      // Log print to history
+      cardPrintService.logPrint({
+        printType: singleStudentToPrint ? 'single' : 'batch',
+        studentCount: activeStudentsToPrint.length,
+        classFilter: selectedClass !== 'all' ? selectedClass : undefined,
+        orientation,
+        templateUsed: template.id,
+        studentNames: activeStudentsToPrint.map(s => s.fullName || s.name).slice(0, 20).join(', '),
+      }).then(() => printHistoryQuery.refetch()).catch(() => {});
     } catch (e) {
       console.error('Failed to save print data:', e);
       toast.error('Gagal menyiapkan data cetak. Data mungkin terlalu besar.');
@@ -458,6 +472,103 @@ export const DashboardStudentCard = () => {
       console.error("Save settings error:", err);
       toast.error(`Gagal menyimpan pengaturan: ${err.message || 'Unknown error'}`, { id: toastId });
     }
+  };
+
+  // ── Print History Tab Component ──
+  const PrintHistoryTab = () => {
+    const history = printHistoryQuery.data || [];
+    const stats = printStatsQuery.data || { totalPrints: 0, totalCards: 0, todayPrints: 0, todayCards: 0 };
+    const isLoadingHistory = printHistoryQuery.isLoading;
+
+    return (
+      <div className="space-y-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Total Cetak', value: stats.totalPrints, icon: <Printer size={18} />, color: 'text-primary bg-primary/10' },
+            { label: 'Total Kartu', value: stats.totalCards, icon: <Eye size={18} />, color: 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/20' },
+            { label: 'Cetak Hari Ini', value: stats.todayPrints, icon: <History size={18} />, color: 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/20' },
+            { label: 'Kartu Hari Ini', value: stats.todayCards, icon: <Loader2 size={18} />, color: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20' },
+          ].map((stat, i) => (
+            <div key={i} className="bg-white dark:bg-background-dark p-4 rounded-2xl border border-border-light dark:border-border-dark shadow-sm">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-2 ${stat.color}`}>{stat.icon}</div>
+              <p className="text-2xl font-heading font-bold text-text-primary dark:text-text-darkPrimary">{stat.value}</p>
+              <p className="text-xs text-text-secondary">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* History Table */}
+        <div className="bg-white dark:bg-background-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
+              <History size={16} className="text-primary" />
+              Log Riwayat Cetak
+            </h3>
+            <button onClick={() => { printHistoryQuery.refetch(); printStatsQuery.refetch(); }} className="text-xs text-primary hover:text-primary/80 font-medium">
+              ↻ Refresh
+            </button>
+          </div>
+
+          {isLoadingHistory ? (
+            <div className="space-y-3">
+              {[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
+            </div>
+          ) : history.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-3">
+                <History size={24} className="text-text-secondary" />
+              </div>
+              <p className="text-sm text-text-secondary">Belum ada riwayat cetak kartu pelajar.</p>
+              <p className="text-xs text-text-secondary mt-1">Riwayat akan muncul setelah Anda mencetak kartu.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border-light dark:border-border-dark">
+                    <th className="text-left py-2.5 px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">Tanggal</th>
+                    <th className="text-left py-2.5 px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">Tipe</th>
+                    <th className="text-center py-2.5 px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">Jumlah</th>
+                    <th className="text-left py-2.5 px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">Template</th>
+                    <th className="text-left py-2.5 px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider hidden md:table-cell">Siswa</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((item: any) => (
+                    <tr key={item.id} className="border-b border-border-light/50 dark:border-border-dark/50 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                      <td className="py-2.5 px-3 text-text-primary dark:text-text-darkPrimary whitespace-nowrap">
+                        {new Date(item.printedAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        <span className="text-text-secondary ml-1 text-xs">
+                          {new Date(item.printedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                          item.printType === 'batch'
+                            ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                            : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+                        }`}>
+                          {item.printType === 'batch' ? 'Batch' : 'Single'}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-semibold text-text-primary dark:text-text-darkPrimary">{item.studentCount}</td>
+                      <td className="py-2.5 px-3 text-text-secondary text-xs">
+                        <span className="capitalize">{item.templateUsed?.replace(/-/g, ' ') || '-'}</span>
+                        <span className="text-text-secondary/60 ml-1">({item.orientation || 'vertical'})</span>
+                      </td>
+                      <td className="py-2.5 px-3 text-text-secondary text-xs max-w-[200px] truncate hidden md:table-cell" title={item.studentNames || ''}>
+                        {item.studentNames || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   const tabs: { key: typeof activeTab; label: string; roles: string[] }[] = [
@@ -1033,20 +1144,9 @@ export const DashboardStudentCard = () => {
             )}
           </div>
 
-            {/* ===== HISTORY TAB (Placeholder) ===== */}
+            {/* ===== HISTORY TAB ===== */}
             {activeTab === 'history' && (isAdmin || isTeacher) && (
-              <div className="bg-white dark:bg-background-dark p-8 rounded-2xl border border-border-light dark:border-border-dark shadow-sm text-center">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <History size={32} className="text-primary" />
-                </div>
-                <h3 className="text-xl font-heading font-semibold text-text-primary dark:text-text-darkPrimary">Riwayat Cetak</h3>
-                <p className="text-sm text-text-secondary mt-2 max-w-md mx-auto">
-                  Fitur riwayat cetak kartu pelajar akan segera hadir. Anda akan dapat melihat log cetak, tanggal, dan jumlah kartu yang telah dicetak.
-                </p>
-                <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-sm font-medium">
-                  🚧 Dalam Pengembangan
-                </div>
-              </div>
+              <PrintHistoryTab />
             )}
 
             {/* ===== TEMPLATES TAB ===== */}
