@@ -35,6 +35,12 @@ import {
   WifiOff,
   Loader2,
   CloudOff,
+  Database,
+  ArrowLeftRight,
+  Shield,
+  PanelLeftClose,
+  PanelLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { ProfileModal } from '../components/modals/ProfileModal';
 
@@ -329,6 +335,53 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'ppdb/penilaian': 'penilaian-pmb',
 };
 
+// ── Sidebar category system ──
+type MenuCategory = 'app-master' | 'data-master' | 'mutasi-pmb' | 'alumni' | 'app-dashboard' | 'administrator';
+
+interface SidebarCategoryDef {
+  key: MenuCategory;
+  label: string;
+  icon: React.ReactNode;
+}
+
+const SIDEBAR_CATEGORIES: SidebarCategoryDef[] = [
+  { key: 'app-master', label: 'APP MASTER', icon: <Home size={18} /> },
+  { key: 'data-master', label: 'DATA MASTER', icon: <Database size={18} /> },
+  { key: 'mutasi-pmb', label: 'MUTASI DAN PMB', icon: <ArrowLeftRight size={18} /> },
+  { key: 'alumni', label: 'ALUMNI', icon: <GraduationCap size={18} /> },
+  { key: 'app-dashboard', label: 'APP DASHBOARD', icon: <LayoutGrid size={18} /> },
+  { key: 'administrator', label: 'ADMINISTRATOR', icon: <Shield size={18} /> },
+];
+
+const MENU_CATEGORY_MAP: Record<string, MenuCategory> = {
+  'overview': 'app-master',
+  'news': 'app-dashboard',
+  'gallery': 'app-dashboard',
+  'calendar': 'app-dashboard',
+  'teacher-duties': 'data-master',
+  'student-card': 'app-dashboard',
+  'employees': 'data-master',
+  'attendance': 'app-dashboard',
+  'jurnal': 'app-dashboard',
+  'kbm': 'data-master',
+  'nis': 'data-master',
+  'students': 'data-master',
+  'alumni': 'alumni',
+  'mutasi': 'mutasi-pmb',
+  'e-office': 'app-dashboard',
+  'exams': 'app-dashboard',
+  'ppdb': 'mutasi-pmb',
+  'penilaian-pmb': 'mutasi-pmb',
+  'ijazah': 'data-master',
+  'ptsp': 'app-dashboard',
+  'contacts': 'app-dashboard',
+  'pages': 'administrator',
+  'menus': 'administrator',
+  'settings': 'administrator',
+  'users': 'administrator',
+  'updates': 'administrator',
+};
+
 const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
 
 export const DashboardLayout = () => {
@@ -345,6 +398,18 @@ export const DashboardLayout = () => {
   const [allowedMenus, setAllowedMenus] = useState<string[]>(ALL_MENU_ITEMS.map((i) => i.key));
   const [permissionsLoaded, setPermissionsLoaded] = useState(false);
   const [hasPenilaianTests, setHasPenilaianTests] = useState<boolean | null>(null);
+
+  // Sidebar collapse state (persisted in localStorage)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem('sidebar-collapsed') === 'true'; } catch { return false; }
+  });
+  // Expanded sidebar groups (persisted in localStorage)
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('sidebar-expanded-groups');
+      return saved ? JSON.parse(saved) : ['app-master'];
+    } catch { return ['app-master']; }
+  });
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -373,6 +438,8 @@ export const DashboardLayout = () => {
   // Resolve logo URL from system settings
   const logoRaw = get('logo_url');
   const logoUrl = logoRaw ? (logoRaw.startsWith('/') ? `${SERVER_BASE}${logoRaw}` : logoRaw) : undefined;
+  const schoolName = get('school_name');
+  const schoolNpsn = get('npsn');
 
   // Fetch role permissions + penilaian tests in PARALLEL (not sequential)
   useEffect(() => {
@@ -446,6 +513,24 @@ export const DashboardLayout = () => {
     navigate('/login');
   };
 
+  // Sidebar collapse toggle
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem('sidebar-collapsed', String(next)); } catch {}
+      return next;
+    });
+  };
+
+  // Sidebar group expand/collapse toggle
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups(prev => {
+      const next = prev.includes(groupKey) ? prev.filter(k => k !== groupKey) : [...prev, groupKey];
+      try { localStorage.setItem('sidebar-expanded-groups', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
   // Filter menu items based on permissions
   const finalAllowedMenusForRender = [...allowedMenus];
   if (hasPenilaianTests === true && !finalAllowedMenusForRender.includes('penilaian-pmb')) {
@@ -466,6 +551,35 @@ export const DashboardLayout = () => {
     finalAllowedMenusForRender.includes(item.key)
   );
   const systemMenuItems = ALL_MENU_ITEMS.filter((item) => item.group === 'system' && finalAllowedMenusForRender.includes(item.key));
+
+  // Auto-expand sidebar group based on active route
+  useEffect(() => {
+    const activeItem = [...ALL_MENU_ITEMS]
+      .filter(item => {
+        if (item.exact) return location.pathname === item.href;
+        return location.pathname === item.href || location.pathname.startsWith(item.href + '/');
+      })
+      .sort((a, b) => b.href.length - a.href.length)[0];
+
+    const activeCategory = activeItem ? MENU_CATEGORY_MAP[activeItem.key] : undefined;
+    if (activeCategory) {
+      setExpandedGroups(prev => {
+        if (prev.includes(activeCategory)) return prev;
+        const next = [...prev, activeCategory];
+        try { localStorage.setItem('sidebar-expanded-groups', JSON.stringify(next)); } catch {}
+        return next;
+      });
+    }
+  }, [location.pathname]);
+
+  // Group filtered menu items by category for desktop sidebar
+  const categorizedMenuItems = SIDEBAR_CATEGORIES.reduce((acc, cat) => {
+    acc[cat.key] = ALL_MENU_ITEMS.filter(item =>
+      MENU_CATEGORY_MAP[item.key] === cat.key &&
+      finalAllowedMenusForRender.includes(item.key)
+    );
+    return acc;
+  }, {} as Record<string, typeof ALL_MENU_ITEMS>);
 
   // ── Categorized menu sections for unified grid ──
   const frequentKeys = ['jurnal', 'kbm', 'attendance', 'employees', 'e-office'];
@@ -491,53 +605,140 @@ export const DashboardLayout = () => {
     <div className="flex h-[100dvh] print:h-auto print:min-h-0 w-screen print:w-full overflow-hidden print:overflow-visible print:block bg-gray-50 dark:bg-[#050505] relative">
       
       <aside 
-        className="hidden md:flex fixed inset-y-0 left-0 z-50 w-56 border-r border-border-light dark:border-border-dark bg-white dark:bg-background-dark flex-col md:relative print:hidden"
+        className={`hidden md:flex fixed inset-y-0 left-0 z-50 ${isSidebarCollapsed ? 'w-[68px]' : 'w-60'} border-r border-border-light dark:border-border-dark bg-white dark:bg-background-dark flex-col md:relative print:hidden transition-all duration-300 ease-in-out`}
       >
-        <div className="px-3 py-3 border-b border-border-light dark:border-border-dark flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {logoUrl && (
-              <img src={logoUrl} alt="Logo" className="w-7 h-7 object-contain" />
-            )}
-            <h1 className="text-base font-heading font-bold text-primary">MANDALOTIM</h1>
-          </div>
-        </div>
-        
-
-
-        <nav className="flex-1 px-3 py-2.5 flex flex-col gap-0.5 overflow-y-auto">
-          <div className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-1 px-2.5">Main Menu</div>
-          {mainMenuItems.map((item) => (
-            <NavLink
-              key={item.href}
-              to={item.href}
-              end={item.exact}
-              onClick={() => setIsSidebarOpen(false)}
-              className={({ isActive }) => `sidebar-link px-2.5 py-[7px] rounded-md text-[13px] font-medium flex items-center gap-2.5 ${isActive ? 'sidebar-link-active bg-primary/10 text-primary dark:bg-primary/20' : 'text-text-secondary'}`}
-            >
-              {item.icon}
-              {item.label}
-            </NavLink>
-          ))}
-
-          {systemMenuItems.length > 0 && (
-            <>
-              <div className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider mt-4 mb-1 px-2.5">System</div>
-              {systemMenuItems.map((item) => (
-                <NavLink
-                  key={item.href}
-                  to={item.href}
-                  onClick={() => setIsSidebarOpen(false)}
-                  className={({ isActive }) => `sidebar-link px-2.5 py-[7px] rounded-md text-[13px] font-medium flex items-center gap-2.5 ${isActive ? 'sidebar-link-active bg-primary/10 text-primary dark:bg-primary/20' : 'text-text-secondary'}`}
-                >
-                  {item.icon}
-                  {item.label}
-                </NavLink>
-              ))}
-            </>
+        {/* Sidebar Header — School Branding */}
+        <div className={`border-b border-border-light dark:border-border-dark shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'px-2 py-3' : 'px-3 py-3'}`}>
+          {isSidebarCollapsed ? (
+            <div className="flex justify-center">
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="w-8 h-8 object-contain" />
+              ) : (
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">M</div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2.5">
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="w-8 h-8 object-contain shrink-0" />
+              ) : (
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm">M</div>
+              )}
+              <div className="min-w-0">
+                <h1 className="text-[13px] font-heading font-bold text-primary leading-tight truncate">{schoolName || 'MANDALOTIM'}</h1>
+                <p className="text-[9px] text-text-secondary leading-tight truncate mt-0.5">{schoolNpsn ? `NPSN: ${schoolNpsn}` : 'Sistem Manajemen Pendidikan'}</p>
+              </div>
+            </div>
           )}
-        </nav>
-        
+        </div>
 
+        {/* Navigation — Grouped Categories */}
+        <nav className={`flex-1 py-2 flex flex-col gap-0.5 overflow-y-auto custom-scrollbar ${isSidebarCollapsed ? 'px-1.5' : 'px-2'}`}>
+          {SIDEBAR_CATEGORIES.map(cat => {
+            const catItems = categorizedMenuItems[cat.key];
+            if (!catItems || catItems.length === 0) return null;
+
+            const isExpanded = expandedGroups.includes(cat.key);
+            const hasActiveItem = catItems.some(item => {
+              if (item.exact) return location.pathname === item.href;
+              return location.pathname === item.href || location.pathname.startsWith(item.href + '/');
+            });
+
+            {/* ── Collapsed Mode: Icon with flyout popup ── */}
+            if (isSidebarCollapsed) {
+              return (
+                <div key={cat.key} className="relative group/cat mb-0.5">
+                  <div
+                    className={`w-full p-2.5 flex justify-center rounded-lg transition-colors cursor-pointer ${
+                      hasActiveItem
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-text-secondary hover:bg-gray-100 dark:hover:bg-white/5 hover:text-text-primary dark:hover:text-text-darkPrimary'
+                    }`}
+                    title={cat.label}
+                  >
+                    <div className="[&>svg]:w-[18px] [&>svg]:h-[18px]">{cat.icon}</div>
+                  </div>
+                  {/* Flyout popup on hover */}
+                  <div className="absolute left-full top-0 hidden group-hover/cat:block z-[100]">
+                    <div className="pl-2">
+                      <div className="bg-white dark:bg-[#111] border border-border-light dark:border-border-dark rounded-xl shadow-2xl p-1.5 min-w-[210px]">
+                        <div className="text-[10px] font-bold text-text-secondary uppercase tracking-wider px-2.5 py-1.5 mb-0.5">{cat.label}</div>
+                        {catItems.map(item => (
+                          <NavLink
+                            key={item.href}
+                            to={item.href}
+                            end={item.exact}
+                            className={({ isActive }) => `flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-[13px] font-medium transition-colors ${
+                              isActive
+                                ? 'bg-primary/10 text-primary dark:bg-primary/20'
+                                : 'text-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 hover:text-text-primary dark:hover:text-text-darkPrimary'
+                            }`}
+                          >
+                            {item.icon}
+                            {item.label}
+                          </NavLink>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            {/* ── Expanded Mode: Collapsible group ── */}
+            return (
+              <div key={cat.key} className="mb-0.5">
+                <button
+                  onClick={() => toggleGroup(cat.key)}
+                  className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                    hasActiveItem
+                      ? 'text-primary bg-primary/5 dark:bg-primary/10'
+                      : 'text-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 hover:text-text-primary dark:hover:text-text-darkPrimary'
+                  }`}
+                >
+                  <div className="[&>svg]:w-4 [&>svg]:h-4 shrink-0">{cat.icon}</div>
+                  <span className="flex-1 text-left truncate">{cat.label}</span>
+                  <ChevronRight size={12} className={`transition-transform duration-200 shrink-0 ${isExpanded ? 'rotate-90' : ''}`} />
+                </button>
+                <div
+                  className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                    isExpanded ? 'max-h-[600px] opacity-100 mt-0.5' : 'max-h-0 opacity-0'
+                  }`}
+                >
+                  <div className="pl-3 flex flex-col gap-px">
+                    {catItems.map(item => (
+                      <NavLink
+                        key={item.href}
+                        to={item.href}
+                        end={item.exact}
+                        className={({ isActive }) => `sidebar-link px-2.5 py-[7px] rounded-md text-[13px] font-medium flex items-center gap-2.5 transition-colors ${
+                          isActive
+                            ? 'sidebar-link-active bg-primary/10 text-primary dark:bg-primary/20'
+                            : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'
+                        }`}
+                      >
+                        {item.icon}
+                        {item.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </nav>
+
+        {/* Sidebar Footer — Toggle Collapse */}
+        <div className="border-t border-border-light dark:border-border-dark shrink-0">
+          <button
+            onClick={toggleSidebarCollapse}
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-text-secondary hover:text-primary hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${isSidebarCollapsed ? 'justify-center' : ''}`}
+            title={isSidebarCollapsed ? 'Perluas Sidebar' : 'Kecilkan Sidebar'}
+          >
+            {isSidebarCollapsed ? <PanelLeft size={16} /> : <PanelLeftClose size={16} />}
+            {!isSidebarCollapsed && <span className="text-[12px] font-medium">Kecilkan</span>}
+          </button>
+        </div>
       </aside>
       
       <main className="flex-1 flex flex-col min-w-0 w-full overflow-hidden print:overflow-visible print:block">
@@ -558,6 +759,13 @@ export const DashboardLayout = () => {
                 </p>
               </div>
             </div>
+            <button
+              onClick={toggleSidebarCollapse}
+              className="hidden md:flex items-center justify-center w-8 h-8 rounded-lg text-text-secondary hover:text-primary hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+              title={isSidebarCollapsed ? 'Perluas Sidebar' : 'Kecilkan Sidebar'}
+            >
+              {isSidebarCollapsed ? <PanelLeft size={16} /> : <PanelLeftClose size={16} />}
+            </button>
             <div className="hidden md:flex items-center gap-3">
               {user?.image ? (
                 <img src={user.image.startsWith('http') ? user.image : `${SERVER_BASE}${user.image}`} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700" />
@@ -812,13 +1020,21 @@ export const DashboardLayout = () => {
         onLogout={handleLogout}
       />
 
-      {/* CSS for sidebar hover — transitions ONLY on hover, not on active state change */}
+      {/* CSS for sidebar hover & flyout animations */}
       <style>{`
         .sidebar-link:not(.sidebar-link-active):hover {
           background-color: rgba(0,0,0,0.04);
         }
         .dark .sidebar-link:not(.sidebar-link-active):hover {
           background-color: rgba(255,255,255,0.04);
+        }
+        /* Flyout popup entrance animation */
+        .group\/cat:hover > div:last-child > div {
+          animation: sidebarFlyoutIn 0.15s ease-out;
+        }
+        @keyframes sidebarFlyoutIn {
+          from { opacity: 0; transform: translateX(-4px); }
+          to { opacity: 1; transform: translateX(0); }
         }
       `}</style>
     </div>
