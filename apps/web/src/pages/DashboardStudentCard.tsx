@@ -519,24 +519,6 @@ export const DashboardStudentCard = () => {
           )}
         </div>
 
-        {/* Tabs */}
-        {!isLoading && (
-          <div className="flex gap-1 bg-gray-100 dark:bg-[#111] p-1 rounded-xl border border-border-light dark:border-border-dark">
-            {visibleTabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => navigate(tab.key === 'preview' ? '/dashboard/student-card' : `/dashboard/student-card/${tab.key}`)}
-                className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 ${
-                  activeTab === tab.key
-                    ? 'bg-white dark:bg-background-dark text-primary shadow-sm'
-                    : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* Tab Content */}
         {isLoading ? (
