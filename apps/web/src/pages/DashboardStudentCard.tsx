@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Breadcrumbs,
   Skeleton,
@@ -24,7 +25,7 @@ import { useCards } from '../hooks/api/useCards';
 import { useSiteSettings } from '../hooks/api/useSettings';
 import { CameraCapture } from '../components/CameraCapture';
 import { galleryService } from '../lib/services/gallery';
-import { Edit2, Image as ImageIcon, Camera, X, Loader2, Eye } from 'lucide-react';
+import { Edit2, Image as ImageIcon, Camera, X, Loader2, Eye, History, Palette } from 'lucide-react';
 
 export const DashboardStudentCard = () => {
   const { user } = useAuth();
@@ -49,7 +50,13 @@ export const DashboardStudentCard = () => {
   const cardSettings = cardSettingsLoaded ? cardSettingsQuery.data : defaultCardSettings;
   const isLoadingData = studentsQuery.isLoading || cardSettingsQuery.isLoading || isSiteSettingsLoading;
 
-  const [activeTab, setActiveTab] = useState<'preview' | 'edit' | 'settings' | 'batch'>('preview');
+  // Derive active tab from URL path (URL-driven tabs for sidebar navigation)
+  const location = useLocation();
+  const navigate = useNavigate();
+  const tabSegment = location.pathname.split('/').filter(Boolean).pop();
+  const activeTab = (['edit', 'settings', 'batch', 'history', 'templates'].includes(tabSegment || ''))
+    ? tabSegment as 'edit' | 'settings' | 'batch' | 'history' | 'templates'
+    : 'preview';
 
   // Card settings state — don't use API data for initial values; the useEffect below syncs them once API loads
   const [selectedTemplate, setSelectedTemplate] = useState<CardTemplateName>('classic-blue');
@@ -458,6 +465,8 @@ export const DashboardStudentCard = () => {
     { key: 'edit', label: 'Edit Identitas', roles: ['student', 'guru', 'admin'] },
     { key: 'settings', label: 'Pengaturan Layout', roles: ['admin'] },
     { key: 'batch', label: 'Cetak Batch', roles: ['admin', 'guru'] },
+    { key: 'history', label: 'Riwayat Cetak', roles: ['admin', 'guru'] },
+    { key: 'templates', label: 'Template Kartu', roles: ['admin'] },
   ];
 
   const visibleTabs = tabs.filter((t) => t.roles.includes(user?.role || 'student'));
@@ -516,7 +525,7 @@ export const DashboardStudentCard = () => {
             {visibleTabs.map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => navigate(tab.key === 'preview' ? '/dashboard/student-card' : `/dashboard/student-card/${tab.key}`)}
                 className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 ${
                   activeTab === tab.key
                     ? 'bg-white dark:bg-background-dark text-primary shadow-sm'
@@ -1155,6 +1164,38 @@ export const DashboardStudentCard = () => {
               </div>
             )}
           </div>
+
+            {/* ===== HISTORY TAB (Placeholder) ===== */}
+            {activeTab === 'history' && (isAdmin || isTeacher) && (
+              <div className="bg-white dark:bg-background-dark p-8 rounded-2xl border border-border-light dark:border-border-dark shadow-sm text-center">
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <History size={32} className="text-primary" />
+                </div>
+                <h3 className="text-xl font-heading font-semibold text-text-primary dark:text-text-darkPrimary">Riwayat Cetak</h3>
+                <p className="text-sm text-text-secondary mt-2 max-w-md mx-auto">
+                  Fitur riwayat cetak kartu pelajar akan segera hadir. Anda akan dapat melihat log cetak, tanggal, dan jumlah kartu yang telah dicetak.
+                </p>
+                <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-sm font-medium">
+                  🚧 Dalam Pengembangan
+                </div>
+              </div>
+            )}
+
+            {/* ===== TEMPLATES TAB (Placeholder) ===== */}
+            {activeTab === 'templates' && isAdmin && (
+              <div className="bg-white dark:bg-background-dark p-8 rounded-2xl border border-border-light dark:border-border-dark shadow-sm text-center">
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Palette size={32} className="text-primary" />
+                </div>
+                <h3 className="text-xl font-heading font-semibold text-text-primary dark:text-text-darkPrimary">Template Kartu</h3>
+                <p className="text-sm text-text-secondary mt-2 max-w-md mx-auto">
+                  Manajemen template kartu pelajar akan segera hadir. Anda akan dapat membuat, mengubah, dan mengelola desain template kartu.
+                </p>
+                <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-sm font-medium">
+                  🚧 Dalam Pengembangan
+                </div>
+              </div>
+            )}
 
       {/* --- QUICK PREVIEW MODAL --- */}
       <Modal

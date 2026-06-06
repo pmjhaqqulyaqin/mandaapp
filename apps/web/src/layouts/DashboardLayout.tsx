@@ -41,6 +41,12 @@ import {
   PanelLeftClose,
   PanelLeft,
   ChevronRight,
+  Eye,
+  Pencil,
+  Printer,
+  ArrowLeft,
+  History,
+  Palette,
 } from 'lucide-react';
 import { ProfileModal } from '../components/modals/ProfileModal';
 
@@ -382,6 +388,39 @@ const MENU_CATEGORY_MAP: Record<string, MenuCategory> = {
   'updates': 'administrator',
 };
 
+// ── Sub-App Configurations for Contextual Sidebar ──
+interface SubAppItem {
+  key: string;
+  label: string;
+  path: string;
+  exact?: boolean;
+  icon: React.ReactNode;
+  roles?: string[];
+}
+
+interface SubAppConfig {
+  label: string;
+  icon: React.ReactNode;
+  basePath: string;
+  items: SubAppItem[];
+}
+
+const SUB_APP_CONFIGS: SubAppConfig[] = [
+  {
+    label: 'KARTU PELAJAR',
+    icon: <CreditCard size={18} />,
+    basePath: '/dashboard/student-card',
+    items: [
+      { key: 'preview', label: 'Preview Kartu', path: '/dashboard/student-card', exact: true, icon: <Eye size={16} /> },
+      { key: 'edit', label: 'Edit Identitas', path: '/dashboard/student-card/edit', icon: <Pencil size={16} /> },
+      { key: 'settings', label: 'Pengaturan Layout', path: '/dashboard/student-card/settings', icon: <SettingsIcon size={16} />, roles: ['admin'] },
+      { key: 'batch', label: 'Cetak Batch', path: '/dashboard/student-card/batch', icon: <Printer size={16} />, roles: ['admin', 'guru'] },
+      { key: 'history', label: 'Riwayat Cetak', path: '/dashboard/student-card/history', icon: <History size={16} />, roles: ['admin', 'guru'] },
+      { key: 'templates', label: 'Template Kartu', path: '/dashboard/student-card/templates', icon: <Palette size={16} />, roles: ['admin'] },
+    ],
+  },
+];
+
 const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
 
 export const DashboardLayout = () => {
@@ -581,6 +620,14 @@ export const DashboardLayout = () => {
     return acc;
   }, {} as Record<string, typeof ALL_MENU_ITEMS>);
 
+  // Detect active sub-app for contextual sidebar
+  const activeSubApp = SUB_APP_CONFIGS.find(config =>
+    location.pathname === config.basePath || location.pathname.startsWith(config.basePath + '/')
+  );
+  const filteredSubAppItems = activeSubApp
+    ? activeSubApp.items.filter(item => !item.roles || item.roles.includes(user?.role || ''))
+    : [];
+
   // ── Categorized menu sections for unified grid ──
   const frequentKeys = ['jurnal', 'kbm', 'attendance', 'employees', 'e-office'];
   const infoKeys = ['news', 'gallery', 'contacts', 'calendar'];
@@ -634,6 +681,94 @@ export const DashboardLayout = () => {
 
         {/* Navigation — Grouped Categories */}
         <nav className={`flex-1 py-2 flex flex-col gap-0.5 overflow-y-auto custom-scrollbar ${isSidebarCollapsed ? 'px-1.5' : 'px-2'}`}>
+          {/* ── Contextual Sub-App Section (when inside a sub-app) ── */}
+          {activeSubApp && (
+            <>
+              {/* Back button */}
+              {!isSidebarCollapsed ? (
+                <NavLink
+                  to="/dashboard"
+                  end
+                  className="flex items-center gap-2 px-2.5 py-2 mb-1 rounded-lg text-[12px] font-medium text-text-secondary hover:text-primary hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                >
+                  <ArrowLeft size={14} />
+                  <span>Kembali ke Dashboard</span>
+                </NavLink>
+              ) : (
+                <NavLink
+                  to="/dashboard"
+                  end
+                  className="w-full p-2.5 flex justify-center rounded-lg text-text-secondary hover:text-primary hover:bg-gray-100 dark:hover:bg-white/5 transition-colors mb-0.5"
+                  title="Kembali ke Dashboard"
+                >
+                  <ArrowLeft size={18} />
+                </NavLink>
+              )}
+
+              {/* Sub-app items */}
+              {!isSidebarCollapsed ? (
+                <div className="mb-1">
+                  <div className="flex items-center gap-2 px-2.5 py-2 text-[11px] font-bold uppercase tracking-wider text-primary bg-primary/5 dark:bg-primary/10 rounded-lg">
+                    <div className="[&>svg]:w-4 [&>svg]:h-4 shrink-0">{activeSubApp.icon}</div>
+                    <span className="flex-1 text-left truncate">{activeSubApp.label}</span>
+                  </div>
+                  <div className="pl-3 flex flex-col gap-px mt-0.5">
+                    {filteredSubAppItems.map(item => (
+                      <NavLink
+                        key={item.key}
+                        to={item.path}
+                        end={item.exact}
+                        className={({ isActive }) => `sidebar-link px-2.5 py-[7px] rounded-md text-[13px] font-medium flex items-center gap-2.5 transition-colors ${
+                          isActive
+                            ? 'sidebar-link-active bg-primary/10 text-primary dark:bg-primary/20'
+                            : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'
+                        }`}
+                      >
+                        {item.icon}
+                        {item.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="relative group/subapp mb-0.5">
+                  <div
+                    className="w-full p-2.5 flex justify-center rounded-lg transition-colors cursor-pointer bg-primary/10 text-primary"
+                    title={activeSubApp.label}
+                  >
+                    <div className="[&>svg]:w-[18px] [&>svg]:h-[18px]">{activeSubApp.icon}</div>
+                  </div>
+                  <div className="absolute left-full top-0 hidden group-hover/subapp:block z-[100]">
+                    <div className="pl-2">
+                      <div className="bg-white dark:bg-[#111] border border-border-light dark:border-border-dark rounded-xl shadow-2xl p-1.5 min-w-[210px]">
+                        <div className="text-[10px] font-bold text-text-secondary uppercase tracking-wider px-2.5 py-1.5 mb-0.5">{activeSubApp.label}</div>
+                        {filteredSubAppItems.map(item => (
+                          <NavLink
+                            key={item.key}
+                            to={item.path}
+                            end={item.exact}
+                            className={({ isActive }) => `flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-[13px] font-medium transition-colors ${
+                              isActive
+                                ? 'bg-primary/10 text-primary dark:bg-primary/20'
+                                : 'text-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 hover:text-text-primary dark:hover:text-text-darkPrimary'
+                            }`}
+                          >
+                            {item.icon}
+                            {item.label}
+                          </NavLink>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Separator */}
+              {!isSidebarCollapsed && <div className="h-px bg-border-light dark:bg-border-dark my-2 mx-2" />}
+            </>
+          )}
+
+          {/* ── Normal Categories ── */}
           {SIDEBAR_CATEGORIES.map(cat => {
             const catItems = categorizedMenuItems[cat.key];
             if (!catItems || catItems.length === 0) return null;

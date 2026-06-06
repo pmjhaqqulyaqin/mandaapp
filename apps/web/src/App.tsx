@@ -188,7 +188,7 @@ function App() {
               <Route path="news" element={<DashboardNews />} />
               <Route path="calendar" element={<DashboardCalendar />} />
               <Route path="teacher-duties" element={<TeacherDutiesPage />} />
-              <Route path="student-card" element={<DashboardStudentCard />} />
+              <Route path="student-card/*" element={<DashboardStudentCard />} />
               <Route path="gallery" element={<DashboardGallery />} />
               <Route path="contacts" element={<DashboardContacts />} />
               <Route path="settings" element={<ProtectedRoute allowedRoles={['admin','kepala_madrasah']}><DashboardSettings /></ProtectedRoute>} />
