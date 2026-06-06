@@ -35,9 +35,6 @@ export const DashboardStudentCard = () => {
   const { querySettings: cardSettingsQuery, updateSettingsMutation } = useCards();
   const { get: getSiteSetting, isLoading: isSiteSettingsLoading } = useSiteSettings();
 
-  // Print History queries
-  const printHistoryQuery = useQuery({ queryKey: ['card-print-history'], queryFn: () => cardPrintService.getHistory(100), enabled: activeTab === 'history' });
-  const printStatsQuery = useQuery({ queryKey: ['card-print-stats'], queryFn: () => cardPrintService.getStats(), enabled: activeTab === 'history' });
   const globalLogoUrl = getSiteSetting('logo_url', '');
   const globalKemenagLogoUrl = getSiteSetting('kemenag_logo_url', '');
   const globalSchoolName = getSiteSetting('school_name', '');
@@ -62,6 +59,10 @@ export const DashboardStudentCard = () => {
   const activeTab = (['edit', 'settings', 'batch', 'history', 'templates'].includes(tabSegment || ''))
     ? tabSegment as 'edit' | 'settings' | 'batch' | 'history' | 'templates'
     : 'preview';
+
+  // Print History queries (must be after activeTab is defined)
+  const printHistoryQuery = useQuery({ queryKey: ['card-print-history'], queryFn: () => cardPrintService.getHistory(100), enabled: activeTab === 'history' });
+  const printStatsQuery = useQuery({ queryKey: ['card-print-stats'], queryFn: () => cardPrintService.getStats(), enabled: activeTab === 'history' });
 
   // Card settings state — don't use API data for initial values; the useEffect below syncs them once API loads
   const [selectedTemplate, setSelectedTemplate] = useState<CardTemplateName>('classic-blue');
