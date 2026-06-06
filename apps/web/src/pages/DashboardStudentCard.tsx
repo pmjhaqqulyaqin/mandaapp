@@ -482,42 +482,6 @@ export const DashboardStudentCard = () => {
       `}} />
 
       <div className="max-w-5xl mx-auto flex flex-col gap-3 md:gap-6 print:hidden">
-        <Breadcrumbs
-          items={[
-            { label: 'Dashboard', href: '/dashboard' },
-            { label: 'Kartu Pelajar' },
-          ]}
-        />
-
-        {/* Page Header */}
-        <div className="bg-white dark:bg-background-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm">
-          {isLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-8 w-64" />
-              <Skeleton className="h-4 w-96" />
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div>
-                  <h2 className="text-2xl font-heading font-semibold text-text-primary dark:text-text-darkPrimary flex items-center gap-3">
-                    <span className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                        <rect width="18" height="14" x="3" y="5" rx="2"/><path d="M7 15h0M2 9h20"/>
-                      </svg>
-                    </span>
-                    Kartu Pelajar
-                  </h2>
-                  <p className="text-text-secondary text-sm mt-1 ml-[52px]">
-                    {isStudent && 'Preview, edit identitas, dan cetak kartu pelajar Anda.'}
-                    {isTeacher && 'Kelola dan cetak kartu pelajar siswa.'}
-                    {isAdmin && 'Kelola layout, identitas, dan cetak kartu pelajar.'}
-                  </p>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
 
 
         {/* Tab Content */}
