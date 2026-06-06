@@ -1051,87 +1051,180 @@ export const DashboardStudentCard = () => {
 
             {/* ===== TEMPLATES TAB ===== */}
             {activeTab === 'templates' && isAdmin && (
-              <div className="bg-white dark:bg-background-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm space-y-6">
-                <div>
-                  <h3 className="text-lg font-heading font-semibold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
-                    <Palette size={20} className="text-primary" />
-                    Upload Template Custom
-                  </h3>
-                  <p className="text-sm text-text-secondary mt-1">
-                    Upload gambar desain kartu pelajar custom (dari Canva, Photoshop, dll) sebagai background. Data siswa (foto, nama, NISN) akan di-overlay otomatis di atas template.
-                    Jika tidak diupload, kartu menggunakan desain bawaan dari Pengaturan Layout.
-                  </p>
+              <div className="space-y-6">
+                {/* Header Card + Visual Guide */}
+                <div className="bg-white dark:bg-background-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm space-y-5">
+                  <div>
+                    <h3 className="text-lg font-heading font-semibold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
+                      <Palette size={20} className="text-primary" />
+                      Upload Template Custom
+                    </h3>
+                    <p className="text-sm text-text-secondary mt-1">
+                      Upload gambar desain kartu pelajar custom (dari Canva, Photoshop, dll) sebagai background. Data siswa (foto, nama, NISN) akan di-overlay otomatis di atas template.
+                      Jika tidak diupload, kartu menggunakan desain bawaan dari Pengaturan Layout.
+                    </p>
+                  </div>
+
+                  {/* Visual Overlay Guide */}
+                  <div className="bg-gradient-to-br from-slate-50 to-blue-50/50 dark:from-[#111] dark:to-blue-950/10 border border-border-light dark:border-border-dark rounded-xl p-5">
+                    <h4 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary mb-3 flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                      Panduan Area Overlay
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      {/* Horizontal Guide */}
+                      <div>
+                        <p className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Horizontal (856 × 540 px)</p>
+                        <div className="relative w-full max-w-[320px] aspect-[856/540] bg-white dark:bg-[#1a1a1a] border-2 border-dashed border-blue-300 dark:border-blue-700 rounded-lg overflow-hidden">
+                          <div className="absolute left-[5%] top-[27%] w-[25%] h-[55%] border-2 border-dashed border-emerald-400 rounded-lg flex items-center justify-center">
+                            <span className="text-[9px] font-bold text-emerald-500 text-center leading-tight">FOTO<br/>SISWA</span>
+                          </div>
+                          <div className="absolute right-[5%] top-[20%] w-[55%] h-[60%] border-2 border-dashed border-amber-400 rounded-lg flex flex-col items-center justify-center gap-1 px-2">
+                            <span className="text-[9px] font-bold text-amber-500">NAMA, NISN, KELAS</span>
+                            <span className="text-[8px] text-amber-400">TTL, JK, Alamat</span>
+                          </div>
+                          <div className="absolute top-[4%] left-1/2 -translate-x-1/2">
+                            <span className="text-[8px] font-bold text-blue-400">KOP HEADER</span>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Vertical Guide */}
+                      <div>
+                        <p className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Vertikal (408 × 646 px)</p>
+                        <div className="relative w-full max-w-[180px] aspect-[408/646] bg-white dark:bg-[#1a1a1a] border-2 border-dashed border-blue-300 dark:border-blue-700 rounded-lg overflow-hidden">
+                          <div className="absolute left-1/2 -translate-x-1/2 top-[28%] w-[35%] h-[25%] border-2 border-dashed border-emerald-400 rounded-lg flex items-center justify-center">
+                            <span className="text-[8px] font-bold text-emerald-500 text-center">FOTO</span>
+                          </div>
+                          <div className="absolute left-[10%] right-[10%] top-[58%] h-[30%] border-2 border-dashed border-amber-400 rounded-lg flex flex-col items-center justify-center gap-0.5">
+                            <span className="text-[8px] font-bold text-amber-500">DATA SISWA</span>
+                            <span className="text-[7px] text-amber-400">Nama, NISN, dll</span>
+                          </div>
+                          <div className="absolute top-[5%] left-1/2 -translate-x-1/2">
+                            <span className="text-[7px] font-bold text-blue-400">KOP</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-text-secondary mt-3 leading-relaxed">
+                      <strong>💡 Tips:</strong> Buat desain dengan area kosong di bagian <span className="text-emerald-600 dark:text-emerald-400 font-semibold">hijau (foto)</span> dan <span className="text-amber-600 dark:text-amber-400 font-semibold">kuning (data)</span>. Data siswa akan di-overlay otomatis di posisi tersebut.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-lg p-4">
-                  <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                    <strong>💡 Tips Desain:</strong> Buat desain dengan area kosong (transparan/putih) di bagian foto dan data siswa. Gunakan ukuran:
-                    <br/>• <strong>Horizontal</strong>: 856 × 540 px — foto di kiri (45px dari kiri, 145px dari atas), data di kanan
-                    <br/>• <strong>Vertikal</strong>: 408 × 646 px — foto di tengah atas (200px dari atas), data di bawah foto
-                  </p>
-                </div>
-
-                {/* Horizontal Templates */}
-                <div className="pt-2">
-                  <h4 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary mb-4 flex items-center gap-2">
+                {/* Horizontal Templates Upload */}
+                <div className="bg-white dark:bg-background-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm space-y-4">
+                  <h4 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><rect width="20" height="14" x="2" y="5" rx="2"/></svg>
-                    Template Horizontal (Landscape)
+                    Template Horizontal (Landscape) — 856 × 540 px
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-xs font-semibold text-text-secondary mb-2">Sisi Depan (Front)</label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-xs font-semibold text-text-secondary">Sisi Depan (Front)</label>
+                        {editingSettings.customTemplateHorizontalFrontUrl && (
+                          <button onClick={() => setEditingSettings({...editingSettings, customTemplateHorizontalFrontUrl: ''})} className="text-[11px] text-red-500 hover:text-red-700 font-medium flex items-center gap-1 transition-colors"><X size={12} /> Hapus</button>
+                        )}
+                      </div>
                       <div className="w-full aspect-[856/540] max-w-[320px]">
-                        <PhotoUploader
-                          currentPhotoUrl={getFullUrl(editingSettings.customTemplateHorizontalFrontUrl) || ''}
-                          onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateHorizontalFrontUrl: url})}
-                        />
+                        <PhotoUploader currentPhotoUrl={getFullUrl(editingSettings.customTemplateHorizontalFrontUrl) || ''} onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateHorizontalFrontUrl: url})} />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-text-secondary mb-2">Sisi Belakang (Back)</label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-xs font-semibold text-text-secondary">Sisi Belakang (Back)</label>
+                        {editingSettings.customTemplateHorizontalBackUrl && (
+                          <button onClick={() => setEditingSettings({...editingSettings, customTemplateHorizontalBackUrl: ''})} className="text-[11px] text-red-500 hover:text-red-700 font-medium flex items-center gap-1 transition-colors"><X size={12} /> Hapus</button>
+                        )}
+                      </div>
                       <div className="w-full aspect-[856/540] max-w-[320px]">
-                        <PhotoUploader
-                          currentPhotoUrl={getFullUrl(editingSettings.customTemplateHorizontalBackUrl) || ''}
-                          onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateHorizontalBackUrl: url})}
-                        />
+                        <PhotoUploader currentPhotoUrl={getFullUrl(editingSettings.customTemplateHorizontalBackUrl) || ''} onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateHorizontalBackUrl: url})} />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Vertical Templates */}
-                <div className="pt-4 border-t border-border-light dark:border-border-dark">
-                  <h4 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary mb-4 flex items-center gap-2">
+                {/* Vertical Templates Upload */}
+                <div className="bg-white dark:bg-background-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm space-y-4">
+                  <h4 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><rect width="14" height="20" x="5" y="2" rx="2"/></svg>
-                    Template Vertikal (Portrait)
+                    Template Vertikal (Portrait) — 408 × 646 px
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-xs font-semibold text-text-secondary mb-2">Sisi Depan (Front)</label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-xs font-semibold text-text-secondary">Sisi Depan (Front)</label>
+                        {editingSettings.customTemplateVerticalFrontUrl && (
+                          <button onClick={() => setEditingSettings({...editingSettings, customTemplateVerticalFrontUrl: ''})} className="text-[11px] text-red-500 hover:text-red-700 font-medium flex items-center gap-1 transition-colors"><X size={12} /> Hapus</button>
+                        )}
+                      </div>
                       <div className="w-full aspect-[408/646] max-w-[220px]">
-                        <PhotoUploader
-                          currentPhotoUrl={getFullUrl(editingSettings.customTemplateVerticalFrontUrl) || ''}
-                          onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateVerticalFrontUrl: url})}
-                        />
+                        <PhotoUploader currentPhotoUrl={getFullUrl(editingSettings.customTemplateVerticalFrontUrl) || ''} onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateVerticalFrontUrl: url})} />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-text-secondary mb-2">Sisi Belakang (Back)</label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-xs font-semibold text-text-secondary">Sisi Belakang (Back)</label>
+                        {editingSettings.customTemplateVerticalBackUrl && (
+                          <button onClick={() => setEditingSettings({...editingSettings, customTemplateVerticalBackUrl: ''})} className="text-[11px] text-red-500 hover:text-red-700 font-medium flex items-center gap-1 transition-colors"><X size={12} /> Hapus</button>
+                        )}
+                      </div>
                       <div className="w-full aspect-[408/646] max-w-[220px]">
-                        <PhotoUploader
-                          currentPhotoUrl={getFullUrl(editingSettings.customTemplateVerticalBackUrl) || ''}
-                          onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateVerticalBackUrl: url})}
-                        />
+                        <PhotoUploader currentPhotoUrl={getFullUrl(editingSettings.customTemplateVerticalBackUrl) || ''} onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateVerticalBackUrl: url})} />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-4 border-t border-border-light dark:border-border-dark">
-                  <Button 
-                     onClick={handleSaveSettings}
-                     disabled={updateSettingsMutation.isPending}
-                  >
+                {/* Live Preview */}
+                {(editingSettings.customTemplateHorizontalFrontUrl || editingSettings.customTemplateVerticalFrontUrl) && selectedStudent && (
+                  <div className="bg-white dark:bg-background-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm space-y-4">
+                    <h4 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
+                      <Eye size={16} className="text-primary" />
+                      Live Preview — {selectedStudent.fullName || selectedStudent.name}
+                    </h4>
+                    <p className="text-xs text-text-secondary">Preview otomatis data siswa di-overlay di atas template custom. Pilih siswa di tab Preview untuk mengganti.</p>
+                    <div className="flex flex-col sm:flex-row gap-6 items-start">
+                      <div>
+                        <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-2">Sisi Depan</p>
+                        <div className="bg-gray-50 dark:bg-[#0a0a0a] rounded-xl border border-border-light dark:border-border-dark p-3 inline-block">
+                          <div style={{ width: `${(orientation === 'horizontal' ? 856 : 408) * 0.4}px`, height: `${(orientation === 'horizontal' ? 540 : 646) * 0.4}px`, overflow: 'hidden' }}>
+                            <div style={{ transform: 'scale(0.4)', transformOrigin: 'top left', width: `${orientation === 'horizontal' ? 856 : 408}px`, height: `${orientation === 'horizontal' ? 540 : 646}px` }}>
+                              <PrintableStudentCard
+                                student={{ name: selectedStudent.fullName || selectedStudent.name, nisn: selectedStudent.nisn, className: selectedStudent.className, birthPlace: selectedStudent.birthPlace, birthDate: selectedStudent.birthDate, gender: selectedStudent.gender, address: selectedStudent.address, photoUrl: selectedStudent.photoUrl }}
+                                template={template}
+                                settings={{ schoolName: globalSchoolName || cardSettings.schoolName, schoolSubtitle: cardSettings.schoolSubtitle, schoolAddress: globalSchoolAddress || cardSettings.schoolAddress, schoolPhone: globalSchoolPhone, schoolEmail: globalSchoolEmail, headmasterName: globalHeadmasterName, headmasterNip: globalHeadmasterNip, termsText: cardSettings.termsText, schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl), headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl || cardSettings.headmasterSignatureUrl), kemenagLogoUrl: getFullUrl(globalKemenagLogoUrl || editingSettings.kemenagLogoUrl || cardSettings.kemenagLogoUrl), schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl || cardSettings.schoolStampUrl), academicYear: cardSettings.academicYear, showQrCode: cardSettings.showQrCode, customTemplateFrontUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalFrontUrl : editingSettings.customTemplateVerticalFrontUrl) || undefined, customTemplateBackUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalBackUrl : editingSettings.customTemplateVerticalBackUrl) || undefined }}
+                                orientation={orientation}
+                                scale={1}
+                                side="front"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-2">Sisi Belakang</p>
+                        <div className="bg-gray-50 dark:bg-[#0a0a0a] rounded-xl border border-border-light dark:border-border-dark p-3 inline-block">
+                          <div style={{ width: `${(orientation === 'horizontal' ? 856 : 408) * 0.4}px`, height: `${(orientation === 'horizontal' ? 540 : 646) * 0.4}px`, overflow: 'hidden' }}>
+                            <div style={{ transform: 'scale(0.4)', transformOrigin: 'top left', width: `${orientation === 'horizontal' ? 856 : 408}px`, height: `${orientation === 'horizontal' ? 540 : 646}px` }}>
+                              <PrintableStudentCard
+                                student={{ name: selectedStudent.fullName || selectedStudent.name, nisn: selectedStudent.nisn, className: selectedStudent.className, birthPlace: selectedStudent.birthPlace, birthDate: selectedStudent.birthDate, gender: selectedStudent.gender, address: selectedStudent.address, photoUrl: selectedStudent.photoUrl }}
+                                template={template}
+                                settings={{ schoolName: globalSchoolName || cardSettings.schoolName, schoolSubtitle: cardSettings.schoolSubtitle, schoolAddress: globalSchoolAddress || cardSettings.schoolAddress, schoolPhone: globalSchoolPhone, schoolEmail: globalSchoolEmail, headmasterName: globalHeadmasterName, headmasterNip: globalHeadmasterNip, termsText: cardSettings.termsText, schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl), headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl || cardSettings.headmasterSignatureUrl), kemenagLogoUrl: getFullUrl(globalKemenagLogoUrl || editingSettings.kemenagLogoUrl || cardSettings.kemenagLogoUrl), schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl || cardSettings.schoolStampUrl), academicYear: cardSettings.academicYear, showQrCode: cardSettings.showQrCode, customTemplateFrontUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalFrontUrl : editingSettings.customTemplateVerticalFrontUrl) || undefined, customTemplateBackUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalBackUrl : editingSettings.customTemplateVerticalBackUrl) || undefined }}
+                                orientation={orientation}
+                                scale={1}
+                                side="back"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Save Button */}
+                <div className="bg-white dark:bg-background-dark p-4 rounded-2xl border border-border-light dark:border-border-dark shadow-sm flex justify-end">
+                  <Button onClick={handleSaveSettings} disabled={updateSettingsMutation.isPending}>
                     {updateSettingsMutation.isPending ? 'Menyimpan...' : 'Simpan Template'}
                   </Button>
                 </div>
