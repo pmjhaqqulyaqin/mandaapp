@@ -746,84 +746,6 @@ export const DashboardStudentCard = () => {
                   />
                 </div>
 
-                {/* === CUSTOM TEMPLATE UPLOAD === */}
-                <div className="pt-6 border-t border-border-light dark:border-border-dark">
-                  <h3 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary mb-2 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500">
-                      <rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
-                    </svg>
-                    Upload Template Custom Kartu Pelajar
-                  </h3>
-                  <p className="text-xs text-text-secondary mb-4 leading-relaxed">
-                    Upload gambar desain kartu pelajar custom (dari Canva, Photoshop, dll) sebagai background. Data siswa (foto, nama, NISN) akan di-overlay otomatis di atas template. 
-                    Jika tidak diupload, kartu menggunakan desain bawaan di atas.
-                  </p>
-
-                  <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-lg p-3 mb-5">
-                    <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                      <strong>💡 Tips:</strong> Buat desain dengan area kosong (transparan/putih) di bagian foto dan data siswa. Gunakan ukuran:
-                      <br/>• <strong>Horizontal</strong>: 856 × 540 px — foto di kiri (45px dari kiri, 145px dari atas), data di kanan
-                      <br/>• <strong>Vertikal</strong>: 408 × 646 px — foto di tengah atas (200px dari atas), data di bawah foto
-                    </p>
-                  </div>
-
-                  {/* Horizontal Templates */}
-                  <div className="mb-6">
-                    <h4 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/></svg>
-                      Template Horizontal (Landscape)
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-text-secondary mb-2">Sisi Depan (Front)</label>
-                        <div className="w-full aspect-[856/540] max-w-[280px]">
-                          <PhotoUploader
-                            currentPhotoUrl={getFullUrl(editingSettings.customTemplateHorizontalFrontUrl) || ''}
-                            onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateHorizontalFrontUrl: url})}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-text-secondary mb-2">Sisi Belakang (Back)</label>
-                        <div className="w-full aspect-[856/540] max-w-[280px]">
-                          <PhotoUploader
-                            currentPhotoUrl={getFullUrl(editingSettings.customTemplateHorizontalBackUrl) || ''}
-                            onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateHorizontalBackUrl: url})}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Vertical Templates */}
-                  <div>
-                    <h4 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="20" x="5" y="2" rx="2"/></svg>
-                      Template Vertikal (Portrait)
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-text-secondary mb-2">Sisi Depan (Front)</label>
-                        <div className="w-full aspect-[408/646] max-w-[200px]">
-                          <PhotoUploader
-                            currentPhotoUrl={getFullUrl(editingSettings.customTemplateVerticalFrontUrl) || ''}
-                            onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateVerticalFrontUrl: url})}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-text-secondary mb-2">Sisi Belakang (Back)</label>
-                        <div className="w-full aspect-[408/646] max-w-[200px]">
-                          <PhotoUploader
-                            currentPhotoUrl={getFullUrl(editingSettings.customTemplateVerticalBackUrl) || ''}
-                            onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateVerticalBackUrl: url})}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 <div className="flex justify-end mt-6">
                   <Button 
                      onClick={handleSaveSettings}
@@ -1127,18 +1049,91 @@ export const DashboardStudentCard = () => {
               </div>
             )}
 
-            {/* ===== TEMPLATES TAB (Placeholder) ===== */}
+            {/* ===== TEMPLATES TAB ===== */}
             {activeTab === 'templates' && isAdmin && (
-              <div className="bg-white dark:bg-background-dark p-8 rounded-2xl border border-border-light dark:border-border-dark shadow-sm text-center">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Palette size={32} className="text-primary" />
+              <div className="bg-white dark:bg-background-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm space-y-6">
+                <div>
+                  <h3 className="text-lg font-heading font-semibold text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
+                    <Palette size={20} className="text-primary" />
+                    Upload Template Custom
+                  </h3>
+                  <p className="text-sm text-text-secondary mt-1">
+                    Upload gambar desain kartu pelajar custom (dari Canva, Photoshop, dll) sebagai background. Data siswa (foto, nama, NISN) akan di-overlay otomatis di atas template.
+                    Jika tidak diupload, kartu menggunakan desain bawaan dari Pengaturan Layout.
+                  </p>
                 </div>
-                <h3 className="text-xl font-heading font-semibold text-text-primary dark:text-text-darkPrimary">Template Kartu</h3>
-                <p className="text-sm text-text-secondary mt-2 max-w-md mx-auto">
-                  Manajemen template kartu pelajar akan segera hadir. Anda akan dapat membuat, mengubah, dan mengelola desain template kartu.
-                </p>
-                <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-sm font-medium">
-                  🚧 Dalam Pengembangan
+
+                <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-lg p-4">
+                  <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                    <strong>💡 Tips Desain:</strong> Buat desain dengan area kosong (transparan/putih) di bagian foto dan data siswa. Gunakan ukuran:
+                    <br/>• <strong>Horizontal</strong>: 856 × 540 px — foto di kiri (45px dari kiri, 145px dari atas), data di kanan
+                    <br/>• <strong>Vertikal</strong>: 408 × 646 px — foto di tengah atas (200px dari atas), data di bawah foto
+                  </p>
+                </div>
+
+                {/* Horizontal Templates */}
+                <div className="pt-2">
+                  <h4 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><rect width="20" height="14" x="2" y="5" rx="2"/></svg>
+                    Template Horizontal (Landscape)
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-xs font-semibold text-text-secondary mb-2">Sisi Depan (Front)</label>
+                      <div className="w-full aspect-[856/540] max-w-[320px]">
+                        <PhotoUploader
+                          currentPhotoUrl={getFullUrl(editingSettings.customTemplateHorizontalFrontUrl) || ''}
+                          onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateHorizontalFrontUrl: url})}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-text-secondary mb-2">Sisi Belakang (Back)</label>
+                      <div className="w-full aspect-[856/540] max-w-[320px]">
+                        <PhotoUploader
+                          currentPhotoUrl={getFullUrl(editingSettings.customTemplateHorizontalBackUrl) || ''}
+                          onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateHorizontalBackUrl: url})}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vertical Templates */}
+                <div className="pt-4 border-t border-border-light dark:border-border-dark">
+                  <h4 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><rect width="14" height="20" x="5" y="2" rx="2"/></svg>
+                    Template Vertikal (Portrait)
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-xs font-semibold text-text-secondary mb-2">Sisi Depan (Front)</label>
+                      <div className="w-full aspect-[408/646] max-w-[220px]">
+                        <PhotoUploader
+                          currentPhotoUrl={getFullUrl(editingSettings.customTemplateVerticalFrontUrl) || ''}
+                          onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateVerticalFrontUrl: url})}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-text-secondary mb-2">Sisi Belakang (Back)</label>
+                      <div className="w-full aspect-[408/646] max-w-[220px]">
+                        <PhotoUploader
+                          currentPhotoUrl={getFullUrl(editingSettings.customTemplateVerticalBackUrl) || ''}
+                          onPhotoChange={(url) => setEditingSettings({...editingSettings, customTemplateVerticalBackUrl: url})}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-4 border-t border-border-light dark:border-border-dark">
+                  <Button 
+                     onClick={handleSaveSettings}
+                     disabled={updateSettingsMutation.isPending}
+                  >
+                    {updateSettingsMutation.isPending ? 'Menyimpan...' : 'Simpan Template'}
+                  </Button>
                 </div>
               </div>
             )}
