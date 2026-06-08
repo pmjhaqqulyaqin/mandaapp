@@ -1,4 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  ArrowLeft, Users as UsersLucide, Lock, ScrollText, Monitor,
+} from 'lucide-react';
 import {
   useListUsers,
   useCreateUser,
@@ -60,40 +64,55 @@ const ACTION_LABELS: Record<string, string> = {
 // ─── Tabs ───
 type Tab = 'users' | 'audit' | 'sessions' | 'permissions';
 
+const TAB_CONFIG = [
+  { key: 'users' as Tab, label: 'Daftar Pengguna', icon: <UsersLucide size={13} /> },
+  { key: 'permissions' as Tab, label: 'Hak Akses Menu', icon: <Lock size={13} /> },
+  { key: 'audit' as Tab, label: 'Audit Log', icon: <ScrollText size={13} /> },
+  { key: 'sessions' as Tab, label: 'Sessions Aktif', icon: <Monitor size={13} /> },
+];
+
 export const DashboardUsers = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('users');
+  // URL-driven tabs
+  const location = useLocation();
+  const navigate = useNavigate();
+  const tabSegment = location.pathname.split('/').filter(Boolean).pop();
+  const activeTab: Tab = (['permissions', 'audit', 'sessions'].includes(tabSegment || ''))
+    ? tabSegment as Tab
+    : 'users';
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-heading font-bold text-text-primary dark:text-text-darkPrimary">
-          Manajemen Users
-        </h1>
-        <p className="text-text-secondary mt-1">Kelola pengguna, role, sesi, dan audit log sistem.</p>
-      </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-[#111] p-1 rounded-xl w-fit flex-wrap">
-        {([
-          { key: 'users', label: 'Daftar Pengguna', icon: UsersIcon },
-          { key: 'permissions', label: 'Hak Akses Menu', icon: LockIcon },
-          { key: 'audit', label: 'Audit Log', icon: ClipboardIcon },
-          { key: 'sessions', label: 'Sessions Aktif', icon: MonitorIcon },
-        ] as { key: Tab; label: string; icon: React.FC }[]).map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-150 ${
-              activeTab === key
-                ? 'bg-white dark:bg-[#1a1a1a] text-primary shadow-sm'
-                : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'
-            }`}
-          >
-            <Icon />
-            {label}
-          </button>
-        ))}
+      {/* ── Mobile Context Navigation (md:hidden) ── */}
+      <div className="md:hidden -mx-3 px-3 sticky top-0 z-10">
+        <div className="bg-white dark:bg-background-dark border border-border-light dark:border-border-dark rounded-xl shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-border-light/60 dark:border-border-dark/60">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-text-secondary hover:text-primary hover:bg-gray-100 dark:hover:bg-white/5 transition-colors active:scale-90"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <UsersLucide size={16} className="text-primary shrink-0" />
+            <span className="text-sm font-bold text-primary truncate">Manajemen Users</span>
+          </div>
+          <div className="flex overflow-x-auto hide-scrollbar px-2 py-2 gap-1.5">
+            {TAB_CONFIG.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => navigate(tab.key === 'users' ? '/dashboard/users' : `/dashboard/users/${tab.key}`)}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 active:scale-95 ${
+                  activeTab === tab.key
+                    ? 'bg-primary text-white shadow-sm shadow-primary/20'
+                    : 'bg-gray-100 dark:bg-white/5 text-text-secondary hover:bg-gray-200 dark:hover:bg-white/10'
+                }`}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Tab Content */}

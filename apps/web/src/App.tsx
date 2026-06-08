@@ -192,7 +192,7 @@ function App() {
               <Route path="gallery" element={<DashboardGallery />} />
               <Route path="contacts" element={<DashboardContacts />} />
               <Route path="settings/*" element={<ProtectedRoute allowedRoles={['admin','kepala_madrasah']}><DashboardSettings /></ProtectedRoute>} />
-              <Route path="users" element={<ProtectedRoute allowedRoles={['admin']}><DashboardUsers /></ProtectedRoute>} />
+              <Route path="users/*" element={<ProtectedRoute allowedRoles={['admin']}><DashboardUsers /></ProtectedRoute>} />
               <Route path="students" element={<ProtectedRoute requireAdmin><DashboardStudents /></ProtectedRoute>} />
               <Route path="students/:id" element={<ProtectedRoute requireAdmin><StudentDetailPage /></ProtectedRoute>} />
               <Route path="alumni/*" element={<ProtectedRoute requireAdmin><DashboardAlumniLayout /></ProtectedRoute>} />

@@ -54,6 +54,9 @@ import {
   Link,
   Globe,
   Wrench,
+  Monitor,
+  ScrollText,
+  Lock,
 } from 'lucide-react';
 import { ProfileModal } from '../components/modals/ProfileModal';
 
@@ -284,6 +287,12 @@ const ALL_MENU_ITEMS = [
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     ),
     group: 'system',
+    subItems: [
+      { key: 'list', label: 'Daftar Pengguna', href: '/dashboard/users', exact: true, icon: <Users size={16} /> },
+      { key: 'permissions', label: 'Hak Akses Menu', href: '/dashboard/users/permissions', icon: <Lock size={16} /> },
+      { key: 'audit', label: 'Audit Log', href: '/dashboard/users/audit', icon: <ScrollText size={16} /> },
+      { key: 'sessions', label: 'Sessions Aktif', href: '/dashboard/users/sessions', icon: <Monitor size={16} /> },
+    ],
   },
   {
     key: 'updates',
@@ -484,6 +493,7 @@ export const DashboardLayout = () => {
   const [expandedSubMenu, setExpandedSubMenu] = useState<string | null>(() => {
     // Auto-expand if currently on a sub-item page
     if (location.pathname.startsWith('/dashboard/settings')) return 'settings';
+    if (location.pathname.startsWith('/dashboard/users')) return 'users';
     return null;
   });
 
@@ -647,9 +657,11 @@ export const DashboardLayout = () => {
       });
     }
 
-    // Auto-expand sub-menu for items with subItems (e.g. Pengaturan Sistem)
+    // Auto-expand sub-menu for items with subItems
     if (location.pathname.startsWith('/dashboard/settings')) {
       setExpandedSubMenu('settings');
+    } else if (location.pathname.startsWith('/dashboard/users')) {
+      setExpandedSubMenu('users');
     }
   }, [location.pathname]);
 
