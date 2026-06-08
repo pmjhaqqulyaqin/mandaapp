@@ -242,13 +242,13 @@ const ALL_MENU_ITEMS = [
       { key: 'seleksi', label: 'Seleksi & Pengumuman', href: '/dashboard/ppdb/seleksi', icon: <Trophy size={16} /> },
       { key: 'konfigurasi', label: 'Konfigurasi', href: '/dashboard/ppdb/konfigurasi', icon: <SettingsIcon size={16} /> },
     ],
-  },\r
-  {\r
-    key: 'penilaian-pmb',\r
-    label: 'Penilaian PMB',\r
-    href: '/dashboard/ppdb/penilaian',\r
-    icon: <Star size={16} />,\r
-    group: 'main',\r
+  },
+  {
+    key: 'penilaian-pmb',
+    label: 'Penilaian PMB',
+    href: '/dashboard/ppdb/penilaian',
+    icon: <Star size={16} />,
+    group: 'main',
   },
   {
     key: 'ijazah',
