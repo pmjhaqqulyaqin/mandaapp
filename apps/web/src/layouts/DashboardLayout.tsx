@@ -198,6 +198,12 @@ const ALL_MENU_ITEMS = [
     href: '/dashboard/alumni',
     icon: <GraduationCap size={16} />,
     group: 'main',
+    subItems: [
+      { key: 'overview', label: 'Overview', href: '/dashboard/alumni', exact: true, icon: <LayoutDashboard size={16} /> },
+      { key: 'directory', label: 'Daftar Alumni', href: '/dashboard/alumni/directory', icon: <Users size={16} /> },
+      { key: 'tracer-study', label: 'Tracer Study', href: '/dashboard/alumni/tracer-study', icon: <ClipboardList size={16} /> },
+      { key: 'settings', label: 'Pengaturan', href: '/dashboard/alumni/settings', icon: <SettingsIcon size={16} /> },
+    ],
   },
   {
     key: 'mutasi',
@@ -517,6 +523,7 @@ export const DashboardLayout = () => {
     if (location.pathname.startsWith('/dashboard/users')) return 'users';
     if (location.pathname.startsWith('/dashboard/mutasi')) return 'mutasi';
     if (location.pathname.startsWith('/dashboard/ppdb')) return 'ppdb';
+    if (location.pathname.startsWith('/dashboard/alumni')) return 'alumni';
     return null;
   });
 
@@ -689,6 +696,8 @@ export const DashboardLayout = () => {
       setExpandedSubMenu('mutasi');
     } else if (location.pathname.startsWith('/dashboard/ppdb')) {
       setExpandedSubMenu('ppdb');
+    } else if (location.pathname.startsWith('/dashboard/alumni')) {
+      setExpandedSubMenu('alumni');
     }
   }, [location.pathname]);
 

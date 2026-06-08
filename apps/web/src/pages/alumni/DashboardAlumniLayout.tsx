@@ -1,6 +1,6 @@
 import React from 'react';
-import { Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, ClipboardList, Settings, ExternalLink } from 'lucide-react';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Users, ClipboardList, Settings, ExternalLink, ArrowLeft, GraduationCap } from 'lucide-react';
 
 // Lazy loading views
 const AlumniOverview = React.lazy(() => import('./views/AlumniOverview').then(m => ({ default: m.AlumniOverview })));
@@ -9,53 +9,59 @@ const TracerStudy = React.lazy(() => import('./views/TracerStudy').then(m => ({ 
 const AlumniSettings = React.lazy(() => import('./views/AlumniSettings').then(m => ({ default: m.AlumniSettings })));
 const StudentDetailPage = React.lazy(() => import('../students/StudentDetailPage'));
 
+const TAB_CONFIG = [
+  { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={13} />, path: '' },
+  { id: 'directory', label: 'Daftar Alumni', icon: <Users size={13} />, path: 'directory' },
+  { id: 'tracer-study', label: 'Tracer Study', icon: <ClipboardList size={13} />, path: 'tracer-study' },
+  { id: 'settings', label: 'Pengaturan', icon: <Settings size={13} />, path: 'settings' },
+];
+
 export const DashboardAlumniLayout = () => {
   const location = useLocation();
-  const currentTab = location.pathname.split('/').pop() || 'overview';
+  const navigate = useNavigate();
 
-  const tabs = [
-    { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={16} />, path: '' },
-    { id: 'directory', label: 'Daftar Alumni', icon: <Users size={16} />, path: 'directory' },
-    { id: 'tracer-study', label: 'Tracer Study', icon: <ClipboardList size={16} />, path: 'tracer-study' },
-    { id: 'settings', label: 'Pengaturan', icon: <Settings size={16} />, path: 'settings' },
-  ];
+  // Derive active tab from URL
+  const segments = location.pathname.replace('/dashboard/alumni', '').split('/').filter(Boolean);
+  const activeSegment = segments[0] || '';
 
   return (
     <div className="flex flex-col gap-4 md:gap-5 h-full">
-      {/* Header & Tabs */}
-      <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] shadow-sm overflow-hidden shrink-0">
-        <div className="p-4 md:p-5 border-b border-gray-100 dark:border-[#222] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-text-primary dark:text-text-darkPrimary">Dashboard Alumni</h1>
-            <p className="text-xs text-text-secondary mt-0.5">Kelola data alumni, tracer study, dan direktori publik.</p>
-          </div>
-          <button 
-            onClick={() => window.open('/alumni-public', '_blank')}
-            className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-emerald-600 bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-colors self-start sm:self-auto"
-          >
-            <ExternalLink size={14} /> Lihat Direktori Publik
-          </button>
-        </div>
-        
-        {/* Navigation Tabs (Scrollable on mobile) */}
-        <div className="flex overflow-x-auto hide-scrollbar">
-          {tabs.map(tab => (
-            <NavLink
-              key={tab.id}
-              to={tab.path}
-              end={tab.path === ''}
-              className={({ isActive }) => `
-                flex items-center gap-2 px-5 py-3 text-[13px] font-semibold transition-colors whitespace-nowrap border-b-2
-                ${(isActive || (location.pathname.includes('/profile/') && tab.id === 'directory'))
-                  ? 'border-primary text-primary bg-primary/5' 
-                  : 'border-transparent text-text-secondary hover:text-text-primary dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a]'
-                }
-              `}
+
+      {/* ── Mobile Context Navigation (md:hidden) ── */}
+      <div className="md:hidden -mx-3 px-3 sticky top-0 z-10">
+        <div className="bg-white dark:bg-background-dark border border-border-light dark:border-border-dark rounded-xl shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-border-light/60 dark:border-border-dark/60">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-text-secondary hover:text-primary hover:bg-gray-100 dark:hover:bg-white/5 transition-colors active:scale-90"
             >
-              {tab.icon}
-              {tab.label}
-            </NavLink>
-          ))}
+              <ArrowLeft size={16} />
+            </button>
+            <GraduationCap size={16} className="text-primary shrink-0" />
+            <span className="text-sm font-bold text-primary truncate">Data Alumni</span>
+            <button
+              onClick={() => window.open('/alumni-public', '_blank')}
+              className="ml-auto flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 px-2 py-1 rounded-md"
+            >
+              <ExternalLink size={10} /> Publik
+            </button>
+          </div>
+          <div className="flex overflow-x-auto hide-scrollbar px-2 py-2 gap-1.5">
+            {TAB_CONFIG.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => navigate(tab.path ? `/dashboard/alumni/${tab.path}` : '/dashboard/alumni')}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 active:scale-95 ${
+                  activeSegment === tab.path
+                    ? 'bg-primary text-white shadow-sm shadow-primary/20'
+                    : 'bg-gray-100 dark:bg-white/5 text-text-secondary hover:bg-gray-200 dark:hover:bg-white/10'
+                }`}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
