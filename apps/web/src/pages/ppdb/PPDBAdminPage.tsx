@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { apiClient, API_BASE_URL } from '../../lib/api';
-import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
 import { MetricCard } from '@mandaapp/ui/src/components/MetricCard';
 import { toast } from 'sonner';
 import {
   GraduationCap, Users, Trophy, ClipboardList, Settings, BarChart3,
   Search, ChevronDown, Filter, Eye, Check, X, Loader2, RefreshCw,
   CheckCircle, Clock, XCircle, AlertCircle, Upload, ImageIcon,
-  Plus, Trash2, Phone, FileDown, Mail
+  Plus, Trash2, Phone, FileDown, Mail, ArrowLeft
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -30,7 +30,14 @@ const STATUS_MAP: Record<string, { label: string; color: string; icon: any }> = 
 };
 
 export const PPDBAdminPage = () => {
-  const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  // URL-driven tabs
+  const location = useLocation();
+  const navigate = useNavigate();
+  const tabSegment = location.pathname.split('/').filter(Boolean).pop();
+  const activeTab: TabKey = (['pendaftar', 'daftar_ulang', 'seleksi', 'konfigurasi'].includes(tabSegment || ''))
+    ? tabSegment as TabKey
+    : 'overview';
+
   const [stats, setStats] = useState<any>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [selectedConfigId, setSelectedConfigId] = useState<string>('');
@@ -52,16 +59,54 @@ export const PPDBAdminPage = () => {
 
   return (
     <div className="flex flex-col gap-3 md:gap-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'PMB / SIMPMB' }]} />
-          <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 dark:from-emerald-400 dark:to-blue-400 bg-clip-text text-transparent mt-1">
-            PMB / SIMPMB {stats?.config?.tahunAjaran ? stats.config.tahunAjaran.split('/')[0] : '2026'}
-          </h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Penerimaan Murid Baru — Tahun Ajaran {stats?.config?.tahunAjaran || '2026/2027'}</p>
+
+      {/* ── Mobile Context Navigation (md:hidden) ── */}
+      <div className="md:hidden -mx-3 px-3 sticky top-0 z-10">
+        <div className="bg-white dark:bg-background-dark border border-border-light dark:border-border-dark rounded-xl shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-border-light/60 dark:border-border-dark/60">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-text-secondary hover:text-primary hover:bg-gray-100 dark:hover:bg-white/5 transition-colors active:scale-90"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <GraduationCap size={16} className="text-primary shrink-0" />
+            <span className="text-sm font-bold text-primary truncate">PMB / SIMPMB</span>
+            {stats?.allConfigs && stats.allConfigs.length > 0 && (
+              <select
+                value={selectedConfigId}
+                onChange={(e) => setSelectedConfigId(e.target.value)}
+                className="ml-auto px-2 py-1 bg-white dark:bg-[#222] border border-border-light dark:border-border-dark rounded-lg text-[10px] font-bold text-emerald-600 dark:text-emerald-400 outline-none"
+              >
+                {stats.allConfigs.map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {c.tahunAjaran} {c.isActive ? '(Aktif)' : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <div className="flex overflow-x-auto hide-scrollbar px-2 py-2 gap-1.5">
+            {TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => navigate(tab.key === 'overview' ? '/dashboard/ppdb' : `/dashboard/ppdb/${tab.key}`)}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 active:scale-95 ${
+                  activeTab === tab.key
+                    ? 'bg-primary text-white shadow-sm shadow-primary/20'
+                    : 'bg-gray-100 dark:bg-white/5 text-text-secondary hover:bg-gray-200 dark:hover:bg-white/10'
+                }`}
+              >
+                <tab.icon size={13} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
-        
+      </div>
+
+      {/* Desktop: Tahun Ajaran Selector */}
+      <div className="hidden md:flex items-center justify-end">
         {stats?.allConfigs && stats.allConfigs.length > 0 && (
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-gray-500">Tahun Ajaran:</span>
@@ -80,38 +125,12 @@ export const PPDBAdminPage = () => {
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white dark:bg-background-dark rounded-xl border border-border-light dark:border-border-dark overflow-hidden">
-        <div className="border-b border-border-light dark:border-border-dark overflow-x-auto">
-          <div className="flex min-w-max">
-            {TABS.map(tab => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`relative flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition-colors ${
-                    isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-secondary hover:text-text-primary'
-                  }`}
-                >
-                  <Icon size={14} />
-                  {tab.label}
-                  {isActive && <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-emerald-500 rounded-t-full" />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="p-4 md:p-5">
-          {activeTab === 'overview' && <OverviewTab stats={stats} loading={loadingStats} />}
-          {activeTab === 'pendaftar' && <PendaftarTab stats={stats} configId={selectedConfigId} />}
-          {activeTab === 'daftar_ulang' && <DaftarUlangTab />}
-          {activeTab === 'seleksi' && <SeleksiTab stats={stats} />}
-          {activeTab === 'konfigurasi' && <KonfigurasiTab config={stats?.config} onSaved={fetchStats} />}
-        </div>
-      </div>
+      {/* Tab Content */}
+      {activeTab === 'overview' && <OverviewTab stats={stats} loading={loadingStats} />}
+      {activeTab === 'pendaftar' && <PendaftarTab stats={stats} configId={selectedConfigId} />}
+      {activeTab === 'daftar_ulang' && <DaftarUlangTab />}
+      {activeTab === 'seleksi' && <SeleksiTab stats={stats} />}
+      {activeTab === 'konfigurasi' && <KonfigurasiTab config={stats?.config} onSaved={fetchStats} />}
     </div>
   );
 };

@@ -210,8 +210,8 @@ function App() {
               <Route path="kbm" element={<DashboardKBM />} />
               <Route path="updates" element={<ProtectedRoute allowedRoles={['admin']}><SystemUpdateCenter /></ProtectedRoute>} />
               <Route path="services" element={<DashboardServices />} />
-              <Route path="ppdb" element={<PPDBAdminPage />} />
               <Route path="ppdb/penilaian" element={<PPDBPenilaianPage />} />
+              <Route path="ppdb/*" element={<PPDBAdminPage />} />
             </Route>
           </Routes>
         </Suspense>

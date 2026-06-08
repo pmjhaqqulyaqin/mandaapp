@@ -57,6 +57,12 @@ import {
   Monitor,
   ScrollText,
   Lock,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  RefreshCw,
+  BarChart3,
+  Trophy,
+  LayoutDashboard,
 } from 'lucide-react';
 import { ProfileModal } from '../components/modals/ProfileModal';
 
@@ -199,6 +205,14 @@ const ALL_MENU_ITEMS = [
     href: '/dashboard/mutasi',
     icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.828l-6.536-6.536"/><path d="M12 13.7a4 4 0 0 1 1.172-2.828l6.536-6.536"/></svg>,
     group: 'main',
+    subItems: [
+      { key: 'overview', label: 'Overview', href: '/dashboard/mutasi', exact: true, icon: <LayoutDashboard size={16} /> },
+      { key: 'directory', label: 'Daftar Siswa', href: '/dashboard/mutasi/directory', icon: <Users size={16} /> },
+      { key: 'masuk', label: 'Mutasi Masuk', href: '/dashboard/mutasi/masuk', icon: <ArrowDownToLine size={16} /> },
+      { key: 'keluar', label: 'Mutasi Keluar', href: '/dashboard/mutasi/keluar', icon: <ArrowUpFromLine size={16} /> },
+      { key: 'internal', label: 'Mutasi Internal', href: '/dashboard/mutasi/internal', icon: <RefreshCw size={16} /> },
+      { key: 'laporan', label: 'Laporan', href: '/dashboard/mutasi/laporan', icon: <FileText size={16} /> },
+    ],
   },
 
   {
@@ -221,13 +235,20 @@ const ALL_MENU_ITEMS = [
     href: '/dashboard/ppdb',
     icon: <GraduationCap size={16} />,
     group: 'main',
-  },
-  {
-    key: 'penilaian-pmb',
-    label: 'Penilaian PMB',
-    href: '/dashboard/ppdb/penilaian',
-    icon: <Star size={16} />,
-    group: 'main',
+    subItems: [
+      { key: 'overview', label: 'Overview', href: '/dashboard/ppdb', exact: true, icon: <BarChart3 size={16} /> },
+      { key: 'pendaftar', label: 'Data Pendaftar', href: '/dashboard/ppdb/pendaftar', icon: <Users size={16} /> },
+      { key: 'daftar_ulang', label: 'Daftar Ulang', href: '/dashboard/ppdb/daftar_ulang', icon: <ClipboardList size={16} /> },
+      { key: 'seleksi', label: 'Seleksi & Pengumuman', href: '/dashboard/ppdb/seleksi', icon: <Trophy size={16} /> },
+      { key: 'konfigurasi', label: 'Konfigurasi', href: '/dashboard/ppdb/konfigurasi', icon: <SettingsIcon size={16} /> },
+    ],
+  },\r
+  {\r
+    key: 'penilaian-pmb',\r
+    label: 'Penilaian PMB',\r
+    href: '/dashboard/ppdb/penilaian',\r
+    icon: <Star size={16} />,\r
+    group: 'main',\r
   },
   {
     key: 'ijazah',
@@ -494,6 +515,8 @@ export const DashboardLayout = () => {
     // Auto-expand if currently on a sub-item page
     if (location.pathname.startsWith('/dashboard/settings')) return 'settings';
     if (location.pathname.startsWith('/dashboard/users')) return 'users';
+    if (location.pathname.startsWith('/dashboard/mutasi')) return 'mutasi';
+    if (location.pathname.startsWith('/dashboard/ppdb')) return 'ppdb';
     return null;
   });
 
@@ -662,6 +685,10 @@ export const DashboardLayout = () => {
       setExpandedSubMenu('settings');
     } else if (location.pathname.startsWith('/dashboard/users')) {
       setExpandedSubMenu('users');
+    } else if (location.pathname.startsWith('/dashboard/mutasi')) {
+      setExpandedSubMenu('mutasi');
+    } else if (location.pathname.startsWith('/dashboard/ppdb')) {
+      setExpandedSubMenu('ppdb');
     }
   }, [location.pathname]);
 
