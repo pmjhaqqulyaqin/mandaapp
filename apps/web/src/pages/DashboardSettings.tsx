@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useSettings } from '../hooks/api/useSettings';
 import { settingsService } from '../lib/services/settings';
 import { apiClient, API_BASE_URL } from '../lib/api';
+import {
+  ArrowLeft, Home, Image as ImageIcon, Globe, MapPin, Link as LinkIcon,
+  Settings as SettingsIcon, Wrench
+} from 'lucide-react';
 
 type TabId = 'identity' | 'logo' | 'social' | 'map' | 'links' | 'system';
 
@@ -311,7 +316,14 @@ const SERVER_BASE_URL = API_BASE_URL.replace(/\/api$/, '');
 
 export const DashboardSettings = () => {
   const { queryAll, updateMutation } = useSettings();
-  const [activeTab, setActiveTab] = useState<TabId>('identity');
+
+  // Derive active tab from URL path (URL-driven tabs for sidebar navigation)
+  const location = useLocation();
+  const navigate = useNavigate();
+  const tabSegment = location.pathname.split('/').filter(Boolean).pop();
+  const activeTab: TabId = (['logo', 'social', 'map', 'links', 'system'].includes(tabSegment || ''))
+    ? tabSegment as TabId
+    : 'identity';
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [websiteLinks, setWebsiteLinks] = useState<WebsiteLink[]>([]);
   const [saveStatus, setSaveStatus] = useState<Record<string, 'idle' | 'saving' | 'saved' | 'error'>>({});
@@ -553,40 +565,55 @@ export const DashboardSettings = () => {
 
   return (
     <div className="max-w-5xl mx-auto">
-      {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-heading font-bold text-text-primary dark:text-text-darkPrimary">
-          Pengaturan Sistem
-        </h1>
-        <p className="text-sm text-text-secondary mt-1">
-          Kelola identitas sekolah, media sosial, lokasi, dan konfigurasi sistem website.
-        </p>
-      </div>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Tab Navigation - Sidebar Style */}
-        <div className="lg:w-56 shrink-0">
-          <div className="bg-white dark:bg-[#0a0a0a] rounded-xl border border-border-light dark:border-border-dark p-2 flex flex-row lg:flex-col gap-1 overflow-x-auto lg:overflow-x-visible">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'bg-primary/10 text-primary dark:bg-primary/20'
-                    : 'text-text-secondary hover:bg-gray-100 dark:hover:bg-white/5'
-                }`}
-              >
-                {tab.icon}
-                <span className="hidden sm:inline">{tab.label}</span>
-              </button>
-            ))}
+      {/* ── Mobile Context Navigation (md:hidden) ── */}
+      {/* Desktop uses sidebar from DashboardLayout; mobile needs inline sub-nav */}
+      <div className="md:hidden -mx-3 px-3 sticky top-0 z-10 mb-4">
+        <div className="bg-white dark:bg-background-dark border border-border-light dark:border-border-dark rounded-xl shadow-sm overflow-hidden">
+          {/* Header row: back button + title */}
+          <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-border-light/60 dark:border-border-dark/60">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-text-secondary hover:text-primary hover:bg-gray-100 dark:hover:bg-white/5 transition-colors active:scale-90"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <SettingsIcon size={16} className="text-primary shrink-0" />
+            <span className="text-sm font-bold text-primary truncate">Pengaturan Sistem</span>
+          </div>
+          {/* Scrollable tab pills */}
+          <div className="flex overflow-x-auto hide-scrollbar px-2 py-2 gap-1.5">
+            {tabs.map(tab => {
+              const mobileIcons: Record<string, React.ReactNode> = {
+                identity: <Home size={13} />,
+                logo: <ImageIcon size={13} />,
+                social: <Globe size={13} />,
+                map: <MapPin size={13} />,
+                links: <LinkIcon size={13} />,
+                system: <Wrench size={13} />,
+              };
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => navigate(tab.id === 'identity' ? '/dashboard/settings' : `/dashboard/settings/${tab.id}`)}
+                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 active:scale-95 ${
+                    activeTab === tab.id
+                      ? 'bg-primary text-white shadow-sm shadow-primary/20'
+                      : 'bg-gray-100 dark:bg-white/5 text-text-secondary hover:bg-gray-200 dark:hover:bg-white/10'
+                  }`}
+                >
+                  {mobileIcons[tab.id]}
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
+      </div>
 
-        {/* Tab Content */}
-        <div className="flex-1 min-w-0">
-          <div className="bg-white dark:bg-[#0a0a0a] rounded-xl border border-border-light dark:border-border-dark" style={{ animation: 'fadeIn 0.2s ease-out' }}>
+      {/* Tab Content */}
+      <div className="min-w-0">
+        <div className="bg-white dark:bg-[#0a0a0a] rounded-xl border border-border-light dark:border-border-dark" style={{ animation: 'fadeIn 0.2s ease-out' }}>
             {/* Tab: Identitas Sekolah */}
             {activeTab === 'identity' && (
               <div className="p-6">
@@ -1146,7 +1173,6 @@ export const DashboardSettings = () => {
             )}
           </div>
         </div>
-      </div>
 
       <style>{`
         @keyframes fadeIn {

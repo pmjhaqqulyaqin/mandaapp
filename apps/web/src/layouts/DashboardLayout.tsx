@@ -50,6 +50,10 @@ import {
   DoorOpen,
   ListChecks,
   FileSpreadsheet,
+  MapPin,
+  Link,
+  Globe,
+  Wrench,
 } from 'lucide-react';
 import { ProfileModal } from '../components/modals/ProfileModal';
 
@@ -435,6 +439,19 @@ const SUB_APP_CONFIGS: SubAppConfig[] = [
       { key: 'ba', label: 'Berita Acara', path: '/dashboard/exams/ba', icon: <FileText size={16} /> },
       { key: 'dh', label: 'Daftar Hadir', path: '/dashboard/exams/dh', icon: <ListChecks size={16} /> },
       { key: 'nilai', label: 'Format Nilai', path: '/dashboard/exams/nilai', icon: <FileSpreadsheet size={16} /> },
+    ],
+  },
+  {
+    label: 'PENGATURAN SISTEM',
+    icon: <SettingsIcon size={18} />,
+    basePath: '/dashboard/settings',
+    items: [
+      { key: 'identity', label: 'Identitas Sekolah', path: '/dashboard/settings', exact: true, icon: <Home size={16} /> },
+      { key: 'logo', label: 'Logo & Kop Dokumen', path: '/dashboard/settings/logo', icon: <ImageIcon size={16} /> },
+      { key: 'social', label: 'Media Sosial', path: '/dashboard/settings/social', icon: <Globe size={16} /> },
+      { key: 'map', label: 'Lokasi & Peta', path: '/dashboard/settings/map', icon: <MapPin size={16} /> },
+      { key: 'links', label: 'Website Terkait', path: '/dashboard/settings/links', icon: <Link size={16} /> },
+      { key: 'system', label: 'Pengaturan Sistem', path: '/dashboard/settings/system', icon: <Wrench size={16} /> },
     ],
   },
 ];
