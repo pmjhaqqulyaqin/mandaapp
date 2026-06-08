@@ -47,6 +47,9 @@ import {
   ArrowLeft,
   History,
   Palette,
+  DoorOpen,
+  ListChecks,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { ProfileModal } from '../components/modals/ProfileModal';
 
@@ -417,6 +420,21 @@ const SUB_APP_CONFIGS: SubAppConfig[] = [
       { key: 'batch', label: 'Cetak Batch', path: '/dashboard/student-card/batch', icon: <Printer size={16} />, roles: ['admin', 'guru'] },
       { key: 'history', label: 'Riwayat Cetak', path: '/dashboard/student-card/history', icon: <History size={16} />, roles: ['admin', 'guru'] },
       { key: 'templates', label: 'Template Kartu', path: '/dashboard/student-card/templates', icon: <Palette size={16} />, roles: ['admin'] },
+    ],
+  },
+  {
+    label: 'MANAJEMEN UJIAN',
+    icon: <ClipboardCheck size={18} />,
+    basePath: '/dashboard/exams',
+    items: [
+      { key: 'master', label: 'Master Ujian', path: '/dashboard/exams', exact: true, icon: <ClipboardCheck size={16} /> },
+      { key: 'jadwal', label: 'Jadwal Ujian', path: '/dashboard/exams/jadwal', icon: <Calendar size={16} /> },
+      { key: 'pengawas', label: 'Pengawas', path: '/dashboard/exams/pengawas', icon: <Users size={16} /> },
+      { key: 'ruang', label: 'Ruang & Peserta', path: '/dashboard/exams/ruang', icon: <DoorOpen size={16} /> },
+      { key: 'kartu', label: 'Kartu & ID', path: '/dashboard/exams/kartu', icon: <CreditCard size={16} /> },
+      { key: 'ba', label: 'Berita Acara', path: '/dashboard/exams/ba', icon: <FileText size={16} /> },
+      { key: 'dh', label: 'Daftar Hadir', path: '/dashboard/exams/dh', icon: <ListChecks size={16} /> },
+      { key: 'nilai', label: 'Format Nilai', path: '/dashboard/exams/nilai', icon: <FileSpreadsheet size={16} /> },
     ],
   },
 ];

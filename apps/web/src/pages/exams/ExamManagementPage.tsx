@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { apiClient } from '../../lib/api';
-import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
 import { toast } from 'sonner';
 import {
   ClipboardCheck, Plus, ChevronDown, Calendar, Users, DoorOpen,
-  CreditCard, FileText, ListChecks, FileSpreadsheet, Loader2
+  CreditCard, FileText, ListChecks, FileSpreadsheet, Loader2,
+  ArrowLeft, Settings as SettingsIcon
 } from 'lucide-react';
 
 // Tabs
@@ -37,10 +38,17 @@ export const ExamManagementPage = () => {
   const [ujianList, setUjianList] = useState<any[]>([]);
   const [selectedUjianId, setSelectedUjianId] = useState<string>('');
   const [selectedUjian, setSelectedUjian] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<TabKey>('master');
   const [loading, setLoading] = useState(true);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Derive active tab from URL path (URL-driven tabs for sidebar navigation)
+  const location = useLocation();
+  const navigate = useNavigate();
+  const tabSegment = location.pathname.split('/').filter(Boolean).pop();
+  const activeTab: TabKey = (['jadwal', 'pengawas', 'ruang', 'kartu', 'ba', 'dh', 'nilai'].includes(tabSegment || ''))
+    ? tabSegment as TabKey
+    : 'master';
 
   const fetchUjianList = useCallback(async () => {
     try {
@@ -93,21 +101,53 @@ export const ExamManagementPage = () => {
   const statusColor = selectedUjian?.status === 'aktif' ? 'bg-emerald-500' :
     selectedUjian?.status === 'draft' ? 'bg-amber-500' : 'bg-gray-400';
 
+  // Tab icon map for mobile context nav
+  const tabIcons: Record<string, React.ReactNode> = {
+    master: <ClipboardCheck size={13} />,
+    jadwal: <Calendar size={13} />,
+    pengawas: <Users size={13} />,
+    ruang: <DoorOpen size={13} />,
+    kartu: <CreditCard size={13} />,
+    ba: <FileText size={13} />,
+    dh: <ListChecks size={13} />,
+    nilai: <FileSpreadsheet size={13} />,
+  };
+
   return (
     <div className="flex flex-col gap-3 md:gap-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-        <div>
-          <Breadcrumbs items={[
-            { label: 'Dashboard', href: '/dashboard' },
-            { label: 'Manajemen Ujian' },
-          ]} />
-          <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent mt-1">
-            Manajemen Ujian
-          </h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            Kelola administrasi ujian secara terintegrasi
-          </p>
+
+      {/* ── Mobile Context Navigation (md:hidden) ── */}
+      {/* Desktop uses sidebar from DashboardLayout; mobile needs inline sub-nav */}
+      <div className="md:hidden -mx-3 px-3 sticky top-0 z-10">
+        <div className="bg-white dark:bg-background-dark border border-border-light dark:border-border-dark rounded-xl shadow-sm overflow-hidden">
+          {/* Header row: back button + title */}
+          <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-border-light/60 dark:border-border-dark/60">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-text-secondary hover:text-indigo-600 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors active:scale-90"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <ClipboardCheck size={16} className="text-indigo-500 shrink-0" />
+            <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 truncate">Manajemen Ujian</span>
+          </div>
+          {/* Scrollable tab pills */}
+          <div className="flex overflow-x-auto hide-scrollbar px-2 py-2 gap-1.5">
+            {TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => navigate(tab.key === 'master' ? '/dashboard/exams' : `/dashboard/exams/${tab.key}`)}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 active:scale-95 ${
+                  activeTab === tab.key
+                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
+                    : 'bg-gray-100 dark:bg-white/5 text-text-secondary hover:bg-gray-200 dark:hover:bg-white/10'
+                }`}
+              >
+                {tabIcons[tab.key]}
+                {tab.shortLabel}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -192,66 +232,36 @@ export const ExamManagementPage = () => {
         </div>
       </div>
 
-      {/* Tab Navigation */}
+      {/* Tab Content */}
       {selectedUjian && (
-        <>
-          <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] overflow-hidden">
-            <div className="border-b border-gray-100 dark:border-[#222] overflow-x-auto custom-scrollbar">
-              <div className="flex min-w-max">
-                {TABS.map(tab => {
-                  const Icon = tab.icon;
-                  const isActive = activeTab === tab.key;
-                  return (
-                    <button
-                      key={tab.key}
-                      onClick={() => setActiveTab(tab.key)}
-                      className={`relative flex items-center gap-1.5 px-4 py-3 text-xs font-medium whitespace-nowrap transition-colors ${
-                        isActive
-                          ? 'text-indigo-600 dark:text-indigo-400'
-                          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                      }`}
-                    >
-                      <Icon size={14} />
-                      <span className="hidden sm:inline">{tab.label}</span>
-                      <span className="sm:hidden">{tab.shortLabel}</span>
-                      {isActive && (
-                        <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-indigo-500 rounded-t-full" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Tab Content */}
-            <div className="p-4">
-              {activeTab === 'master' && (
-                <MasterUjianTab ujian={selectedUjian} onRefresh={refreshUjian} />
-              )}
-              {activeTab === 'jadwal' && (
-                <JadwalUjianTab ujianId={selectedUjianId} />
-              )}
-              {activeTab === 'pengawas' && (
-                <PengawasTab ujianId={selectedUjianId} />
-              )}
-              {activeTab === 'ruang' && (
-                <RuangPesertaTab ujianId={selectedUjianId} />
-              )}
-              {activeTab === 'kartu' && (
-                <KartuIdTab ujianId={selectedUjianId} ujian={selectedUjian} />
-              )}
-              {activeTab === 'ba' && (
-                <BeritaAcaraTab ujianId={selectedUjianId} ujian={selectedUjian} />
-              )}
-              {activeTab === 'dh' && (
-                <DaftarHadirTab ujianId={selectedUjianId} ujian={selectedUjian} />
-              )}
-              {activeTab === 'nilai' && (
-                <FormatNilaiTab ujianId={selectedUjianId} ujian={selectedUjian} />
-              )}
-            </div>
+        <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] overflow-hidden">
+          <div className="p-4">
+            {activeTab === 'master' && (
+              <MasterUjianTab ujian={selectedUjian} onRefresh={refreshUjian} />
+            )}
+            {activeTab === 'jadwal' && (
+              <JadwalUjianTab ujianId={selectedUjianId} />
+            )}
+            {activeTab === 'pengawas' && (
+              <PengawasTab ujianId={selectedUjianId} />
+            )}
+            {activeTab === 'ruang' && (
+              <RuangPesertaTab ujianId={selectedUjianId} />
+            )}
+            {activeTab === 'kartu' && (
+              <KartuIdTab ujianId={selectedUjianId} ujian={selectedUjian} />
+            )}
+            {activeTab === 'ba' && (
+              <BeritaAcaraTab ujianId={selectedUjianId} ujian={selectedUjian} />
+            )}
+            {activeTab === 'dh' && (
+              <DaftarHadirTab ujianId={selectedUjianId} ujian={selectedUjian} />
+            )}
+            {activeTab === 'nilai' && (
+              <FormatNilaiTab ujianId={selectedUjianId} ujian={selectedUjian} />
+            )}
           </div>
-        </>
+        </div>
       )}
 
       {/* Empty state when no exam selected */}

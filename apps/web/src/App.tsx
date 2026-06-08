@@ -204,7 +204,7 @@ function App() {
               <Route path="pages" element={<DashboardPages />} />
               <Route path="menus" element={<DashboardMenus />} />
               <Route path="e-office" element={<EOfficePage />} />
-              <Route path="exams" element={<ExamManagementPage />} />
+              <Route path="exams/*" element={<ExamManagementPage />} />
               <Route path="attendance" element={<DashboardAttendance />} />
               <Route path="jurnal" element={<DashboardJurnal />} />
               <Route path="kbm" element={<DashboardKBM />} />
