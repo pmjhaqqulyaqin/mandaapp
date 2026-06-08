@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cardPrintService } from '../lib/services/cardPrint';
@@ -27,7 +27,7 @@ import { useCards } from '../hooks/api/useCards';
 import { useSiteSettings } from '../hooks/api/useSettings';
 import { CameraCapture } from '../components/CameraCapture';
 import { galleryService } from '../lib/services/gallery';
-import { Edit2, Image as ImageIcon, Camera, X, Loader2, Eye, History, Palette, Printer } from 'lucide-react';
+import { Edit2, Image as ImageIcon, Camera, X, Loader2, Eye, History, Palette, Printer, ArrowLeft, CreditCard, Settings as SettingsIcon } from 'lucide-react';
 
 export const DashboardStudentCard = () => {
   const { user } = useAuth();
@@ -595,6 +595,50 @@ export const DashboardStudentCard = () => {
 
       <div className="max-w-5xl mx-auto flex flex-col gap-3 md:gap-6 print:hidden">
 
+        {/* ── Mobile Context Navigation (md:hidden) ── */}
+        {/* Desktop uses sidebar from DashboardLayout; mobile needs inline sub-nav */}
+        <div className="md:hidden -mx-3 px-3 sticky top-0 z-10">
+          <div className="bg-white dark:bg-background-dark border border-border-light dark:border-border-dark rounded-xl shadow-sm overflow-hidden">
+            {/* Header row: back button + title */}
+            <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-border-light/60 dark:border-border-dark/60">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-text-secondary hover:text-primary hover:bg-gray-100 dark:hover:bg-white/5 transition-colors active:scale-90"
+              >
+                <ArrowLeft size={16} />
+              </button>
+              <CreditCard size={16} className="text-primary shrink-0" />
+              <span className="text-sm font-bold text-primary truncate">Kartu Pelajar</span>
+            </div>
+            {/* Scrollable tab pills */}
+            <div className="flex overflow-x-auto hide-scrollbar px-2 py-2 gap-1.5">
+              {visibleTabs.map(tab => {
+                const tabIcons: Record<string, React.ReactNode> = {
+                  preview: <Eye size={13} />,
+                  edit: <Edit2 size={13} />,
+                  settings: <SettingsIcon size={13} />,
+                  batch: <Printer size={13} />,
+                  history: <History size={13} />,
+                  templates: <Palette size={13} />,
+                };
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => navigate(tab.key === 'preview' ? '/dashboard/student-card' : `/dashboard/student-card/${tab.key}`)}
+                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 active:scale-95 ${
+                      activeTab === tab.key
+                        ? 'bg-primary text-white shadow-sm shadow-primary/20'
+                        : 'bg-gray-100 dark:bg-white/5 text-text-secondary hover:bg-gray-200 dark:hover:bg-white/10'
+                    }`}
+                  >
+                    {tabIcons[tab.key]}
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
         {/* Tab Content */}
         {isLoading ? (
