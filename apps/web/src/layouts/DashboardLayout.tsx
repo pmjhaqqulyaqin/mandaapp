@@ -267,6 +267,14 @@ const ALL_MENU_ITEMS = [
     href: '/dashboard/settings',
     icon: <SettingsIcon size={16} />,
     group: 'system',
+    subItems: [
+      { key: 'identity', label: 'Identitas Sekolah', href: '/dashboard/settings', exact: true, icon: <Home size={16} /> },
+      { key: 'logo', label: 'Logo & Kop Dokumen', href: '/dashboard/settings/logo', icon: <ImageIcon size={16} /> },
+      { key: 'social', label: 'Media Sosial', href: '/dashboard/settings/social', icon: <Globe size={16} /> },
+      { key: 'map', label: 'Lokasi & Peta', href: '/dashboard/settings/map', icon: <MapPin size={16} /> },
+      { key: 'links', label: 'Website Terkait', href: '/dashboard/settings/links', icon: <Link size={16} /> },
+      { key: 'system', label: 'Pengaturan Sistem', href: '/dashboard/settings/system', icon: <Wrench size={16} /> },
+    ],
   },
   {
     key: 'users',
@@ -441,19 +449,6 @@ const SUB_APP_CONFIGS: SubAppConfig[] = [
       { key: 'nilai', label: 'Format Nilai', path: '/dashboard/exams/nilai', icon: <FileSpreadsheet size={16} /> },
     ],
   },
-  {
-    label: 'PENGATURAN SISTEM',
-    icon: <SettingsIcon size={18} />,
-    basePath: '/dashboard/settings',
-    items: [
-      { key: 'identity', label: 'Identitas Sekolah', path: '/dashboard/settings', exact: true, icon: <Home size={16} /> },
-      { key: 'logo', label: 'Logo & Kop Dokumen', path: '/dashboard/settings/logo', icon: <ImageIcon size={16} /> },
-      { key: 'social', label: 'Media Sosial', path: '/dashboard/settings/social', icon: <Globe size={16} /> },
-      { key: 'map', label: 'Lokasi & Peta', path: '/dashboard/settings/map', icon: <MapPin size={16} /> },
-      { key: 'links', label: 'Website Terkait', path: '/dashboard/settings/links', icon: <Link size={16} /> },
-      { key: 'system', label: 'Pengaturan Sistem', path: '/dashboard/settings/system', icon: <Wrench size={16} /> },
-    ],
-  },
 ];
 
 const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
@@ -483,6 +478,13 @@ export const DashboardLayout = () => {
       const saved = localStorage.getItem('sidebar-expanded-groups');
       return saved ? JSON.parse(saved) : ['app-master'];
     } catch { return ['app-master']; }
+  });
+
+  // Expanded sub-menu items (for items with subItems like Pengaturan Sistem)
+  const [expandedSubMenu, setExpandedSubMenu] = useState<string | null>(() => {
+    // Auto-expand if currently on a sub-item page
+    if (location.pathname.startsWith('/dashboard/settings')) return 'settings';
+    return null;
   });
 
   // Close dropdown when clicking outside
@@ -643,6 +645,11 @@ export const DashboardLayout = () => {
         try { localStorage.setItem('sidebar-expanded-groups', JSON.stringify(next)); } catch {}
         return next;
       });
+    }
+
+    // Auto-expand sub-menu for items with subItems (e.g. Pengaturan Sistem)
+    if (location.pathname.startsWith('/dashboard/settings')) {
+      setExpandedSubMenu('settings');
     }
   }, [location.pathname]);
 
@@ -833,21 +840,46 @@ export const DashboardLayout = () => {
                     <div className="pl-2">
                       <div className="bg-white dark:bg-[#111] border border-border-light dark:border-border-dark rounded-xl shadow-2xl p-1.5 min-w-[210px]">
                         <div className="text-[10px] font-bold text-text-secondary uppercase tracking-wider px-2.5 py-1.5 mb-0.5">{cat.label}</div>
-                        {catItems.map(item => (
-                          <NavLink
-                            key={item.href}
-                            to={item.href}
-                            end={item.exact}
-                            className={({ isActive }) => `flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-[13px] font-medium transition-colors ${
-                              isActive
-                                ? 'bg-primary/10 text-primary dark:bg-primary/20'
-                                : 'text-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 hover:text-text-primary dark:hover:text-text-darkPrimary'
-                            }`}
-                          >
-                            {item.icon}
-                            {item.label}
-                          </NavLink>
-                        ))}
+                        {catItems.map(item => {
+                          const subs = (item as any).subItems;
+                          if (subs && subs.length > 0) {
+                            return (
+                              <div key={item.href}>
+                                <div className="text-[10px] font-bold text-text-secondary uppercase tracking-wider px-2.5 py-1.5 mt-1">{item.label}</div>
+                                {subs.map((sub: any) => (
+                                  <NavLink
+                                    key={sub.key}
+                                    to={sub.href}
+                                    end={sub.exact}
+                                    className={({ isActive }) => `flex items-center gap-2 px-2.5 py-[6px] rounded-md text-[12px] font-medium transition-colors ${
+                                      isActive
+                                        ? 'bg-primary/10 text-primary dark:bg-primary/20'
+                                        : 'text-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 hover:text-text-primary dark:hover:text-text-darkPrimary'
+                                    }`}
+                                  >
+                                    {sub.icon}
+                                    {sub.label}
+                                  </NavLink>
+                                ))}
+                              </div>
+                            );
+                          }
+                          return (
+                            <NavLink
+                              key={item.href}
+                              to={item.href}
+                              end={item.exact}
+                              className={({ isActive }) => `flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-[13px] font-medium transition-colors ${
+                                isActive
+                                  ? 'bg-primary/10 text-primary dark:bg-primary/20'
+                                  : 'text-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 hover:text-text-primary dark:hover:text-text-darkPrimary'
+                              }`}
+                            >
+                              {item.icon}
+                              {item.label}
+                            </NavLink>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -876,21 +908,71 @@ export const DashboardLayout = () => {
                   }`}
                 >
                   <div className="pl-3 flex flex-col gap-px">
-                    {catItems.map(item => (
-                      <NavLink
-                        key={item.href}
-                        to={item.href}
-                        end={item.exact}
-                        className={({ isActive }) => `sidebar-link px-2.5 py-[7px] rounded-md text-[13px] font-medium flex items-center gap-2.5 transition-colors ${
-                          isActive
-                            ? 'sidebar-link-active bg-primary/10 text-primary dark:bg-primary/20'
-                            : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'
-                        }`}
-                      >
-                        {item.icon}
-                        {item.label}
-                      </NavLink>
-                    ))}
+                    {catItems.map(item => {
+                      const hasSubItems = (item as any).subItems && (item as any).subItems.length > 0;
+                      const isSubExpanded = expandedSubMenu === item.key;
+                      const isSubActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/');
+
+                      if (hasSubItems) {
+                        const subItems = (item as any).subItems as { key: string; label: string; href: string; exact?: boolean; icon: React.ReactNode }[];
+                        return (
+                          <div key={item.href}>
+                            <button
+                              onClick={() => {
+                                setExpandedSubMenu(isSubExpanded ? null : item.key);
+                                if (!isSubActive) navigate(item.href);
+                              }}
+                              className={`w-full sidebar-link px-2.5 py-[7px] rounded-md text-[13px] font-medium flex items-center gap-2.5 transition-colors ${
+                                isSubActive
+                                  ? 'sidebar-link-active bg-primary/10 text-primary dark:bg-primary/20'
+                                  : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'
+                              }`}
+                            >
+                              {item.icon}
+                              <span className="flex-1 text-left">{item.label}</span>
+                              <ChevronDown size={12} className={`transition-transform duration-200 shrink-0 ${isSubExpanded ? 'rotate-180' : ''}`} />
+                            </button>
+                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                              isSubExpanded ? 'max-h-[400px] opacity-100 mt-0.5' : 'max-h-0 opacity-0'
+                            }`}>
+                              <div className="pl-4 flex flex-col gap-px">
+                                {subItems.map(sub => (
+                                  <NavLink
+                                    key={sub.key}
+                                    to={sub.href}
+                                    end={sub.exact}
+                                    className={({ isActive }) => `px-2.5 py-[6px] rounded-md text-[12px] font-medium flex items-center gap-2 transition-colors ${
+                                      isActive
+                                        ? 'bg-primary/10 text-primary dark:bg-primary/20'
+                                        : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'
+                                    }`}
+                                  >
+                                    {sub.icon}
+                                    {sub.label}
+                                  </NavLink>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <NavLink
+                          key={item.href}
+                          to={item.href}
+                          end={item.exact}
+                          className={({ isActive }) => `sidebar-link px-2.5 py-[7px] rounded-md text-[13px] font-medium flex items-center gap-2.5 transition-colors ${
+                            isActive
+                              ? 'sidebar-link-active bg-primary/10 text-primary dark:bg-primary/20'
+                              : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'
+                          }`}
+                        >
+                          {item.icon}
+                          {item.label}
+                        </NavLink>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
