@@ -3,7 +3,7 @@ import {
   ujian, panitiaUjian, jadwalUjian, ruangUjian,
   penugasanPengawas, distribusiPeserta, employees,
   studentProfiles, classes, schoolEvents,
-  cardSettings, siteSettings
+  cardSettings, siteSettings, masterSubjects
 } from '../../db/schema';
 import { eq, desc, asc, and, inArray, gte, lte, or } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -244,8 +244,19 @@ export class ExamService {
   // ============ JADWAL UJIAN ============
 
   static async getJadwal(ujianId: string) {
-    return await db.select()
+    return await db.select({
+      id: jadwalUjian.id,
+      ujianId: jadwalUjian.ujianId,
+      tanggal: jadwalUjian.tanggal,
+      waktuMulai: jadwalUjian.waktuMulai,
+      waktuSelesai: jadwalUjian.waktuSelesai,
+      subjectId: jadwalUjian.subjectId,
+      mataPelajaran: masterSubjects.nama,
+      kelas: jadwalUjian.kelas,
+      createdAt: jadwalUjian.createdAt
+    })
       .from(jadwalUjian)
+      .leftJoin(masterSubjects, eq(jadwalUjian.subjectId, masterSubjects.id))
       .where(eq(jadwalUjian.ujianId, ujianId))
       .orderBy(asc(jadwalUjian.tanggal), asc(jadwalUjian.waktuMulai));
   }
@@ -257,7 +268,7 @@ export class ExamService {
       tanggal: data.tanggal,
       waktuMulai: data.waktuMulai,
       waktuSelesai: data.waktuSelesai,
-      mataPelajaran: data.mataPelajaran,
+      subjectId: data.subjectId,
       kelas: data.kelas || null
     }).returning();
     return result[0];
@@ -268,7 +279,7 @@ export class ExamService {
       tanggal: data.tanggal,
       waktuMulai: data.waktuMulai,
       waktuSelesai: data.waktuSelesai,
-      mataPelajaran: data.mataPelajaran,
+      subjectId: data.subjectId,
       kelas: data.kelas || null
     }).where(eq(jadwalUjian.id, id)).returning();
   }

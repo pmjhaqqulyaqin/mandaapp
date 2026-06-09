@@ -277,120 +277,12 @@ export const SettingsTab = () => {
         </div>
       </div>
 
-      {/* Tabs Layout for Subjects */}
+      {/* Subjects Mapping Layout */}
       <div>
-        <div className="flex border-b border-gray-200 dark:border-[#333] mb-6">
-          <button onClick={() => setActiveTab('master')}
-            className={`px-6 py-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'master' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>
-            <Database size={16} /> Data Master Mapel
-          </button>
-          <button onClick={() => setActiveTab('mapping')}
-            className={`px-6 py-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'mapping' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>
-            <MapIcon size={16} /> Pemetaan Kurikulum
-          </button>
-        </div>
 
-        {activeTab === 'master' && (
-          <div className="space-y-4 animate-in fade-in duration-200">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary">Daftar Mata Pelajaran Murni</h3>
-                <p className="text-xs text-gray-500">Input semua mapel sekolah. Jangan duplikasi nama mapel untuk semester berbeda.</p>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={handleDownloadTemplate} disabled={isDownloadingTemplate}
-                  className="px-3 py-1.5 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#222] text-xs font-semibold rounded flex items-center gap-1.5">
-                  {isDownloadingTemplate ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Template
-                </button>
-                <div className="relative">
-                  <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRef} onChange={handleUploadSubjects} />
-                  <button onClick={() => fileInputRef.current?.click()} disabled={isUploadingSubjects}
-                    className="px-3 py-1.5 bg-violet-50 text-violet-600 dark:bg-violet-900/10 dark:text-violet-400 text-xs font-semibold rounded flex items-center gap-1.5">
-                    {isUploadingSubjects ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Import
-                  </button>
-                </div>
-                <button onClick={handleAddSubject}
-                  className="px-3 py-1.5 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 text-xs font-semibold rounded flex items-center gap-1.5">
-                  <Plus size={14} /> Tambah
-                </button>
-              </div>
-            </div>
 
-            <div className="border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden bg-white dark:bg-[#111]">
-              <table className="w-full text-left text-sm whitespace-nowrap">
-                <thead className="bg-gray-50 dark:bg-black/40 border-b border-gray-200 dark:border-[#333]">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold text-xs text-gray-500 w-16 text-center">Urut</th>
-                    <th className="px-4 py-3 font-semibold text-xs text-gray-500 w-1/4">Kelompok</th>
-                    <th className="px-4 py-3 font-semibold text-xs text-gray-500">Nama Mapel</th>
-                    <th className="px-4 py-3 font-semibold text-xs text-gray-500 w-32">Singkatan</th>
-                    <th className="px-4 py-3 font-semibold text-xs text-gray-500 w-24 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
-                  {subjects.map((subj) => {
-                    const isEditing = editingId === subj.id;
-                    return (
-                      <tr key={subj.id} className={isEditing ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : 'hover:bg-gray-50 dark:hover:bg-[#1a1a1a]'}>
-                        {isEditing ? (
-                          <>
-                            <td className="px-4 py-2"><input type="number" className="w-16 px-2 py-1.5 text-center text-sm border border-gray-300 dark:border-[#444] rounded bg-white dark:bg-black" value={editForm?.orderNum || 0} onChange={(e) => setEditForm({...editForm!, orderNum: parseInt(e.target.value) || 0})} /></td>
-                            <td className="px-4 py-2">
-                              <select className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-[#444] rounded bg-white dark:bg-black" value={editForm?.group || ''} onChange={(e) => setEditForm({...editForm!, group: e.target.value})}>
-                                {GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
-                              </select>
-                            </td>
-                            <td className="px-4 py-2"><input type="text" placeholder="Nama Mata Pelajaran" className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-[#444] rounded bg-white dark:bg-black" value={editForm?.name || ''} onChange={(e) => setEditForm({...editForm!, name: e.target.value})} autoFocus /></td>
-                            <td className="px-4 py-2"><input type="text" placeholder="Singkatan" className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-[#444] rounded bg-white dark:bg-black" value={editForm?.shortName || ''} onChange={(e) => setEditForm({...editForm!, shortName: e.target.value})} /></td>
-                            <td className="px-4 py-2 text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                <button onClick={handleSaveSubject} className="p-1.5 text-emerald-600 hover:bg-emerald-100 rounded"><Check size={16} /></button>
-                                <button onClick={() => { if (subj.id?.startsWith('new-')) setSubjects(subjects.filter(s => s.id !== subj.id)); setEditingId(null); }} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded"><X size={16} /></button>
-                              </div>
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td className="px-4 py-3 text-center text-gray-500">{subj.orderNum}</td>
-                            <td className="px-4 py-3 font-medium"><span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600 dark:bg-[#222] dark:text-gray-300">{subj.group}</span></td>
-                            <td className="px-4 py-3 font-semibold text-text-primary dark:text-text-darkPrimary">{subj.name}</td>
-                            <td className="px-4 py-2">
-                              <input 
-                                type="text" 
-                                placeholder="Singkatan" 
-                                className="w-full px-2 py-1.5 text-sm border border-transparent hover:border-gray-300 focus:border-emerald-500 dark:hover:border-[#444] rounded bg-transparent focus:bg-white dark:focus:bg-black outline-none transition-colors"
-                                defaultValue={subj.shortName || ''} 
-                                onBlur={(e) => {
-                                  if (e.target.value !== (subj.shortName || '')) {
-                                    handleUpdateShortName(subj.id!, e.target.value);
-                                  }
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.currentTarget.blur();
-                                  }
-                                }}
-                              />
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <div className="flex justify-end gap-1 opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => { setEditingId(subj.id!); setEditForm(subj); }} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><Edit2 size={14} /></button>
-                                <button onClick={() => handleDeleteSubject(subj.id!)} className="p-1.5 text-red-500 hover:bg-red-50 rounded"><Trash2 size={14} /></button>
-                              </div>
-                            </td>
-                          </>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
 
-        {activeTab === 'mapping' && (
-          <div className="space-y-4 animate-in fade-in duration-200">
+        <div className="space-y-4 mt-6 animate-in fade-in duration-200">
             <div>
               <h3 className="text-sm font-bold text-text-primary dark:text-text-darkPrimary">Distribusi Mata Pelajaran</h3>
               <p className="text-xs text-gray-500">Tentukan mapel ini diajarkan di kelas mana saja dan semester berapa.</p>
@@ -453,7 +345,7 @@ export const SettingsTab = () => {
               </table>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Mapping Edit Modal */}

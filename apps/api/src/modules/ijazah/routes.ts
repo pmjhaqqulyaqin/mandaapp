@@ -16,11 +16,11 @@ router.post("/settings", requireStaff, IjazahController.saveSettings);
 
 // Endpoint Phase 2: Subjects
 router.get("/subjects", requireStaff, IjazahController.getSubjects);
-router.post("/subjects", requireStaff, IjazahController.saveSubject);
-router.delete("/subjects/:id", requireStaff, IjazahController.deleteSubject);
-router.patch("/subjects/:id/short-name", requireStaff, IjazahController.updateSubjectShortName);
-router.get("/subjects/template", requireStaff, IjazahController.downloadSubjectTemplate);
-router.post("/subjects/upload", requireStaff, upload.single("file"), IjazahController.uploadSubjects);
+// router.post("/subjects", requireStaff, IjazahController.saveSubject);
+// router.delete("/subjects/:id", requireStaff, IjazahController.deleteSubject);
+// router.patch("/subjects/:id/short-name", requireStaff, IjazahController.updateSubjectShortName);
+// router.get("/subjects/template", requireStaff, IjazahController.downloadSubjectTemplate);
+// router.post("/subjects/upload", requireStaff, upload.single("file"), IjazahController.uploadSubjects);
 
 // Endpoint Phase 3: Grades Upload & Template
 router.get("/download-template", requireStaff, IjazahController.downloadTemplate);

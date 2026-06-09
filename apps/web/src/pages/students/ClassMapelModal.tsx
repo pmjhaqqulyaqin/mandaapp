@@ -18,6 +18,7 @@ export function ClassMapelModal({ isOpen, onClose, classes }: ClassMapelModalPro
   // For copy feature
   const [copyFromClassId, setCopyFromClassId] = useState<string>('');
   const [isCopying, setIsCopying] = useState(false);
+  const [masterSubjects, setMasterSubjects] = useState<any[]>([]);
 
   useEffect(() => {
     if (isOpen && !selectedClassId && classes.length > 0) {
@@ -31,8 +32,12 @@ export function ClassMapelModal({ isOpen, onClose, classes }: ClassMapelModalPro
     const fetchMapels = async () => {
       setIsLoading(true);
       try {
-        const data = await apiClient<any>(`/students/class-mapels/${selectedClassId}`);
+        const [data, subjectsData] = await Promise.all([
+          apiClient<any>(`/students/class-mapels/${selectedClassId}`),
+          apiClient<any[]>('/subjects')
+        ]);
         setMapels(data.mapels || []);
+        setMasterSubjects(subjectsData || []);
       } catch (err) {
         console.error("Failed to load mapels", err);
         setMapels([]);
@@ -208,13 +213,16 @@ export function ClassMapelModal({ isOpen, onClose, classes }: ClassMapelModalPro
                     <div className="w-10 h-10 shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 font-medium">
                       {index + 1}
                     </div>
-                    <input
-                      type="text"
+                    <select
                       value={mapel}
                       onChange={(e) => updateMapel(index, e.target.value)}
-                      placeholder="Nama Mata Pelajaran (Contoh: Pendidikan Agama Islam)"
                       className="flex-1 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
-                    />
+                    >
+                      <option value="">Pilih Mata Pelajaran...</option>
+                      {masterSubjects.map(s => (
+                        <option key={s.id} value={s.nama}>{s.nama}</option>
+                      ))}
+                    </select>
                     <button
                       onClick={() => removeMapel(index)}
                       className="w-10 h-10 shrink-0 flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"

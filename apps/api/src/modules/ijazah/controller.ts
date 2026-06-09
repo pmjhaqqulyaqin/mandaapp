@@ -5,7 +5,7 @@ import {
   studentProfiles, 
   classes, 
   ijazahSettings, 
-  ijazahSubjects, 
+  masterSubjects, 
   ijazahSubjectMappings,
   ijazahGrades,
   ijazahExportSelections,
@@ -152,9 +152,9 @@ export class IjazahController {
     try {
       const subjects = await db
         .select()
-        .from(ijazahSubjects)
-        .where(eq(ijazahSubjects.isActive, true))
-        .orderBy(asc(ijazahSubjects.orderNum));
+        .from(masterSubjects)
+        .where(eq(masterSubjects.isActive, true))
+        .orderBy(asc(masterSubjects.orderNum));
       res.json(subjects);
     } catch (error: any) {
       logger.error({ err: error }, "Failed to fetch Ijazah subjects");
@@ -167,11 +167,11 @@ export class IjazahController {
       const { id, name, shortName, group, orderNum } = req.body;
       if (!name || !group) return res.status(400).json({ error: "Nama mapel dan kelompok wajib diisi" });
       if (id) {
-        await db.update(ijazahSubjects)
-          .set({ name, shortName: shortName || null, group, orderNum: orderNum || 0, updatedAt: new Date() })
-          .where(eq(ijazahSubjects.id, id));
+        await db.update(masterSubjects)
+          .set({ nama: name, shortName: shortName || null, kelompok: group, orderNum: orderNum || 0, updatedAt: new Date() })
+          .where(eq(masterSubjects.id, id));
       } else {
-        await db.insert(ijazahSubjects).values({ name, shortName: shortName || null, group, orderNum: orderNum || 0 });
+        await db.insert(masterSubjects).values({ kode: "TEMP", nama: name, shortName: shortName || null, kelompok: group, orderNum: orderNum || 0 });
       }
       res.json({ success: true, message: "Mata pelajaran berhasil disimpan" });
     } catch (error: any) {
@@ -185,9 +185,9 @@ export class IjazahController {
       const { id } = req.params;
       const { shortName } = req.body;
       if (!id) return res.status(400).json({ error: "ID wajib diisi" });
-      await db.update(ijazahSubjects)
+      await db.update(masterSubjects)
         .set({ shortName: shortName || null, updatedAt: new Date() })
-        .where(eq(ijazahSubjects.id, id));
+        .where(eq(masterSubjects.id, id));
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: "Gagal menyimpan singkatan" });
@@ -197,7 +197,7 @@ export class IjazahController {
   static async deleteSubject(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      await db.update(ijazahSubjects).set({ isActive: false, updatedAt: new Date() }).where(eq(ijazahSubjects.id, id));
+      await db.update(masterSubjects).set({ isActive: false, updatedAt: new Date() }).where(eq(masterSubjects.id, id));
       res.json({ success: true, message: "Mata pelajaran berhasil dihapus" });
     } catch (error: any) {
       res.status(500).json({ error: "Gagal menghapus mata pelajaran" });
@@ -221,7 +221,7 @@ export class IjazahController {
         const name = String(row.getCell(3).value || '').trim();
         if (!name || !group) continue;
         const ord = typeof orderNum === 'number' ? orderNum : rowNumber - 1;
-        await db.insert(ijazahSubjects).values({ name, group, orderNum: ord });
+        await db.insert(masterSubjects).values({ kode: "TEMP", nama: name, kelompok: group, orderNum: ord });
         inserted++;
       }
       res.json({ success: true, message: `${inserted} entri mata pelajaran berhasil diimpor` });
@@ -241,9 +241,9 @@ export class IjazahController {
         { header: 'Nama Mata Pelajaran', key: 'name', width: 40 },
       ];
       const examples = [
-        { orderNum: 1, group: 'Kelompok A', name: 'Pendidikan Agama Islam' },
-        { orderNum: 2, group: 'Kelompok B', name: 'Seni Budaya' },
-        { orderNum: 3, group: 'Mapel Pilihan', name: 'Biologi' },
+        { orderNum: 1, kelompok: 'Kelompok A', nama: 'Pendidikan Agama Islam' },
+        { orderNum: 2, kelompok: 'Kelompok B', nama: 'Seni Budaya' },
+        { orderNum: 3, kelompok: 'Mapel Pilihan', nama: 'Biologi' },
       ];
       examples.forEach(ex => worksheet.addRow(ex));
       const headerRow = worksheet.getRow(1);
@@ -357,7 +357,7 @@ export class IjazahController {
       const subjectSemFilter = semester && typeof semester === 'string' ? semToSubjectSem[semester] : null;
 
       // 1. Fetch active subjects and mappings
-      const activeSubjects = await db.select().from(ijazahSubjects).where(eq(ijazahSubjects.isActive, true)).orderBy(asc(ijazahSubjects.orderNum));
+      const activeSubjects = await db.select().from(masterSubjects).where(eq(masterSubjects.isActive, true)).orderBy(asc(masterSubjects.orderNum));
       let mappings: any[] = [];
       try { mappings = await db.select().from(ijazahSubjectMappings); } catch (e) { /* table may not exist yet */ }
 
@@ -394,7 +394,7 @@ export class IjazahController {
       ];
 
       subjects.forEach((subj) => {
-        const headerLabel = subj.shortName || subj.name;
+        const headerLabel = subj.shortName || subj.nama;
         const colWidth = subj.shortName ? Math.max(6, subj.shortName.length + 2) : 15;
         columns.push({ header: headerLabel, key: `subj_${subj.id}`, width: colWidth });
       });
@@ -426,7 +426,7 @@ export class IjazahController {
           no: index + 1,
           nis: student.nis,
           nisn: student.nisn,
-          name: student.fullName,
+          nama: student.fullName,
           jk: student.gender === 'Laki-laki' ? 'L' : student.gender === 'Perempuan' ? 'P' : student.gender || '-',
         });
       });
@@ -497,7 +497,7 @@ export class IjazahController {
 
       // 1. Scan header row to find NISN column and subject columns dynamically
       const headers = worksheet.getRow(1).values as any[];
-      const activeSubjects = await db.select().from(ijazahSubjects).where(eq(ijazahSubjects.isActive, true));
+      const activeSubjects = await db.select().from(masterSubjects).where(eq(masterSubjects.isActive, true));
       
       let nisnColIdx = -1;
       const subjectMap = new Map<number, string>(); // colIndex -> subject.id
@@ -515,7 +515,7 @@ export class IjazahController {
         
         // Try to match as subject name or shortName (case-insensitive, trimmed)
         const matchedSubject = activeSubjects.find(s => 
-          s.name.trim().toLowerCase() === headerVal.toLowerCase() ||
+          s.nama.trim().toLowerCase() === headerVal.toLowerCase() ||
           (s.shortName && s.shortName.trim().toLowerCase() === headerVal.toLowerCase())
         );
         if (matchedSubject) {
@@ -628,7 +628,7 @@ export class IjazahController {
       const { type, classId, semester } = req.query; // type: 'global' | 'rombel'
 
       // 1. Get subjects and filter by mapping
-      const activeSubjects = await db.select().from(ijazahSubjects).where(eq(ijazahSubjects.isActive, true)).orderBy(asc(ijazahSubjects.orderNum));
+      const activeSubjects = await db.select().from(masterSubjects).where(eq(masterSubjects.isActive, true)).orderBy(asc(masterSubjects.orderNum));
       let mappings: any[] = [];
       try { mappings = await db.select().from(ijazahSubjectMappings); } catch (e) { /* table may not exist yet */ }
       
@@ -723,7 +723,7 @@ export class IjazahController {
       const examWeight = (settingsResult.length > 0 ? settingsResult[0].examWeight : 40) ?? 40;
 
       // 2. Get Selected Subjects from DB (Active subjects that match the selected names)
-      let subjectsQuery = db.select().from(ijazahSubjects).where(eq(ijazahSubjects.isActive, true));
+      let subjectsQuery = db.select().from(masterSubjects).where(eq(masterSubjects.isActive, true));
       let allActiveSubjects = await subjectsQuery;
       
       // Filter by selected subject names if provided
@@ -737,7 +737,7 @@ export class IjazahController {
       const subjectMap = new Map<string, any>();
       
       for (const subj of allActiveSubjects) {
-        if (selectedNames.length > 0 && !selectedNames.includes(subj.name)) continue;
+        if (selectedNames.length > 0 && !selectedNames.includes(subj.nama)) continue;
         const map = mappings.find(m => m.subjectId === subj.id);
         
         if (!map) {
@@ -747,16 +747,16 @@ export class IjazahController {
           if (!isGlobal && !(map.classIds as string[]).includes(classId)) continue;
         }
 
-        if (!subjectMap.has(subj.name)) {
+        if (!subjectMap.has(subj.nama)) {
           // Count active semesters from mapping flags
           let activeSemCount = 5; // default
           if (map) {
             activeSemCount = [map.sem1, map.sem2, map.sem3, map.sem4, map.sem5].filter(Boolean).length;
             if (activeSemCount === 0) activeSemCount = 5; // fallback if none configured
           }
-          subjectMap.set(subj.name, {
-            name: subj.name,
-            group: subj.group,
+          subjectMap.set(subj.nama, {
+            nama: subj.nama,
+            kelompok: subj.kelompok,
             orderNum: subj.orderNum,
             hasUm: map?.um || false,
             activeSemCount,
@@ -895,7 +895,7 @@ export class IjazahController {
         ? subjectIds.split(',').map(s => s.trim()) 
         : [];
       
-      let subjectsQuery = db.select().from(ijazahSubjects).where(eq(ijazahSubjects.isActive, true));
+      let subjectsQuery = db.select().from(masterSubjects).where(eq(masterSubjects.isActive, true));
       let allActiveSubjects = await subjectsQuery;
 
       let mappings: any[] = [];
@@ -903,7 +903,7 @@ export class IjazahController {
 
       const subjectMap = new Map<string, any>();
       for (const subj of allActiveSubjects) {
-        if (selectedNames.length > 0 && !selectedNames.includes(subj.name)) continue;
+        if (selectedNames.length > 0 && !selectedNames.includes(subj.nama)) continue;
         
         const map = mappings.find(m => m.subjectId === subj.id);
         if (!map) {
@@ -913,17 +913,17 @@ export class IjazahController {
           if (!isGlobal && !(map.classIds as string[]).includes(classId)) continue;
         }
 
-        if (!subjectMap.has(subj.name)) {
+        if (!subjectMap.has(subj.nama)) {
           // Count active semesters from mapping
           let activeSemCount = 5;
           if (map) {
             activeSemCount = [map.sem1, map.sem2, map.sem3, map.sem4, map.sem5].filter(Boolean).length;
             if (activeSemCount === 0) activeSemCount = 5;
           }
-          subjectMap.set(subj.name, {
-            name: subj.name,
+          subjectMap.set(subj.nama, {
+            nama: subj.nama,
             shortName: subj.shortName,
-            group: subj.group,
+            kelompok: subj.kelompok,
             orderNum: subj.orderNum,
             hasUm: false,
             activeSemCount,
@@ -932,7 +932,7 @@ export class IjazahController {
           });
         }
         
-        const mapEntry = subjectMap.get(subj.name);
+        const mapEntry = subjectMap.get(subj.nama);
         mapEntry.ids.push(subj.id);
         if (map && map.um) {
           mapEntry.hasUm = true;

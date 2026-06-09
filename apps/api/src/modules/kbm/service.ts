@@ -1,7 +1,7 @@
 import { db } from "../../db";
 import {
-  kbmSubjects, distribusiJam, tugasTambahanMaster, tugasTambahan,
-  ruangan, employees, classes, academicYears, jurnalMapelCodes,
+  distribusiJam, tugasTambahanMaster, tugasTambahan,
+  ruangan, employees, classes, academicYears, masterSubjects,
   kbmJadwal, teachingSubjects, guruUnavailability, scheduleConfig,
   jadwalVersion,
 } from "../../db/schema";
@@ -15,36 +15,36 @@ export class KbmService {
 
   static async getSubjects(activeOnly = false) {
     if (activeOnly) {
-      return db.select().from(kbmSubjects).where(eq(kbmSubjects.isActive, true)).orderBy(kbmSubjects.kode);
+      return db.select().from(masterSubjects).where(eq(masterSubjects.isActive, true)).orderBy(masterSubjects.kode);
     }
-    return db.select().from(kbmSubjects).orderBy(kbmSubjects.kode);
+    return db.select().from(masterSubjects).orderBy(masterSubjects.kode);
   }
 
   static async createSubject(data: { kode: string; nama: string }) {
-    const results = await db.insert(kbmSubjects).values(data).returning();
+    const results = await db.insert(masterSubjects).values(data).returning();
     return results[0];
   }
 
   static async updateSubject(id: string, data: { kode?: string; nama?: string; isActive?: boolean; maxJamKe?: number | null; minJamKe?: number | null; allowSingleSplit?: boolean; isHeavy?: boolean; customSplitRule?: any }) {
-    const results = await db.update(kbmSubjects)
+    const results = await db.update(masterSubjects)
       .set({ ...data, updatedAt: new Date() })
-      .where(eq(kbmSubjects.id, id)).returning();
+      .where(eq(masterSubjects.id, id)).returning();
     return results[0] || null;
   }
 
   static async deleteSubject(id: string) {
-    const results = await db.update(kbmSubjects)
+    const results = await db.update(masterSubjects)
       .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(kbmSubjects.id, id)).returning();
+      .where(eq(masterSubjects.id, id)).returning();
     return results[0] || null;
   }
 
   static async seedDefaultSubjects() {
     // Copy from jurnal_mapel_codes if kbm_subjects is empty
-    const existing = await db.select().from(kbmSubjects);
+    const existing = await db.select().from(masterSubjects);
     if (existing.length > 0) return { seeded: 0, message: "Sudah ada data mapel" };
 
-    const mapelCodes = await db.select().from(jurnalMapelCodes).orderBy(jurnalMapelCodes.kode);
+    const mapelCodes = await db.select().from(masterSubjects).orderBy(masterSubjects.kode);
     if (mapelCodes.length === 0) {
       // Fallback: seed from hardcoded list
       const defaults = [
@@ -62,12 +62,12 @@ export class KbmService {
         { kode: 'W', nama: 'Informatika' }, { kode: 'X', nama: 'Bimbingan Konseling' },
         { kode: 'Y', nama: 'Tahfidz' }, { kode: 'Z', nama: 'Mulok' },
       ];
-      await db.insert(kbmSubjects).values(defaults).onConflictDoNothing({ target: kbmSubjects.kode });
+      await db.insert(masterSubjects).values(defaults).onConflictDoNothing({ target: masterSubjects.kode });
       return { seeded: defaults.length, message: "Seed dari data default" };
     }
 
-    const values = mapelCodes.map(mc => ({ kode: mc.kode, nama: mc.subjectName }));
-    await db.insert(kbmSubjects).values(values).onConflictDoNothing({ target: kbmSubjects.kode });
+    const values = mapelCodes.map(mc => ({ kode: mc.kode, nama: mc.nama }));
+    await db.insert(masterSubjects).values(values).onConflictDoNothing({ target: masterSubjects.kode });
     return { seeded: values.length, message: "Seed dari jurnal_mapel_codes" };
   }
 
@@ -85,19 +85,19 @@ export class KbmService {
       kelasId: distribusiJam.kelasId,
       kelasName: classes.name,
       subjectId: distribusiJam.subjectId,
-      subjectKode: kbmSubjects.kode,
-      subjectNama: kbmSubjects.nama,
+      subjectKode: masterSubjects.kode,
+      subjectNama: masterSubjects.nama,
       jumlahJam: distribusiJam.jumlahJam,
     })
     .from(distribusiJam)
     .leftJoin(employees, eq(distribusiJam.guruId, employees.id))
     .leftJoin(classes, eq(distribusiJam.kelasId, classes.id))
-    .leftJoin(kbmSubjects, eq(distribusiJam.subjectId, kbmSubjects.id))
+    .leftJoin(masterSubjects, eq(distribusiJam.subjectId, masterSubjects.id))
     .where(and(
       eq(distribusiJam.academicYearId, academicYearId),
       eq(distribusiJam.semester, semester),
     ))
-    .orderBy(employees.name, kbmSubjects.kode, classes.name);
+    .orderBy(employees.name, masterSubjects.kode, classes.name);
   }
 
   static async upsertDistribusi(data: {
@@ -386,8 +386,8 @@ export class KbmService {
     const classList = await db.select({ id: classes.id, name: classes.name }).from(classes).orderBy(classes.name);
     const guruList = await db.select({ id: employees.id, name: employees.name, nip: employees.nip })
       .from(employees).where(eq(employees.type, 'Guru')).orderBy(employees.name);
-    const subjectList = await db.select({ id: kbmSubjects.id, kode: kbmSubjects.kode, nama: kbmSubjects.nama })
-      .from(kbmSubjects).where(eq(kbmSubjects.isActive, true)).orderBy(kbmSubjects.kode);
+    const subjectList = await db.select({ id: masterSubjects.id, kode: masterSubjects.kode, nama: masterSubjects.nama })
+      .from(masterSubjects).where(eq(masterSubjects.isActive, true)).orderBy(masterSubjects.kode);
 
     // Build rows grouped by guru+mapel with cells per class
     const rowMap = new Map<string, { guruNip: string; guruName: string; subjectKode: string; subjectNama: string; cells: Record<string, number> }>();
@@ -414,8 +414,8 @@ export class KbmService {
   static async getImportLookups() {
     const guruList = await db.select({ id: employees.id, name: employees.name, nip: employees.nip })
       .from(employees).where(eq(employees.type, 'Guru'));
-    const subjectList = await db.select({ id: kbmSubjects.id, kode: kbmSubjects.kode, nama: kbmSubjects.nama })
-      .from(kbmSubjects).where(eq(kbmSubjects.isActive, true));
+    const subjectList = await db.select({ id: masterSubjects.id, kode: masterSubjects.kode, nama: masterSubjects.nama })
+      .from(masterSubjects).where(eq(masterSubjects.isActive, true));
     const classList = await db.select({ id: classes.id, name: classes.name }).from(classes);
     return { guruList, subjectList, classList };
   }
@@ -469,8 +469,8 @@ export class KbmService {
       kelasId: kbmJadwal.kelasId,
       kelasName: classes.name,
       subjectId: kbmJadwal.subjectId,
-      subjectKode: kbmSubjects.kode,
-      subjectNama: kbmSubjects.nama,
+      subjectKode: masterSubjects.kode,
+      subjectNama: masterSubjects.nama,
       ruanganId: kbmJadwal.ruanganId,
       ruanganNama: ruangan.nama,
       dayOfWeek: kbmJadwal.dayOfWeek,
@@ -479,7 +479,7 @@ export class KbmService {
       .from(kbmJadwal)
       .leftJoin(employees, eq(kbmJadwal.guruId, employees.id))
       .leftJoin(classes, eq(kbmJadwal.kelasId, classes.id))
-      .leftJoin(kbmSubjects, eq(kbmJadwal.subjectId, kbmSubjects.id))
+      .leftJoin(masterSubjects, eq(kbmJadwal.subjectId, masterSubjects.id))
       .leftJoin(ruangan, eq(kbmJadwal.ruanganId, ruangan.id))
       .where(and(...conditions))
       .orderBy(kbmJadwal.dayOfWeek, kbmJadwal.jamKe);
@@ -596,7 +596,7 @@ export class KbmService {
     if (distribusi.length === 0) return { generated: 0, failed: 0, total: 0, blocks: 0, failedBlocks: 0, message: 'Tidak ada distribusi jam', report: null };
     emit({ phase: 'init', progress: 5, detail: `${distribusi.length} distribusi dimuat` });
 
-    const subjectList = await db.select().from(kbmSubjects).where(eq(kbmSubjects.isActive, true));
+    const subjectList = await db.select().from(masterSubjects).where(eq(masterSubjects.isActive, true));
     const subjectMap = new Map(subjectList.map(s => [s.id, s]));
     const unavail = await db.select().from(guruUnavailability).where(and(eq(guruUnavailability.academicYearId, academicYearId), eq(guruUnavailability.semester, semester)));
     const guruUnavailDays = new Map<string, Set<number>>();
@@ -1149,12 +1149,12 @@ export class KbmService {
     const atTarget = await db.select({
       id: kbmJadwal.id, guruId: kbmJadwal.guruId, guruName: employees.name,
       kelasId: kbmJadwal.kelasId, kelasName: classes.name,
-      subjectId: kbmJadwal.subjectId, subjectNama: kbmSubjects.nama, subjectKode: kbmSubjects.kode,
+      subjectId: kbmJadwal.subjectId, subjectNama: masterSubjects.nama, subjectKode: masterSubjects.kode,
       dayOfWeek: kbmJadwal.dayOfWeek, jamKe: kbmJadwal.jamKe,
     }).from(kbmJadwal)
       .leftJoin(employees, eq(kbmJadwal.guruId, employees.id))
       .leftJoin(classes, eq(kbmJadwal.kelasId, classes.id))
-      .leftJoin(kbmSubjects, eq(kbmJadwal.subjectId, kbmSubjects.id))
+      .leftJoin(masterSubjects, eq(kbmJadwal.subjectId, masterSubjects.id))
       .where(and(
         eq(kbmJadwal.academicYearId, slot.academicYearId), eq(kbmJadwal.semester, slot.semester),
         eq(kbmJadwal.dayOfWeek, targetDay), eq(kbmJadwal.jamKe, targetJam),
@@ -1315,7 +1315,7 @@ export class KbmService {
     }
 
     // 3. Heavy subject (Matematika, Fisika, Kimia, etc) at jam >= 7 — penalty 3
-    const heavySubjects = await db.select({ id: kbmSubjects.id, nama: kbmSubjects.nama }).from(kbmSubjects).where(eq(kbmSubjects.isHeavy, true));
+    const heavySubjects = await db.select({ id: masterSubjects.id, nama: masterSubjects.nama }).from(masterSubjects).where(eq(masterSubjects.isHeavy, true));
     const heavyIds = new Set(heavySubjects.map(s => s.id));
     for (const j of jadwal) {
       if (heavyIds.has(j.subjectId) && j.jamKe >= 7) {

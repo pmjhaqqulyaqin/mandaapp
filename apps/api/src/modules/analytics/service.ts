@@ -1,5 +1,5 @@
 import { db } from "../../db";
-import { studentProfiles, employees, attendanceRecords, suratMasuks, suratKeluars, serviceRequests, schoolEvents, classSchedules, jurnalEntries, classes, user } from "../../db/schema";
+import { studentProfiles, employees, attendanceRecords, suratMasuks, suratKeluars, serviceRequests, schoolEvents, classSchedules, jurnalEntries, classes, user, masterSubjects } from "../../db/schema";
 import { eq, and, sql, gte, lte, desc, count } from "drizzle-orm";
 
 export class AnalyticsService {
@@ -65,12 +65,13 @@ export class AnalyticsService {
       classId: jurnalEntries.classId,
       teacherId: jurnalEntries.teacherId,
       jamKe: jurnalEntries.jamKe,
-      subjectName: jurnalEntries.subjectName,
+      subjectName: masterSubjects.nama,
       status: jurnalEntries.status,
       className: classes.name,
     })
       .from(jurnalEntries)
       .leftJoin(classes, eq(jurnalEntries.classId, classes.id))
+      .leftJoin(masterSubjects, eq(jurnalEntries.subjectId, masterSubjects.id))
       .where(eq(jurnalEntries.date, todayStr));
 
     const filledSet = new Set<string>();

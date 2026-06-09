@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { JurnalService } from "./service";
 import * as xlsx from "xlsx";
 import { db } from "../../db";
-import { employees, classes, jurnalMapelCodes } from "../../db/schema";
+import { employees, classes, masterSubjects } from "../../db/schema";
 
 export class JurnalController {
 
@@ -96,7 +96,7 @@ export class JurnalController {
 
   static async getMapelCodes(_req: Request, res: Response) {
     try {
-      const result = await db.select().from(jurnalMapelCodes).orderBy(jurnalMapelCodes.kode);
+      const result = await db.select().from(masterSubjects).orderBy(masterSubjects.kode);
       res.json(result);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
@@ -109,15 +109,15 @@ export class JurnalController {
       const { eq } = await import("drizzle-orm");
       let updated = 0;
       for (const item of codes) {
-        if (!item.kode || !item.subjectName) continue;
+        if (!item.kode || !item.nama) continue;
         // Try update first, then insert
         if (item.id) {
-          await db.update(jurnalMapelCodes)
-            .set({ kode: item.kode, subjectName: item.subjectName, updatedAt: new Date() })
-            .where(eq(jurnalMapelCodes.id, item.id));
+          await db.update(masterSubjects)
+            .set({ kode: item.kode, nama: item.nama, updatedAt: new Date() })
+            .where(eq(masterSubjects.id, item.id));
         } else {
-          await db.insert(jurnalMapelCodes).values({ kode: item.kode, subjectName: item.subjectName })
-            .onConflictDoUpdate({ target: jurnalMapelCodes.kode, set: { subjectName: item.subjectName, updatedAt: new Date() } });
+          await db.insert(masterSubjects).values({ kode: item.kode, nama: item.nama })
+            .onConflictDoUpdate({ target: masterSubjects.kode, set: { nama: item.nama, updatedAt: new Date() } });
         }
         updated++;
       }
@@ -128,7 +128,7 @@ export class JurnalController {
   static async deleteMapelCode(req: Request, res: Response) {
     try {
       const { eq } = await import("drizzle-orm");
-      const result = await db.delete(jurnalMapelCodes).where(eq(jurnalMapelCodes.id, req.params.id)).returning();
+      const result = await db.delete(masterSubjects).where(eq(masterSubjects.id, req.params.id)).returning();
       if (!result.length) return res.status(404).json({ error: "Not found" });
       res.json(result[0]);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
@@ -180,11 +180,11 @@ export class JurnalController {
       xlsx.utils.book_append_sheet(wb, wsGuru, 'Kode Guru');
 
       // ── Sheet "Kode Mapel" (from database) ──
-      const mapelCodes = await db.select().from(jurnalMapelCodes).orderBy(jurnalMapelCodes.kode);
+      const mapelCodes = await db.select().from(masterSubjects).orderBy(masterSubjects.kode);
 
       const mapelData: any[][] = [['Kode', 'Mata Pelajaran']];
       for (const mc of mapelCodes) {
-        mapelData.push([mc.kode, mc.subjectName]);
+        mapelData.push([mc.kode, mc.nama]);
       }
       const wsMapel = xlsx.utils.aoa_to_sheet(mapelData);
       wsMapel['!cols'] = [{ wch: 6 }, { wch: 35 }];

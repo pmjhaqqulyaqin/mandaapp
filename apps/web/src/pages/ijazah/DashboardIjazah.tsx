@@ -12,7 +12,7 @@ type TabKey = 'students' | 'settings' | 'global' | 'rombel' | 'export';
 
 const TABS: { key: TabKey; label: string; icon: any; shortLabel: string }[] = [
   { key: 'students', label: 'Data Siswa Kelas XII', icon: Users, shortLabel: 'Data Siswa' },
-  { key: 'settings', label: 'Pengaturan & Mapel', icon: Settings, shortLabel: 'Pengaturan' },
+  { key: 'settings', label: 'Pengaturan & Distribusi', icon: Settings, shortLabel: 'Pengaturan' },
   { key: 'global', label: 'Semester 1-2 (Global)', icon: BookOpen, shortLabel: 'Sem 1-2' },
   { key: 'rombel', label: 'Semester 3-5 & UM', icon: FileSpreadsheet, shortLabel: 'Per Rombel' },
   { key: 'export', label: 'Ekspor Leger & Ijazah', icon: Download, shortLabel: 'Ekspor' },

@@ -68,7 +68,9 @@ const PrintFormatNilai = React.lazy(() => import('./pages/exams/print/PrintForma
 const PrintDenahDuduk = React.lazy(() => import('./pages/exams/print/PrintDenahDuduk').then(m => ({ default: m.PrintDenahDuduk })));
 const PrintBuktiKelulusan = React.lazy(() => import('./pages/ppdb/print/PrintBuktiKelulusan').then(m => ({ default: m.PrintBuktiKelulusan })));
 const PrintDetailPeserta = React.lazy(() => import('./pages/ppdb/print/PrintDetailPeserta').then(m => ({ default: m.PrintDetailPeserta })));
+const DashboardSubjects = React.lazy(() => import('./pages/subjects/DashboardSubjects').then(m => ({ default: m.DashboardSubjects })));
 
+const queryClient = new QueryClient();
 // Loading fallback component
 const PageSpinner = () => (
   <div className="flex h-screen w-full items-center justify-center bg-gray-50/50">
@@ -193,6 +195,7 @@ function App() {
               <Route path="contacts" element={<DashboardContacts />} />
               <Route path="settings/*" element={<ProtectedRoute allowedRoles={['admin','kepala_madrasah']}><DashboardSettings /></ProtectedRoute>} />
               <Route path="users/*" element={<ProtectedRoute allowedRoles={['admin']}><DashboardUsers /></ProtectedRoute>} />
+              <Route path="subjects" element={<ProtectedRoute requireAdmin><DashboardSubjects /></ProtectedRoute>} />
               <Route path="students" element={<ProtectedRoute requireAdmin><DashboardStudents /></ProtectedRoute>} />
               <Route path="students/classes" element={<ProtectedRoute requireAdmin><DashboardStudents /></ProtectedRoute>} />
               <Route path="students/:id" element={<ProtectedRoute requireAdmin><StudentDetailPage /></ProtectedRoute>} />

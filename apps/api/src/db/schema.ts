@@ -567,7 +567,7 @@ export const jadwalUjian = pgTable("jadwal_ujian", {
   tanggal: date("tanggal").notNull(),
   waktuMulai: time("waktu_mulai").notNull(),
   waktuSelesai: time("waktu_selesai").notNull(),
-  mataPelajaran: varchar("mata_pelajaran", { length: 150 }).notNull(),
+  subjectId: uuid("subject_id").references(() => masterSubjects.id),
   kelas: text("kelas"), // comma-separated class names or JSON array
   createdAt: timestamp("created_at").defaultNow()
 });
@@ -841,7 +841,7 @@ export const teachingSubjects = pgTable("teaching_subjects", {
   id: uuid("id").primaryKey().defaultRandom(),
   employeeId: uuid("employee_id").references(() => employees.id, { onDelete: "cascade" }).notNull(),
   classId: uuid("class_id").references(() => classes.id).notNull(),
-  subjectName: varchar("subject_name", { length: 150 }).notNull(), // e.g. "Matematika"
+  subjectId: uuid("subject_id").references(() => masterSubjects.id),
   dayOfWeek: integer("day_of_week").notNull(), // 1=Senin, 2=Selasa, ... 6=Sabtu
   jamKe: varchar("jam_ke", { length: 20 }), // "1-2", "3-4", etc.
   waktuMulai: time("waktu_mulai"),
@@ -860,7 +860,7 @@ export const jurnalEntries = pgTable("jurnal_entries", {
   teachingSubjectId: uuid("teaching_subject_id").references(() => teachingSubjects.id),
   teacherId: uuid("teacher_id").references(() => employees.id).notNull(),
   classId: uuid("class_id").references(() => classes.id).notNull(),
-  subjectName: varchar("subject_name", { length: 150 }).notNull(),
+  subjectId: uuid("subject_id").references(() => masterSubjects.id),
   date: date("date").notNull(),
   jamKe: varchar("jam_ke", { length: 20 }),
   waktuMulai: time("waktu_mulai"),

@@ -15,7 +15,8 @@ export const JurnalSettingsTab = () => {
   const [editId, setEditId] = useState('');
   const [employees, setEmployees] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
-  const [form, setForm] = useState({ employeeId: '', classId: '', subjectName: '', dayOfWeek: 1, jamKe: '', waktuMulai: '', waktuSelesai: '' });
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [form, setForm] = useState({ employeeId: '', classId: '', subjectId: '', dayOfWeek: 1, jamKe: '', waktuMulai: '', waktuSelesai: '' });
   const [filterDay, setFilterDay] = useState(0);
   const [importResult, setImportResult] = useState<{ imported: number; errors: string[]; total: number } | null>(null);
   const [importing, setImporting] = useState(false);
@@ -35,9 +36,10 @@ export const JurnalSettingsTab = () => {
   useEffect(() => {
     apiClient<any[]>('/employees').then(setEmployees).catch(() => {});
     apiClient<any[]>('/classes').then(setClasses).catch(() => {});
+    apiClient<any[]>('/subjects').then(setSubjects).catch(() => {});
   }, []);
 
-  const resetForm = () => { setForm({ employeeId: '', classId: '', subjectName: '', dayOfWeek: 1, jamKe: '', waktuMulai: '', waktuSelesai: '' }); setEditId(''); setShowForm(false); };
+  const resetForm = () => { setForm({ employeeId: '', classId: '', subjectId: '', dayOfWeek: 1, jamKe: '', waktuMulai: '', waktuSelesai: '' }); setEditId(''); setShowForm(false); };
 
   // Parse jamKe string like "3", "1-2", "1-3" into {first, last}
   const parseJamRange = (jamKe: string): { first: number; last: number } | null => {
@@ -76,7 +78,7 @@ export const JurnalSettingsTab = () => {
   };
 
   const handleSave = async () => {
-    if (!form.employeeId || !form.classId || !form.subjectName) { toast.error('Lengkapi data wajib'); return; }
+    if (!form.employeeId || !form.classId || !form.subjectId) { toast.error('Lengkapi data wajib'); return; }
     try {
       if (editId) {
         await updateMut.mutateAsync({ id: editId, data: form });
@@ -91,7 +93,7 @@ export const JurnalSettingsTab = () => {
 
 
   const handleEdit = (item: any) => {
-    setForm({ employeeId: item.employeeId, classId: item.classId, subjectName: item.subjectName, dayOfWeek: item.dayOfWeek, jamKe: item.jamKe || '', waktuMulai: item.waktuMulai || '', waktuSelesai: item.waktuSelesai || '' });
+    setForm({ employeeId: item.employeeId, classId: item.classId, subjectId: item.subjectId || '', dayOfWeek: item.dayOfWeek, jamKe: item.jamKe || '', waktuMulai: item.waktuMulai || '', waktuSelesai: item.waktuSelesai || '' });
     setEditId(item.id);
     setShowForm(true);
   };
@@ -212,8 +214,11 @@ export const JurnalSettingsTab = () => {
             </div>
             <div>
               <label className="text-[10px] font-semibold text-gray-500 uppercase block mb-1">Mata Pelajaran *</label>
-              <input type="text" placeholder="Matematika" value={form.subjectName} onChange={e => setForm(f => ({ ...f, subjectName: e.target.value }))}
-                className="w-full bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs" />
+              <select value={form.subjectId} onChange={e => setForm(f => ({ ...f, subjectId: e.target.value }))}
+                className="w-full bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs">
+                <option value="">Pilih Mata Pelajaran</option>
+                {subjects.map((s: any) => <option key={s.id} value={s.id}>{s.nama}</option>)}
+              </select>
             </div>
             <div>
               <label className="text-[10px] font-semibold text-gray-500 uppercase block mb-1">Hari *</label>

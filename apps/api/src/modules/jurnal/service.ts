@@ -2,7 +2,7 @@ import { db } from "../../db";
 import {
   teachingSubjects, jurnalEntries, jurnalStudentAttendance,
   jurnalAttachments, jurnalTemplates, employees, classes,
-  studentProfiles, attendanceRecords, jurnalTimeSlots, teachingMethods, siteSettings
+  studentProfiles, attendanceRecords, jurnalTimeSlots, teachingMethods, siteSettings, masterSubjects
 } from "../../db/schema";
 import { eq, and, desc, count, sql } from "drizzle-orm";
 
@@ -22,7 +22,8 @@ export class JurnalService {
       employeeName: employees.name,
       classId: teachingSubjects.classId,
       className: classes.name,
-      subjectName: teachingSubjects.subjectName,
+      subjectId: teachingSubjects.subjectId,
+      subjectName: masterSubjects.nama,
       dayOfWeek: teachingSubjects.dayOfWeek,
       jamKe: teachingSubjects.jamKe,
       waktuMulai: teachingSubjects.waktuMulai,
@@ -33,6 +34,7 @@ export class JurnalService {
       .from(teachingSubjects)
       .leftJoin(employees, eq(teachingSubjects.employeeId, employees.id))
       .leftJoin(classes, eq(teachingSubjects.classId, classes.id))
+      .leftJoin(masterSubjects, eq(teachingSubjects.subjectId, masterSubjects.id))
       .where(and(...conditions))
       .orderBy(teachingSubjects.dayOfWeek, teachingSubjects.jamKe);
   }
@@ -50,13 +52,15 @@ export class JurnalService {
       id: teachingSubjects.id,
       classId: teachingSubjects.classId,
       className: classes.name,
-      subjectName: teachingSubjects.subjectName,
+      subjectId: teachingSubjects.subjectId,
+      subjectName: masterSubjects.nama,
       jamKe: teachingSubjects.jamKe,
       waktuMulai: teachingSubjects.waktuMulai,
       waktuSelesai: teachingSubjects.waktuSelesai,
     })
       .from(teachingSubjects)
       .leftJoin(classes, eq(teachingSubjects.classId, classes.id))
+      .leftJoin(masterSubjects, eq(teachingSubjects.subjectId, masterSubjects.id))
       .where(and(
         eq(teachingSubjects.employeeId, employeeId),
         eq(teachingSubjects.dayOfWeek, jsDay),
@@ -159,7 +163,8 @@ export class JurnalService {
 
     return db.select({
       id: jurnalEntries.id, teacherId: jurnalEntries.teacherId, teacherName: employees.name,
-      classId: jurnalEntries.classId, className: classes.name, subjectName: jurnalEntries.subjectName,
+      classId: jurnalEntries.classId, className: classes.name, 
+      subjectId: jurnalEntries.subjectId, subjectName: masterSubjects.nama,
       date: jurnalEntries.date, jamKe: jurnalEntries.jamKe, linkRpp: jurnalEntries.linkRpp,
       materiPembelajaran: jurnalEntries.materiPembelajaran, metode: jurnalEntries.metode,
       catatan: jurnalEntries.catatan, evaluasi: jurnalEntries.evaluasi,
@@ -171,6 +176,7 @@ export class JurnalService {
       .from(jurnalEntries)
       .leftJoin(employees, eq(jurnalEntries.teacherId, employees.id))
       .leftJoin(classes, eq(jurnalEntries.classId, classes.id))
+      .leftJoin(masterSubjects, eq(jurnalEntries.subjectId, masterSubjects.id))
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(jurnalEntries.date), jurnalEntries.jamKe)
       .limit(filters.limit || 50).offset(filters.offset || 0);
@@ -181,7 +187,8 @@ export class JurnalService {
       id: jurnalEntries.id, teachingSubjectId: jurnalEntries.teachingSubjectId,
       teacherId: jurnalEntries.teacherId, teacherName: employees.name,
       classId: jurnalEntries.classId, className: classes.name,
-      subjectName: jurnalEntries.subjectName, date: jurnalEntries.date,
+      subjectId: jurnalEntries.subjectId, subjectName: masterSubjects.nama, 
+      date: jurnalEntries.date,
       jamKe: jurnalEntries.jamKe, waktuMulai: jurnalEntries.waktuMulai, waktuSelesai: jurnalEntries.waktuSelesai,
       linkRpp: jurnalEntries.linkRpp, materiPembelajaran: jurnalEntries.materiPembelajaran,
       metode: jurnalEntries.metode, capaianPembelajaran: jurnalEntries.capaianPembelajaran,
@@ -193,6 +200,7 @@ export class JurnalService {
     }).from(jurnalEntries)
       .leftJoin(employees, eq(jurnalEntries.teacherId, employees.id))
       .leftJoin(classes, eq(jurnalEntries.classId, classes.id))
+      .leftJoin(masterSubjects, eq(jurnalEntries.subjectId, masterSubjects.id))
       .where(eq(jurnalEntries.id, id)).limit(1);
 
     if (!entries.length) return null;
@@ -263,12 +271,13 @@ export class JurnalService {
 
     const scheduled = await db.select({
       employeeId: teachingSubjects.employeeId, employeeName: employees.name,
-      subjectName: teachingSubjects.subjectName, className: classes.name,
+      subjectName: masterSubjects.nama, className: classes.name,
       classId: teachingSubjects.classId, jamKe: teachingSubjects.jamKe,
       teachingSubjectId: teachingSubjects.id,
     }).from(teachingSubjects)
       .leftJoin(employees, eq(teachingSubjects.employeeId, employees.id))
       .leftJoin(classes, eq(teachingSubjects.classId, classes.id))
+      .leftJoin(masterSubjects, eq(teachingSubjects.subjectId, masterSubjects.id))
       .where(and(eq(teachingSubjects.dayOfWeek, jsDay), eq(teachingSubjects.isActive, true)))
       .orderBy(employees.name, teachingSubjects.jamKe);
 
@@ -293,13 +302,14 @@ export class JurnalService {
     if (filters.classId) conditions.push(eq(jurnalEntries.classId, filters.classId));
 
     const results = await db.select({
-      teacherName: employees.name, className: classes.name, subjectName: jurnalEntries.subjectName,
+      teacherName: employees.name, className: classes.name, subjectName: masterSubjects.nama,
       date: jurnalEntries.date, jamKe: jurnalEntries.jamKe, materiPembelajaran: jurnalEntries.materiPembelajaran,
       metode: jurnalEntries.metode, catatan: jurnalEntries.catatan, evaluasi: jurnalEntries.evaluasi,
       jumlahHadir: jurnalEntries.jumlahHadir, totalSiswa: jurnalEntries.totalSiswa, status: jurnalEntries.status,
     }).from(jurnalEntries)
       .leftJoin(employees, eq(jurnalEntries.teacherId, employees.id))
       .leftJoin(classes, eq(jurnalEntries.classId, classes.id))
+      .leftJoin(masterSubjects, eq(jurnalEntries.subjectId, masterSubjects.id))
       .where(and(...conditions)).orderBy(jurnalEntries.date, jurnalEntries.jamKe);
 
     const statusCounts = { draft: 0, submitted: 0, approved: 0, rejected: 0 };

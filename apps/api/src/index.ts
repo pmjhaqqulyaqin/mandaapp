@@ -39,6 +39,7 @@ import { kbmRoutes } from './modules/kbm/routes';
 import { tracerRoutes } from './modules/tracer/routes';
 import mutationRoutes from './modules/mutation';
 import { teacherDutiesRouter } from './modules/teacher-duties/routes';
+import { subjectRoutes } from './modules/subjects';
 
 dotenv.config();
 
@@ -200,6 +201,7 @@ app.use("/api/kbm", kbmRoutes);
 app.use("/api/tracer", tracerRoutes);
 app.use("/api/mutations", mutationRoutes);
 app.use("/api/teacher-duties", teacherDutiesRouter);
+app.use("/api/subjects", subjectRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -240,6 +242,110 @@ async function runAutoMigration() {
         }
       }
       logger.info("Schema check completed.");
+    }
+
+    logger.info("Checking master_subjects table...");
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "master_subjects" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "kode" varchar(20) NOT NULL UNIQUE,
+        "nama" varchar(150) NOT NULL,
+        "short_name" varchar(50),
+        "kelompok" varchar(50) DEFAULT 'Kelompok A (Umum)',
+        "is_active" boolean DEFAULT true,
+        "max_jam_ke" integer,
+        "min_jam_ke" integer,
+        "allow_single_split" boolean DEFAULT false,
+        "is_heavy" boolean DEFAULT false,
+        "custom_split_rule" jsonb,
+        "order_num" integer DEFAULT 0,
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `);
+    // MIGRATION SCRIPT: Move data to master_subjects
+    try {
+      // 1. Migrate kbm_subjects
+      const hasKbm = await db.execute(sql`SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'kbm_subjects');`);
+      if (((hasKbm as any).rows || hasKbm)[0]?.exists) {
+        logger.info("Migrating kbm_subjects data to master_subjects...");
+        await db.execute(sql`
+          INSERT INTO "master_subjects" (id, kode, nama, is_active, max_jam_ke, min_jam_ke, allow_single_split, is_heavy, custom_split_rule)
+          SELECT id, kode, nama, is_active, max_jam_ke, min_jam_ke, allow_single_split, is_heavy, custom_split_rule
+          FROM "kbm_subjects"
+          ON CONFLICT (kode) DO NOTHING;
+        `);
+      }
+
+      // 2. Migrate ijazah_subjects (match by name or generate code)
+      const hasIjazah = await db.execute(sql`SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'ijazah_subjects');`);
+      if (((hasIjazah as any).rows || hasIjazah)[0]?.exists) {
+        logger.info("Migrating ijazah_subjects data to master_subjects...");
+        const ijazahRes = await db.execute(sql`SELECT * FROM "ijazah_subjects"`);
+        const ijazahRows = (ijazahRes as any).rows || ijazahRes;
+        
+        for (const row of ijazahRows) {
+          const exists = await db.execute(sql`SELECT id FROM "master_subjects" WHERE nama = ${row.name}`);
+          const existsRows = (exists as any).rows || exists;
+          if (existsRows.length > 0) {
+             const masterId = existsRows[0].id;
+             await db.execute(sql`UPDATE "master_subjects" SET short_name = ${row.short_name}, kelompok = ${row.group}, order_num = ${row.order_num} WHERE id = ${masterId}`);
+             
+             // Check if mappings exist before update
+             const hasMap = await db.execute(sql`SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'ijazah_subject_mappings');`);
+             if (((hasMap as any).rows || hasMap)[0]?.exists) {
+               await db.execute(sql`UPDATE "ijazah_subject_mappings" SET subject_id = ${masterId} WHERE subject_id = ${row.id}`);
+             }
+             const hasGrades = await db.execute(sql`SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'ijazah_grades');`);
+             if (((hasGrades as any).rows || hasGrades)[0]?.exists) {
+               await db.execute(sql`UPDATE "ijazah_grades" SET subject_id = ${masterId} WHERE subject_id = ${row.id}`);
+             }
+             await db.execute(sql`DELETE FROM "ijazah_subjects" WHERE id = ${row.id}`);
+          } else {
+             let code = row.short_name || row.name.substring(0, 3).toUpperCase() + Math.floor(Math.random() * 1000);
+             let suffix = 1;
+             while (true) {
+               const codeExists = await db.execute(sql`SELECT id FROM "master_subjects" WHERE kode = ${code}`);
+               if (((codeExists as any).rows || codeExists).length === 0) break;
+               code = code + suffix;
+               suffix++;
+             }
+             const newIdRes = await db.execute(sql`
+               INSERT INTO "master_subjects" (kode, nama, short_name, kelompok, order_num, is_active)
+               VALUES (${code}, ${row.name}, ${row.short_name}, ${row.group}, ${row.order_num}, ${row.is_active})
+               RETURNING id
+             `);
+             const newId = ((newIdRes as any).rows || newIdRes)[0].id;
+             
+             const hasMap = await db.execute(sql`SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'ijazah_subject_mappings');`);
+             if (((hasMap as any).rows || hasMap)[0]?.exists) {
+               await db.execute(sql`UPDATE "ijazah_subject_mappings" SET subject_id = ${newId} WHERE subject_id = ${row.id}`);
+             }
+             const hasGrades = await db.execute(sql`SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'ijazah_grades');`);
+             if (((hasGrades as any).rows || hasGrades)[0]?.exists) {
+               await db.execute(sql`UPDATE "ijazah_grades" SET subject_id = ${newId} WHERE subject_id = ${row.id}`);
+             }
+             await db.execute(sql`DELETE FROM "ijazah_subjects" WHERE id = ${row.id}`);
+          }
+        }
+      }
+
+      // 3. Migrate jurnal_mapel_codes
+      const hasJurnal = await db.execute(sql`SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'jurnal_mapel_codes');`);
+      if (((hasJurnal as any).rows || hasJurnal)[0]?.exists) {
+        logger.info("Migrating jurnal_mapel_codes data to master_subjects...");
+        const jurnalRes = await db.execute(sql`SELECT * FROM "jurnal_mapel_codes"`);
+        const jurnalRows = (jurnalRes as any).rows || jurnalRes;
+        for (const row of jurnalRows) {
+          const exists = await db.execute(sql`SELECT id FROM "master_subjects" WHERE kode = ${row.kode}`);
+          if (((exists as any).rows || exists).length === 0) {
+             await db.execute(sql`INSERT INTO "master_subjects" (kode, nama) VALUES (${row.kode}, ${row.subject_name})`);
+          }
+          await db.execute(sql`DELETE FROM "jurnal_mapel_codes" WHERE id = ${row.id}`);
+        }
+      }
+    } catch (migErr) {
+      logger.error({ err: migErr }, "Data migration to master_subjects failed");
     }
 
     // Auto-create Ijazah tables if they don't exist

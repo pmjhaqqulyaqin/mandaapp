@@ -15,24 +15,27 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [classList, setClassList] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
   const [holidays, setHolidays] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [ujianData, setUjianData] = useState<any>(null);
   const [form, setForm] = useState({
-    tanggal: '', waktuMulai: '', waktuSelesai: '', mataPelajaran: '', kelas: '', sesiKe: '1'
+    tanggal: '', waktuMulai: '', waktuSelesai: '', subjectId: '', kelas: '', sesiKe: '1'
   });
 
   const fetchJadwal = async () => {
     setLoading(true);
     try {
-      const [data, uData, cData] = await Promise.all([
+      const [data, uData, cData, sData] = await Promise.all([
         apiClient<any[]>(`/exams/${ujianId}/jadwal`),
         apiClient<any>(`/exams/${ujianId}`),
-        apiClient<any[]>('/classes')
+        apiClient<any[]>('/classes'),
+        apiClient<any[]>('/subjects')
       ]);
       setJadwal(data);
       setUjianData(uData);
       setClassList(cData);
+      setSubjects(sData);
 
       if (uData.tanggalMulai && uData.tanggalSelesai) {
         try {
@@ -47,13 +50,13 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
   useEffect(() => { fetchJadwal(); }, [ujianId]);
 
   const resetForm = () => {
-    setForm({ tanggal: '', waktuMulai: '', waktuSelesai: '', mataPelajaran: '', kelas: '', sesiKe: '1' });
+    setForm({ tanggal: '', waktuMulai: '', waktuSelesai: '', subjectId: '', kelas: '', sesiKe: '1' });
     setEditId(null);
     setShowAdd(false);
   };
 
   const handleSave = async () => {
-    if (!form.tanggal || !form.waktuMulai || !form.waktuSelesai || !form.mataPelajaran) {
+    if (!form.tanggal || !form.waktuMulai || !form.waktuSelesai || !form.subjectId) {
       toast.error('Mohon lengkapi tanggal, waktu, dan mata pelajaran');
       return;
     }
@@ -85,7 +88,7 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
       tanggal: item.tanggal,
       waktuMulai: item.waktuMulai,
       waktuSelesai: item.waktuSelesai,
-      mataPelajaran: item.mataPelajaran,
+      subjectId: item.subjectId || '',
       kelas: item.kelas || ''
     });
     setEditId(item.id);
@@ -221,7 +224,10 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
             </div>
             <div>
               <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Mata Pelajaran</label>
-              <input className={inputClass} placeholder="Matematika" value={form.mataPelajaran} onChange={e => setForm({...form, mataPelajaran: e.target.value})} />
+              <select className={inputClass} value={form.subjectId} onChange={e => setForm({...form, subjectId: e.target.value})}>
+                <option value="">Pilih Mapel...</option>
+                {subjects.map(s => <option key={s.id} value={s.id}>{s.nama}</option>)}
+              </select>
             </div>
             <div>
               <label className="text-[10px] font-semibold text-gray-500 mb-0.5 block">Kelas</label>

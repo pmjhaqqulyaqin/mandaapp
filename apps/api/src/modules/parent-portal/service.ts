@@ -1,5 +1,5 @@
 import { db } from "../../db";
-import { parentLinks, studentProfiles, classes, attendanceRecords, jurnalEntries, classSchedules, user, employees, siteSettings } from "../../db/schema";
+import { parentLinks, studentProfiles, classes, attendanceRecords, jurnalEntries, classSchedules, user, employees, siteSettings, masterSubjects } from "../../db/schema";
 import { eq, and, desc, count, sql, gte, lte, or } from "drizzle-orm";
 
 export class ParentPortalService {
@@ -154,7 +154,7 @@ export class ParentPortalService {
 
     const jurnals = await db.select({
       id: jurnalEntries.id,
-      subjectName: jurnalEntries.subjectName,
+      subjectName: masterSubjects.nama,
       jamKe: jurnalEntries.jamKe,
       waktuMulai: jurnalEntries.waktuMulai,
       waktuSelesai: jurnalEntries.waktuSelesai,
@@ -170,6 +170,7 @@ export class ParentPortalService {
     })
       .from(jurnalEntries)
       .leftJoin(employees, eq(jurnalEntries.teacherId, employees.id))
+      .leftJoin(masterSubjects, eq(jurnalEntries.subjectId, masterSubjects.id))
       .where(and(
         eq(jurnalEntries.classId, student.classId),
         eq(jurnalEntries.date, today),
