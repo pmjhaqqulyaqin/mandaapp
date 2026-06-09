@@ -318,16 +318,7 @@ export const DashboardNIS = () => {
       <div className="flex flex-col lg:flex-row gap-3">
         {/* Left: Tab Content */}
         <div className="flex-1 min-w-0">
-          {/* Tab Navigation */}
-          <div className="flex gap-0.5 border-b border-gray-200 dark:border-[#222] mb-3">
-            {tabs.map(t => (
-              <button key={t.key} onClick={() => handleTabChange(t.key)}
-                className={`px-3 py-2 text-xs font-medium relative transition-colors ${activeTab === t.key ? 'text-primary' : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'}`}>
-                {t.label}
-                {activeTab === t.key && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t" />}
-              </button>
-            ))}
-          </div>
+
 
           {/* ─── TAB: All Records ─── */}
           {activeTab === 'records' && (

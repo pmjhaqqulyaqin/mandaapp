@@ -53,33 +53,7 @@ export const DashboardIjazah = () => {
       {/* Main Container */}
       <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] overflow-hidden">
         
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-100 dark:border-[#222] overflow-x-auto custom-scrollbar">
-          <div className="flex min-w-max px-2">
-            {TABS.map(tab => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => handleTabChange(tab.key)}
-                  className={`relative flex items-center gap-2 px-4 py-3 text-[13px] font-medium whitespace-nowrap transition-colors ${
-                    isActive
-                      ? 'text-emerald-600 dark:text-emerald-400'
-                      : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                  }`}
-                >
-                  <Icon size={16} />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                  <span className="sm:hidden">{tab.shortLabel}</span>
-                  {isActive && (
-                    <div className="absolute bottom-0 left-3 right-3 h-[3px] bg-emerald-500 rounded-t-full" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+
 
         {/* Tab Content Area */}
         <div className="p-4 sm:p-5 min-h-[500px]">

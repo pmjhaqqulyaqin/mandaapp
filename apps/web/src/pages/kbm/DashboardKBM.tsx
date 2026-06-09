@@ -88,27 +88,6 @@ export const DashboardKBM = () => {
       </div>
 
       <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl overflow-hidden shadow-sm">
-        <div className="p-2 md:p-3 border-b border-gray-100 dark:border-[#222] bg-gray-50/80 dark:bg-[#0d0d0d]">
-          <div className="flex overflow-x-auto no-scrollbar">
-            <div className="inline-flex w-full md:w-auto gap-1 p-0.5 bg-gray-200/70 dark:bg-[#1a1a1a] rounded-xl">
-              {tabs.map(tab => (
-                <button
-                  key={tab.key}
-                  onClick={() => handleTabChange(tab.key)}
-                  className={`relative flex items-center justify-center gap-1.5 flex-1 md:flex-initial px-3 md:px-4 py-2.5 md:py-2 text-[12px] font-semibold whitespace-nowrap rounded-lg transition-all duration-200 active:scale-95 ${
-                    activeTab === tab.key
-                      ? 'bg-white dark:bg-[#2a2a2a] text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
-                      : 'text-gray-500 dark:text-gray-400'
-                  }`}
-                >
-                  {tab.icon}
-                  <span>{tab.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
         <div className="p-3 md:p-4 bg-white dark:bg-[#111] min-h-[400px]">
           {activeTab === 'dashboard' && (
             <KBMDashboardTab

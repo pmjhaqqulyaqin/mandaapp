@@ -242,10 +242,7 @@ export const DashboardStudents = () => {
           <h1 className="text-xl font-bold text-text-primary dark:text-text-darkPrimary mt-1">Manajemen Data Siswa</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
-            onClick={() => handleTabChange(activeTab === 'students' ? 'classes' : 'students')}>
-            <Settings2 size={14} /> {activeTab === 'students' ? 'Kelas' : 'Data Siswa'}
-          </Button>
+
           <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
             onClick={() => setPullNISOpen(true)}>
             <RefreshCw size={14} /> Pull dari NIS
