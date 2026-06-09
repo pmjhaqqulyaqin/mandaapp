@@ -73,13 +73,13 @@ export const DashboardSubjects = () => {
       if (editingSubject) {
         await apiClient(`/subjects/${editingSubject.id}`, {
           method: 'PUT',
-          body: payload
+          data: payload
         });
         toast.success('Mata pelajaran diperbarui');
       } else {
         await apiClient('/subjects', {
           method: 'POST',
-          body: payload
+          data: payload
         });
         toast.success('Mata pelajaran ditambahkan');
       }
