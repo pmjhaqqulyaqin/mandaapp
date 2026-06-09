@@ -69,8 +69,6 @@ const PrintDenahDuduk = React.lazy(() => import('./pages/exams/print/PrintDenahD
 const PrintBuktiKelulusan = React.lazy(() => import('./pages/ppdb/print/PrintBuktiKelulusan').then(m => ({ default: m.PrintBuktiKelulusan })));
 const PrintDetailPeserta = React.lazy(() => import('./pages/ppdb/print/PrintDetailPeserta').then(m => ({ default: m.PrintDetailPeserta })));
 const DashboardSubjects = React.lazy(() => import('./pages/subjects/DashboardSubjects').then(m => ({ default: m.DashboardSubjects })));
-
-const queryClient = new QueryClient();
 // Loading fallback component
 const PageSpinner = () => (
   <div className="flex h-screen w-full items-center justify-center bg-gray-50/50">
