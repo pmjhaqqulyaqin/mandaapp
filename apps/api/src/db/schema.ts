@@ -1148,3 +1148,21 @@ export const teacherDuties = pgTable("teacher_duties", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
+
+// Master mata pelajaran sentral
+export const masterSubjects = pgTable("master_subjects", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  kode: varchar("kode", { length: 20 }).unique().notNull(),
+  nama: varchar("nama", { length: 255 }).notNull(),
+  shortName: varchar("short_name", { length: 50 }),
+  kelompok: varchar("kelompok", { length: 50 }).default("Umum"),
+  orderNum: integer("order_num").default(0),
+  maxJamKe: integer("max_jam_ke"),
+  minJamKe: integer("min_jam_ke"),
+  allowSingleSplit: boolean("allow_single_split").default(false),
+  isHeavy: boolean("is_heavy").default(false),
+  customSplitRule: jsonb("custom_split_rule"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});

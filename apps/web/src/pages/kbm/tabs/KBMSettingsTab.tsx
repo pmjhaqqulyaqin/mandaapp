@@ -10,13 +10,12 @@ interface Props {
 }
 
 export const KBMSettingsTab = ({ academicYearId, semester, academicYears }: Props) => {
-  const [activeSection, setActiveSection] = useState<'mapel' | 'kodeGuru' | 'waktu' | 'tugas' | 'ruangan' | 'scheduler' | 'copy'>('mapel');
+  const [activeSection, setActiveSection] = useState<'kodeGuru' | 'waktu' | 'tugas' | 'ruangan' | 'scheduler' | 'copy'>('kodeGuru');
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-1.5">
         {[
-          { key: 'mapel', label: 'Master Mapel' },
           { key: 'kodeGuru', label: 'Kode Guru' },
           { key: 'waktu', label: 'Waktu Pelajaran' },
           { key: 'tugas', label: 'Master Tugas' },
@@ -38,7 +37,6 @@ export const KBMSettingsTab = ({ academicYearId, semester, academicYears }: Prop
         ))}
       </div>
 
-      {activeSection === 'mapel' && <MapelSection />}
       {activeSection === 'kodeGuru' && <KodeGuruSection />}
       {activeSection === 'waktu' && <WaktuPelajaranSection />}
       {activeSection === 'tugas' && <TugasMasterSection />}
@@ -49,165 +47,7 @@ export const KBMSettingsTab = ({ academicYearId, semester, academicYears }: Prop
   );
 };
 
-// ═══ Mapel Section ═══════════════════════════════════════════
 
-const MapelSection = () => {
-  const [subjects, setSubjects] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [newKode, setNewKode] = useState('');
-  const [newNama, setNewNama] = useState('');
-
-  const load = () => {
-    setLoading(true);
-    apiClient<any[]>('/kbm/subjects').then(setSubjects).catch(() => {}).finally(() => setLoading(false));
-  };
-  useEffect(() => { load(); }, []);
-
-  const handleAdd = async () => {
-    if (!newKode.trim() || !newNama.trim()) return toast.error('Kode dan Nama wajib diisi');
-    try {
-      await apiClient('/kbm/subjects', { method: 'POST', data: { kode: newKode.trim(), nama: newNama.trim() } });
-      setNewKode(''); setNewNama('');
-      load();
-      toast.success('Mapel ditambahkan');
-    } catch (err: any) { toast.error(err.message || 'Gagal'); }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Nonaktifkan mapel ini?')) return;
-    try {
-      await apiClient(`/kbm/subjects/${id}`, { method: 'DELETE' });
-      load();
-      toast.success('Mapel dinonaktifkan');
-    } catch { toast.error('Gagal'); }
-  };
-
-  const handleSeed = async () => {
-    try {
-      const res = await apiClient<any>('/kbm/subjects/seed', { method: 'POST' });
-      toast.success(res.message);
-      load();
-    } catch (err: any) { toast.error(err.message || 'Gagal'); }
-  };
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200">Master Mata Pelajaran</h3>
-        <button onClick={handleSeed} className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 dark:border-[#333] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a]">
-          <Database size={12} /> Seed Default
-        </button>
-      </div>
-
-      {/* Add Form */}
-      <div className="flex items-center gap-2">
-        <input type="text" value={newKode} onChange={e => setNewKode(e.target.value)} placeholder="Kode" className="w-16 px-2 py-1.5 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none focus:ring-1 focus:ring-amber-500" />
-        <input type="text" value={newNama} onChange={e => setNewNama(e.target.value)} placeholder="Nama Mata Pelajaran" className="flex-1 px-2 py-1.5 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none focus:ring-1 focus:ring-amber-500" onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }} />
-        <button onClick={handleAdd} className="p-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 active:scale-95"><Plus size={14} /></button>
-      </div>
-
-      {loading ? (
-        <div className="py-10 text-center"><div className="h-6 w-6 mx-auto animate-spin rounded-full border-3 border-amber-500 border-t-transparent" /></div>
-      ) : (
-        <>
-        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-[#222]">
-          <table className="w-full text-[12px]">
-            <thead><tr className="bg-gray-50 dark:bg-[#161616]">
-              <th className="px-3 py-2 text-left font-semibold text-gray-500 w-16">Kode</th>
-              <th className="px-3 py-2 text-left font-semibold text-gray-500">Nama</th>
-              <th className="px-3 py-2 text-center font-semibold text-gray-500 w-14">Berat</th>
-              <th className="px-3 py-2 text-center font-semibold text-gray-500 w-14">Split 1</th>
-              <th className="px-3 py-2 text-center font-semibold text-gray-500 w-20">Maks Jam</th>
-              <th className="px-3 py-2 text-center font-semibold text-gray-500 w-20">Min Jam</th>
-              <th className="px-3 py-2 text-center font-semibold text-gray-500 w-16">Status</th>
-              <th className="px-3 py-2 text-center font-semibold text-gray-500 w-14">Aksi</th>
-            </tr></thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
-              {subjects.map(s => (
-                <tr key={s.id} className={`${!s.isActive ? 'opacity-40' : ''}`}>
-                  <td className="px-3 py-1.5 font-bold text-amber-600 dark:text-amber-400">{s.kode}</td>
-                  <td className="px-3 py-1.5 text-gray-700 dark:text-gray-300">{s.nama}</td>
-                  <td className="px-3 py-1.5 text-center">
-                    <button
-                      onClick={async () => {
-                        try {
-                          await apiClient(`/kbm/subjects/${s.id}`, { method: 'PUT', data: { isHeavy: !s.isHeavy } });
-                          load(); toast.success(`${s.nama}: ${!s.isHeavy ? 'Mapel Berat' : 'Normal'}`);
-                        } catch { toast.error('Gagal'); }
-                      }}
-                      className={`w-6 h-6 rounded-md text-[10px] font-bold transition-all ${s.isHeavy ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-[#222] text-gray-400'}`}
-                      title="Mapel berat: tidak boleh ada di hari yang sama dalam 1 kelas dengan mapel berat lain"
-                    >{s.isHeavy ? '\u2022' : '\u2014'}</button>
-                  </td>
-                  <td className="px-3 py-1.5 text-center">
-                    <button
-                      onClick={async () => {
-                        try {
-                          await apiClient(`/kbm/subjects/${s.id}`, { method: 'PUT', data: { allowSingleSplit: !s.allowSingleSplit } });
-                          load(); toast.success(`${s.nama}: ${!s.allowSingleSplit ? 'Boleh pecah 1 JP' : 'Normal'}`);
-                        } catch { toast.error('Gagal'); }
-                      }}
-                      className={`w-6 h-6 rounded-md text-[10px] font-bold transition-all ${s.allowSingleSplit ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-[#222] text-gray-400'}`}
-                      title="Boleh dipecah ke 1 JP (misal 3 JP menjadi 2+1)"
-                    >{s.allowSingleSplit ? '\u2713' : '\u2014'}</button>
-                  </td>
-                  <td className="px-3 py-1.5 text-center">
-                    <select
-                      value={s.maxJamKe || ''}
-                      onChange={async (e) => {
-                        try {
-                          const val = e.target.value ? Number(e.target.value) : null;
-                          await apiClient(`/kbm/subjects/${s.id}`, { method: 'PUT', data: { maxJamKe: val } });
-                          load(); toast.success(val ? `${s.nama}: Maks jam ke-${val}` : `${s.nama}: Tanpa batas`);
-                        } catch { toast.error('Gagal'); }
-                      }}
-                      className="w-16 text-[11px] px-1 py-0.5 rounded border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 outline-none"
-                      title="Hanya boleh ditempatkan sampai jam ke-N (pembatasan siang)"
-                    >
-                      <option value="">{"\u2014"}</option>
-                      {[4,5,6,7,8].map(n => <option key={n} value={n}>{"\u2264"} {n}</option>)}
-                    </select>
-                  </td>
-                  <td className="px-3 py-1.5 text-center">
-                    <select
-                      value={s.minJamKe || ''}
-                      onChange={async (e) => {
-                        try {
-                          const val = e.target.value ? Number(e.target.value) : null;
-                          await apiClient(`/kbm/subjects/${s.id}`, { method: 'PUT', data: { minJamKe: val } });
-                          load(); toast.success(val ? `${s.nama}: Min jam ke-${val}` : `${s.nama}: Tanpa batas`);
-                        } catch { toast.error('Gagal'); }
-                      }}
-                      className="w-16 text-[11px] px-1 py-0.5 rounded border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 outline-none"
-                      title="Hanya boleh ditempatkan mulai dari jam ke-N (pembatasan pagi)"
-                    >
-                      <option value="">{"\u2014"}</option>
-                      {[3,4,5,6,7,8].map(n => <option key={n} value={n}>{"\u2265"} {n}</option>)}
-                    </select>
-                  </td>
-                  <td className="px-3 py-1.5 text-center">
-                    <span className={`text-[10px] font-semibold ${s.isActive ? 'text-emerald-600' : 'text-gray-400'}`}>
-                      {s.isActive ? 'Aktif' : 'Nonaktif'}
-                    </span>
-                  </td>
-                  <td className="px-3 py-1.5 text-center">
-                    {s.isActive && (
-                      <button onClick={() => handleDelete(s.id)} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 hover:text-red-500">
-                        <Trash2 size={12} />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="text-[10px] text-gray-400 mt-1"><strong>Berat</strong> = tidak boleh ada bersamaan di 1 hari 1 kelas. <strong>Split 1</strong> = boleh dipecah ke 1 JP. <strong>Maks Jam</strong> = hanya sampai jam ke-N. <strong>Min Jam</strong> = mulai dari jam ke-N.</p>
-        </>
-      )}
-    </div>
-  );
-};
 
 // ═══ Kode Guru Section ═══════════════════════════════════════
 
