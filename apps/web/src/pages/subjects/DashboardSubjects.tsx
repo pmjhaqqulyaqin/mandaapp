@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { 
   BookOpen, Plus, Search, Edit2, Trash2, Filter, Save, X, AlertCircle 
 } from 'lucide-react';
-import { Button, Input, Select, Checkbox, Badge } from '@mandaapp/ui';
+import { Button, Input, Badge } from '@mandaapp/ui';
 import { apiClient } from '../../lib/api';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 interface Subject {
   id: string;
@@ -231,15 +231,15 @@ export const DashboardSubjects = () => {
 
               <div className="pt-2 flex flex-col gap-3">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox name="isActive" defaultChecked={editingSubject ? editingSubject.isActive : true} />
+                  <input type="checkbox" name="isActive" defaultChecked={editingSubject ? editingSubject.isActive : true} className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4" />
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Status Aktif</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox name="isHeavy" defaultChecked={editingSubject?.isHeavy} />
+                  <input type="checkbox" name="isHeavy" defaultChecked={editingSubject?.isHeavy} className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4" />
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Heavy Subject (E.g. Matematika, Fisika)</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox name="allowSingleSplit" defaultChecked={editingSubject?.allowSingleSplit} />
+                  <input type="checkbox" name="allowSingleSplit" defaultChecked={editingSubject?.allowSingleSplit} className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4" />
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Izinkan Single Split (Boleh 1 Jam)</span>
                 </label>
               </div>

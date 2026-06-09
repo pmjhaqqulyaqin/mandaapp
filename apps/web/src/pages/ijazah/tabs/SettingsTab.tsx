@@ -346,7 +346,6 @@ export const SettingsTab = () => {
             </div>
           </div>
         </div>
-      </div>
 
       {/* Mapping Edit Modal */}
       {mappingEditId && mappingForm && (
