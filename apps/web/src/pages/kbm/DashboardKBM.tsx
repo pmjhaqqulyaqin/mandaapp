@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
 import { BarChart3, BookOpen, Calendar, ClipboardList, Settings, Users } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -14,12 +15,23 @@ type TabKey = 'dashboard' | 'distribusi' | 'tugas' | 'jadwal' | 'settings';
 
 export const DashboardKBM = () => {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const role = user?.role || '';
   const isAdmin = role === 'admin';
   const isLeadership = ['kepala_madrasah', 'wakil_kepala'].includes(role);
   const canEdit = isAdmin || isLeadership || role === 'kepala_tu' || role === 'pegawai_tu';
 
-  const [activeTab, setActiveTab] = useState<TabKey>('dashboard');
+  // Derive active tab from URL path segment (like DashboardSettings pattern)
+  const tabSegment = location.pathname.split('/').filter(Boolean).pop();
+  const activeTab: TabKey = (['distribusi', 'tugas', 'jadwal', 'settings'].includes(tabSegment || ''))
+    ? tabSegment as TabKey
+    : 'dashboard';
+
+  const handleTabChange = (tab: TabKey) => {
+    navigate(tab === 'dashboard' ? '/dashboard/kbm' : `/dashboard/kbm/${tab}`);
+  };
+
   const [academicYearId, setAcademicYearId] = useState('');
   const [semester, setSemester] = useState('genap');
   const [academicYears, setAcademicYears] = useState<any[]>([]);
@@ -82,7 +94,7 @@ export const DashboardKBM = () => {
               {tabs.map(tab => (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => handleTabChange(tab.key)}
                   className={`relative flex items-center justify-center gap-1.5 flex-1 md:flex-initial px-3 md:px-4 py-2.5 md:py-2 text-[12px] font-semibold whitespace-nowrap rounded-lg transition-all duration-200 active:scale-95 ${
                     activeTab === tab.key
                       ? 'bg-white dark:bg-[#2a2a2a] text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
@@ -103,7 +115,7 @@ export const DashboardKBM = () => {
               academicYearId={academicYearId}
               semester={semester}
               semesterLabel={semesterLabel}
-              onNavigate={setActiveTab}
+              onNavigate={handleTabChange}
             />
           )}
           {activeTab === 'distribusi' && (

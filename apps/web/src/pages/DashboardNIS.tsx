@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { Input } from '@mandaapp/ui/src/components/Input';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
@@ -89,7 +90,18 @@ const ActivityItem = ({ log }: { log: ActivityLog }) => {
 // ═══════════════════════════════════════
 export const DashboardNIS = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'records' | 'batch' | 'single'>('records');
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Derive active tab from URL path segment
+  const tabSegment = location.pathname.split('/').filter(Boolean).pop();
+  const activeTab: 'records' | 'batch' | 'single' = (['batch', 'single'].includes(tabSegment || ''))
+    ? tabSegment as 'batch' | 'single'
+    : 'records';
+
+  const handleTabChange = (tab: 'records' | 'batch' | 'single') => {
+    navigate(tab === 'records' ? '/dashboard/nis' : `/dashboard/nis/${tab}`);
+  };
   const [stats, setStats] = useState<Stats>({ totalStudents: 0, withoutNIS: 0, activeYear: null });
   const [activity, setActivity] = useState<ActivityLog[]>([]);
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
@@ -309,7 +321,7 @@ export const DashboardNIS = () => {
           {/* Tab Navigation */}
           <div className="flex gap-0.5 border-b border-gray-200 dark:border-[#222] mb-3">
             {tabs.map(t => (
-              <button key={t.key} onClick={() => setActiveTab(t.key)}
+              <button key={t.key} onClick={() => handleTabChange(t.key)}
                 className={`px-3 py-2 text-xs font-medium relative transition-colors ${activeTab === t.key ? 'text-primary' : 'text-text-secondary hover:text-text-primary dark:hover:text-text-darkPrimary'}`}>
                 {t.label}
                 {activeTab === t.key && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t" />}

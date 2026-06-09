@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
 import { useAuth } from '../contexts/AuthContext';
@@ -64,7 +64,15 @@ const ITEMS_PER_PAGE = 10;
 export const DashboardStudents = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<Tab>('students');
+  const location = useLocation();
+
+  // Derive active tab from URL path segment
+  const pathEndsWithClasses = location.pathname.endsWith('/classes');
+  const activeTab: Tab = pathEndsWithClasses ? 'classes' : 'students';
+
+  const handleTabChange = (tab: Tab) => {
+    navigate(tab === 'classes' ? '/dashboard/students/classes' : '/dashboard/students');
+  };
   const [students, setStudents] = useState<any[]>([]);
   const [classesList, setClassesList] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<any[]>([]);
@@ -235,7 +243,7 @@ export const DashboardStudents = () => {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
-            onClick={() => setActiveTab(activeTab === 'students' ? 'classes' : 'students')}>
+            onClick={() => handleTabChange(activeTab === 'students' ? 'classes' : 'students')}>
             <Settings2 size={14} /> {activeTab === 'students' ? 'Kelas' : 'Data Siswa'}
           </Button>
           <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
@@ -425,7 +433,7 @@ export const DashboardStudents = () => {
           isAdmin={isAdmin}
           onViewDetails={(grade) => {
             setFilterClass(grade);
-            setActiveTab('students');
+            handleTabChange('students');
           }}
         />
       )}

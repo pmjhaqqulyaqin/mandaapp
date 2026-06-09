@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
 import { Settings, FileSpreadsheet, Download, BookOpen, Users } from 'lucide-react';
 import { StudentDataTab } from './tabs/StudentDataTab';
@@ -18,7 +19,18 @@ const TABS: { key: TabKey; label: string; icon: any; shortLabel: string }[] = [
 ];
 
 export const DashboardIjazah = () => {
-  const [activeTab, setActiveTab] = useState<TabKey>('students');
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Derive active tab from URL path segment (like DashboardSettings pattern)
+  const tabSegment = location.pathname.split('/').filter(Boolean).pop();
+  const activeTab: TabKey = (['settings', 'global', 'rombel', 'export'].includes(tabSegment || ''))
+    ? tabSegment as TabKey
+    : 'students';
+
+  const handleTabChange = (tab: TabKey) => {
+    navigate(tab === 'students' ? '/dashboard/ijazah' : `/dashboard/ijazah/${tab}`);
+  };
 
   return (
     <div className="flex flex-col gap-3 md:gap-4">
@@ -50,7 +62,7 @@ export const DashboardIjazah = () => {
               return (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => handleTabChange(tab.key)}
                   className={`relative flex items-center gap-2 px-4 py-3 text-[13px] font-medium whitespace-nowrap transition-colors ${
                     isActive
                       ? 'text-emerald-600 dark:text-emerald-400'

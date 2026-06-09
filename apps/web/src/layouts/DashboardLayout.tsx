@@ -177,6 +177,13 @@ const ALL_MENU_ITEMS = [
     href: '/dashboard/kbm',
     icon: <ClipboardList size={16} />,
     group: 'main',
+    subItems: [
+      { key: 'dashboard', label: 'Dashboard', href: '/dashboard/kbm', exact: true, icon: <BarChart3 size={16} /> },
+      { key: 'distribusi', label: 'Distribusi Jam', href: '/dashboard/kbm/distribusi', icon: <BookOpen size={16} /> },
+      { key: 'tugas', label: 'Tugas Tambahan', href: '/dashboard/kbm/tugas', icon: <Users size={16} /> },
+      { key: 'jadwal', label: 'Jadwal', href: '/dashboard/kbm/jadwal', icon: <Calendar size={16} /> },
+      { key: 'settings', label: 'Pengaturan', href: '/dashboard/kbm/settings', icon: <SettingsIcon size={16} /> },
+    ],
   },
   {
     key: 'nis',
@@ -184,6 +191,11 @@ const ALL_MENU_ITEMS = [
     href: '/dashboard/nis',
     icon: <Hash size={16} />,
     group: 'main',
+    subItems: [
+      { key: 'records', label: 'Bank Data NIS', href: '/dashboard/nis', exact: true, icon: <Hash size={16} /> },
+      { key: 'batch', label: 'Generate Batch', href: '/dashboard/nis/batch', icon: <Users size={16} /> },
+      { key: 'single', label: 'Entri Satuan', href: '/dashboard/nis/single', icon: <UserIcon size={16} /> },
+    ],
   },
   {
     key: 'students',
@@ -191,6 +203,10 @@ const ALL_MENU_ITEMS = [
     href: '/dashboard/students',
     icon: <Users size={16} />,
     group: 'main',
+    subItems: [
+      { key: 'list', label: 'Data Siswa', href: '/dashboard/students', exact: true, icon: <Users size={16} /> },
+      { key: 'classes', label: 'Kelas & Rombel', href: '/dashboard/students/classes', icon: <LayoutGrid size={16} /> },
+    ],
   },
   {
     key: 'alumni',
@@ -262,6 +278,13 @@ const ALL_MENU_ITEMS = [
     href: '/dashboard/ijazah',
     icon: <BookOpen size={16} />,
     group: 'main',
+    subItems: [
+      { key: 'students', label: 'Data Siswa XII', href: '/dashboard/ijazah', exact: true, icon: <Users size={16} /> },
+      { key: 'settings', label: 'Pengaturan & Mapel', href: '/dashboard/ijazah/settings', icon: <SettingsIcon size={16} /> },
+      { key: 'global', label: 'Semester 1-2', href: '/dashboard/ijazah/global', icon: <BookOpen size={16} /> },
+      { key: 'rombel', label: 'Per Rombel', href: '/dashboard/ijazah/rombel', icon: <FileSpreadsheet size={16} /> },
+      { key: 'export', label: 'Ekspor Leger', href: '/dashboard/ijazah/export', icon: <FileText size={16} /> },
+    ],
   },
   {
     key: 'ptsp',
@@ -524,6 +547,10 @@ export const DashboardLayout = () => {
     if (location.pathname.startsWith('/dashboard/mutasi')) return 'mutasi';
     if (location.pathname.startsWith('/dashboard/ppdb')) return 'ppdb';
     if (location.pathname.startsWith('/dashboard/alumni')) return 'alumni';
+    if (location.pathname.startsWith('/dashboard/kbm')) return 'kbm';
+    if (location.pathname.startsWith('/dashboard/nis')) return 'nis';
+    if (location.pathname.startsWith('/dashboard/students')) return 'students';
+    if (location.pathname.startsWith('/dashboard/ijazah')) return 'ijazah';
     return null;
   });
 
@@ -698,6 +725,14 @@ export const DashboardLayout = () => {
       setExpandedSubMenu('ppdb');
     } else if (location.pathname.startsWith('/dashboard/alumni')) {
       setExpandedSubMenu('alumni');
+    } else if (location.pathname.startsWith('/dashboard/kbm')) {
+      setExpandedSubMenu('kbm');
+    } else if (location.pathname.startsWith('/dashboard/nis')) {
+      setExpandedSubMenu('nis');
+    } else if (location.pathname.startsWith('/dashboard/students')) {
+      setExpandedSubMenu('students');
+    } else if (location.pathname.startsWith('/dashboard/ijazah')) {
+      setExpandedSubMenu('ijazah');
     }
   }, [location.pathname]);
 
