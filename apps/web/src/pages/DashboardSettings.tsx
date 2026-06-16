@@ -77,6 +77,8 @@ const identityFields = [
   { key: 'year_established', label: 'Tahun Berdiri', placeholder: '1990' },
   { key: 'principal_name', label: 'Nama Kepala Sekolah', placeholder: 'Drs. H. ...' },
   { key: 'principal_nip', label: 'NIP Kepala Sekolah', placeholder: '19xxxxxxxxxx' },
+  { key: 'active_academic_year', label: 'Tahun Ajaran Aktif', placeholder: '2025/2026' },
+  { key: 'active_semester', label: 'Semester Aktif', placeholder: 'Ganjil', type: 'select', options: ['Ganjil', 'Genap'] },
 ];
 
 const socialFields = [
@@ -90,8 +92,6 @@ const socialFields = [
 ];
 
 const systemFields = [
-  { key: 'active_academic_year', label: 'Tahun Ajaran Aktif', placeholder: '2025/2026' },
-  { key: 'active_semester', label: 'Semester Aktif', placeholder: 'Ganjil', type: 'select', options: ['Ganjil', 'Genap'] },
   { key: 'site_description', label: 'Deskripsi Website', placeholder: 'Sistem Informasi Manajemen ...' },
   { key: 'meta_keywords', label: 'Meta Keywords (SEO)', placeholder: 'MAN 2 Lombok Timur, sekolah, madrasah' },
   { key: 'footer_credit_text', label: 'Teks Credit Footer', placeholder: 'Powered by Humas Mandalotim' },
