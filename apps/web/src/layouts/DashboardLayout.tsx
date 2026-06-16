@@ -472,7 +472,7 @@ const MENU_CATEGORY_MAP: Record<string, MenuCategory> = {
   'exams': 'app-dashboard',
   'ppdb': 'mutasi-pmb',
   'penilaian-pmb': 'mutasi-pmb',
-  'ijazah': 'data-master',
+  'ijazah': 'app-dashboard',
   'ptsp': 'app-dashboard',
   'contacts': 'app-dashboard',
   'pages': 'administrator',
@@ -776,8 +776,8 @@ export const DashboardLayout = () => {
   // ── Categorized menu sections for unified grid ──
   const frequentKeys = ['jurnal', 'kbm', 'attendance', 'employees', 'e-office'];
   const infoKeys = ['news', 'gallery', 'contacts', 'calendar'];
-  const siswaKeys = ['students', 'buku-induk', 'student-card', 'nis', 'ijazah', 'alumni', 'mutasi', 'ppdb', 'penilaian-pmb'];
-  const layananKeys = ['ptsp', 'exams'];
+  const siswaKeys = ['students', 'buku-induk', 'student-card', 'nis', 'alumni', 'mutasi', 'ppdb', 'penilaian-pmb'];
+  const layananKeys = ['ptsp', 'exams', 'ijazah'];
 
   const menuSections = [
     { title: 'Sering Diakses', keys: frequentKeys },
