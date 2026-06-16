@@ -116,6 +116,14 @@ const ALL_MENU_ITEMS = [
     group: 'main',
   },
   {
+    key: 'identity',
+    label: 'Identitas Sekolah',
+    href: '/dashboard/settings',
+    exact: true,
+    icon: <Home size={16} />,
+    group: 'master',
+  },
+  {
     key: 'news',
     label: 'Manajemen Berita',
     href: '/dashboard/news',
@@ -156,14 +164,6 @@ const ALL_MENU_ITEMS = [
     href: '/dashboard/employees',
     icon: <UserSquare2 size={16} />,
     group: 'main',
-  },
-  {
-    key: 'school-identity',
-    label: 'Identitas Sekolah',
-    href: '/dashboard/settings',
-    exact: true,
-    icon: <Home size={16} />,
-    group: 'master',
   },
   {
     key: 'subjects',
@@ -391,7 +391,8 @@ const MENU_ICON_COLORS: Record<string, { bg: string; text: string }> = {
   'contacts':      { bg: 'bg-gradient-to-br from-green-400 to-emerald-500',   text: 'text-white' },
   'alumni':        { bg: 'bg-gradient-to-br from-blue-400 to-indigo-500',     text: 'text-white' },
   'mutasi':        { bg: 'bg-gradient-to-br from-rose-400 to-red-500',        text: 'text-white' },
-  'school-identity': { bg: 'bg-gradient-to-br from-emerald-500 to-teal-500', text: 'text-white' },
+  // Data Master
+  'identity':      { bg: 'bg-gradient-to-br from-sky-400 to-blue-500',        text: 'text-white' },
   // System
   'pages':         { bg: 'bg-gradient-to-br from-slate-400 to-slate-500',     text: 'text-white' },
   'menus':         { bg: 'bg-gradient-to-br from-stone-400 to-stone-500',     text: 'text-white' },
@@ -452,6 +453,7 @@ const SIDEBAR_CATEGORIES: SidebarCategoryDef[] = [
 
 const MENU_CATEGORY_MAP: Record<string, MenuCategory> = {
   'overview': 'app-master',
+  'identity': 'data-master',
   'news': 'app-dashboard',
   'gallery': 'app-dashboard',
   'calendar': 'app-dashboard',
@@ -461,7 +463,6 @@ const MENU_CATEGORY_MAP: Record<string, MenuCategory> = {
   'attendance': 'app-dashboard',
   'jurnal': 'app-dashboard',
   'kbm': 'data-master',
-  'school-identity': 'data-master',
   'subjects': 'data-master',
   'nis': 'data-master',
   'students': 'data-master',
