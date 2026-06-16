@@ -124,6 +124,13 @@ const ALL_MENU_ITEMS = [
     group: 'master',
   },
   {
+    key: 'classes',
+    label: 'Kelas & Rombel',
+    href: '/dashboard/students/classes',
+    icon: <LayoutGrid size={16} />,
+    group: 'main',
+  },
+  {
     key: 'news',
     label: 'Manajemen Berita',
     href: '/dashboard/news',
@@ -218,10 +225,6 @@ const ALL_MENU_ITEMS = [
     href: '/dashboard/students',
     icon: <Users size={16} />,
     group: 'main',
-    subItems: [
-      { key: 'list', label: 'Data Siswa', href: '/dashboard/students', exact: true, icon: <Users size={16} /> },
-      { key: 'classes', label: 'Kelas & Rombel', href: '/dashboard/students/classes', icon: <LayoutGrid size={16} /> },
-    ],
   },
   {
     key: 'alumni',
@@ -382,6 +385,7 @@ const MENU_ICON_COLORS: Record<string, { bg: string; text: string }> = {
   'nis':           { bg: 'bg-gradient-to-br from-violet-400 to-violet-500',   text: 'text-white' },
   'students':      { bg: 'bg-gradient-to-br from-indigo-400 to-indigo-500',   text: 'text-white' },
   'buku-induk':    { bg: 'bg-gradient-to-br from-blue-400 to-cyan-500',       text: 'text-white' },
+  'classes':       { bg: 'bg-gradient-to-br from-purple-400 to-indigo-500',   text: 'text-white' },
   'e-office':      { bg: 'bg-gradient-to-br from-amber-400 to-amber-500',     text: 'text-white' },
   'exams':         { bg: 'bg-gradient-to-br from-purple-500 to-purple-600',   text: 'text-white' },
   'ppdb':          { bg: 'bg-gradient-to-br from-sky-400 to-sky-500',         text: 'text-white' },
@@ -454,6 +458,7 @@ const SIDEBAR_CATEGORIES: SidebarCategoryDef[] = [
 const MENU_CATEGORY_MAP: Record<string, MenuCategory> = {
   'overview': 'app-master',
   'identity': 'data-master',
+  'classes': 'data-master',
   'news': 'app-dashboard',
   'gallery': 'app-dashboard',
   'calendar': 'app-dashboard',
@@ -569,7 +574,6 @@ export const DashboardLayout = () => {
     if (location.pathname.startsWith('/dashboard/alumni')) return 'alumni';
     if (location.pathname.startsWith('/dashboard/kbm')) return 'kbm';
     if (location.pathname.startsWith('/dashboard/nis')) return 'nis';
-    if (location.pathname.startsWith('/dashboard/students')) return 'students';
     if (location.pathname.startsWith('/dashboard/ijazah')) return 'ijazah';
     return null;
   });
@@ -749,8 +753,6 @@ export const DashboardLayout = () => {
       setExpandedSubMenu('kbm');
     } else if (location.pathname.startsWith('/dashboard/nis')) {
       setExpandedSubMenu('nis');
-    } else if (location.pathname.startsWith('/dashboard/students')) {
-      setExpandedSubMenu('students');
     } else if (location.pathname.startsWith('/dashboard/ijazah')) {
       setExpandedSubMenu('ijazah');
     }
@@ -776,7 +778,7 @@ export const DashboardLayout = () => {
   // ── Categorized menu sections for unified grid ──
   const frequentKeys = ['jurnal', 'kbm', 'attendance', 'employees', 'e-office'];
   const infoKeys = ['news', 'gallery', 'contacts', 'calendar'];
-  const siswaKeys = ['students', 'buku-induk', 'student-card', 'nis', 'alumni', 'mutasi', 'ppdb', 'penilaian-pmb'];
+  const siswaKeys = ['students', 'buku-induk', 'student-card', 'nis', 'classes', 'alumni', 'mutasi', 'ppdb', 'penilaian-pmb'];
   const layananKeys = ['ptsp', 'exams', 'ijazah'];
 
   const menuSections = [
