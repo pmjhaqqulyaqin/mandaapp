@@ -158,6 +158,14 @@ const ALL_MENU_ITEMS = [
     group: 'main',
   },
   {
+    key: 'school-identity',
+    label: 'Identitas Sekolah',
+    href: '/dashboard/settings',
+    exact: true,
+    icon: <Home size={16} />,
+    group: 'master',
+  },
+  {
     key: 'subjects',
     label: 'Mata Pelajaran',
     href: '/dashboard/subjects',
@@ -328,7 +336,6 @@ const ALL_MENU_ITEMS = [
     icon: <SettingsIcon size={16} />,
     group: 'system',
     subItems: [
-      { key: 'identity', label: 'Identitas Sekolah', href: '/dashboard/settings', exact: true, icon: <Home size={16} /> },
       { key: 'logo', label: 'Logo & Kop Dokumen', href: '/dashboard/settings/logo', icon: <ImageIcon size={16} /> },
       { key: 'social', label: 'Media Sosial', href: '/dashboard/settings/social', icon: <Globe size={16} /> },
       { key: 'map', label: 'Lokasi & Peta', href: '/dashboard/settings/map', icon: <MapPin size={16} /> },
@@ -384,6 +391,7 @@ const MENU_ICON_COLORS: Record<string, { bg: string; text: string }> = {
   'contacts':      { bg: 'bg-gradient-to-br from-green-400 to-emerald-500',   text: 'text-white' },
   'alumni':        { bg: 'bg-gradient-to-br from-blue-400 to-indigo-500',     text: 'text-white' },
   'mutasi':        { bg: 'bg-gradient-to-br from-rose-400 to-red-500',        text: 'text-white' },
+  'school-identity': { bg: 'bg-gradient-to-br from-emerald-500 to-teal-500', text: 'text-white' },
   // System
   'pages':         { bg: 'bg-gradient-to-br from-slate-400 to-slate-500',     text: 'text-white' },
   'menus':         { bg: 'bg-gradient-to-br from-stone-400 to-stone-500',     text: 'text-white' },
@@ -453,6 +461,7 @@ const MENU_CATEGORY_MAP: Record<string, MenuCategory> = {
   'attendance': 'app-dashboard',
   'jurnal': 'app-dashboard',
   'kbm': 'data-master',
+  'school-identity': 'data-master',
   'subjects': 'data-master',
   'nis': 'data-master',
   'students': 'data-master',
