@@ -211,9 +211,12 @@ export function useListUserSessions() {
     try {
       const { data, error } = await (authClient.admin as any).listUserSessions({ userId });
       if (error) throw new Error(error.message);
-      setSessions(data || []);
+      // BetterAuth may return { sessions: [...] } or a plain array
+      const list = Array.isArray(data) ? data : Array.isArray(data?.sessions) ? data.sessions : [];
+      setSessions(list);
     } catch (err) {
       console.error('Failed to fetch sessions:', err);
+      setSessions([]);
     } finally {
       setLoading(false);
     }
