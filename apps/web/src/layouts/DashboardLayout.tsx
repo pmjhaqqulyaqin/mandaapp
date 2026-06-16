@@ -223,6 +223,7 @@ const ALL_MENU_ITEMS = [
     key: 'students',
     label: 'Manajemen Siswa & Buku Induk',
     href: '/dashboard/students',
+    exact: true,
     icon: <Users size={16} />,
     group: 'main',
   },

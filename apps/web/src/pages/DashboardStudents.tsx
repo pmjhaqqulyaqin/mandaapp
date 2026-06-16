@@ -237,33 +237,36 @@ export const DashboardStudents = () => {
         <div>
           <Breadcrumbs items={[
             { label: 'Database', href: '/dashboard' },
-            { label: activeTab === 'students' ? 'Data Siswa' : 'Kelas' },
+            { label: activeTab === 'students' ? 'Data Siswa' : 'Kelas & Rombel' },
           ]} />
-          <h1 className="text-xl font-bold text-text-primary dark:text-text-darkPrimary mt-1">Manajemen Data Siswa</h1>
+          <h1 className="text-xl font-bold text-text-primary dark:text-text-darkPrimary mt-1">
+            {activeTab === 'students' ? 'Manajemen Data Siswa' : 'Manajemen Kelas & Rombel'}
+          </h1>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-
-          <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
-            onClick={() => setPullNISOpen(true)}>
-            <RefreshCw size={14} /> Pull dari NIS
-          </Button>
-          <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
-            onClick={() => setImportExcelOpen(true)}>
-            <FileSpreadsheet size={14} /> Import Excel
-          </Button>
-          <Button size="sm" className="flex items-center gap-1.5 text-xs"
-            onClick={() => { setEditStudent(null); setAddStudentOpen(true); }}>
-            <UserPlus size={14} /> Tambah Siswa
-          </Button>
-          <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
-            onClick={() => {
-              const targets = filtered.filter(s => (!s.status || s.status.toLowerCase() === 'aktif' || s.status.toLowerCase() === 'active') && s.nisn);
-              setQrPrintStudents(targets);
-              setQrPrintOpen(true);
-            }}>
-            <QrCode size={14} /> Cetak QR Portal
-          </Button>
-        </div>
+        {activeTab === 'students' && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
+              onClick={() => setPullNISOpen(true)}>
+              <RefreshCw size={14} /> Pull dari NIS
+            </Button>
+            <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
+              onClick={() => setImportExcelOpen(true)}>
+              <FileSpreadsheet size={14} /> Import Excel
+            </Button>
+            <Button size="sm" className="flex items-center gap-1.5 text-xs"
+              onClick={() => { setEditStudent(null); setAddStudentOpen(true); }}>
+              <UserPlus size={14} /> Tambah Siswa
+            </Button>
+            <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs"
+              onClick={() => {
+                const targets = filtered.filter(s => (!s.status || s.status.toLowerCase() === 'aktif' || s.status.toLowerCase() === 'active') && s.nisn);
+                setQrPrintStudents(targets);
+                setQrPrintOpen(true);
+              }}>
+              <QrCode size={14} /> Cetak QR Portal
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Tab Content */}
