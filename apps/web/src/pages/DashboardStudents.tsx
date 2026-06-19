@@ -341,6 +341,7 @@ export const DashboardStudents = () => {
                         }}
                       />
                     </th>
+                    <th className="py-2.5 px-3 font-semibold w-10">No</th>
                     <th className="py-2.5 px-3 font-semibold">NIS</th>
                     <th className="py-2.5 px-3 font-semibold">Nama Siswa</th>
                     <th className="py-2.5 px-3 font-semibold">Kelas</th>
@@ -349,7 +350,7 @@ export const DashboardStudents = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginated.map(s => (
+                  {paginated.map((s, idx) => (
                     <tr key={s.id} className="group border-b border-gray-50 dark:border-[#1a1a1a] hover:bg-gray-50/50 dark:hover:bg-[#0a0a0a] transition-colors">
                       <td className="py-2 px-3">
                         <input type="checkbox" className="accent-primary w-3.5 h-3.5"
@@ -360,6 +361,7 @@ export const DashboardStudents = () => {
                           }}
                         />
                       </td>
+                      <td className="py-2 px-3 text-[11px] text-text-secondary font-medium">{(page - 1) * entriesPerPage + idx + 1}</td>
                       <td className="py-2 px-3 text-[11px] font-mono text-text-secondary">{s.nis || s.nisn || '-'}</td>
                       <td className="py-2 px-3">
                         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/dashboard/students/${s.id}`)}>
@@ -383,7 +385,7 @@ export const DashboardStudents = () => {
                     </tr>
                   ))}
                   {paginated.length === 0 && (
-                    <tr><td colSpan={6} className="py-12 text-center text-gray-400 text-sm">
+                    <tr><td colSpan={7} className="py-12 text-center text-gray-400 text-sm">
                       {searchQuery || filterClass ? 'Tidak ada siswa yang sesuai filter.' : 'Belum ada data siswa.'}
                     </td></tr>
                   )}
