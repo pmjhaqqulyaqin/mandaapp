@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
 import { Users, Loader2, Search, Filter } from 'lucide-react';
+import { DataTableToolbar } from '../../../components/DataTableToolbar';
 
 interface StudentRow {
   id: string;
@@ -24,6 +25,8 @@ export const StudentDataTab = () => {
   const [selectedClassId, setSelectedClassId] = useState<string>('global');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [entriesPerPage, setEntriesPerPage] = useState(25);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     fetchClasses();
@@ -142,6 +145,23 @@ export const StudentDataTab = () => {
           className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 dark:border-[#333] rounded-xl bg-white dark:bg-[#111] outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
         />
       </div>
+
+      {/* DataTable Toolbar */}
+      <DataTableToolbar
+        data={filteredStudents}
+        columns={[
+          { header: 'NIS', key: 'nis', transform: (v) => v || '-' },
+          { header: 'NISN', key: 'nisn', transform: (v) => v || '-' },
+          { header: 'Nama Siswa', key: 'fullName' },
+          { header: 'Jenis Kelamin', key: 'gender', transform: (v) => v === 'L' || v === 'Laki-laki' ? 'L' : 'P' },
+          { header: 'Rombel', key: 'className', transform: (v) => v || '-' },
+        ]}
+        fileName="Data_Siswa_Ijazah"
+        title="Data Siswa Kelas XII"
+        entriesPerPage={entriesPerPage}
+        onEntriesPerPageChange={(n) => { setEntriesPerPage(n); setPage(1); }}
+        totalEntries={filteredStudents.length}
+      />
 
       {/* Data Table */}
       <div className="border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden bg-white dark:bg-[#111]">

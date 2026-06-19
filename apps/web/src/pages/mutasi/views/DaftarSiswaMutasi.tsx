@@ -7,6 +7,7 @@ import {
   Search, Download, Eye, Loader2, User, Users, ArrowDownToLine, ArrowUpFromLine, GraduationCap, School
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { DataTableToolbar } from '../../../components/DataTableToolbar';
 
 const avatarColor = (name: string) => {
   const colors = ['bg-blue-500','bg-emerald-500','bg-amber-500','bg-rose-500','bg-violet-500','bg-cyan-500','bg-orange-500','bg-teal-500'];
@@ -20,7 +21,7 @@ const initials = (name: string) => {
   return parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.slice(0, 2).toUpperCase();
 };
 
-const ITEMS_PER_PAGE = 12;
+const DEFAULT_ITEMS = 12;
 
 export const DaftarSiswaMutasi = () => {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ export const DaftarSiswaMutasi = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('');
   const [page, setPage] = useState(1);
+  const [entriesPerPage, setEntriesPerPage] = useState(DEFAULT_ITEMS);
 
   // Fetch only students who are mutasi/keluar/pindah/do
   const { data: allStudents = [], isLoading } = useQuery({
@@ -47,8 +49,8 @@ export const DaftarSiswaMutasi = () => {
     });
   }, [allStudents, searchQuery, filterType]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-  const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / entriesPerPage));
+  const paginated = filtered.slice((page - 1) * entriesPerPage, page * entriesPerPage);
 
   const handleExportExcel = () => {
     const data = filtered.map((s, idx) => ({
@@ -121,6 +123,24 @@ export const DaftarSiswaMutasi = () => {
       <div className="text-sm font-semibold text-text-secondary px-1">
         Menampilkan {filtered.length} siswa mutasi
       </div>
+
+      {/* DataTable Toolbar */}
+      <DataTableToolbar
+        data={filtered}
+        columns={[
+          { header: 'Nama Lengkap', key: 'fullName', transform: (v) => v || '-' },
+          { header: 'NIS', key: 'nis', transform: (v) => v || '-' },
+          { header: 'NISN', key: 'nisn', transform: (v) => v || '-' },
+          { header: 'Kelas Terakhir', key: 'className', transform: (v) => v || '-' },
+          { header: 'Status', key: 'status', transform: (v) => v || '-' },
+          { header: 'Gender', key: 'gender', transform: (v) => v || '-' },
+        ]}
+        fileName="Siswa_Mutasi"
+        title="Daftar Siswa Mutasi"
+        entriesPerPage={entriesPerPage}
+        onEntriesPerPageChange={(n) => { setEntriesPerPage(n); setPage(1); }}
+        totalEntries={filtered.length}
+      />
 
       {/* MOBILE VIEW: Card Layout */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 md:hidden">

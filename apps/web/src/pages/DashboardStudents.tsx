@@ -10,6 +10,7 @@ import {
   UserPlus, Edit2, Trash2, ChevronLeft, ChevronRight, Loader2,
   CheckCircle2, GraduationCap, AlertCircle, UserCog, ArrowUpRight, X, QrCode, Printer, Eye
 } from 'lucide-react';
+import { DataTableToolbar } from '../components/DataTableToolbar';
 
 // Sub-components
 import { ClassMajorView } from './students/ClassMajorView';
@@ -59,7 +60,7 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-const ITEMS_PER_PAGE = 10;
+const DEFAULT_ITEMS_PER_PAGE = 10;
 
 export const DashboardStudents = () => {
   const { user, isAdmin } = useAuth();
@@ -83,6 +84,7 @@ export const DashboardStudents = () => {
   const [filterClass, setFilterClass] = useState(() => sessionStorage.getItem('sm_class') || '');
   const [filterStatus, setFilterStatus] = useState(() => sessionStorage.getItem('sm_status') || 'Aktif');
   const [page, setPage] = useState(1);
+  const [entriesPerPage, setEntriesPerPage] = useState(DEFAULT_ITEMS_PER_PAGE);
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
 
   // Modals
@@ -135,9 +137,9 @@ export const DashboardStudents = () => {
     });
   }, [students, searchQuery, filterClass, classesList]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-  const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
-  useEffect(() => { setPage(1); }, [searchQuery, filterClass]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / entriesPerPage));
+  const paginated = filtered.slice((page - 1) * entriesPerPage, page * entriesPerPage);
+  useEffect(() => { setPage(1); }, [searchQuery, filterClass, entriesPerPage]);
 
   // Stats
   const stats = useMemo(() => ({
@@ -307,6 +309,23 @@ export const DashboardStudents = () => {
             </div>
           </div>
 
+          {/* DataTable Toolbar */}
+          <DataTableToolbar
+            data={filtered}
+            columns={[
+              { header: 'NIS', key: 'nis', transform: (v, row) => v || row.nisn || '-' },
+              { header: 'Nama Siswa', key: 'fullName', transform: (v) => v || '-' },
+              { header: 'Kelas', key: 'classId', transform: (_, row) => getClassLabel(row) },
+              { header: 'Jenis Kelamin', key: 'gender', transform: (v) => v || '-' },
+              { header: 'Status', key: 'status', transform: (v) => v || 'Aktif' },
+            ]}
+            fileName="Data_Siswa"
+            title="Data Siswa"
+            entriesPerPage={entriesPerPage}
+            onEntriesPerPageChange={(n) => { setEntriesPerPage(n); setPage(1); }}
+            totalEntries={filtered.length}
+          />
+
           {/* Data Table */}
           <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] overflow-hidden">
             <div className="overflow-x-auto">
@@ -374,7 +393,7 @@ export const DashboardStudents = () => {
             {/* Pagination */}
             <div className="px-4 py-3 border-t border-gray-100 dark:border-[#222] flex items-center justify-between">
               <p className="text-xs text-primary font-medium">
-                Showing {filtered.length > 0 ? (page - 1) * ITEMS_PER_PAGE + 1 : 0}-{Math.min(page * ITEMS_PER_PAGE, filtered.length)} of {filtered.length.toLocaleString()} students
+                Showing {filtered.length > 0 ? (page - 1) * entriesPerPage + 1 : 0}-{Math.min(page * entriesPerPage, filtered.length)} of {filtered.length.toLocaleString()} students
               </p>
               <div className="flex items-center gap-1">
                 <button onClick={() => setPage(1)} disabled={page <= 1} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] disabled:opacity-30 text-xs font-bold">«</button>

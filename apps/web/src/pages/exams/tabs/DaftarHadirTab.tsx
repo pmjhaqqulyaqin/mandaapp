@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
 import { Download, Users, UserCheck, ClipboardList, Search, Printer, BookOpen } from 'lucide-react';
+import { DataTableToolbar } from '../../../components/DataTableToolbar';
 
 interface Props {
   ujianId: string;
@@ -236,6 +237,24 @@ export const DaftarHadirTab = ({ ujianId, ujian }: Props) => {
         )}
 
         {/* Table */}
+        {activePreview === 'dh-peserta' && (
+          <DataTableToolbar
+            data={filtered}
+            columns={[
+              { header: 'NIS', key: 'siswa', transform: (v) => v?.nis || '-' },
+              { header: 'NISN', key: 'siswa', transform: (v) => v?.nisn || '-' },
+              { header: 'Nama Peserta', key: 'siswa', transform: (v) => v?.fullName || '-' },
+              { header: 'Kelas', key: 'siswa', transform: (v) => v?.fullClassName || v?.className || '-' },
+              { header: 'Ruang', key: 'ruang', transform: (v) => v?.namaRuang || '-' },
+            ]}
+            fileName="Daftar_Hadir_Peserta"
+            title="Daftar Hadir Peserta"
+            entriesPerPage={filtered.length}
+            onEntriesPerPageChange={() => {}}
+            totalEntries={filtered.length}
+          />
+        )}
+
         <div className="overflow-x-auto rounded-lg border border-gray-100 dark:border-[#222]">
           {activePreview === 'dh-peserta' && (
             <table className="w-full text-left text-xs">

@@ -4,6 +4,7 @@ import {
   ClipboardList, PieChart, Send, CheckCircle2, AlertCircle, 
   Settings2, Download, Search, Users
 } from 'lucide-react';
+import { DataTableToolbar } from '../../../components/DataTableToolbar';
 
 // MOCK DATA
 const mockQuestionnaires = [
@@ -102,6 +103,23 @@ export const TracerStudy = () => {
           </div>
           
           <div className="overflow-x-auto">
+            <div className="px-4 pt-3">
+              <DataTableToolbar
+                data={mockResponses}
+                columns={[
+                  { header: 'Nama Alumni', key: 'name' },
+                  { header: 'Tahun Lulus', key: 'year' },
+                  { header: 'Status', key: 'status' },
+                  { header: 'Instansi / Kampus', key: 'company' },
+                  { header: 'Tgl Submit', key: 'date' },
+                ]}
+                fileName="Tracer_Study"
+                title="Hasil Tracer Study"
+                entriesPerPage={mockResponses.length}
+                onEntriesPerPageChange={() => {}}
+                totalEntries={mockResponses.length}
+              />
+            </div>
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-[#222] text-[10px] uppercase tracking-wider text-text-secondary bg-gray-50/50 dark:bg-[#0a0a0a]">

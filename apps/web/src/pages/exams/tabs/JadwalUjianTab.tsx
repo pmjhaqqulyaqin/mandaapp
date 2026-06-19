@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
 import { Plus, Trash2, Edit2, Upload, Download, Printer, Search } from 'lucide-react';
+import { DataTableToolbar } from '../../../components/DataTableToolbar';
 
 interface Props {
   ujianId: string;
@@ -156,6 +157,23 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
             placeholder="Cari mapel/kelas..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
+
+      {/* DataTable Toolbar */}
+      <DataTableToolbar
+        data={filtered}
+        columns={[
+          { header: 'Tanggal', key: 'tanggal', transform: (v) => v ? new Date(v).toLocaleDateString('id-ID') : '-' },
+          { header: 'Waktu Mulai', key: 'waktuMulai', transform: (v) => v || '-' },
+          { header: 'Waktu Selesai', key: 'waktuSelesai', transform: (v) => v || '-' },
+          { header: 'Mata Pelajaran', key: 'mataPelajaran', transform: (v) => v || '-' },
+          { header: 'Kelas', key: 'kelas', transform: (v) => v || '-' },
+        ]}
+        fileName="Jadwal_Ujian"
+        title="Jadwal Ujian"
+        entriesPerPage={filtered.length}
+        onEntriesPerPageChange={() => {}}
+        totalEntries={filtered.length}
+      />
 
       {/* Add/Edit Form */}
       {showAdd && (

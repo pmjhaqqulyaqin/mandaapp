@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { Input } from '@mandaapp/ui/src/components/Input';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Upload, Download, Edit2, Trash2, FileSpreadsheet, Image, Eye, Link2, Unlink } from 'lucide-react';
+import { UserPlus, Upload, Download, Edit2, Trash2, FileSpreadsheet, Image, Eye, Link2, Unlink, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { apiClient, API_BASE_URL } from '../lib/api';
+import { DataTableToolbar } from '../components/DataTableToolbar';
 
 export const DashboardEmployees = () => {
   const { user } = useAuth();
@@ -13,6 +14,8 @@ export const DashboardEmployees = () => {
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ show: false, percent: 0 });
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [entriesPerPage, setEntriesPerPage] = useState(10);
   
   // Add Employee State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -46,6 +49,15 @@ export const DashboardEmployees = () => {
       setLoading(false);
     }
   };
+
+  const filteredEmployees = useMemo(() => {
+    if (!searchQuery.trim()) return employees;
+    const q = searchQuery.toLowerCase();
+    return employees.filter(emp => emp.name?.toLowerCase().includes(q) || emp.nip?.toLowerCase().includes(q));
+  }, [employees, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredEmployees.length / entriesPerPage));
+  const paginatedEmployees = filteredEmployees.slice((page - 1) * entriesPerPage, page * entriesPerPage);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -280,12 +292,31 @@ export const DashboardEmployees = () => {
       </div>
 
       <div className="bg-white dark:bg-[#111] rounded-2xl shadow-sm border border-gray-200 dark:border-[#222] overflow-hidden">
+        {/* DataTable Toolbar */}
+        <div className="p-3 border-b border-gray-100 dark:border-[#2a2a2a]">
+          <DataTableToolbar
+            data={filteredEmployees}
+            columns={[
+              { header: 'Nama Lengkap', key: 'name', transform: (v) => v || '-' },
+              { header: 'NIP / NUPTK', key: 'nip', transform: (v) => v || '-' },
+              { header: 'Jenis Pegawai', key: 'type', transform: (v) => v || '-' },
+              { header: 'Jenis Kelamin', key: 'gender', transform: (v) => v || '-' },
+              { header: 'Jabatan', key: 'position', transform: (v) => v || '-' },
+              { header: 'Tugas/Mapel', key: 'task', transform: (v) => v || '-' },
+            ]}
+            fileName="Data_Pegawai"
+            title="Data Pegawai"
+            entriesPerPage={entriesPerPage}
+            onEntriesPerPageChange={(n) => { setEntriesPerPage(n); setPage(1); }}
+            totalEntries={filteredEmployees.length}
+          />
+        </div>
         <div className="p-4 border-b border-gray-100 dark:border-[#2a2a2a] flex items-center justify-between">
           <Input 
             placeholder="Cari NIP atau Nama..." 
             className="max-w-xs" 
             value={searchQuery}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setSearchQuery(e.target.value); setPage(1); }}
           />
         </div>
         <div className="min-h-[300px] flex items-center justify-center text-gray-500">
@@ -303,15 +334,9 @@ export const DashboardEmployees = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {employees
-                    .filter(emp => {
-                      if (!searchQuery.trim()) return true;
-                      const q = searchQuery.toLowerCase();
-                      return (emp.name?.toLowerCase().includes(q) || emp.nip?.toLowerCase().includes(q));
-                    })
-                    .map((emp, idx) => (
+                  {paginatedEmployees.map((emp, idx) => (
                     <tr key={emp.id} className="border-b border-gray-50 dark:border-[#222] group hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors">
-                      <td className="py-3 px-4 text-center text-text-secondary">{idx + 1}</td>
+                    <td className="py-3 px-4 text-center text-text-secondary">{(page - 1) * entriesPerPage + idx + 1}</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <div className="font-medium text-text-primary dark:text-text-darkPrimary">{emp.name}</div>
@@ -357,7 +382,7 @@ export const DashboardEmployees = () => {
                       </td>
                     </tr>
                   ))}
-                  {employees.length === 0 && !loading && (
+                  {paginatedEmployees.length === 0 && !loading && (
                     <tr>
                       <td colSpan={6} className="py-8 text-center text-gray-400">Belum ada data pegawai.</td>
                     </tr>
@@ -367,6 +392,22 @@ export const DashboardEmployees = () => {
             </div>
           )}
         </div>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="px-4 py-3 border-t border-gray-100 dark:border-[#2a2a2a] flex items-center justify-between">
+            <span className="text-xs text-text-secondary">
+              Menampilkan {(page - 1) * entriesPerPage + 1}–{Math.min(page * entriesPerPage, filteredEmployees.length)} dari {filteredEmployees.length}
+            </span>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setPage(p => p - 1)} disabled={page <= 1} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] disabled:opacity-30"><ChevronLeft size={16} /></button>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map(p => (
+                <button key={p} onClick={() => setPage(p)}
+                  className={`w-7 h-7 rounded-md text-xs font-medium ${p === page ? 'bg-primary text-white' : 'hover:bg-gray-100 dark:hover:bg-[#222] text-text-secondary'}`}>{p}</button>
+              ))}
+              <button onClick={() => setPage(p => p + 1)} disabled={page >= totalPages} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] disabled:opacity-30"><ChevronRight size={16} /></button>
+            </div>
+          </div>
+        )}
       </div>
 
       {uploadProgress.show && (

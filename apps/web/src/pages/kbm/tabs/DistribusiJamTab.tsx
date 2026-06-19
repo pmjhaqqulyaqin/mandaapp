@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { apiClient } from '../../../lib/api';
 import { Download, Plus, Search, Loader2, Upload, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
+import { DataTableToolbar } from '../../../components/DataTableToolbar';
 
 interface Props {
   academicYearId: string;
@@ -257,6 +258,23 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
           💡 Klik sel untuk mengisi jumlah jam. Perubahan tersimpan otomatis. <span className="text-red-400">Merah</span> = overload JTM.
         </p>
       )}
+
+      {/* DataTable Toolbar */}
+      <DataTableToolbar
+        data={filteredRows}
+        columns={[
+          { header: 'Nama Guru', key: 'guruName' },
+          { header: 'NIP', key: 'guruNip', transform: (v) => v || '-' },
+          { header: 'Kode Mapel', key: 'subjectKode' },
+          { header: 'Nama Mapel', key: 'subjectNama' },
+          { header: 'Total Jam', key: 'totalJam', transform: (v) => String(v) },
+        ]}
+        fileName="Distribusi_Jam"
+        title="Distribusi Jam Pelajaran"
+        entriesPerPage={filteredRows.length}
+        onEntriesPerPageChange={() => {}}
+        totalEntries={filteredRows.length}
+      />
 
       {/* Grid */}
       <div className="overflow-auto rounded-xl border border-gray-200 dark:border-[#222] max-h-[calc(100vh-320px)]">

@@ -10,6 +10,7 @@ import { EditSuratMasukModal } from './components/EditSuratMasukModal';
 import { toast } from 'sonner';
 import { useRef } from 'react';
 import { Pencil, Trash2, Upload, Settings, Eye, Search as SearchIcon } from 'lucide-react';
+import { DataTableToolbar } from '../../components/DataTableToolbar';
 
 export const EOfficePage = () => {
   const [activeTab, setActiveTab] = useState<'keluar' | 'masuk'>('keluar');
@@ -279,6 +280,23 @@ export const EOfficePage = () => {
       <div className="bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
         {activeTab === 'keluar' && (
           <div className="overflow-x-auto">
+            <div className="px-4 pt-3">
+              <DataTableToolbar
+                data={filteredSuratKeluar}
+                columns={[
+                  { header: 'No. Urut', key: 'nomorUrut', transform: (v) => String(v || '-') },
+                  { header: 'Nomor Lengkap', key: 'nomorLengkap', transform: (v) => v || '-' },
+                  { header: 'Perihal', key: 'perihal', transform: (v) => v || '-' },
+                  { header: 'Tujuan', key: 'tujuan', transform: (v) => v || '-' },
+                  { header: 'Tanggal', key: 'tanggalGenerate', transform: (v) => v ? new Date(v).toLocaleDateString('id-ID') : '-' },
+                ]}
+                fileName="Surat_Keluar"
+                title="Buku Ekspedisi Surat Keluar"
+                entriesPerPage={filteredSuratKeluar.length}
+                onEntriesPerPageChange={() => {}}
+                totalEntries={filteredSuratKeluar.length}
+              />
+            </div>
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-gray-50/50 dark:bg-black/20 text-gray-500 dark:text-gray-400">
                 <tr>
@@ -354,6 +372,23 @@ export const EOfficePage = () => {
 
         {activeTab === 'masuk' && (
           <div className="overflow-x-auto">
+            <div className="px-4 pt-3">
+              <DataTableToolbar
+                data={filteredSuratMasuk}
+                columns={[
+                  { header: 'No. Agenda', key: 'nomorAgenda', transform: (v) => v || '-' },
+                  { header: 'Tgl Terima', key: 'tanggalDiterima', transform: (v) => v ? new Date(v).toLocaleDateString('id-ID') : '-' },
+                  { header: 'Pengirim', key: 'pengirim', transform: (v) => v || '-' },
+                  { header: 'No. Surat Asli', key: 'nomorSuratAsli', transform: (v) => v || '-' },
+                  { header: 'Perihal', key: 'perihal', transform: (v) => v || '-' },
+                ]}
+                fileName="Surat_Masuk"
+                title="Registrasi Surat Masuk"
+                entriesPerPage={filteredSuratMasuk.length}
+                onEntriesPerPageChange={() => {}}
+                totalEntries={filteredSuratMasuk.length}
+              />
+            </div>
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-gray-50/50 dark:bg-black/20 text-gray-500 dark:text-gray-400">
                 <tr>

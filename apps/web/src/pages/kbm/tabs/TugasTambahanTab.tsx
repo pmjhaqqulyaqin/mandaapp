@@ -3,6 +3,7 @@ import { apiClient } from '../../../lib/api';
 import { Plus, Trash2, Download, Pencil, Upload, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TugasAssignModal } from '../components/TugasAssignModal';
+import { DataTableToolbar } from '../../../components/DataTableToolbar';
 
 interface Props {
   academicYearId: string;
@@ -152,6 +153,24 @@ export const TugasTambahanTab = ({ academicYearId, semester, canEdit }: Props) =
           {importing ? 'Importing...' : 'Import Excel'}
         </button>
       </div>
+
+      {/* DataTable Toolbar */}
+      <DataTableToolbar
+        data={tugas}
+        columns={[
+          { header: 'Nama Guru', key: 'guruName' },
+          { header: 'NIP', key: 'guruNip', transform: (v) => v || '-' },
+          { header: 'Tugas', key: 'namaTugas' },
+          { header: 'Kategori', key: 'kategori' },
+          { header: 'Keterangan', key: 'keterangan', transform: (v) => v || '-' },
+          { header: 'Setara Jam', key: 'setaraJam', transform: (v) => String(v) },
+        ]}
+        fileName="Tugas_Tambahan"
+        title="Tugas Tambahan"
+        entriesPerPage={tugas.length}
+        onEntriesPerPageChange={() => {}}
+        totalEntries={tugas.length}
+      />
 
       {/* Tables by category */}
       {categories.map(cat => {

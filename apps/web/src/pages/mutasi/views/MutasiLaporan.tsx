@@ -4,11 +4,14 @@ import { apiClient } from '../../../lib/api';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { Download, FileText, Filter, Loader2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { DataTableToolbar } from '../../../components/DataTableToolbar';
 
 export const MutasiLaporan = () => {
   const [filterType, setFilterType] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [entriesPerPage, setEntriesPerPage] = useState(25);
+  const [page, setPage] = useState(1);
 
   const { data: records = [], isLoading } = useQuery({
     queryKey: ['mutations-laporan', filterType, startDate, endDate],
@@ -90,6 +93,23 @@ export const MutasiLaporan = () => {
           </Button>
         </div>
       </div>
+
+      <DataTableToolbar
+        data={records}
+        columns={[
+          { header: 'Nama Siswa', key: 'student', transform: (v) => v?.fullName || '-' },
+          { header: 'NISN', key: 'student', transform: (v) => v?.nisn || '-' },
+          { header: 'Jenis Mutasi', key: 'type', transform: (v) => v === 'masuk' ? 'Mutasi Masuk' : v === 'keluar' ? 'Mutasi Keluar' : 'Mutasi Internal' },
+          { header: 'Tanggal Efektif', key: 'effectiveDate', transform: (v) => v ? new Date(v).toLocaleDateString('id-ID') : '-' },
+          { header: 'Asal', key: 'fromSchool', transform: (v, row) => v || row.fromClass || '-' },
+          { header: 'Tujuan', key: 'toSchool', transform: (v, row) => v || row.toClass || '-' },
+        ]}
+        fileName="Laporan_Mutasi"
+        title="Laporan Mutasi"
+        entriesPerPage={entriesPerPage}
+        onEntriesPerPageChange={(n) => { setEntriesPerPage(n); setPage(1); }}
+        totalEntries={records.length}
+      />
 
       <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-100 dark:border-[#222] shadow-sm overflow-hidden flex flex-col h-[400px]">
         <div className="p-4 border-b border-gray-100 dark:border-[#222] bg-gray-50/50 dark:bg-[#0a0a0a] flex items-center justify-between">

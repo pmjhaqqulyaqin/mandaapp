@@ -4,6 +4,7 @@ import { Input } from '@mandaapp/ui/src/components/Input';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { Edit2, Trash2, Plus } from 'lucide-react';
 import type { ClassItem } from './types';
+import { DataTableToolbar } from '../../components/DataTableToolbar';
 
 interface Props {
   classes: ClassItem[];
@@ -138,6 +139,22 @@ export const ClassMajorView: React.FC<Props> = ({ classes, teachers, students, o
           <h2 className="text-base font-bold text-text-primary dark:text-text-darkPrimary">Semua Kelas Terdaftar</h2>
         </div>
         <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] overflow-hidden">
+          <div className="px-3 pt-3">
+            <DataTableToolbar
+              data={classes.map(cls => ({ ...cls, studentCount: studentCountByClass(cls.id), gradeLevel: getGradeLevel(cls.name) }))}
+              columns={[
+                { header: 'Nama Kelas', key: 'name' },
+                { header: 'Wali Kelas', key: 'homeroomTeacherName', transform: (v) => v || '-' },
+                { header: 'Jumlah Siswa', key: 'studentCount', transform: (v) => String(v) },
+                { header: 'Tingkat', key: 'gradeLevel' },
+              ]}
+              fileName="Daftar_Kelas"
+              title="Daftar Kelas"
+              entriesPerPage={classes.length}
+              onEntriesPerPageChange={() => {}}
+              totalEntries={classes.length}
+            />
+          </div>
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-gray-100 dark:border-[#222] text-[9.5px] uppercase tracking-wider text-text-secondary">

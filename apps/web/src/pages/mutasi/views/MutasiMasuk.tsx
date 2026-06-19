@@ -1,15 +1,18 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../../lib/api';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { Search, Plus, Trash2, Edit, Loader2, ArrowDownToLine } from 'lucide-react';
 import { MutasiFormModal } from '../components/MutasiFormModal';
+import { DataTableToolbar } from '../../../components/DataTableToolbar';
 
 export const MutasiMasuk = () => {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editData, setEditData] = useState<any>(null);
+  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [page, setPage] = useState(1);
 
   const { data: records = [], isLoading } = useQuery({
     queryKey: ['mutations-masuk', searchQuery],
@@ -48,6 +51,22 @@ export const MutasiMasuk = () => {
           <Plus size={16} /> Tambah Data Masuk
         </Button>
       </div>
+
+      <DataTableToolbar
+        data={records}
+        columns={[
+          { header: 'Nama Siswa', key: 'student', transform: (v) => v?.fullName || '-' },
+          { header: 'NISN', key: 'student', transform: (v) => v?.nisn || '-' },
+          { header: 'Sekolah Asal', key: 'fromSchool', transform: (v) => v || '-' },
+          { header: 'Masuk Kelas', key: 'toClass', transform: (v) => v || '-' },
+          { header: 'Tanggal Efektif', key: 'effectiveDate', transform: (v) => v ? new Date(v).toLocaleDateString('id-ID') : '-' },
+        ]}
+        fileName="Mutasi_Masuk"
+        title="Data Mutasi Masuk"
+        entriesPerPage={entriesPerPage}
+        onEntriesPerPageChange={(n) => { setEntriesPerPage(n); setPage(1); }}
+        totalEntries={records.length}
+      />
 
       <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-100 dark:border-[#222] shadow-sm overflow-hidden">
         {isLoading ? (

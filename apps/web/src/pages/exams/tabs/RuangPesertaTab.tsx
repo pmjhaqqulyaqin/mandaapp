@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
 import { Plus, Trash2, Edit2, Wand2, Download, Search, DoorOpen, Users, RefreshCw, GripVertical, X, ArrowRight, AlertTriangle, Settings, Save } from 'lucide-react';
+import { DataTableToolbar } from '../../../components/DataTableToolbar';
 
 interface Props {
   ujianId: string;
@@ -608,6 +609,23 @@ export const RuangPesertaTab = ({ ujianId }: Props) => {
             </button>
           )}
         </div>
+
+        <DataTableToolbar
+          data={filtered}
+          columns={[
+            { header: 'Ruang', key: 'ruang', transform: (v) => v?.namaRuang || '-' },
+            { header: 'No. Meja', key: 'nomorMeja', transform: (v) => v || '-' },
+            { header: 'NIS', key: 'siswa', transform: (v) => v?.nis || '-' },
+            { header: 'NISN', key: 'siswa', transform: (v) => v?.nisn || '-' },
+            { header: 'Nama Peserta', key: 'siswa', transform: (v) => v?.fullName || '-' },
+            { header: 'Kelas', key: 'siswa', transform: (v) => v?.fullClassName || v?.className || '-' },
+          ]}
+          fileName="Distribusi_Peserta"
+          title="Distribusi Peserta Ujian"
+          entriesPerPage={filtered.length}
+          onEntriesPerPageChange={() => {}}
+          totalEntries={filtered.length}
+        />
 
         <div className="overflow-x-auto rounded-lg border border-gray-100 dark:border-[#222]">
           <table className="w-full text-left text-xs">

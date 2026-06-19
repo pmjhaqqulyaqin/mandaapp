@@ -7,6 +7,7 @@ import {
   Search, Download, Eye, Award, GraduationCap, Building2, MapPin, Loader2, User, BookOpen
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { DataTableToolbar } from '../../../components/DataTableToolbar';
 
 // Helper functions
 const avatarColor = (name: string) => {
@@ -198,6 +199,24 @@ export const AlumniDirectory = () => {
 
       {/* DESKTOP VIEW: Table Layout */}
       <div className="hidden md:block bg-white dark:bg-[#111] rounded-2xl border border-gray-100 dark:border-[#222] shadow-sm overflow-hidden">
+        <div className="px-4 pt-3">
+          <DataTableToolbar
+            data={filtered}
+            columns={[
+              { header: 'Nama Lengkap', key: 'fullName', transform: (v) => v || '-' },
+              { header: 'NIS', key: 'nis', transform: (v) => v || '-' },
+              { header: 'NISN', key: 'nisn', transform: (v) => v || '-' },
+              { header: 'Angkatan', key: 'gradYear', transform: (v) => String(v || '-') },
+              { header: 'Jurusan', key: 'major', transform: (v) => v || '-' },
+              { header: 'Status', key: 'jobStatus', transform: (v) => v || '-' },
+            ]}
+            fileName="Data_Alumni"
+            title="Data Alumni"
+            entriesPerPage={filtered.length}
+            onEntriesPerPageChange={() => {}}
+            totalEntries={filtered.length}
+          />
+        </div>
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-gray-100 dark:border-[#222] text-[11px] uppercase tracking-wider text-text-secondary bg-gray-50/50 dark:bg-[#0a0a0a]">

@@ -3,6 +3,7 @@ import { useTeachingSubjects, useTimeSlots } from '../../../hooks/api/useJurnal'
 import { apiClient, API_BASE_URL } from '../../../lib/api';
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, Upload, Download, X, Save, FileSpreadsheet, AlertTriangle } from 'lucide-react';
+import { DataTableToolbar } from '../../../components/DataTableToolbar';
 
 const MAX_JAM = 12;
 
@@ -260,6 +261,25 @@ export const JurnalSettingsTab = () => {
       {/* Table */}
       {query.isLoading && <p className="text-xs text-gray-500 text-center py-8">Memuat...</p>}
       <div className="bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="px-3 pt-3">
+          <DataTableToolbar
+            data={filtered}
+            columns={[
+              { header: 'Guru', key: 'employeeName', transform: (v) => v || '-' },
+              { header: 'Mata Pelajaran', key: 'subjectName', transform: (v) => v || '-' },
+              { header: 'Kelas', key: 'className', transform: (v) => v || '-' },
+              { header: 'Hari', key: 'dayOfWeek', transform: (v) => DAYS[v] || '-' },
+              { header: 'Jam Ke', key: 'jamKe', transform: (v) => v || '-' },
+              { header: 'Waktu Mulai', key: 'waktuMulai', transform: (v) => v || '-' },
+              { header: 'Waktu Selesai', key: 'waktuSelesai', transform: (v) => v || '-' },
+            ]}
+            fileName="Jadwal_Mengajar"
+            title="Jadwal Mengajar"
+            entriesPerPage={filtered.length}
+            onEntriesPerPageChange={() => {}}
+            totalEntries={filtered.length}
+          />
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-gray-50 dark:bg-[#0d0d0d]">

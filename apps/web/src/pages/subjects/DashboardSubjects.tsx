@@ -5,6 +5,7 @@ import {
 import { Button, Input, Badge } from '@mandaapp/ui';
 import { apiClient } from '../../lib/api';
 import { toast } from 'sonner';
+import { DataTableToolbar } from '../../components/DataTableToolbar';
 
 interface Subject {
   id: string;
@@ -26,6 +27,8 @@ export const DashboardSubjects = () => {
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
+  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     fetchSubjects();
@@ -96,6 +99,9 @@ export const DashboardSubjects = () => {
     (s.kelompok && s.kelompok.toLowerCase().includes(search.toLowerCase()))
   );
 
+  const totalPages = Math.max(1, Math.ceil(filteredSubjects.length / entriesPerPage));
+  const paginatedSubjects = filteredSubjects.slice((page - 1) * entriesPerPage, page * entriesPerPage);
+
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -125,6 +131,25 @@ export const DashboardSubjects = () => {
             />
           </div>
         </div>
+
+        {/* DataTable Toolbar */}
+        <div className="px-4 pt-2">
+          <DataTableToolbar
+            data={filteredSubjects}
+            columns={[
+              { header: 'Kode', key: 'kode' },
+              { header: 'Nama Mata Pelajaran', key: 'nama' },
+              { header: 'Singkatan', key: 'shortName', transform: (v) => v || '-' },
+              { header: 'Kelompok', key: 'kelompok', transform: (v) => v || '-' },
+              { header: 'Status', key: 'isActive', transform: (v) => v ? 'Aktif' : 'Nonaktif' },
+            ]}
+            fileName="Master_Mapel"
+            title="Master Mata Pelajaran"
+            entriesPerPage={entriesPerPage}
+            onEntriesPerPageChange={(n) => { setEntriesPerPage(n); setPage(1); }}
+            totalEntries={filteredSubjects.length}
+          />
+        </div>
         
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
@@ -148,7 +173,7 @@ export const DashboardSubjects = () => {
                   <td colSpan={6} className="px-4 py-8 text-center text-gray-500">Tidak ada mata pelajaran ditemukan.</td>
                 </tr>
               ) : (
-                filteredSubjects.map(subject => (
+                paginatedSubjects.map(subject => (
                   <tr key={subject.id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02]">
                     <td className="px-4 py-3 font-medium text-primary">{subject.kode}</td>
                     <td className="px-4 py-3">

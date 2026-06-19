@@ -11,6 +11,7 @@ import {
   UserPlus, Search, Download, Eye, Edit2, ChevronLeft, ChevronRight,
   CheckCircle2, Clock, ArrowUpRight, Loader2, X, RefreshCw, Trash2, AlertTriangle
 } from 'lucide-react';
+import { DataTableToolbar } from '../components/DataTableToolbar';
 
 // ─── Types ───
 interface AcademicYear {
@@ -323,27 +324,42 @@ export const DashboardNIS = () => {
           {/* ─── TAB: All Records ─── */}
           {activeTab === 'records' && (
             <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-[#222] overflow-hidden">
-              <div className="px-3 py-2.5 border-b border-gray-100 dark:border-[#222] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-                <h3 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary">Bank Data NIS</h3>
-                <div className="flex items-center gap-2">
-                  <select value={yearFilter} onChange={e => setYearFilter(e.target.value)}
-                    className="bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-md px-2 py-1.5 text-xs outline-none">
-                    <option value="">Semua Tahun Ajaran</option>
-                    {academicYears.map(y => (
-                      <option key={y.id} value={y.kodeTahun}>{y.tahunAjaran}</option>
-                    ))}
-                  </select>
-                  <div className="relative">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                      placeholder="Cari NIS atau nama..."
-                      className="pl-8 pr-2 py-1.5 text-xs bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-md outline-none focus:ring-2 focus:ring-primary/30 w-40" />
+              <div className="px-3 py-2.5 border-b border-gray-100 dark:border-[#222] flex flex-col gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-text-primary dark:text-text-darkPrimary">Bank Data NIS</h3>
+                  <div className="flex items-center gap-2">
+                    <select value={yearFilter} onChange={e => setYearFilter(e.target.value)}
+                      className="bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-md px-2 py-1.5 text-xs outline-none">
+                      <option value="">Semua Tahun Ajaran</option>
+                      {academicYears.map(y => (
+                        <option key={y.id} value={y.kodeTahun}>{y.tahunAjaran}</option>
+                      ))}
+                    </select>
+                    <div className="relative">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                        placeholder="Cari NIS atau nama..."
+                        className="pl-8 pr-2 py-1.5 text-xs bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-md outline-none focus:ring-2 focus:ring-primary/30 w-40" />
+                    </div>
+                    <a href={`${API_BASE_URL}/nis/export?search=${searchQuery}&yearCode=${yearFilter}`}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
+                      <Download size={12} /> Ekspor Excel
+                    </a>
                   </div>
-                  <a href={`${API_BASE_URL}/nis/export?search=${searchQuery}&yearCode=${yearFilter}`}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
-                    <Download size={12} /> Ekspor Excel
-                  </a>
                 </div>
+                <DataTableToolbar
+                  data={records}
+                  columns={[
+                    { header: 'NIS', key: 'nis', transform: (v) => v || '-' },
+                    { header: 'Nama Lengkap', key: 'fullName', transform: (v) => v || '-' },
+                    { header: 'NISN', key: 'nisn', transform: (v) => v || '-' },
+                  ]}
+                  fileName="Bank_Data_NIS"
+                  title="Bank Data NIS"
+                  entriesPerPage={10}
+                  onEntriesPerPageChange={() => {}}
+                  totalEntries={recordsTotal}
+                />
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left">

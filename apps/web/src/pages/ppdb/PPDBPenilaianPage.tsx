@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Loader2, Save, Filter, ClipboardCheck, ShieldCheck, Lock } from 'lucide-react';
 import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
 import { useAuth } from '../../contexts/AuthContext';
+import { DataTableToolbar } from '../../components/DataTableToolbar';
 
 export const PPDBPenilaianPage = () => {
   const { user } = useAuth();
@@ -262,6 +263,22 @@ export const PPDBPenilaianPage = () => {
       )}
 
       <div className="bg-white dark:bg-background-dark border border-border-light dark:border-border-dark rounded-xl shadow-sm overflow-hidden">
+        <div className="px-4 pt-3">
+          <DataTableToolbar
+            data={pendaftar}
+            columns={[
+              { header: 'Nama Peserta', key: 'namaLengkap', transform: (v) => v || '-' },
+              { header: 'No Pendaftaran', key: 'noPendaftaran', transform: (v) => v || '-' },
+              ...(isAdminView ? [{ header: 'Nilai Rapor', key: 'raportRataRata' as string, transform: (v: any) => String(v || '0') }] : []),
+              ...tests.map((t: any) => ({ header: t.namaTes, key: 'nilaiTes' as string, transform: (v: any) => String(v?.[t.id] || '0') })),
+            ]}
+            fileName="Penilaian_PPDB"
+            title="Penilaian PPDB"
+            entriesPerPage={pendaftar.length}
+            onEntriesPerPageChange={() => {}}
+            totalEntries={pendaftar.length}
+          />
+        </div>
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-sm">
             <thead>

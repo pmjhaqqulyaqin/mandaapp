@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../../../lib/api';
 import { Users, BookOpen, Clock, TrendingUp, ArrowRight, AlertTriangle, CheckCircle2, AlertCircle } from 'lucide-react';
+import { DataTableToolbar } from '../../../components/DataTableToolbar';
 
 interface Props {
   academicYearId: string;
@@ -111,6 +112,22 @@ export const KBMDashboardTab = ({ academicYearId, semester, semesterLabel, onNav
       {/* JTM Table */}
       <div>
         <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3">Rekap JTM Guru — {semesterLabel || 'Semester'}</h3>
+        <DataTableToolbar
+          data={jtmSummary}
+          columns={[
+            { header: 'Nama Guru', key: 'name' },
+            { header: 'NIP', key: 'nip', transform: (v) => v || '-' },
+            { header: 'Jam Mengajar', key: 'jamMengajar', transform: (v) => String(v || 0) },
+            { header: 'Setara Tugas', key: 'setaraTugas', transform: (v) => String(v || 0) },
+            { header: 'Total JTM', key: 'totalJtm', transform: (v) => String(v || 0) },
+            { header: 'Status', key: 'status', transform: (v) => v === 'overload' ? 'Overload' : v === 'tinggi' ? 'Tinggi' : 'Normal' },
+          ]}
+          fileName="Rekap_JTM_Guru"
+          title="Rekap JTM Guru"
+          entriesPerPage={jtmSummary.length}
+          onEntriesPerPageChange={() => {}}
+          totalEntries={jtmSummary.length}
+        />
         <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-[#222]">
           <table className="w-full text-[12px]">
             <thead>
