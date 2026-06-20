@@ -172,7 +172,10 @@ export const BatchPrintPage = () => {
           box-shadow: 0 10px 25px rgba(0,0,0,0.1);
           padding: 20px;
           box-sizing: border-box;
-          text-align: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
         }
 
         .page-label {
@@ -234,15 +237,18 @@ export const BatchPrintPage = () => {
 
           /* Single Page bounds mapping */
           .single-print-page {
-            width: 100% !important;
-            height: auto !important;
+            width: 210mm !important;
+            height: 297mm !important;
             margin: 0 !important;
             padding: 0 !important;
             box-shadow: none !important;
             border: none !important;
             page-break-after: always !important;
             break-after: page !important;
-            text-align: center !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
           }
           .single-print-page:last-child {
              page-break-after: auto !important;
