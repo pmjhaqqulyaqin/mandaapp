@@ -1100,7 +1100,7 @@ export const DashboardLayout = () => {
       </aside>
       
       <main className="flex-1 flex flex-col min-w-0 w-full overflow-hidden print:overflow-visible print:block">
-        <header className="h-14 md:h-12 border-b border-border-light dark:border-border-dark bg-white/90 dark:bg-background-dark/90 backdrop-blur-md md:bg-white md:dark:bg-background-dark flex items-center justify-between px-4 sm:px-5 shrink-0 z-50 print:hidden relative md:sticky top-0">
+        <header className="h-14 md:h-12 border-b border-border-light dark:border-border-dark bg-white dark:bg-background-dark flex items-center justify-between px-4 sm:px-5 shrink-0 z-50 print:hidden relative md:sticky top-0">
           <div className="flex items-center gap-3">
             <div className="md:hidden flex items-center gap-2.5 min-w-0">
               {logoUrl ? (
@@ -1267,7 +1267,7 @@ export const DashboardLayout = () => {
       </nav>
 
       <div 
-        className={`md:hidden fixed inset-x-0 bottom-16 top-14 z-40 bg-gray-50/98 dark:bg-[#050505]/98 backdrop-blur-xl transform transition-all duration-300 ease-out flex flex-col overflow-hidden ${
+        className={`md:hidden fixed inset-x-0 bottom-16 top-14 z-40 bg-gray-50 dark:bg-[#050505] transform transition-all duration-300 ease-out flex flex-col overflow-hidden ${
           activeBottomSheet ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
         }`}
       >
