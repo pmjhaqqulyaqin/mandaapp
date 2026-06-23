@@ -8,6 +8,8 @@ export const useSettings = () => {
   const queryAll = useQuery({
     queryKey: ['settings'],
     queryFn: settingsService.getAll,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   const updateMutation = useMutation({
@@ -50,5 +52,5 @@ export const useSiteSettings = () => {
     }
   };
 
-  return { get, getRelatedWebsites, isLoading: queryAll.isLoading };
+  return { get, getRelatedWebsites, isLoading: queryAll.isLoading, isError: queryAll.isError };
 };

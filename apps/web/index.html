@@ -2,7 +2,8 @@
 <html lang="id">
   <head>
     <script>
-      if (window.location.hostname === 'www.mandualotim.sch.id') {
+      // Only redirect on actual web — skip in Capacitor native app
+      if (window.location.protocol === 'https:' && window.location.hostname === 'www.mandualotim.sch.id') {
         window.location.replace('https://mandualotim.sch.id' + window.location.pathname + window.location.search + window.location.hash);
       }
     </script>
@@ -56,20 +57,25 @@
 
     <!-- PWA: Early capture of install prompt + Service Worker -->
     <script>
+      // Detect if running inside Capacitor native app
+      var isNativeApp = window.location.protocol === 'capacitor:' || window.location.protocol === 'file:' || (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+
       // ⚡ CRITICAL: Capture beforeinstallprompt BEFORE React loads.
       // This event can fire before React mounts, so we store it globally.
       window.__pwaInstallEvent = null;
       window.__pwaInstallCallbacks = [];
-      window.addEventListener('beforeinstallprompt', function(e) {
-        e.preventDefault();
-        window.__pwaInstallEvent = e;
-        console.log('[PWA] beforeinstallprompt captured early');
-        // Notify any React listeners that are already registered
-        window.__pwaInstallCallbacks.forEach(function(cb) { cb(e); });
-      });
+      if (!isNativeApp) {
+        window.addEventListener('beforeinstallprompt', function(e) {
+          e.preventDefault();
+          window.__pwaInstallEvent = e;
+          console.log('[PWA] beforeinstallprompt captured early');
+          // Notify any React listeners that are already registered
+          window.__pwaInstallCallbacks.forEach(function(cb) { cb(e); });
+        });
+      }
 
-      // Service Worker Registration — Smart Update Strategy
-      if ('serviceWorker' in navigator) {
+      // Service Worker Registration — only on web, NOT in native app
+      if ('serviceWorker' in navigator && !isNativeApp) {
         window.addEventListener('load', function() {
           navigator.serviceWorker.register('/sw.js')
             .then(function(reg) {

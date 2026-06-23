@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter, Routes, Route } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 
 // Core contexts and components that shouldn't be lazy loaded
 import { AuthProvider } from './contexts/AuthContext';
@@ -80,6 +81,10 @@ const PageSpinner = () => (
 
 function App() {
   useFavicon();
+
+  // Capacitor native app needs MemoryRouter (no web server for history API routing)
+  // Web uses BrowserRouter as normal
+  const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
 
   return (
     <ErrorBoundary>

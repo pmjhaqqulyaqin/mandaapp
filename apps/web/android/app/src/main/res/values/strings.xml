@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MAN 2 LOTIM</string>
+    <string name="title_activity_main">MAN 2 LOTIM</string>
+    <string name="package_name">id.sch.mandualotim.app</string>
+    <string name="custom_url_scheme">id.sch.mandualotim.app</string>
+</resources>
