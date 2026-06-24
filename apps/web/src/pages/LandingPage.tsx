@@ -35,6 +35,7 @@ export const LandingPage = () => {
     || window.matchMedia('(display-mode: standalone)').matches 
     || (window.navigator as any).standalone === true;
   const shouldRedirect = isStandalone && !isLoading && isAuthenticated && user;
+  const willRedirect = isStandalone && (isLoading || (isAuthenticated && user));
 
   useEffect(() => {
     if (shouldRedirect && user) {
@@ -43,34 +44,18 @@ export const LandingPage = () => {
     }
   }, [shouldRedirect, user, navigate]);
 
-  // While redirect is pending, show a clean branded spinner (not the landing page)
-  if (isStandalone && (isLoading || (isAuthenticated && user))) {
-    return (
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        minHeight: '100vh', background: '#f9fafb',
-        fontFamily: "'Inter', system-ui, sans-serif",
-      }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: '50%',
-          border: '3px solid #e5e7eb', borderTopColor: '#16a34a',
-          animation: 'spin 0.7s linear infinite',
-        }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
-
-  // Use lightweight summary endpoint (~5KB instead of 7.3MB)
+  // ━━ DATA HOOKS — must be called before any early return (React Rules of Hooks) ━━
+  // Disable fetching when we're about to redirect (native/PWA auto-login)
   const { data: newsSummary = [] } = useQuery({
     queryKey: ['news', 'summary'],
     queryFn: () => newsService.getSummary(6),
+    enabled: !willRedirect,
   });
 
-  // Use limited gallery query (~80KB instead of 774KB)
   const { data: galleryData = [] } = useQuery({
     queryKey: ['gallery', 'landing'],
     queryFn: () => apiClient<any[]>('/gallery?limit=6'),
+    enabled: !willRedirect,
   });
 
   // News summary already comes pre-processed from the API
@@ -89,6 +74,24 @@ export const LandingPage = () => {
     description: g.description || '',
     category: 'General',
   }));
+
+  // While redirect is pending, show a clean branded spinner (not the landing page)
+  if (willRedirect) {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        minHeight: '100vh', background: '#f9fafb',
+        fontFamily: "'Inter', system-ui, sans-serif",
+      }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: '50%',
+          border: '3px solid #e5e7eb', borderTopColor: '#16a34a',
+          animation: 'spin 0.7s linear infinite',
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   // Build address with district for contact section
   const fullAddress = [get('address'), get('district_city')].filter(Boolean).join(', ') || undefined;
