@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter, MemoryRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 
 // Core contexts and components that shouldn't be lazy loaded
@@ -12,6 +12,22 @@ import { FloatingActionButton } from '@mandaapp/ui/src/components/FloatingAction
 import { ScrollToTopButton } from '@mandaapp/ui/src/components/ScrollToTopButton';
 import { Toaster } from 'sonner';
 import { PwaInstallPrompt } from './components/PwaInstallPrompt';
+
+/**
+ * Only render FAB on public-facing pages (landing, news, gallery, ppdb, etc.)
+ * Hide it on dashboard, login, portal, select-role, and print pages.
+ */
+function ConditionalFAB() {
+  const location = useLocation();
+  const path = location.pathname;
+
+  // Non-public paths where FAB should NOT appear
+  const hiddenPrefixes = ['/dashboard', '/login', '/select-role', '/portal-ortu'];
+  const shouldHide = hiddenPrefixes.some(prefix => path.startsWith(prefix));
+
+  if (shouldHide) return null;
+  return <FloatingActionButton />;
+}
 
 // Lazy loading all pages
 const LandingPage = React.lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
@@ -222,7 +238,7 @@ function App() {
             </Route>
           </Routes>
         </Suspense>
-        <FloatingActionButton />
+        <ConditionalFAB />
         <ScrollToTopButton />
         <Toaster richColors position="top-center" toastOptions={{ className: 'text-sm', style: { maxWidth: '92vw' } }} />
         <PwaInstallPrompt />

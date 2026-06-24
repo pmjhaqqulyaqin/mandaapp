@@ -20,6 +20,7 @@ import { API_BASE_URL } from '../lib/api';
 import { SEO } from '../components/SEO';
 import { PPDBPopupModal } from './ppdb/components/PPDBPopupModal';
 import { useAuth } from '../contexts/AuthContext';
+import { Capacitor } from '@capacitor/core';
 
 const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
 
@@ -28,8 +29,10 @@ export const LandingPage = () => {
   const { get } = useSiteSettings();
   const { isAuthenticated, user, isLoading } = useAuth();
 
-  // ━━ AUTO-REDIRECT for logged-in users in PWA/standalone mode ━━
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+  // ━━ AUTO-REDIRECT for logged-in users in PWA/standalone/native mode ━━
+  const isNative = Capacitor.isNativePlatform();
+  const isStandalone = isNative
+    || window.matchMedia('(display-mode: standalone)').matches 
     || (window.navigator as any).standalone === true;
   const shouldRedirect = isStandalone && !isLoading && isAuthenticated && user;
 
