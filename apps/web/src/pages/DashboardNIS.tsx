@@ -448,7 +448,7 @@ export const DashboardNIS = () => {
                           <Upload size={24} className="mx-auto mb-2 text-gray-400" />
                           <p className="font-semibold text-xs text-text-primary dark:text-text-darkPrimary">Unggah Data Siswa</p>
                           <p className="text-[10px] text-text-secondary mt-0.5">Seret dan lepas file .CSV atau .XLSX di sini</p>
-                          <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileUpload} />
+                          <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" className="hidden" onChange={handleFileUpload} />
                           <Button className="mt-3 text-xs px-3 py-1.5 h-auto" onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}>Pilih File</Button>
                         </div>
                         <div className="flex items-center justify-center gap-1.5 text-xs">

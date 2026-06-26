@@ -306,7 +306,9 @@ const PendaftarTab = ({ stats, configId }: { stats: any; configId: string }) => 
       
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'DataPendaftar');
-      XLSX.writeFile(wb, `Data_Pendaftar_PMB_${new Date().getTime()}.xlsx`);
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      import('@/lib/mobileUtils').then(m => m.downloadOrShareBlob(blob, `Data_Pendaftar_PMB_${new Date().getTime()}.xlsx`));
       toast.success('Berhasil mengekspor data');
     } catch (err) {
       toast.error('Gagal mengekspor data');
@@ -725,7 +727,9 @@ const SeleksiTab = ({ stats }: { stats: any }) => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'HasilRanking');
     const namaJalur = currentJalurInfo ? currentJalurInfo.namaJalur.replace(/\s+/g, '_') : selectedJalur;
-    XLSX.writeFile(wb, `Hasil_Ranking_PMB_${namaJalur}.xlsx`);
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    import('@/lib/mobileUtils').then(m => m.downloadOrShareBlob(blob, `Hasil_Ranking_PMB_${namaJalur}.xlsx`));
     toast.success('Berhasil mengekspor peringkat ke Excel');
   };
 

@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter, MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 
@@ -10,7 +10,7 @@ import { MaintenanceGuard } from './components/MaintenanceGuard';
 import { useFavicon } from './hooks/useFavicon';
 import { FloatingActionButton } from '@mandaapp/ui/src/components/FloatingActionButton';
 import { ScrollToTopButton } from '@mandaapp/ui/src/components/ScrollToTopButton';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 import { PwaInstallPrompt } from './components/PwaInstallPrompt';
 
 /**
@@ -97,6 +97,21 @@ const PageSpinner = () => (
 
 function App() {
   useFavicon();
+
+  useEffect(() => {
+    // Di Capacitor (Android APK), matikan fitur print langsung
+    if (Capacitor.isNativePlatform()) {
+      const originalPrint = window.print;
+      window.print = function() {
+        toast.info('Fitur cetak langsung belum didukung di versi aplikasi ini. Silakan ekspor halaman ini sebagai PDF lalu cetak, atau gunakan browser Desktop.', {
+          duration: 6000,
+        });
+      };
+      return () => {
+        window.print = originalPrint;
+      };
+    }
+  }, []);
 
   // Capacitor native app needs MemoryRouter (no web server for history API routing)
   // Web uses BrowserRouter as normal

@@ -214,7 +214,9 @@ export const DashboardStudents = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Data Siswa');
     const filterLabel = [filterClass && 'kelas', searchQuery && 'search'].filter(Boolean).join('_');
-    XLSX.writeFile(wb, `Data_Siswa${filterLabel ? '_' + filterLabel : ''}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    import('@/lib/mobileUtils').then(m => m.downloadOrShareBlob(blob, `Data_Siswa${filterLabel ? '_' + filterLabel : ''}_${new Date().toISOString().split('T')[0]}.xlsx`));
   };
 
   const getClassLabel = (s: any) => {

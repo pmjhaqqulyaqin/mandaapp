@@ -148,10 +148,9 @@ export const DataTableToolbar = ({
     }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, title.slice(0, 31));
-    XLSX.writeFile(
-      wb,
-      `${fileName}_${new Date().toISOString().split('T')[0]}.xlsx`
-    );
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    import('@/lib/mobileUtils').then(m => m.downloadOrShareBlob(blob, `${title}_${new Date().toISOString().split('T')[0]}.xlsx`));
   }, [getExportData, fileName, title]);
 
   return (

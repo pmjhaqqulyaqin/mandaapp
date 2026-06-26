@@ -85,7 +85,9 @@ export const AlumniDirectory = () => {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Data Alumni');
-    XLSX.writeFile(wb, `Data_Alumni_${new Date().toISOString().split('T')[0]}.xlsx`);
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    import('@/lib/mobileUtils').then(m => m.downloadOrShareBlob(blob, `Data_Alumni_${new Date().toISOString().split('T')[0]}.xlsx`));
   };
 
   if (isLoading) {

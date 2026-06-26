@@ -186,7 +186,7 @@ export const InputGlobalTab = () => {
             <p className="text-xs text-gray-500 mt-1 max-w-[250px] mx-auto">Sistem membaca NISN + nama mapel sebagai kunci. Posisi kolom tidak masalah.</p>
           </div>
           <div className="w-full max-w-[250px] mt-2 space-y-3">
-            <input type="file" accept=".xlsx, .xls" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+            <input type="file" accept=".xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
               className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/20 dark:file:text-emerald-400 cursor-pointer" />
             <button onClick={handleUpload} disabled={isUploading || !selectedFile}
               className="w-full px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg shadow-sm transition-all flex items-center justify-center gap-2">

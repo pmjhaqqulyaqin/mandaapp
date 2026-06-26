@@ -107,7 +107,7 @@ export const JurnalSettingsTab = () => {
   const filtered = query.data?.filter((s: any) => !filterDay || s.dayOfWeek === filterDay) || [];
 
   const handleDownloadTemplate = () => {
-    window.open(`${API_BASE_URL}/jurnal/teaching-subjects/template`, '_blank');
+    import('@/lib/mobileUtils').then(m => m.downloadFileFromUrl(`${API_BASE_URL}/jurnal/teaching-subjects/template`, `Template_Mapel_Jurnal.xlsx`));
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,7 +146,7 @@ export const JurnalSettingsTab = () => {
           </button>
           <label className={`flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 active:scale-95 cursor-pointer transition-all ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
             <Upload size={14} /> {importing ? 'Mengimpor...' : 'Import Excel'}
-            <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} disabled={importing} />
+            <input ref={fileInputRef} type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" className="hidden" onChange={handleImport} disabled={importing} />
           </label>
           <button onClick={() => { resetForm(); setShowForm(true); }}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 active:scale-95">

@@ -144,7 +144,7 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
         </button>
         <label className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-[#333] hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600 cursor-pointer transition-colors">
           <Upload size={14} /> Upload Excel
-          <input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleUploadExcel} />
+          <input type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" className="hidden" onChange={handleUploadExcel} />
         </label>
         <button onClick={handleExport}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-[#333] bg-gray-900 dark:bg-white text-white dark:text-black hover:opacity-90 transition-colors">

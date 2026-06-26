@@ -131,7 +131,7 @@ export const ImportExcelModal: React.FC<Props> = ({ isOpen, onClose, apiClient, 
               <p className="font-semibold text-sm text-text-primary dark:text-text-darkPrimary">Seret & Lepas File Excel</p>
               <p className="text-xs text-text-secondary mt-1">atau klik untuk menelusuri dari perangkat Anda</p>
               <p className="text-[10px] text-text-secondary mt-2 uppercase tracking-wider">Maksimum Ukuran File: 10MB (.XLSX)</p>
-              <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+              <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" className="hidden" onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
             </div>
           ) : (
             <>

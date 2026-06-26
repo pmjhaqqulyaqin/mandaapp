@@ -65,7 +65,9 @@ export const DaftarSiswaMutasi = () => {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Daftar Siswa Mutasi');
-    XLSX.writeFile(wb, `Siswa_Mutasi_${new Date().toISOString().split('T')[0]}.xlsx`);
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    import('@/lib/mobileUtils').then(m => m.downloadOrShareBlob(blob, `Siswa_Mutasi_${new Date().toISOString().split('T')[0]}.xlsx`));
   };
 
   const getStatusBadge = (status: string) => {

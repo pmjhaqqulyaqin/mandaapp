@@ -162,7 +162,9 @@ export const AttendanceRecapTab = () => {
     const filename = mode === 'monthly' 
       ? `Rekap_Presensi_${selectedYear}_${selectedMonth}.xlsx`
       : `Rekap_Presensi_${startDate}_${endDate}.xlsx`;
-    XLSX.writeFile(wb, filename);
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    import('@/lib/mobileUtils').then(m => m.downloadOrShareBlob(blob, filename));
   };
 
   // Quick range presets

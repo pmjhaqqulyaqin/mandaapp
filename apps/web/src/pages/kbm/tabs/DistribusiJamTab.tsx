@@ -147,11 +147,11 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
   };
 
   const handleExport = () => {
-    window.open(`/api/kbm/distribusi/export?academicYearId=${academicYearId}&semester=${semester}`, '_blank');
+    import('@/lib/mobileUtils').then(m => m.downloadFileFromUrl(`/api/kbm/distribusi/export?academicYearId=${academicYearId}&semester=${semester}`, `DistribusiJam.xlsx`));
   };
 
   const handleDownloadTemplate = () => {
-    window.open(`/api/kbm/distribusi/template?academicYearId=${academicYearId}&semester=${semester}`, '_blank');
+    import('@/lib/mobileUtils').then(m => m.downloadFileFromUrl(`/api/kbm/distribusi/template?academicYearId=${academicYearId}&semester=${semester}`, `Template_DistribusiJam.xlsx`));
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -236,7 +236,7 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
         <button onClick={handleDownloadTemplate} className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold rounded-lg border border-gray-200 dark:border-[#333] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] active:scale-95 transition-all">
           <FileSpreadsheet size={14} /> Template
         </button>
-        <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
+        <input ref={fileInputRef} type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" className="hidden" onChange={handleImport} />
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={importing}

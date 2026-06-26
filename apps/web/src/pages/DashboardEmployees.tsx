@@ -223,7 +223,9 @@ export const DashboardEmployees = () => {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Data Pegawai");
-    XLSX.writeFile(wb, "Data_Pegawai.xlsx");
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    import('@/lib/mobileUtils').then(m => m.downloadOrShareBlob(blob, "Data_Pegawai.xlsx"));
   };
 
   return (

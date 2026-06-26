@@ -366,11 +366,11 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   };
 
   const handleExport = (groupBy: string) => {
-    window.open(`/api/kbm/jadwal/export?academicYearId=${academicYearId}&semester=${semester}&groupBy=${groupBy}`, '_blank');
+    import('@/lib/mobileUtils').then(m => m.downloadFileFromUrl(`/api/kbm/jadwal/export?academicYearId=${academicYearId}&semester=${semester}&groupBy=${groupBy}`, `Jadwal_${groupBy}.xlsx`));
   };
 
   const handleExportGrid = () => {
-    window.open(`/api/kbm/jadwal/export-grid?academicYearId=${academicYearId}&semester=${semester}`, '_blank');
+    import('@/lib/mobileUtils').then(m => m.downloadFileFromUrl(`/api/kbm/jadwal/export-grid?academicYearId=${academicYearId}&semester=${semester}`, `Jadwal_Grid.xlsx`));
   };
 
   if (!academicYearId) {
