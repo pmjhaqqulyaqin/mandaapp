@@ -1,6 +1,6 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { apiClient } from '../../../lib/api';
-import { Plus, Trash2, Pencil, Database, Copy, Check, X, Clock, Hash, Settings2, CalendarOff, HelpCircle, Save, Download, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Pencil, Database, Copy, Check, X, Clock, Hash, Settings2, CalendarOff, HelpCircle, Save, Download, Loader2, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -545,7 +545,18 @@ const SchedulerSection = ({ academicYearId, semester }: { academicYearId: string
   const [guruList, setGuruList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activePanel, setActivePanel] = useState<'availability' | 'config'>('availability');
+  const [activePanel, setActivePanel] = useState<'availability' | 'pembatasan' | 'config'>('availability');
+
+  // Pembatasan guru state
+  const [selGuruPembatasan, setSelGuruPembatasan] = useState('');
+  const [pembatasanForm, setPembatasanForm] = useState({
+    maxGapsPerWeek: null as number | null,
+    maxTeachingDays: null as number | null,
+    minLessonsPerDay: null as number | null,
+    maxLessonsPerDay: null as number | null,
+    maxConsecutiveLessons: null as number | null,
+  });
+  const [pembatasanSaving, setPembatasanSaving] = useState(false);
 
   // Availability grid state
   const [selGuru, setSelGuru] = useState('');
@@ -688,6 +699,35 @@ const SchedulerSection = ({ academicYearId, semester }: { academicYearId: string
     finally { setMigrating(false); }
   };
 
+  const loadGuruPembatasan = async (guruId: string) => {
+    if (!guruId) return;
+    try {
+      const guru = await apiClient<any>(`/employees/${guruId}`);
+      setPembatasanForm({
+        maxGapsPerWeek: guru.maxGapsPerWeek ?? null,
+        maxTeachingDays: guru.maxTeachingDays ?? null,
+        minLessonsPerDay: guru.minLessonsPerDay ?? null,
+        maxLessonsPerDay: guru.maxLessonsPerDay ?? null,
+        maxConsecutiveLessons: guru.maxConsecutiveLessons ?? null,
+      });
+    } catch {
+      setPembatasanForm({ maxGapsPerWeek: null, maxTeachingDays: null, minLessonsPerDay: null, maxLessonsPerDay: null, maxConsecutiveLessons: null });
+    }
+  };
+
+  const handleSavePembatasan = async () => {
+    if (!selGuruPembatasan) return;
+    setPembatasanSaving(true);
+    try {
+      await apiClient(`/employees/${selGuruPembatasan}`, {
+        method: 'PUT',
+        data: pembatasanForm,
+      });
+      toast.success('Pembatasan guru disimpan');
+    } catch (err: any) { toast.error(err.message || 'Gagal menyimpan'); }
+    finally { setPembatasanSaving(false); }
+  };
+
   const handleSaveConfig = async () => {
     if (!config) return;
     setSaving(true);
@@ -737,6 +777,16 @@ const SchedulerSection = ({ academicYearId, semester }: { academicYearId: string
           }`}
         >
           <Settings2 size={12} /> Konfigurasi
+        </button>
+        <button
+          onClick={() => setActivePanel('pembatasan')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-all ${
+            activePanel === 'pembatasan'
+              ? 'bg-amber-500 text-white shadow-sm'
+              : 'bg-gray-100 dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#222]'
+          }`}
+        >
+          <ShieldAlert size={12} /> Pembatasan Guru
         </button>
       </div>
 
@@ -884,6 +934,128 @@ const SchedulerSection = ({ academicYearId, semester }: { academicYearId: string
               <p className="text-gray-400 dark:text-gray-500 ml-auto">
                 Klik sel untuk mengatur. Klik header hari/jam untuk toggle seluruh baris/kolom.
               </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══ Panel: Pembatasan Guru ═══ */}
+      {activePanel === 'pembatasan' && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+              <ShieldAlert size={14} className="text-violet-500" /> Pembatasan Guru
+            </h3>
+            <p className="text-[10px] text-gray-400 mt-0.5">
+              Atur constraint penjadwalan per guru — batas jam jeda, hari mengajar, jumlah pelajaran, dan pelajaran berurutan.
+            </p>
+          </div>
+
+          {/* Guru selector */}
+          <select
+            value={selGuruPembatasan}
+            onChange={e => { setSelGuruPembatasan(e.target.value); if (e.target.value) loadGuruPembatasan(e.target.value); }}
+            className="min-w-[220px] px-3 py-2 text-[12px] rounded-xl border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500"
+          >
+            <option value="">Pilih Guru...</option>
+            {guruList.map((g: any) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
+
+          {selGuruPembatasan ? (
+            <div className="bg-white dark:bg-[#0a0a0a] rounded-xl border border-gray-200 dark:border-[#222] p-4 md:p-5 space-y-5">
+              {/* Max Gaps Per Week */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Batas Jumlah Jam Jeda per Minggu</label>
+                <p className="text-[10px] text-gray-400">Misalnya, guru memiliki 3 jam jeda di jadwal jika ia memiliki pelajaran ke-2 dan kemudian ke-6.</p>
+                <input
+                  type="number"
+                  value={pembatasanForm.maxGapsPerWeek ?? ''}
+                  onChange={e => setPembatasanForm(f => ({ ...f, maxGapsPerWeek: e.target.value ? Number(e.target.value) : null }))}
+                  placeholder="Kosongkan = tidak dibatasi"
+                  className="w-full max-w-[200px] px-3 py-2 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-violet-500/30"
+                />
+              </div>
+
+              <div className="border-t border-gray-100 dark:border-[#222]" />
+
+              {/* Max Teaching Days */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Batas Hari Mengajar</label>
+                <p className="text-[10px] text-gray-400">Catatan: Anda dapat membatasi jumlah hari mengajar. Generator akan menyesuaikannya.</p>
+                <select
+                  value={pembatasanForm.maxTeachingDays ?? ''}
+                  onChange={e => setPembatasanForm(f => ({ ...f, maxTeachingDays: e.target.value ? Number(e.target.value) : null }))}
+                  className="w-full max-w-[200px] px-3 py-2 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-violet-500/30"
+                >
+                  <option value="">Tidak dibatasi</option>
+                  {[1, 2, 3, 4, 5, 6].map(d => (
+                    <option key={d} value={d}>{d} hari</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="border-t border-gray-100 dark:border-[#222]" />
+
+              {/* Min/Max Lessons Per Day */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Min / Maks Jumlah Pelajaran per Hari</label>
+                <p className="text-[10px] text-gray-400">Number of lessons per day must be in this interval.</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 max-w-[120px] space-y-1">
+                    <span className="text-[10px] text-gray-400 font-medium">Min</span>
+                    <input
+                      type="number"
+                      value={pembatasanForm.minLessonsPerDay ?? ''}
+                      onChange={e => setPembatasanForm(f => ({ ...f, minLessonsPerDay: e.target.value ? Number(e.target.value) : null }))}
+                      placeholder="0"
+                      className="w-full px-3 py-2 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-violet-500/30"
+                    />
+                  </div>
+                  <span className="text-gray-400 text-sm mt-5">—</span>
+                  <div className="flex-1 max-w-[120px] space-y-1">
+                    <span className="text-[10px] text-gray-400 font-medium">Maks</span>
+                    <input
+                      type="number"
+                      value={pembatasanForm.maxLessonsPerDay ?? ''}
+                      onChange={e => setPembatasanForm(f => ({ ...f, maxLessonsPerDay: e.target.value ? Number(e.target.value) : null }))}
+                      placeholder={String(maxJam)}
+                      className="w-full px-3 py-2 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-violet-500/30"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-100 dark:border-[#222]" />
+
+              {/* Max Consecutive Lessons */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Jumlah Batas Pelajaran Berurutan</label>
+                <p className="text-[10px] text-gray-400">Parameter ini membatasi jumlah JP guru mengajar secara berurutan.</p>
+                <input
+                  type="number"
+                  value={pembatasanForm.maxConsecutiveLessons ?? ''}
+                  onChange={e => setPembatasanForm(f => ({ ...f, maxConsecutiveLessons: e.target.value ? Number(e.target.value) : null }))}
+                  placeholder="Kosongkan = tidak dibatasi"
+                  className="w-full max-w-[200px] px-3 py-2 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-violet-500/30"
+                />
+              </div>
+
+              <div className="border-t border-gray-100 dark:border-[#222] pt-3">
+                <button
+                  onClick={handleSavePembatasan}
+                  disabled={pembatasanSaving}
+                  className="flex items-center gap-2 px-4 py-2 text-[12px] font-semibold rounded-lg bg-violet-500 text-white hover:bg-violet-600 active:scale-95 disabled:opacity-50 transition-all"
+                >
+                  {pembatasanSaving ? <><Loader2 size={14} className="animate-spin" /> Menyimpan...</> : <><Save size={14} /> Simpan Pembatasan</>}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="py-10 text-center text-gray-400 dark:text-gray-500 text-[12px]">
+              <ShieldAlert size={28} className="mx-auto mb-2 opacity-30" />
+              <p>Pilih guru untuk mengatur pembatasan</p>
             </div>
           )}
         </div>

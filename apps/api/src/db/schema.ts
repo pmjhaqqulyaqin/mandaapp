@@ -69,6 +69,12 @@ export const employees = pgTable("employees", {
   photoUrl: varchar("photo_url", { length: 255 }), // Ditambahkan untuk menyimpan URL foto
   task: varchar("task", { length: 100 }), // Tugas / Guru Mapel apa
   kodeGuru: varchar("kode_guru", { length: 10 }), // Kode singkat untuk jadwal Excel (1, 2, 3...)
+  // Pembatasan (scheduling constraints)
+  maxGapsPerWeek: integer("max_gaps_per_week"),         // Batas jumlah jam jeda per minggu
+  maxTeachingDays: integer("max_teaching_days"),        // Batas hari mengajar
+  minLessonsPerDay: integer("min_lessons_per_day"),     // Min pelajaran per hari
+  maxLessonsPerDay: integer("max_lessons_per_day"),     // Max pelajaran per hari
+  maxConsecutiveLessons: integer("max_consecutive_lessons"), // Max pelajaran berurutan
   status: varchar("status", { length: 20 }).default("active"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
