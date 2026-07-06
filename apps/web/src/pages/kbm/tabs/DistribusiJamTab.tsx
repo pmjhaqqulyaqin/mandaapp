@@ -47,8 +47,20 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
       apiClient<any[]>('/classes'),
       apiClient<any[]>('/kbm/subjects?active=true'),
       apiClient<any[]>('/employees?type=Guru'),
-    ]).then(([distribusi, cls, subj, guru]) => {
-      setClassList((cls as any[]).sort((a: any, b: any) => a.name.localeCompare(b.name)));
+      apiClient<any[]>('/kbm/ruangan').catch(() => []),
+    ]).then(([distribusi, cls, subj, guru, ruangan]) => {
+      // Sort classes by ruangan order: match class name to ruangan nama (e.g. "X-1" matches "Ruang X-1" or "X-1")
+      const ruanganOrder = new Map<string, number>();
+      (ruangan as any[]).forEach((r: any, idx: number) => {
+        const nama = (r.nama || '').replace(/^Ruang\s+/i, '').trim();
+        ruanganOrder.set(nama.toLowerCase(), idx);
+        ruanganOrder.set((r.nama || '').toLowerCase(), idx);
+      });
+      setClassList((cls as any[]).sort((a: any, b: any) => {
+        const posA = ruanganOrder.get(a.name.toLowerCase()) ?? ruanganOrder.get(a.name.replace(/^Ruang\s+/i, '').trim().toLowerCase()) ?? 99999;
+        const posB = ruanganOrder.get(b.name.toLowerCase()) ?? ruanganOrder.get(b.name.replace(/^Ruang\s+/i, '').trim().toLowerCase()) ?? 99999;
+        return posA - posB || a.name.localeCompare(b.name);
+      }));
       setSubjects(subj as any[]);
       setGuruList((guru as any[]).sort((a: any, b: any) => a.name.localeCompare(b.name)));
 
