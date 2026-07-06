@@ -690,8 +690,22 @@ export class KbmService {
       }
     }
 
-    const distribusi = await db.select({ guruId: distribusiJam.guruId, kelasId: distribusiJam.kelasId, subjectId: distribusiJam.subjectId, jumlahJam: distribusiJam.jumlahJam })
+    const activeRuangan = await db.select().from(ruangan).where(eq(ruangan.isActive, true));
+    const ruanganOrder = new Set(activeRuangan.map(r => r.nama.toLowerCase()));
+    const allClasses = await db.select().from(classes);
+    const validClassIds = new Set(
+      allClasses.filter(c => {
+        const name = c.name.toLowerCase();
+        const nameWithoutRuang = c.name.replace(/^Ruang\s+/i, '').trim().toLowerCase();
+        return ruanganOrder.has(name) || ruanganOrder.has(nameWithoutRuang);
+      }).map(c => c.id)
+    );
+
+    const distribusiRaw = await db.select({ guruId: distribusiJam.guruId, kelasId: distribusiJam.kelasId, subjectId: distribusiJam.subjectId, jumlahJam: distribusiJam.jumlahJam })
       .from(distribusiJam).where(and(eq(distribusiJam.academicYearId, academicYearId), eq(distribusiJam.semester, semester)));
+    
+    const distribusi = distribusiRaw.filter(d => validClassIds.has(d.kelasId));
+
     if (distribusi.length === 0) return { generated: 0, failed: 0, total: 0, blocks: 0, failedBlocks: 0, message: 'Tidak ada distribusi jam', report: null };
     emit({ phase: 'init', progress: 5, detail: `${distribusi.length} distribusi dimuat` });
 
