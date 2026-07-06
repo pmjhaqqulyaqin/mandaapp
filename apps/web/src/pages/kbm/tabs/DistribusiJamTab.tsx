@@ -100,7 +100,11 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
           }
           const row = rowMap.get(key)!;
           row.cells[d.kelasId] = { id: d.id, jumlahJam: d.jumlahJam };
-          row.totalJam += d.jumlahJam;
+        }
+
+        // Recalculate totalJam based strictly on valid cells to avoid any duplicates or old hidden values
+        for (const row of rowMap.values()) {
+          row.totalJam = Object.values(row.cells).reduce((sum, c) => sum + (c as any).jumlahJam, 0);
         }
 
         // Preserve local rows (from GuruDetailDialog) that don't have DB records yet
