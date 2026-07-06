@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { apiClient } from '../../../lib/api';
-import { Download, FileSpreadsheet, RefreshCw, Zap, Trash2, AlertTriangle, Loader2, ChevronDown, CheckCircle2, XCircle, MapPin, GripVertical, ArrowLeftRight, Clock, Maximize2, Minimize2 } from 'lucide-react';
+import { Download, FileSpreadsheet, RefreshCw, Zap, Trash2, AlertTriangle, Loader2, ChevronDown, CheckCircle2, XCircle, MapPin, GripVertical, ArrowLeftRight, Clock, Maximize2, Minimize2, Bot, ShieldCheck, Coffee, Target, FlaskConical } from 'lucide-react';
 import { toast } from 'sonner';
 import { DndContext, DragOverlay, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core';
 
@@ -125,6 +125,15 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const fullscreenRef = useRef<HTMLDivElement>(null);
+
+  // Generate options state
+  const [genOptions, setGenOptions] = useState({
+    difficulty: 'normal' as 'normal' | 'besar' | 'sangat_besar',
+    constraintMode: 'relax' as 'konsep' | 'relax' | 'istirahat' | 'tepat',
+    scope: 'all' as 'all',
+  });
+  const [testResult, setTestResult] = useState<{ ok: boolean; issues: string[] } | null>(null);
+  const [testing, setTesting] = useState(false);
 
   // Pure CSS overlay fullscreen — no Fullscreen API = zero flicker, zero exit issues
   const toggleFullscreen = useCallback(() => {
@@ -292,7 +301,14 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
     setGenerateReport(null);
     setGenerateProgress({ phase: 'init', progress: 0, detail: 'Memulai...' });
 
-    const es = new EventSource(`/api/kbm/jadwal/generate-stream?academicYearId=${academicYearId}&semester=${semester}`);
+    const params = new URLSearchParams({
+      academicYearId,
+      semester,
+      difficulty: genOptions.difficulty,
+      constraintMode: genOptions.constraintMode,
+      scope: genOptions.scope,
+    });
+    const es = new EventSource(`/api/kbm/jadwal/generate-stream?${params.toString()}`);
 
     es.addEventListener('progress', (e) => {
       try { setGenerateProgress(JSON.parse(e.data)); } catch {}
@@ -827,13 +843,17 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
 
       {/* Confirm Generate Modal */}
       {showConfirmGenerate && (
-        <ConfirmModal
-          title="Generate Jadwal Otomatis"
-          message="Ini akan menghapus jadwal lama dan membuat jadwal baru dari data distribusi jam. Lanjutkan?"
-          confirmText="Generate"
-          onConfirm={handleGenerate}
+        <GenerateDialog
+          options={genOptions}
+          setOptions={setGenOptions}
+          testResult={testResult}
+          setTestResult={setTestResult}
+          testing={testing}
+          setTesting={setTesting}
+          academicYearId={academicYearId}
+          semester={semester}
+          onGenerate={handleGenerate}
           onCancel={() => setShowConfirmGenerate(false)}
-          color="amber"
         />
       )}
 
@@ -1031,6 +1051,188 @@ const ConfirmModal = ({ title, message, confirmText, onConfirm, onCancel, color 
           </button>
           <button onClick={onConfirm} className={`px-4 py-2 text-[12px] font-semibold rounded-xl text-white active:scale-95 transition-all ${colorClasses[color] || colorClasses.amber}`}>
             {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ═══ Generate Dialog (Timetable Generation Settings) ═══════════════════════════
+
+const DIFFICULTY_OPTIONS = [
+  { key: 'normal', label: 'Normal', icon: Bot, desc: 'Cepat, cocok untuk jadwal sederhana', color: 'blue' },
+  { key: 'besar', label: 'Besar', icon: Bot, desc: 'Lebih banyak iterasi, hasil lebih optimal', color: 'amber' },
+  { key: 'sangat_besar', label: 'Sangat Besar', icon: Bot, desc: 'Maksimal iterasi, jadwal kompleks', color: 'red' },
+] as const;
+
+const CONSTRAINT_MODES = [
+  { key: 'konsep', label: 'Konsep', icon: FlaskConical, desc: 'Draft cepat — beberapa constraint diabaikan', color: 'text-emerald-500' },
+  { key: 'relax', label: 'Relax by Priority', icon: ShieldCheck, desc: 'Constraint tinggi dipatuhi, rendah dilonggarkan', color: 'text-blue-500' },
+  { key: 'istirahat', label: 'Memungkinkan Istirahat', icon: Coffee, desc: 'Izinkan jeda antar pelajaran', color: 'text-amber-500' },
+  { key: 'tepat', label: 'Tepat', icon: Target, desc: 'Semua constraint dipatuhi ketat', color: 'text-red-500' },
+] as const;
+
+interface GenerateDialogProps {
+  options: { difficulty: string; constraintMode: string; scope: string };
+  setOptions: (o: any) => void;
+  testResult: { ok: boolean; issues: string[] } | null;
+  setTestResult: (r: any) => void;
+  testing: boolean;
+  setTesting: (b: boolean) => void;
+  academicYearId: string;
+  semester: string;
+  onGenerate: () => void;
+  onCancel: () => void;
+}
+
+const GenerateDialog = ({ options, setOptions, testResult, setTestResult, testing, setTesting, academicYearId, semester, onGenerate, onCancel }: GenerateDialogProps) => {
+  const handleTestData = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const issues: string[] = [];
+      // Test 1: Check distribusi exists
+      const distribusi = await apiClient<any[]>(`/kbm/distribusi?academicYearId=${academicYearId}&semester=${semester}`);
+      if (!distribusi || distribusi.length === 0) issues.push('Tidak ada distribusi jam untuk semester ini');
+      else {
+        const totalJP = distribusi.reduce((a: number, d: any) => a + (d.jumlahJam || 0), 0);
+        if (totalJP === 0) issues.push('Total JP distribusi = 0');
+      }
+      // Test 2: Check subjects
+      const subjects = await apiClient<any[]>('/kbm/subjects');
+      if (!subjects || subjects.length === 0) issues.push('Belum ada mata pelajaran');
+      // Test 3: Check classes
+      const classes = await apiClient<any[]>('/classes');
+      if (!classes || classes.length === 0) issues.push('Belum ada data kelas');
+      // Test 4: Check guru
+      const guru = await apiClient<any[]>('/employees?type=Guru');
+      if (!guru || guru.length === 0) issues.push('Belum ada data guru');
+
+      setTestResult({ ok: issues.length === 0, issues });
+      if (issues.length === 0) toast.success('Data siap untuk generate!');
+      else toast.error(`Ditemukan ${issues.length} masalah`);
+    } catch (err: any) {
+      setTestResult({ ok: false, issues: [err.message || 'Gagal validasi data'] });
+    }
+    finally { setTesting(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onCancel}>
+      <div className="bg-white dark:bg-[#161616] rounded-2xl w-full max-w-lg p-5 shadow-2xl space-y-5" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
+              <Zap size={20} className="text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Generate Jadwal</h3>
+              <p className="text-[10px] text-gray-400">Konfigurasi sebelum memulai</p>
+            </div>
+          </div>
+          <button
+            onClick={handleTestData}
+            disabled={testing}
+            className="flex items-center gap-1.5 px-3 py-2 text-[11px] font-semibold rounded-lg border-2 border-dashed border-amber-300 dark:border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 active:scale-95 transition-all disabled:opacity-50"
+          >
+            {testing ? <Loader2 size={13} className="animate-spin" /> : <FlaskConical size={13} />}
+            Tes Data Jadwal
+          </button>
+        </div>
+
+        {/* Test Result */}
+        {testResult && (
+          <div className={`rounded-xl p-3 text-[11px] ${testResult.ok
+            ? 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30'
+            : 'bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30'
+          }`}>
+            <div className="flex items-center gap-2 font-bold mb-1">
+              {testResult.ok
+                ? <><CheckCircle2 size={14} className="text-emerald-500" /> <span className="text-emerald-700 dark:text-emerald-300">Data siap untuk generate</span></>
+                : <><XCircle size={14} className="text-red-500" /> <span className="text-red-700 dark:text-red-300">Ditemukan masalah</span></>
+              }
+            </div>
+            {testResult.issues.length > 0 && (
+              <ul className="space-y-0.5 text-red-600 dark:text-red-400">
+                {testResult.issues.map((issue, i) => <li key={i}>• {issue}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {/* Tingkat Kesulitan */}
+        <div className="space-y-2">
+          <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tingkat Kesulitan</label>
+          <div className="grid grid-cols-3 gap-2">
+            {DIFFICULTY_OPTIONS.map(opt => {
+              const active = options.difficulty === opt.key;
+              const borderColor = active
+                ? opt.color === 'blue' ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/15'
+                : opt.color === 'amber' ? 'border-amber-500 bg-amber-50 dark:bg-amber-500/15'
+                : 'border-red-500 bg-red-50 dark:bg-red-500/15'
+                : 'border-gray-200 dark:border-[#333] hover:border-gray-300';
+              const textColor = active
+                ? opt.color === 'blue' ? 'text-blue-700 dark:text-blue-300'
+                : opt.color === 'amber' ? 'text-amber-700 dark:text-amber-300'
+                : 'text-red-700 dark:text-red-300'
+                : 'text-gray-600 dark:text-gray-400';
+              return (
+                <button key={opt.key} onClick={() => setOptions({ ...options, difficulty: opt.key })}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${borderColor}`}>
+                  <opt.icon size={24} className={textColor} />
+                  <span className={`text-[11px] font-bold ${textColor}`}>{opt.label}</span>
+                  <span className="text-[8px] text-gray-400 text-center leading-tight">{opt.desc}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Mode Pembatasan */}
+        <div className="space-y-2">
+          <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Mode Pembatasan</label>
+          <div className="space-y-1.5">
+            {CONSTRAINT_MODES.map(mode => {
+              const active = options.constraintMode === mode.key;
+              return (
+                <button key={mode.key} onClick={() => setOptions({ ...options, constraintMode: mode.key })}
+                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl border-2 text-left transition-all ${
+                    active
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'
+                      : 'border-gray-200 dark:border-[#333] hover:border-gray-300 dark:hover:border-[#444]'
+                  }`}>
+                  <mode.icon size={18} className={mode.color} />
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-[12px] font-bold ${active ? 'text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'}`}>{mode.label}</div>
+                    <div className="text-[9px] text-gray-400">{mode.desc}</div>
+                  </div>
+                  {active && <CheckCircle2 size={16} className="text-blue-500 shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Warning */}
+        <div className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30">
+          <AlertTriangle size={14} className="text-amber-500 mt-0.5 shrink-0" />
+          <p className="text-[10px] text-amber-700 dark:text-amber-300">
+            Ini akan menghapus jadwal lama dan membuat jadwal baru dari data distribusi jam.
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-2 pt-1">
+          <button onClick={onCancel} className="px-4 py-2.5 text-[12px] font-semibold rounded-xl border border-gray-200 dark:border-[#333] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-all">
+            Batal
+          </button>
+          <button
+            onClick={onGenerate}
+            className="flex items-center gap-2 px-5 py-2.5 text-[12px] font-bold rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg active:scale-95 transition-all"
+          >
+            <Zap size={14} /> Mulai Generate
           </button>
         </div>
       </div>
