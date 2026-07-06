@@ -87,8 +87,15 @@ export const GuruDetailDialog = ({ guruId, guruName, academicYearId, semester, i
   const handleSave = async () => {
     setSaving(true);
     try {
-      // 1. Pass Subjects to parent
-      onSubjectsChange(Array.from(assignedSubjects));
+      // 1. Save Subjects to DB
+      const subjectIds = Array.from(assignedSubjects);
+      await apiClient('/kbm/distribusi/guru-subjects', {
+        method: 'POST',
+        data: { guruId, academicYearId, semester, subjectIds },
+      });
+
+      // Pass Subjects to parent for UI sync
+      onSubjectsChange(subjectIds);
 
       // 2. Save Availability
       const slots: { dayOfWeek: number; jamKe: number; status: string }[] = [];

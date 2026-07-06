@@ -78,6 +78,17 @@ export class KbmController {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
 
+  static async syncGuruSubjects(req: Request, res: Response) {
+    try {
+      const { guruId, academicYearId, semester, subjectIds } = req.body;
+      if (!guruId || !academicYearId || !semester || !Array.isArray(subjectIds)) {
+        return res.status(400).json({ error: "Data tidak lengkap" });
+      }
+      const result = await KbmService.syncGuruSubjects(guruId, academicYearId, semester, subjectIds);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
   static async bulkUpsertDistribusi(req: Request, res: Response) {
     try {
       const { records } = req.body;

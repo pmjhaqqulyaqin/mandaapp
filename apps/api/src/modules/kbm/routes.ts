@@ -18,6 +18,7 @@ router.post("/subjects/seed", requireStaff, KbmController.seedSubjects);
 // Distribusi Jam
 router.get("/distribusi", requireStaff, KbmController.getDistribusi);
 router.post("/distribusi/upsert", requireStaff, KbmController.upsertDistribusi);
+router.post("/distribusi/guru-subjects", requireStaff, KbmController.syncGuruSubjects);
 router.post("/distribusi/bulk", requireStaff, KbmController.bulkUpsertDistribusi);
 router.delete("/distribusi/:id", requireStaff, KbmController.deleteDistribusi);
 router.get("/distribusi/summary", requireStaff, KbmController.getJtmSummary);

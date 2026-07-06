@@ -5,7 +5,7 @@ import {
   kbmJadwal, teachingSubjects, guruUnavailability, scheduleConfig,
   jadwalVersion, guruSlotAvailability, schedulingRules,
 } from "../../db/schema";
-import { eq, and, sql, desc, asc, inArray } from "drizzle-orm";
+import { eq, and, sql, desc, asc, inArray, notInArray } from "drizzle-orm";
 
 const JTM_LIMIT = 40; // Default batas maksimal JTM per guru per semester
 
