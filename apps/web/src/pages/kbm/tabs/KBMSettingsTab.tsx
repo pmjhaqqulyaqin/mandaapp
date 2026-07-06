@@ -622,8 +622,7 @@ const SchedulerSection = ({ academicYearId, semester }: { academicYearId: string
   if (!academicYearId) return <p className="text-sm text-gray-400 py-6 text-center">Pilih Tahun Ajaran terlebih dahulu</p>;
   if (loading) return <div className="py-10 text-center"><div className="h-6 w-6 mx-auto animate-spin rounded-full border-3 border-amber-500 border-t-transparent" /></div>;
 
-  const days = [1, 2, 3, 4, 5, 6].map(d => ({ key: d, label: SDAY_NAMES[d], shortLabel: SDAY_SHORT[d] }));
-  const jams = Array.from({ length: maxJam }, (_, i) => i + 1);
+
 
   return (
     <div className="space-y-4">
