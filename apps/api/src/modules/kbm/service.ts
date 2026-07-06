@@ -353,8 +353,19 @@ export class KbmService {
   }
 
   static async deleteRuangan(id: string) {
-    const results = await db.delete(ruangan).where(eq(ruangan.id, id)).returning();
-    return results[0] || null;
+    try {
+      const results = await db.delete(ruangan).where(eq(ruangan.id, id)).returning();
+      return results[0] || null;
+    } catch (e: any) {
+      if (e.message?.includes("kbm_jadwal_ruangan_id_ruangan_id_fk") || e.message?.includes("violates foreign key constraint")) {
+        console.log("[KbmService] Auto-fixing ruangan foreign key constraint...");
+        await db.execute(sql`ALTER TABLE "kbm_jadwal" DROP CONSTRAINT IF EXISTS "kbm_jadwal_ruangan_id_ruangan_id_fk"`);
+        await db.execute(sql`ALTER TABLE "kbm_jadwal" ADD CONSTRAINT "kbm_jadwal_ruangan_id_ruangan_id_fk" FOREIGN KEY ("ruangan_id") REFERENCES "public"."ruangan"("id") ON DELETE set null ON UPDATE no action`);
+        const results = await db.delete(ruangan).where(eq(ruangan.id, id)).returning();
+        return results[0] || null;
+      }
+      throw e;
+    }
   }
 
   static async seedRuanganFromClasses() {

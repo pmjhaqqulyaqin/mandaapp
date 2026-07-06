@@ -406,7 +406,9 @@ const RuanganSection = () => {
       await apiClient(`/kbm/ruangan/${id}`, { method: 'DELETE' });
       load();
       toast.success('Dihapus');
-    } catch { toast.error('Gagal'); }
+    } catch (err: any) { 
+      toast.error(err?.response?.data?.error || err.message || 'Gagal menghapus ruangan'); 
+    }
   };
 
   const handleSeedFromClasses = async () => {
