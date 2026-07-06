@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { apiClient } from '../../../lib/api';
-import { Plus, Trash2, Pencil, Database, Copy, Check, X, Clock, Hash, Settings2, CalendarOff } from 'lucide-react';
+import { Plus, Trash2, Pencil, Database, Copy, Check, X, Clock, Hash, Settings2, CalendarOff, HelpCircle, Save, Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -748,7 +748,7 @@ const SchedulerSection = ({ academicYearId, semester }: { academicYearId: string
               <CalendarOff size={14} className="text-red-500" /> Waktu Kosong Guru
             </h3>
             <p className="text-[10px] text-gray-400 mt-0.5">
-              Atur ketersediaan guru per hari dan jam. Scheduler akan otomatis menghindari slot âŒ dan menghindari slot â“ sebisa mungkin.
+              Atur ketersediaan guru per hari dan jam. Scheduler akan otomatis menghindari slot yang tidak tersedia dan menghindari slot bersyarat sebisa mungkin.
             </p>
           </div>
 
@@ -773,17 +773,17 @@ const SchedulerSection = ({ academicYearId, semester }: { academicYearId: string
                   onClick={handleSetAll}
                   className="px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-emerald-200 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all"
                 >
-                  Set Semua âœ…
+                  <Check size={12} className="inline mr-1" /> Set Semua Tersedia
                 </button>
                 <button
                   onClick={handleSaveAvailability}
                   disabled={gridSaving || !gridDirty}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-amber-500 text-white hover:bg-amber-600 active:scale-95 disabled:opacity-40 transition-all"
                 >
-                  {gridSaving ? 'Menyimpan...' : 'ðŸ’¾ Simpan'}
+                  {gridSaving ? <><Loader2 size={12} className="animate-spin inline" /> Menyimpan...</> : <><Save size={12} className="inline" /> Simpan</>}
                 </button>
                 {gridDirty && (
-                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium animate-pulse">â— Belum disimpan</span>
+                  <span className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 font-medium animate-pulse"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Belum disimpan</span>
                 )}
               </>
             )}
@@ -795,7 +795,7 @@ const SchedulerSection = ({ academicYearId, semester }: { academicYearId: string
               disabled={migrating}
               className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold rounded-lg border border-gray-200 dark:border-[#333] text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] disabled:opacity-50 transition-all"
             >
-              {migrating ? 'â³ Migrasi...' : 'ðŸ“¥ Migrasi dari Hari Kosong'}
+              {migrating ? <><Loader2 size={12} className="animate-spin inline" /> Migrasi...</> : <><Download size={12} className="inline" /> Migrasi dari Hari Kosong</>}
             </button>
           </div>
 
@@ -834,10 +834,10 @@ const SchedulerSection = ({ academicYearId, semester }: { academicYearId: string
                         {jams.map(jam => {
                           const status = gridData.get(`${day.key}-${jam}`) || 'available';
                           const cfg = status === 'available'
-                            ? { icon: 'âœ…', bg: 'bg-emerald-50 dark:bg-emerald-500/15', border: 'border-emerald-200 dark:border-emerald-500/30', text: 'text-emerald-600 dark:text-emerald-400' }
+                            ? { icon: <Check size={16} strokeWidth={3} />, bg: 'bg-emerald-50 dark:bg-emerald-500/15', border: 'border-emerald-200 dark:border-emerald-500/30', text: 'text-emerald-600 dark:text-emerald-400' }
                             : status === 'conditional'
-                            ? { icon: 'â“', bg: 'bg-amber-50 dark:bg-amber-500/15', border: 'border-amber-200 dark:border-amber-500/30', text: 'text-amber-600 dark:text-amber-400' }
-                            : { icon: 'âŒ', bg: 'bg-red-50 dark:bg-red-500/15', border: 'border-red-200 dark:border-red-500/30', text: 'text-red-500 dark:text-red-400' };
+                            ? { icon: <HelpCircle size={16} strokeWidth={2.5} />, bg: 'bg-amber-50 dark:bg-amber-500/15', border: 'border-amber-200 dark:border-amber-500/30', text: 'text-amber-600 dark:text-amber-400' }
+                            : { icon: <X size={16} strokeWidth={3} />, bg: 'bg-red-50 dark:bg-red-500/15', border: 'border-red-200 dark:border-red-500/30', text: 'text-red-500 dark:text-red-400' };
                           return (
                             <td
                               key={jam}
@@ -868,21 +868,21 @@ const SchedulerSection = ({ academicYearId, semester }: { academicYearId: string
           {/* Legend */}
           {selGuru && !gridLoading && (
             <div className="flex flex-wrap items-center gap-4 text-[10px]">
-              <span className="text-gray-400">Bagian :</span>
+              <span className="text-gray-400">Keterangan :</span>
               <div className="flex items-center gap-1.5">
-                <span className="text-emerald-500">âœ…</span>
-                <span className="text-gray-500 dark:text-gray-400 font-medium">cocok</span>
+                <div className="flex items-center justify-center w-5 h-5 rounded border bg-emerald-50 dark:bg-emerald-500/15 border-emerald-200 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400"><Check size={12} strokeWidth={3} /></div>
+                <span className="text-gray-500 dark:text-gray-400 font-medium">Tersedia</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-amber-500">â“</span>
+                <div className="flex items-center justify-center w-5 h-5 rounded border bg-amber-50 dark:bg-amber-500/15 border-amber-200 dark:border-amber-500/30 text-amber-600 dark:text-amber-400"><HelpCircle size={12} strokeWidth={2.5} /></div>
                 <span className="text-gray-500 dark:text-gray-400 font-medium">Bersyarat</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-red-500">âŒ</span>
+                <div className="flex items-center justify-center w-5 h-5 rounded border bg-red-50 dark:bg-red-500/15 border-red-200 dark:border-red-500/30 text-red-500 dark:text-red-400"><X size={12} strokeWidth={3} /></div>
                 <span className="text-gray-500 dark:text-gray-400 font-medium">Tidak tersedia</span>
               </div>
               <p className="text-gray-400 dark:text-gray-500 ml-auto">
-                Gunakan klik untuk mengatur. Klik header hari/jam untuk toggle seluruh baris/kolom.
+                Klik sel untuk mengatur. Klik header hari/jam untuk toggle seluruh baris/kolom.
               </p>
             </div>
           )}
