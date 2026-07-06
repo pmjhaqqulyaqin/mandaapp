@@ -74,11 +74,15 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
       setSubjects(subj as any[]);
       setGuruList((guru as any[]).sort((a: any, b: any) => a.name.localeCompare(b.name)));
 
+      const validClassIds = new Set(filteredAndSortedClasses.map(c => c.id));
+
       // Build grid rows from distribusi data
       setRows(prev => {
         const rowMap = new Map<string, DistribusiRow>();
         for (const d of distribusi as any[]) {
           if (!d.subjectKode && !d.subjectNama) continue; // Skip ghost records with broken FK
+          if (!validClassIds.has(d.kelasId)) continue; // Skip old/deleted classes
+
           const key = `${d.guruId}::${d.subjectId}`;
           if (!rowMap.has(key)) {
             rowMap.set(key, {
