@@ -82,6 +82,7 @@ export class KbmService {
       guruName: employees.name,
       guruNip: employees.nip,
       guruGrade: employees.grade,
+      guruKodeGuru: employees.kodeGuru,
       kelasId: distribusiJam.kelasId,
       kelasName: classes.name,
       subjectId: distribusiJam.subjectId,
@@ -97,7 +98,7 @@ export class KbmService {
       eq(distribusiJam.academicYearId, academicYearId),
       eq(distribusiJam.semester, semester),
     ))
-    .orderBy(employees.name, masterSubjects.kode, classes.name);
+    .orderBy(sql`CAST(NULLIF(${employees.kodeGuru}, '') AS INTEGER) ASC NULLS LAST`, masterSubjects.kode, classes.name);
   }
 
   static async upsertDistribusi(data: {

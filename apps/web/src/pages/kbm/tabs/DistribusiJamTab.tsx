@@ -15,6 +15,7 @@ interface DistribusiRow {
   guruName: string;
   guruNip: string;
   guruGrade: string;
+  guruKodeGuru: string;
   subjectId: string;
   subjectKode: string;
   subjectNama: string;
@@ -61,6 +62,7 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
             guruName: d.guruName || '',
             guruNip: d.guruNip || '',
             guruGrade: d.guruGrade || '',
+            guruKodeGuru: d.guruKodeGuru || '',
             subjectId: d.subjectId,
             subjectKode: d.subjectKode || '',
             subjectNama: d.subjectNama || '',
@@ -73,9 +75,11 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
         row.totalJam += d.jumlahJam;
       }
 
-      setRows(Array.from(rowMap.values()).sort((a, b) =>
-        a.guruName.localeCompare(b.guruName) || a.subjectKode.localeCompare(b.subjectKode)
-      ));
+      setRows(Array.from(rowMap.values()).sort((a, b) => {
+        const kodeA = parseInt(a.guruKodeGuru) || 99999;
+        const kodeB = parseInt(b.guruKodeGuru) || 99999;
+        return kodeA - kodeB || a.guruName.localeCompare(b.guruName) || a.subjectKode.localeCompare(b.subjectKode);
+      }));
     }).catch(err => {
       toast.error('Gagal memuat data distribusi');
     }).finally(() => setLoading(false));
