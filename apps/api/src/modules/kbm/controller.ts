@@ -669,6 +669,46 @@ export class KbmController {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
 
+  // ═══ Guru Slot Availability (Per Hari × Jam) ════════════════
+
+  static async getGuruSlotAvailability(req: Request, res: Response) {
+    try {
+      const { guruId, academicYearId, semester } = req.query;
+      if (!guruId || !academicYearId || !semester) return res.status(400).json({ error: "guruId, academicYearId, semester diperlukan" });
+      const result = await KbmService.getGuruSlotAvailability(guruId as string, academicYearId as string, semester as string);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async bulkSetGuruSlotAvailability(req: Request, res: Response) {
+    try {
+      const { guruId, academicYearId, semester, slots } = req.body;
+      if (!guruId || !academicYearId || !semester || !Array.isArray(slots)) {
+        return res.status(400).json({ error: "Data tidak lengkap" });
+      }
+      const result = await KbmService.bulkSetGuruSlotAvailability(guruId, academicYearId, semester, slots);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async migrateSlotAvailability(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester } = req.body;
+      if (!academicYearId || !semester) return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      const result = await KbmService.migrateFromDayUnavailability(academicYearId, semester);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async setAllGuruSlotsAvailable(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester } = req.body;
+      if (!academicYearId || !semester) return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      const result = await KbmService.setAllGuruSlotsAvailable(academicYearId, semester);
+      res.json(result);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
   // ═══ Schedule Config ════════════════════════════════════════
 
   static async getScheduleConfig(req: Request, res: Response) {

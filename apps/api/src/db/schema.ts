@@ -1087,6 +1087,21 @@ export const guruUnavailability = pgTable("guru_unavailability", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// ═══ Guru Slot Availability (Per Hari × Jam) ═════════════════════════════════
+
+export const guruSlotAvailability = pgTable("guru_slot_availability", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  guruId: uuid("guru_id").references(() => employees.id, { onDelete: "cascade" }).notNull(),
+  academicYearId: uuid("academic_year_id").references(() => academicYears.id).notNull(),
+  semester: varchar("semester", { length: 10 }).notNull(),
+  dayOfWeek: integer("day_of_week").notNull(), // 1=Senin..6=Sabtu
+  jamKe: integer("jam_ke").notNull(), // 1, 2, 3, ...
+  status: varchar("status", { length: 20 }).notNull().default("available"), // 'available' | 'conditional' | 'unavailable'
+  reason: text("reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // ═══ Schedule Config (Konfigurasi Global Scheduler) ══════════════════════════
 
 export const scheduleConfig = pgTable("schedule_config", {

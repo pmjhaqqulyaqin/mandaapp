@@ -55,6 +55,12 @@ router.post("/guru-unavailability", requireStaff, KbmController.createGuruUnavai
 router.delete("/guru-unavailability/:id", requireStaff, KbmController.deleteGuruUnavailability);
 router.post("/guru-unavailability/bulk", requireStaff, KbmController.bulkSetGuruUnavailability);
 
+// Guru Slot Availability (Per Hari × Jam)
+router.get("/guru-slot-availability", requireStaff, KbmController.getGuruSlotAvailability);
+router.post("/guru-slot-availability/bulk", requireStaff, KbmController.bulkSetGuruSlotAvailability);
+router.post("/guru-slot-availability/migrate", requireStaff, KbmController.migrateSlotAvailability);
+router.post("/guru-slot-availability/set-all", requireStaff, KbmController.setAllGuruSlotsAvailable);
+
 // Schedule Config
 router.get("/schedule-config", requireStaff, KbmController.getScheduleConfig);
 router.post("/schedule-config", requireStaff, KbmController.upsertScheduleConfig);
