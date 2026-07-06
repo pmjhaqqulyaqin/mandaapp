@@ -13,4 +13,9 @@ router.post("/", requireAdmin, SubjectController.create);
 router.put("/:id", requireAdmin, SubjectController.update);
 router.delete("/:id", requireAdmin, SubjectController.delete);
 
+// Slot Availability (Waktu Kosong Mapel)
+router.get("/:id/slot-availability", requireStaff, SubjectController.getSlotAvailability);
+router.post("/:id/slot-availability/bulk", requireStaff, SubjectController.bulkSetSlotAvailability);
+router.post("/:id/slot-availability/set-all", requireStaff, SubjectController.setAllAvailable);
+
 export default router;

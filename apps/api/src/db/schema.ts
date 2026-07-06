@@ -1177,7 +1177,25 @@ export const masterSubjects = pgTable("master_subjects", {
   allowSingleSplit: boolean("allow_single_split").default(false),
   isHeavy: boolean("is_heavy").default(false),
   customSplitRule: jsonb("custom_split_rule"),
+  // Pembatasan (scheduling constraints)
+  doubleLessonsOverBreaks: boolean("double_lessons_over_breaks").default(false),
+  canBeOverLunch: boolean("can_be_over_lunch").default(false),
+  oncePerDay: boolean("once_per_day").default(false),
+  isTemporary: boolean("is_temporary").default(false),
   isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ═══ Subject Slot Availability (Waktu Kosong Mapel per Hari × Jam) ════════════
+
+export const subjectSlotAvailability = pgTable("subject_slot_availability", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  subjectId: uuid("subject_id").references(() => masterSubjects.id, { onDelete: "cascade" }).notNull(),
+  dayOfWeek: integer("day_of_week").notNull(), // 1=Senin..6=Sabtu
+  jamKe: integer("jam_ke").notNull(), // 1, 2, 3, ...
+  status: varchar("status", { length: 20 }).notNull().default("available"), // 'available' | 'conditional' | 'unavailable'
+  reason: text("reason"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

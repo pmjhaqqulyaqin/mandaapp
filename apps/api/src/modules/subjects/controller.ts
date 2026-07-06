@@ -50,4 +50,34 @@ export class SubjectController {
       res.status(500).json({ error: error.message });
     }
   }
+
+  // ═══ Slot Availability (Waktu Kosong Mapel) ═══════════════════════════════
+
+  static async getSlotAvailability(req: Request, res: Response) {
+    try {
+      const result = await SubjectService.getSlotAvailability(req.params.id);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async bulkSetSlotAvailability(req: Request, res: Response) {
+    try {
+      const { slots } = req.body;
+      const result = await SubjectService.bulkSetSlotAvailability(req.params.id, slots || []);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async setAllAvailable(req: Request, res: Response) {
+    try {
+      const result = await SubjectService.setAllAvailable(req.params.id);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
 }
