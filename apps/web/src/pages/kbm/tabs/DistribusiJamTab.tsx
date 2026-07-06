@@ -49,18 +49,27 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
       apiClient<any[]>('/employees?type=Guru'),
       apiClient<any[]>('/kbm/ruangan').catch(() => []),
     ]).then(([distribusi, cls, subj, guru, ruangan]) => {
-      // Sort classes by ruangan order: match class name to ruangan nama (e.g. "X-1" matches "Ruang X-1" or "X-1")
+      // Filter and sort classes by ruangan order: match class name to ruangan nama
       const ruanganOrder = new Map<string, number>();
       (ruangan as any[]).forEach((r: any, idx: number) => {
         const nama = (r.nama || '').replace(/^Ruang\s+/i, '').trim();
         ruanganOrder.set(nama.toLowerCase(), idx);
         ruanganOrder.set((r.nama || '').toLowerCase(), idx);
       });
-      setClassList((cls as any[]).sort((a: any, b: any) => {
-        const posA = ruanganOrder.get(a.name.toLowerCase()) ?? ruanganOrder.get(a.name.replace(/^Ruang\s+/i, '').trim().toLowerCase()) ?? 99999;
-        const posB = ruanganOrder.get(b.name.toLowerCase()) ?? ruanganOrder.get(b.name.replace(/^Ruang\s+/i, '').trim().toLowerCase()) ?? 99999;
-        return posA - posB || a.name.localeCompare(b.name);
-      }));
+      
+      const filteredAndSortedClasses = (cls as any[])
+        .filter((c: any) => {
+          const name = c.name.toLowerCase();
+          const nameWithoutRuang = c.name.replace(/^Ruang\s+/i, '').trim().toLowerCase();
+          return ruanganOrder.has(name) || ruanganOrder.has(nameWithoutRuang);
+        })
+        .sort((a: any, b: any) => {
+          const posA = ruanganOrder.get(a.name.toLowerCase()) ?? ruanganOrder.get(a.name.replace(/^Ruang\s+/i, '').trim().toLowerCase()) ?? 99999;
+          const posB = ruanganOrder.get(b.name.toLowerCase()) ?? ruanganOrder.get(b.name.replace(/^Ruang\s+/i, '').trim().toLowerCase()) ?? 99999;
+          return posA - posB || a.name.localeCompare(b.name);
+        });
+
+      setClassList(filteredAndSortedClasses);
       setSubjects(subj as any[]);
       setGuruList((guru as any[]).sort((a: any, b: any) => a.name.localeCompare(b.name)));
 
