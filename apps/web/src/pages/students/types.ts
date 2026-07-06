@@ -21,6 +21,12 @@ export interface ClassItem {
   homeroomTeacherId?: string;
   homeroomTeacherName?: string;
   studentCount?: number;
+  // Pembatasan (scheduling constraints)
+  lunchBreakStart?: number;
+  lunchBreakEnd?: number;
+  minLessonsPerDay?: number;
+  maxLessonsPerDay?: number;
+  numTeachingDays?: number;
 }
 
 export interface NISStudent {

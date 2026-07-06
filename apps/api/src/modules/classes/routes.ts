@@ -13,4 +13,9 @@ router.post("/", requireStaff, ClassController.create);
 router.put("/:id", requireStaff, ClassController.update);
 router.delete("/:id", requireStaff, ClassController.delete);
 
+// Slot Availability (Waktu Kosong Kelas)
+router.get("/:id/slot-availability", requireStaff, ClassController.getSlotAvailability);
+router.post("/:id/slot-availability/bulk", requireStaff, ClassController.bulkSetSlotAvailability);
+router.post("/:id/slot-availability/set-all", requireStaff, ClassController.setAllAvailable);
+
 export default router;

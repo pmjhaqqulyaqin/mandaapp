@@ -35,8 +35,7 @@ export class ClassController {
 
   static async update(req: Request, res: Response) {
     try {
-      const { name, homeroomTeacherId } = req.body;
-      const classData = await ClassService.updateClass(req.params.id, { name, homeroomTeacherId });
+      const classData = await ClassService.updateClass(req.params.id, req.body);
       if (!classData) return res.status(404).json({ error: "Class not found" });
       res.json(classData);
     } catch (error: any) {
@@ -49,6 +48,36 @@ export class ClassController {
       const classData = await ClassService.deleteClass(req.params.id);
       if (!classData) return res.status(404).json({ error: "Class not found" });
       res.json({ message: "Class deleted successfully", classData });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // ═══ Slot Availability (Waktu Kosong Kelas) ═══════════════════════════════
+
+  static async getSlotAvailability(req: Request, res: Response) {
+    try {
+      const result = await ClassService.getSlotAvailability(req.params.id);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async bulkSetSlotAvailability(req: Request, res: Response) {
+    try {
+      const { slots } = req.body;
+      const result = await ClassService.bulkSetSlotAvailability(req.params.id, slots || []);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async setAllAvailable(req: Request, res: Response) {
+    try {
+      const result = await ClassService.setAllAvailable(req.params.id);
+      res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

@@ -78,8 +78,27 @@ export const classes = pgTable("classes", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 50 }).notNull(),
   homeroomTeacherId: uuid("homeroom_teacher_id").references(() => employees.id),
+  // Pembatasan (scheduling constraints)
+  lunchBreakStart: integer("lunch_break_start"),    // jam ke- mulai istirahat siang
+  lunchBreakEnd: integer("lunch_break_end"),        // jam ke- selesai istirahat siang
+  minLessonsPerDay: integer("min_lessons_per_day"), // min jumlah pelajaran per hari
+  maxLessonsPerDay: integer("max_lessons_per_day"), // max jumlah pelajaran per hari
+  numTeachingDays: integer("num_teaching_days"),    // jumlah hari mengajar per minggu
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// ═══ Class Slot Availability (Waktu Kosong Kelas per Hari × Jam) ══════════════
+
+export const classSlotAvailability = pgTable("class_slot_availability", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  classId: uuid("class_id").references(() => classes.id, { onDelete: "cascade" }).notNull(),
+  dayOfWeek: integer("day_of_week").notNull(), // 1=Senin..6=Sabtu
+  jamKe: integer("jam_ke").notNull(), // 1, 2, 3, ...
+  status: varchar("status", { length: 20 }).notNull().default("available"), // 'available' | 'conditional' | 'unavailable'
+  reason: text("reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const studentProfiles = pgTable("student_profiles", {
