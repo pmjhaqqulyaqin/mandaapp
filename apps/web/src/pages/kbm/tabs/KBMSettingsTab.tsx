@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../../../lib/api';
-import { Plus, Trash2, Pencil, Database, Copy, Check, X, Clock, Hash, Settings2, CalendarOff, HelpCircle, Save, Download, Loader2, ShieldAlert } from 'lucide-react';
+import { Plus, Trash2, Pencil, Database, Copy, Check, X, Clock, Hash, Settings2, CalendarOff, HelpCircle, Save, Download, Loader2, ShieldAlert, ListChecks, ToggleLeft, ToggleRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -545,7 +545,7 @@ const SchedulerSection = ({ academicYearId, semester }: { academicYearId: string
   const [guruList, setGuruList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activePanel, setActivePanel] = useState<'availability' | 'pembatasan' | 'config'>('availability');
+  const [activePanel, setActivePanel] = useState<'availability' | 'pembatasan' | 'aturan' | 'config'>('availability');
 
   // Pembatasan guru state
   const [selGuruPembatasan, setSelGuruPembatasan] = useState('');
@@ -557,6 +557,24 @@ const SchedulerSection = ({ academicYearId, semester }: { academicYearId: string
     maxConsecutiveLessons: null as number | null,
   });
   const [pembatasanSaving, setPembatasanSaving] = useState(false);
+
+  // Aturan Jadwal state
+  const [rules, setRules] = useState<any[]>([]);
+  const [rulesLoading, setRulesLoading] = useState(false);
+  const [showRuleForm, setShowRuleForm] = useState(false);
+  const [editingRule, setEditingRule] = useState<any>(null);
+  const [ruleForm, setRuleForm] = useState({
+    ruleType: 'not_same_day',
+    subjectIds: [] as string[],
+    classScope: 'all',
+    classIds: [] as string[],
+    params: {} as any,
+    priority: 'normal',
+    notes: '',
+  });
+  const [ruleSaving, setRuleSaving] = useState(false);
+  const [subjectList, setSubjectList] = useState<any[]>([]);
+  const [classList, setClassList] = useState<any[]>([]);
 
   // Availability grid state
   const [selGuru, setSelGuru] = useState('');
@@ -787,6 +805,16 @@ const SchedulerSection = ({ academicYearId, semester }: { academicYearId: string
           }`}
         >
           <ShieldAlert size={12} /> Pembatasan Guru
+        </button>
+        <button
+          onClick={() => setActivePanel('aturan')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-all ${
+            activePanel === 'aturan'
+              ? 'bg-amber-500 text-white shadow-sm'
+              : 'bg-gray-100 dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#222]'
+          }`}
+        >
+          <ListChecks size={12} /> Aturan Jadwal
         </button>
       </div>
 
@@ -1103,8 +1131,298 @@ const SchedulerSection = ({ academicYearId, semester }: { academicYearId: string
           </div>
         </div>
       )}
+
+      {/* ═══ Panel: Aturan Jadwal ═══ */}
+      {activePanel === 'aturan' && <AturanJadwalPanel
+        rules={rules}
+        setRules={setRules}
+        rulesLoading={rulesLoading}
+        setRulesLoading={setRulesLoading}
+        showRuleForm={showRuleForm}
+        setShowRuleForm={setShowRuleForm}
+        editingRule={editingRule}
+        setEditingRule={setEditingRule}
+        ruleForm={ruleForm}
+        setRuleForm={setRuleForm}
+        ruleSaving={ruleSaving}
+        setRuleSaving={setRuleSaving}
+        subjectList={subjectList}
+        setSubjectList={setSubjectList}
+        classList={classList}
+        setClassList={setClassList}
+      />}
     </div>
   );
 };
 
+
+// ═══ Aturan Jadwal Panel (Scheduling Rules) ═══════════════════════════════════
+
+const RULE_TYPES: Record<string, { label: string; description: string; needsTwo: boolean }> = {
+  'not_same_day': { label: 'Tidak boleh di hari yang sama', description: 'Dua mapel tidak boleh dijadwalkan pada hari yang sama', needsTwo: true },
+  'must_consecutive': { label: 'Harus berurutan', description: 'Dua mapel harus dijadwalkan berurutan (back-to-back)', needsTwo: true },
+  'must_first_or_last': { label: 'Harus di jam pertama atau terakhir', description: 'Mapel harus dijadwalkan di jam pertama atau terakhir', needsTwo: false },
+  'same_period_daily': { label: 'Jam yang sama setiap hari', description: 'Mapel harus selalu dijadwalkan di jam (period) yang sama setiap hari', needsTwo: false },
+};
+
+interface AturanJadwalPanelProps {
+  rules: any[]; setRules: (r: any[]) => void;
+  rulesLoading: boolean; setRulesLoading: (b: boolean) => void;
+  showRuleForm: boolean; setShowRuleForm: (b: boolean) => void;
+  editingRule: any; setEditingRule: (r: any) => void;
+  ruleForm: any; setRuleForm: (f: any) => void;
+  ruleSaving: boolean; setRuleSaving: (b: boolean) => void;
+  subjectList: any[]; setSubjectList: (s: any[]) => void;
+  classList: any[]; setClassList: (c: any[]) => void;
+}
+
+const AturanJadwalPanel = ({
+  rules, setRules, rulesLoading, setRulesLoading,
+  showRuleForm, setShowRuleForm, editingRule, setEditingRule,
+  ruleForm, setRuleForm, ruleSaving, setRuleSaving,
+  subjectList, setSubjectList, classList, setClassList,
+}: AturanJadwalPanelProps) => {
+  const loadRules = () => {
+    setRulesLoading(true);
+    apiClient<any[]>('/kbm/scheduling-rules').then(setRules).catch(() => setRules([])).finally(() => setRulesLoading(false));
+  };
+
+  useEffect(() => {
+    loadRules();
+    Promise.all([
+      apiClient<any[]>('/kbm/subjects').catch(() => []),
+      apiClient<any[]>('/classes').catch(() => []),
+    ]).then(([s, c]) => {
+      setSubjectList(Array.isArray(s) ? s : []);
+      setClassList(Array.isArray(c) ? c : []);
+    });
+  }, []);
+
+  const resetForm = () => {
+    setRuleForm({ ruleType: 'not_same_day', subjectIds: [], classScope: 'all', classIds: [], params: {}, priority: 'normal', notes: '' });
+    setEditingRule(null);
+    setShowRuleForm(false);
+  };
+
+  const openEdit = (rule: any) => {
+    setRuleForm({
+      ruleType: rule.ruleType, subjectIds: rule.subjectIds || [],
+      classScope: rule.classScope || 'all', classIds: rule.classIds || [],
+      params: rule.params || {}, priority: rule.priority || 'normal', notes: rule.notes || '',
+    });
+    setEditingRule(rule);
+    setShowRuleForm(true);
+  };
+
+  const handleSaveRule = async () => {
+    if (ruleForm.subjectIds.length === 0) return toast.error('Pilih minimal 1 mata pelajaran');
+    if (RULE_TYPES[ruleForm.ruleType]?.needsTwo && ruleForm.subjectIds.length < 2) return toast.error('Aturan ini memerlukan minimal 2 mata pelajaran');
+    setRuleSaving(true);
+    try {
+      const payload = { ...ruleForm, classIds: ruleForm.classScope === 'all' ? null : ruleForm.classIds };
+      if (editingRule) {
+        await apiClient(`/kbm/scheduling-rules/${editingRule.id}`, { method: 'PUT', data: payload });
+        toast.success('Aturan diperbarui');
+      } else {
+        await apiClient('/kbm/scheduling-rules', { method: 'POST', data: payload });
+        toast.success('Aturan ditambahkan');
+      }
+      resetForm(); loadRules();
+    } catch (err: any) { toast.error(err.message || 'Gagal menyimpan'); }
+    finally { setRuleSaving(false); }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Hapus aturan ini?')) return;
+    try { await apiClient(`/kbm/scheduling-rules/${id}`, { method: 'DELETE' }); toast.success('Aturan dihapus'); loadRules(); }
+    catch (err: any) { toast.error(err.message); }
+  };
+
+  const handleToggle = async (id: string) => {
+    try { await apiClient(`/kbm/scheduling-rules/${id}/toggle`, { method: 'PUT' }); loadRules(); }
+    catch (err: any) { toast.error(err.message); }
+  };
+
+  const toggleSubject = (sid: string) => setRuleForm((f: any) => ({ ...f, subjectIds: f.subjectIds.includes(sid) ? f.subjectIds.filter((x: string) => x !== sid) : [...f.subjectIds, sid] }));
+  const toggleClass = (cid: string) => setRuleForm((f: any) => ({ ...f, classIds: f.classIds.includes(cid) ? f.classIds.filter((x: string) => x !== cid) : [...f.classIds, cid] }));
+  const getSubjectName = (id: string) => subjectList.find((s: any) => s.id === id)?.name || id.slice(0, 8);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+            <ListChecks size={14} className="text-blue-500" /> Aturan Jadwal
+          </h3>
+          <p className="text-[10px] text-gray-400 mt-0.5">Atur relasi antar mata pelajaran — kapan boleh/tidak boleh dijadwalkan bersamaan.</p>
+        </div>
+        <button onClick={() => { resetForm(); setShowRuleForm(true); }}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-blue-500 text-white hover:bg-blue-600 active:scale-95 transition-all">
+          <Plus size={12} /> Tambah Aturan
+        </button>
+      </div>
+
+      {/* Form */}
+      {showRuleForm && (
+        <div className="bg-white dark:bg-[#0a0a0a] rounded-xl border border-blue-200 dark:border-blue-500/30 p-4 md:p-5 space-y-4 shadow-sm">
+          <h4 className="text-[12px] font-bold text-gray-700 dark:text-gray-200">{editingRule ? 'Edit Aturan' : 'Tambah Aturan Baru'}</h4>
+
+          {/* Rule Type */}
+          <div className="space-y-2">
+            <label className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Tipe Aturan</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {Object.entries(RULE_TYPES).map(([key, cfg]) => (
+                <button key={key} onClick={() => setRuleForm((f: any) => ({ ...f, ruleType: key }))}
+                  className={`text-left p-2.5 rounded-lg border transition-all text-[11px] ${ruleForm.ruleType === key
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300'
+                    : 'border-gray-200 dark:border-[#333] hover:border-gray-300 text-gray-600 dark:text-gray-400'}`}>
+                  <div className="font-semibold">{cfg.label}</div>
+                  <div className="text-[9px] text-gray-400 mt-0.5">{cfg.description}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Subject Selection */}
+          <div className="space-y-2">
+            <label className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+              Pilih Mata Pelajaran {RULE_TYPES[ruleForm.ruleType]?.needsTwo ? '(minimal 2)' : '(minimal 1)'}
+            </label>
+            <div className="max-h-[160px] overflow-y-auto rounded-lg border border-gray-200 dark:border-[#333] p-2 space-y-1">
+              {subjectList.map((s: any) => (
+                <label key={s.id} className={`flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer text-[11px] transition-all ${
+                  ruleForm.subjectIds.includes(s.id) ? 'bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-50 dark:hover:bg-[#111] text-gray-600 dark:text-gray-400'}`}>
+                  <input type="checkbox" checked={ruleForm.subjectIds.includes(s.id)} onChange={() => toggleSubject(s.id)} className="w-3.5 h-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-500" />
+                  {s.name}
+                </label>
+              ))}
+              {subjectList.length === 0 && <p className="text-[10px] text-gray-400 text-center py-2">Belum ada mapel</p>}
+            </div>
+            {ruleForm.subjectIds.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {ruleForm.subjectIds.map((id: string) => (
+                  <span key={id} className="px-2 py-0.5 text-[9px] font-semibold bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 rounded-full">{getSubjectName(id)}</span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Class Scope */}
+          <div className="space-y-2">
+            <label className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Berlaku untuk Kelas</label>
+            <div className="flex gap-2">
+              <button onClick={() => setRuleForm((f: any) => ({ ...f, classScope: 'all' }))}
+                className={`px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-all ${ruleForm.classScope === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-[#222] text-gray-500'}`}>Semua Kelas</button>
+              <button onClick={() => setRuleForm((f: any) => ({ ...f, classScope: 'selected' }))}
+                className={`px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-all ${ruleForm.classScope === 'selected' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-[#222] text-gray-500'}`}>Kelas Tertentu</button>
+            </div>
+            {ruleForm.classScope === 'selected' && (
+              <div className="max-h-[120px] overflow-y-auto rounded-lg border border-gray-200 dark:border-[#333] p-2 space-y-1">
+                {classList.map((c: any) => (
+                  <label key={c.id} className={`flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer text-[11px] transition-all ${
+                    ruleForm.classIds.includes(c.id) ? 'bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-50 dark:hover:bg-[#111] text-gray-600 dark:text-gray-400'}`}>
+                    <input type="checkbox" checked={ruleForm.classIds.includes(c.id)} onChange={() => toggleClass(c.id)} className="w-3.5 h-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-500" />
+                    {c.name}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Position param for must_first_or_last */}
+          {ruleForm.ruleType === 'must_first_or_last' && (
+            <div className="space-y-2">
+              <label className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Posisi</label>
+              <select value={ruleForm.params?.position || 'first_or_last'}
+                onChange={e => setRuleForm((f: any) => ({ ...f, params: { ...f.params, position: e.target.value } }))}
+                className="px-3 py-2 text-[12px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none">
+                <option value="first_or_last">Jam Pertama atau Terakhir</option>
+                <option value="first">Jam Pertama saja</option>
+                <option value="last">Jam Terakhir saja</option>
+              </select>
+            </div>
+          )}
+
+          {/* Priority + Notes */}
+          <div className="flex gap-3">
+            <div className="space-y-1 w-32">
+              <label className="text-[10px] font-semibold text-gray-400">Prioritas</label>
+              <select value={ruleForm.priority} onChange={e => setRuleForm((f: any) => ({ ...f, priority: e.target.value }))}
+                className="w-full px-2 py-1.5 text-[11px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none">
+                <option value="low">Rendah</option><option value="normal">Normal</option><option value="high">Tinggi</option>
+              </select>
+            </div>
+            <div className="space-y-1 flex-1">
+              <label className="text-[10px] font-semibold text-gray-400">Catatan (opsional)</label>
+              <input type="text" value={ruleForm.notes} onChange={e => setRuleForm((f: any) => ({ ...f, notes: e.target.value }))}
+                placeholder="Catatan tambahan..." className="w-full px-2 py-1.5 text-[11px] rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 outline-none" />
+            </div>
+          </div>
+
+          {/* Form Actions */}
+          <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-[#222]">
+            <button onClick={resetForm} className="px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-gray-100 dark:bg-[#222] text-gray-500 hover:bg-gray-200 dark:hover:bg-[#333] transition-all">Batal</button>
+            <button onClick={handleSaveRule} disabled={ruleSaving}
+              className="flex items-center gap-1.5 px-4 py-1.5 text-[11px] font-semibold rounded-lg bg-blue-500 text-white hover:bg-blue-600 active:scale-95 disabled:opacity-50 transition-all">
+              {ruleSaving ? <><Loader2 size={12} className="animate-spin" /> Menyimpan...</> : <><Save size={12} /> {editingRule ? 'Perbarui' : 'Simpan'}</>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Rules List */}
+      {rulesLoading ? (
+        <div className="py-10 text-center"><div className="h-6 w-6 mx-auto animate-spin rounded-full border-3 border-blue-500 border-t-transparent" /></div>
+      ) : rules.length === 0 ? (
+        <div className="py-10 text-center text-gray-400 dark:text-gray-500 text-[12px]">
+          <ListChecks size={28} className="mx-auto mb-2 opacity-30" />
+          <p>Belum ada aturan jadwal. Klik "Tambah Aturan" untuk memulai.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {rules.map((rule: any) => {
+            const cfg = RULE_TYPES[rule.ruleType] || { label: rule.ruleType };
+            const subjectNames = (rule.subjectIds || []).map((id: string) => getSubjectName(id));
+            const pColors: Record<string, string> = {
+              low: 'bg-gray-100 dark:bg-gray-500/20 text-gray-500',
+              normal: 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400',
+              high: 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400',
+            };
+            return (
+              <div key={rule.id} className={`group bg-white dark:bg-[#0a0a0a] rounded-xl border p-3 transition-all ${rule.isActive ? 'border-gray-200 dark:border-[#222]' : 'border-gray-100 dark:border-[#1a1a1a] opacity-50'}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[12px] font-semibold text-gray-700 dark:text-gray-200">{cfg.label}</span>
+                      <span className={`px-1.5 py-0.5 text-[8px] font-bold uppercase rounded ${pColors[rule.priority] || pColors.normal}`}>
+                        {rule.priority === 'high' ? 'Tinggi' : rule.priority === 'low' ? 'Rendah' : 'Normal'}
+                      </span>
+                      {!rule.isActive && <span className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-300">Nonaktif</span>}
+                    </div>
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {subjectNames.map((n: string, i: number) => (
+                        <span key={i} className="px-2 py-0.5 text-[9px] font-semibold bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full border border-blue-200 dark:border-blue-500/30">{n}</span>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[9px] text-gray-400">{rule.classScope === 'all' ? 'Semua Kelas' : `${(rule.classIds || []).length} kelas terpilih`}</span>
+                      {rule.notes && <span className="text-[9px] text-gray-400 italic">• {rule.notes}</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => handleToggle(rule.id)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] transition-colors" title={rule.isActive ? 'Nonaktifkan' : 'Aktifkan'}>
+                      {rule.isActive ? <ToggleRight size={16} className="text-emerald-500" /> : <ToggleLeft size={16} className="text-gray-400" />}
+                    </button>
+                    <button onClick={() => openEdit(rule)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-500 hover:text-blue-500 transition-colors" title="Edit"><Pencil size={13} /></button>
+                    <button onClick={() => handleDelete(rule.id)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#222] text-gray-500 hover:text-red-500 transition-colors" title="Hapus"><Trash2 size={13} /></button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 

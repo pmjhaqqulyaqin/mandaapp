@@ -97,4 +97,11 @@ router.post("/guru-kode/auto", requireStaff, KbmController.autoAssignGuruKode);
 // Dashboard
 router.get("/dashboard", requireStaff, KbmController.getDashboard);
 
+// Scheduling Rules (Aturan Jadwal)
+router.get("/scheduling-rules", requireStaff, KbmController.getSchedulingRules);
+router.post("/scheduling-rules", requireStaff, KbmController.createSchedulingRule);
+router.put("/scheduling-rules/:id", requireStaff, KbmController.updateSchedulingRule);
+router.delete("/scheduling-rules/:id", requireStaff, KbmController.deleteSchedulingRule);
+router.put("/scheduling-rules/:id/toggle", requireStaff, KbmController.toggleSchedulingRule);
+
 export const kbmRoutes = router;

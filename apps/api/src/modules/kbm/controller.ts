@@ -1187,4 +1187,44 @@ export class KbmController {
       res.json(stats);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
+
+  // ═══ Scheduling Rules (Aturan Jadwal) ═══════════════════════════════════════
+
+  static async getSchedulingRules(req: Request, res: Response) {
+    try {
+      const rules = await KbmService.getSchedulingRules();
+      res.json(rules);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async createSchedulingRule(req: Request, res: Response) {
+    try {
+      const rule = await KbmService.createSchedulingRule(req.body);
+      res.status(201).json(rule);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async updateSchedulingRule(req: Request, res: Response) {
+    try {
+      const rule = await KbmService.updateSchedulingRule(req.params.id, req.body);
+      if (!rule) return res.status(404).json({ error: "Rule not found" });
+      res.json(rule);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async deleteSchedulingRule(req: Request, res: Response) {
+    try {
+      const rule = await KbmService.deleteSchedulingRule(req.params.id);
+      if (!rule) return res.status(404).json({ error: "Rule not found" });
+      res.json({ message: "Rule deleted", rule });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async toggleSchedulingRule(req: Request, res: Response) {
+    try {
+      const rule = await KbmService.toggleSchedulingRule(req.params.id);
+      if (!rule) return res.status(404).json({ error: "Rule not found" });
+      res.json(rule);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
 }

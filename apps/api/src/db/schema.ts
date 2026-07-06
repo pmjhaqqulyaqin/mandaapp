@@ -1082,6 +1082,27 @@ export const jadwalVersion = pgTable("jadwal_version", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// ═══ Scheduling Rules (Aturan Jadwal — Relasi Antar Mapel) ═══════════════════
+
+export const schedulingRules = pgTable("scheduling_rules", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ruleType: varchar("rule_type", { length: 50 }).notNull(),
+  // Rule types:
+  //   'not_same_day'        — Dua mapel tidak boleh di hari yang sama
+  //   'must_consecutive'    — Dua mapel harus berurutan
+  //   'must_first_or_last'  — Mapel harus di jam pertama atau terakhir
+  //   'same_period_daily'   — Mapel harus di jam yang sama setiap hari
+  subjectIds: jsonb("subject_ids").notNull(),     // UUID[] — mapel yang terlibat
+  classScope: varchar("class_scope", { length: 20 }).default("all"), // 'all' | 'selected'
+  classIds: jsonb("class_ids"),                   // UUID[] | null — kelas yang berlaku (null = semua)
+  params: jsonb("params"),                        // extra params per rule type (e.g. { position: 'last' })
+  priority: varchar("priority", { length: 20 }).default("normal"), // 'low' | 'normal' | 'high'
+  isActive: boolean("is_active").default(true),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // ═══ KBM Jadwal (Phase 2 — Auto Scheduler) ══════════════════════════════════
 
 export const kbmJadwal = pgTable("kbm_jadwal", {

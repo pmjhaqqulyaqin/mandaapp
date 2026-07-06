@@ -3,7 +3,7 @@ import {
   distribusiJam, tugasTambahanMaster, tugasTambahan,
   ruangan, employees, classes, academicYears, masterSubjects,
   kbmJadwal, teachingSubjects, guruUnavailability, scheduleConfig,
-  jadwalVersion, guruSlotAvailability,
+  jadwalVersion, guruSlotAvailability, schedulingRules,
 } from "../../db/schema";
 import { eq, and, sql, desc, asc, inArray } from "drizzle-orm";
 
@@ -1757,5 +1757,55 @@ export class KbmService {
   static async getExportTugasData(academicYearId: string, semester: string) {
     const tugas = await this.getTugas(academicYearId, semester);
     return { tugas };
+  }
+
+  // ═══ Scheduling Rules (Aturan Jadwal) ═══════════════════════════════════════
+
+  static async getSchedulingRules() {
+    return db.select().from(schedulingRules).orderBy(desc(schedulingRules.createdAt));
+  }
+
+  static async createSchedulingRule(data: {
+    ruleType: string;
+    subjectIds: string[];
+    classScope?: string;
+    classIds?: string[] | null;
+    params?: any;
+    priority?: string;
+    notes?: string;
+  }) {
+    const results = await db.insert(schedulingRules).values({
+      ruleType: data.ruleType,
+      subjectIds: data.subjectIds,
+      classScope: data.classScope || 'all',
+      classIds: data.classIds || null,
+      params: data.params || null,
+      priority: data.priority || 'normal',
+      notes: data.notes || null,
+    }).returning();
+    return results[0];
+  }
+
+  static async updateSchedulingRule(id: string, data: any) {
+    const results = await db.update(schedulingRules)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schedulingRules.id, id))
+      .returning();
+    return results[0];
+  }
+
+  static async deleteSchedulingRule(id: string) {
+    const results = await db.delete(schedulingRules).where(eq(schedulingRules.id, id)).returning();
+    return results[0];
+  }
+
+  static async toggleSchedulingRule(id: string) {
+    const existing = await db.select().from(schedulingRules).where(eq(schedulingRules.id, id));
+    if (!existing[0]) return null;
+    const results = await db.update(schedulingRules)
+      .set({ isActive: !existing[0].isActive, updatedAt: new Date() })
+      .where(eq(schedulingRules.id, id))
+      .returning();
+    return results[0];
   }
 }
