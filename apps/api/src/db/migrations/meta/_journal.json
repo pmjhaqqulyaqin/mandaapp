@@ -127,6 +127,13 @@
       "when": 1780977359790,
       "tag": "0017_freezing_meltdown",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1783308441467,
+      "tag": "0018_sturdy_lizard",
+      "breakpoints": true
     }
   ]
 }
