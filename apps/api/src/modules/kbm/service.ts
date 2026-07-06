@@ -101,6 +101,26 @@ export class KbmService {
     .orderBy(sql`CAST(NULLIF(${employees.kodeGuru}, '') AS INTEGER) ASC NULLS LAST`, masterSubjects.kode, classes.name);
   }
 
+  static async syncGuruSubjects(guruId: string, academicYearId: string, semester: string, subjectIds: string[]) {
+    if (subjectIds.length === 0) {
+      await db.delete(distribusiJam).where(and(
+        eq(distribusiJam.guruId, guruId),
+        eq(distribusiJam.academicYearId, academicYearId),
+        eq(distribusiJam.semester, semester)
+      ));
+      return { deleted: true };
+    }
+    
+    // Delete any distribution for subjects NOT in the checked list
+    await db.delete(distribusiJam).where(and(
+      eq(distribusiJam.guruId, guruId),
+      eq(distribusiJam.academicYearId, academicYearId),
+      eq(distribusiJam.semester, semester),
+      notInArray(distribusiJam.subjectId, subjectIds)
+    ));
+    return { synced: true };
+  }
+
   static async upsertDistribusi(data: {
     academicYearId: string; semester: string;
     guruId: string; kelasId: string; subjectId: string; jumlahJam: number;
