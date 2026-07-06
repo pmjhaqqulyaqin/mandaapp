@@ -3,6 +3,7 @@ import { apiClient } from '../../../lib/api';
 import { Download, Plus, Search, Loader2, Upload, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 import { DataTableToolbar } from '../../../components/DataTableToolbar';
+import { GuruDetailDialog } from './components/GuruDetailDialog';
 
 interface Props {
   academicYearId: string;
@@ -32,12 +33,12 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [addGuruId, setAddGuruId] = useState('');
-  const [addSubjectId, setAddSubjectId] = useState('');
   const [guruList, setGuruList] = useState<any[]>([]);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const saveTimerRef = useRef<any>(null);
   const pendingChanges = useRef<Map<string, any>>(new Map());
+  const [selectedGuruDetail, setSelectedGuruDetail] = useState<{ id: string, name: string } | null>(null);
 
   const loadData = useCallback(() => {
     if (!academicYearId) return;
@@ -149,26 +150,52 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
     }
   };
 
-  const handleAddRow = async () => {
-    if (!addGuruId || !addSubjectId) return toast.error('Pilih guru dan mapel');
+  const handleFlushAndReload = async () => {
+    if (pendingChanges.current.size > 0) {
+      await flushChanges();
+    }
+    loadData();
+  };
+
+  const handleOpenAddGuru = () => {
+    if (!addGuruId) return toast.error('Pilih guru terlebih dahulu');
     const guru = guruList.find(g => g.id === addGuruId);
-    const subj = subjects.find(s => s.id === addSubjectId);
-    if (!guru || !subj) return;
-
-    // Check if row already exists
-    const exists = rows.some(r => r.guruId === addGuruId && r.subjectId === addSubjectId);
-    if (exists) return toast.error('Guru + Mapel ini sudah ada di grid');
-
-    setRows(prev => [...prev, {
-      guruId: guru.id, guruName: guru.name, guruNip: guru.nip || '', guruGrade: guru.grade || '',
-      subjectId: subj.id, subjectKode: subj.kode, subjectNama: subj.nama,
-      cells: {}, totalJam: 0,
-    }].sort((a, b) => a.guruName.localeCompare(b.guruName) || a.subjectKode.localeCompare(b.subjectKode)));
-
+    if (!guru) return;
     setShowAddModal(false);
-    setAddGuruId('');
-    setAddSubjectId('');
-    toast.success(`${guru.name} - ${subj.nama} ditambahkan`);
+    setSelectedGuruDetail({ id: guru.id, name: guru.name });
+  };
+
+  const handleSubjectsChange = (newSubjectIds: string[]) => {
+    if (!selectedGuruDetail) return;
+    const guru = guruList.find(g => g.id === selectedGuruDetail.id);
+    if (!guru) return;
+
+    setRows(prev => {
+      // Keep rows that are NOT for this guru, OR are for this guru AND in the newSubjectIds
+      const filtered = prev.filter(r => r.guruId !== guru.id || newSubjectIds.includes(r.subjectId));
+      
+      // Find what needs to be added
+      const existingSubjectIds = prev.filter(r => r.guruId === guru.id).map(r => r.subjectId);
+      const toAdd = newSubjectIds.filter(id => !existingSubjectIds.includes(id));
+      
+      for (const subjId of toAdd) {
+        const subj = subjects.find(s => s.id === subjId);
+        if (subj) {
+          filtered.push({
+            guruId: guru.id, guruName: guru.name, guruNip: guru.nip || '', guruGrade: guru.grade || '',
+            guruKodeGuru: guru.kodeGuru || '',
+            subjectId: subj.id, subjectKode: subj.kode, subjectNama: subj.nama,
+            cells: {}, totalJam: 0,
+          });
+        }
+      }
+      
+      return filtered.sort((a, b) => {
+        const kodeA = parseInt(a.guruKodeGuru) || 99999;
+        const kodeB = parseInt(b.guruKodeGuru) || 99999;
+        return kodeA - kodeB || a.guruName.localeCompare(b.guruName) || a.subjectKode.localeCompare(b.subjectKode);
+      });
+    });
   };
 
   const handleExport = () => {
@@ -251,8 +278,8 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
           />
         </div>
         {canEdit && (
-          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold rounded-lg bg-amber-500 text-white hover:bg-amber-600 active:scale-95 transition-all">
-            <Plus size={14} /> Tambah Guru/Mapel
+          <button onClick={() => { setAddGuruId(''); setShowAddModal(true); }} className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold rounded-lg bg-amber-500 text-white hover:bg-amber-600 active:scale-95 transition-all">
+            <Plus size={14} /> Atur Guru
           </button>
         )}
         <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold rounded-lg border border-gray-200 dark:border-[#333] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] active:scale-95 transition-all">
@@ -331,8 +358,11 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
                 const realIdx = rows.indexOf(row);
                 return (
                   <tr key={`${row.guruId}-${row.subjectId}`} className="hover:bg-gray-50/50 dark:hover:bg-[#161616] group">
-                    <td className="sticky left-0 z-10 bg-white dark:bg-[#111] group-hover:bg-gray-50/50 dark:group-hover:bg-[#161616] px-2 py-1.5 border-r border-gray-200 dark:border-[#333]">
-                      <div className="font-medium text-gray-800 dark:text-gray-200 truncate">{row.guruName}</div>
+                    <td 
+                      onClick={() => setSelectedGuruDetail({ id: row.guruId, name: row.guruName })}
+                      className="sticky left-0 z-10 bg-white dark:bg-[#111] group-hover:bg-gray-50/50 dark:group-hover:bg-[#161616] px-2 py-1.5 border-r border-gray-200 dark:border-[#333] cursor-pointer hover:text-amber-600 transition-colors"
+                    >
+                      <div className="font-medium text-gray-800 dark:text-gray-200 truncate group-hover:text-amber-500 transition-colors">{row.guruName}</div>
                       <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">{row.subjectKode}. {row.subjectNama}</div>
                     </td>
                     {classList.map(c => {
@@ -394,10 +424,10 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowAddModal(false)}>
           <div className="bg-white dark:bg-[#161616] rounded-2xl w-full max-w-md p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Tambah Guru & Mapel</h3>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Pengaturan Guru</h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-[12px] font-semibold text-gray-500 dark:text-gray-400 mb-1">Guru</label>
+                <label className="block text-[12px] font-semibold text-gray-500 dark:text-gray-400 mb-1">Pilih Guru</label>
                 <select
                   value={addGuruId}
                   onChange={(e) => setAddGuruId(e.target.value)}
@@ -409,30 +439,31 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-[12px] font-semibold text-gray-500 dark:text-gray-400 mb-1">Mata Pelajaran</label>
-                <select
-                  value={addSubjectId}
-                  onChange={(e) => setAddSubjectId(e.target.value)}
-                  className="w-full px-3 py-2.5 text-[13px] rounded-xl border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none"
-                >
-                  <option value="">Pilih Mapel...</option>
-                  {subjects.map(s => (
-                    <option key={s.id} value={s.id}>{s.kode}. {s.nama}</option>
-                  ))}
-                </select>
-              </div>
             </div>
             <div className="flex justify-end gap-2 mt-5">
               <button onClick={() => setShowAddModal(false)} className="px-4 py-2 text-[12px] font-semibold rounded-xl border border-gray-200 dark:border-[#333] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a]">
                 Batal
               </button>
-              <button onClick={handleAddRow} className="px-4 py-2 text-[12px] font-semibold rounded-xl bg-amber-500 text-white hover:bg-amber-600 active:scale-95 transition-all">
-                Tambah
+              <button onClick={handleOpenAddGuru} className="px-4 py-2 text-[12px] font-semibold rounded-xl bg-amber-500 text-white hover:bg-amber-600 active:scale-95 transition-all">
+                Lanjut
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Guru Detail Dialog */}
+      {selectedGuruDetail && (
+        <GuruDetailDialog
+          guruId={selectedGuruDetail.id}
+          guruName={selectedGuruDetail.name}
+          academicYearId={academicYearId}
+          semester={semester}
+          initialAssignedSubjects={rows.filter(r => r.guruId === selectedGuruDetail.id).map(r => r.subjectId)}
+          onClose={() => setSelectedGuruDetail(null)}
+          onSaved={handleFlushAndReload}
+          onSubjectsChange={handleSubjectsChange}
+        />
       )}
     </div>
   );
