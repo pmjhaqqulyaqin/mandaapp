@@ -75,33 +75,44 @@ export const DistribusiJamTab = ({ academicYearId, semester, canEdit }: Props) =
       setGuruList((guru as any[]).sort((a: any, b: any) => a.name.localeCompare(b.name)));
 
       // Build grid rows from distribusi data
-      const rowMap = new Map<string, DistribusiRow>();
-      for (const d of distribusi as any[]) {
-        const key = `${d.guruId}::${d.subjectId}`;
-        if (!rowMap.has(key)) {
-          rowMap.set(key, {
-            guruId: d.guruId,
-            guruName: d.guruName || '',
-            guruNip: d.guruNip || '',
-            guruGrade: d.guruGrade || '',
-            guruKodeGuru: d.guruKodeGuru || '',
-            subjectId: d.subjectId,
-            subjectKode: d.subjectKode || '',
-            subjectNama: d.subjectNama || '',
-            cells: {},
-            totalJam: 0,
-          });
+      setRows(prev => {
+        const rowMap = new Map<string, DistribusiRow>();
+        for (const d of distribusi as any[]) {
+          if (!d.subjectKode && !d.subjectNama) continue; // Skip ghost records with broken FK
+          const key = `${d.guruId}::${d.subjectId}`;
+          if (!rowMap.has(key)) {
+            rowMap.set(key, {
+              guruId: d.guruId,
+              guruName: d.guruName || '',
+              guruNip: d.guruNip || '',
+              guruGrade: d.guruGrade || '',
+              guruKodeGuru: d.guruKodeGuru || '',
+              subjectId: d.subjectId,
+              subjectKode: d.subjectKode || '',
+              subjectNama: d.subjectNama || '',
+              cells: {},
+              totalJam: 0,
+            });
+          }
+          const row = rowMap.get(key)!;
+          row.cells[d.kelasId] = { id: d.id, jumlahJam: d.jumlahJam };
+          row.totalJam += d.jumlahJam;
         }
-        const row = rowMap.get(key)!;
-        row.cells[d.kelasId] = { id: d.id, jumlahJam: d.jumlahJam };
-        row.totalJam += d.jumlahJam;
-      }
 
-      setRows(Array.from(rowMap.values()).sort((a, b) => {
-        const kodeA = parseInt(a.guruKodeGuru) || 99999;
-        const kodeB = parseInt(b.guruKodeGuru) || 99999;
-        return kodeA - kodeB || a.guruName.localeCompare(b.guruName) || a.subjectKode.localeCompare(b.subjectKode);
-      }));
+        // Preserve local rows (from GuruDetailDialog) that don't have DB records yet
+        for (const r of prev) {
+          const key = `${r.guruId}::${r.subjectId}`;
+          if (!rowMap.has(key) && r.totalJam === 0) {
+            rowMap.set(key, r);
+          }
+        }
+
+        return Array.from(rowMap.values()).sort((a, b) => {
+          const kodeA = parseInt(a.guruKodeGuru) || 99999;
+          const kodeB = parseInt(b.guruKodeGuru) || 99999;
+          return kodeA - kodeB || a.guruName.localeCompare(b.guruName) || a.subjectKode.localeCompare(b.subjectKode);
+        });
+      });
     }).catch(err => {
       toast.error('Gagal memuat data distribusi');
     }).finally(() => setLoading(false));
