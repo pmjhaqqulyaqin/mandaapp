@@ -753,9 +753,12 @@ export class KbmController {
 
   static async generateJadwal(req: Request, res: Response) {
     try {
-      const { academicYearId, semester, clearExisting } = req.body;
+      const { academicYearId, semester, clearExisting, difficulty, constraintMode } = req.body;
       if (!academicYearId || !semester) return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
-      const result = await KbmService.generateJadwal(academicYearId, semester, clearExisting !== false);
+      const result = await KbmService.generateJadwal(
+        academicYearId, semester, clearExisting !== false,
+        { difficulty, constraintMode },
+      );
       res.json(result);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
@@ -777,8 +780,11 @@ export class KbmController {
     };
 
     try {
+      const difficulty = (req.query.difficulty as string) || 'normal';
+      const constraintMode = (req.query.constraintMode as string) || 'relax';
       const result = await KbmService.generateJadwal(
         academicYearId as string, semester as string, true,
+        { difficulty: difficulty as any, constraintMode: constraintMode as any },
         (progress) => sendEvent('progress', progress)
       );
       sendEvent('result', result);

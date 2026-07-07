@@ -1,9 +1,10 @@
-import { db } from "../../db";
+﻿import { db } from "../../db";
 import {
   distribusiJam, tugasTambahanMaster, tugasTambahan,
   ruangan, employees, classes, academicYears, masterSubjects,
   kbmJadwal, teachingSubjects, guruUnavailability, scheduleConfig,
   jadwalVersion, guruSlotAvailability, schedulingRules,
+  subjectSlotAvailability,
 } from "../../db/schema";
 import { eq, and, sql, desc, asc, inArray, notInArray } from "drizzle-orm";
 
@@ -650,7 +651,7 @@ export class KbmService {
     return { cleared: result.length, message: `${result.length} constraint dihapus` };
   }
 
-  // â•â•â• Schedule Config â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ═══ Schedule Config ═══════════════════════════════════════════
 
   static async getScheduleConfig(academicYearId: string, semester: string) {
     const [existing] = await db.select().from(scheduleConfig).where(and(
@@ -690,91 +691,173 @@ export class KbmService {
     return created;
   }
 
-  // â•â•â• Jadwal (Phase 2 â€” Multi-Pass Constraint Scheduler) â•â•â•â•â•
+  // ═══ Jadwal — Full Constraint-Aware Scheduler (Rebuilt) ═════
 
-
-  // ═══ Jadwal (Phase 2 — Multi-Pass Constraint Scheduler) ═════
-
-  static async generateJadwal(academicYearId: string, semester: string, clearExisting = true, onProgress?: (data: { phase: string; progress: number; detail?: string }) => void) {
+  static async generateJadwal(
+    academicYearId: string,
+    semester: string,
+    clearExisting = true,
+    options: {
+      difficulty?: 'normal' | 'besar' | 'sangat_besar';
+      constraintMode?: 'konsep' | 'relax' | 'istirahat' | 'tepat';
+    } = {},
+    onProgress?: (data: { phase: string; progress: number; detail?: string }) => void
+  ) {
     const emit = onProgress || (() => {});
+    const difficulty = options.difficulty || 'normal';
+    const constraintMode = options.constraintMode || 'relax';
+
     emit({ phase: 'init', progress: 0, detail: 'Mempersiapkan data...' });
 
+    // --- Clear existing jadwal ---
     if (clearExisting) {
       const activeVer = await this.getActiveVersion(academicYearId, semester);
       if (activeVer) {
-        await db.delete(kbmJadwal).where(and(eq(kbmJadwal.academicYearId, academicYearId), eq(kbmJadwal.semester, semester), eq(kbmJadwal.versionId, activeVer.id)));
+        await db.delete(kbmJadwal).where(and(
+          eq(kbmJadwal.academicYearId, academicYearId),
+          eq(kbmJadwal.semester, semester),
+          eq(kbmJadwal.versionId, activeVer.id),
+        ));
         try { await db.update(jadwalVersion).set({ isAktif: false }).where(eq(jadwalVersion.id, activeVer.id)); } catch {}
       } else {
-        // No version system yet — clear all slots for this semester
-        await db.delete(kbmJadwal).where(and(eq(kbmJadwal.academicYearId, academicYearId), eq(kbmJadwal.semester, semester)));
+        await db.delete(kbmJadwal).where(and(
+          eq(kbmJadwal.academicYearId, academicYearId),
+          eq(kbmJadwal.semester, semester),
+        ));
       }
     }
 
+    // --- 1. Load all data ---
+
+    // Ruangan & class mapping
     const activeRuangan = await db.select().from(ruangan).where(eq(ruangan.isActive, true));
     const ruanganNames = new Set<string>();
     for (const r of activeRuangan) {
-      const nama = (r.nama || '').toLowerCase();
-      const namaWithoutRuang = (r.nama || '').replace(/^Ruang\s+/i, '').trim().toLowerCase();
-      ruanganNames.add(nama);
-      ruanganNames.add(namaWithoutRuang);
+      ruanganNames.add((r.nama || '').toLowerCase());
+      ruanganNames.add((r.nama || '').replace(/^Ruang\s+/i, '').trim().toLowerCase());
     }
     const allClasses = await db.select().from(classes);
     const validClassIds = new Set(
       allClasses.filter(c => {
         const name = c.name.toLowerCase();
-        const nameWithoutRuang = c.name.replace(/^Ruang\s+/i, '').trim().toLowerCase();
-        return ruanganNames.has(name) || ruanganNames.has(nameWithoutRuang);
+        const nameNoRuang = c.name.replace(/^Ruang\s+/i, '').trim().toLowerCase();
+        return ruanganNames.has(name) || ruanganNames.has(nameNoRuang);
       }).map(c => c.id)
     );
 
-    const distribusiRaw = await db.select({ guruId: distribusiJam.guruId, kelasId: distribusiJam.kelasId, subjectId: distribusiJam.subjectId, jumlahJam: distribusiJam.jumlahJam })
-      .from(distribusiJam).where(and(eq(distribusiJam.academicYearId, academicYearId), eq(distribusiJam.semester, semester)));
-    
-    // Only filter by valid classes if ruangan is configured; otherwise use all
+    // Distribusi jam
+    const distribusiRaw = await db.select({
+      guruId: distribusiJam.guruId, kelasId: distribusiJam.kelasId,
+      subjectId: distribusiJam.subjectId, jumlahJam: distribusiJam.jumlahJam,
+    }).from(distribusiJam).where(and(
+      eq(distribusiJam.academicYearId, academicYearId),
+      eq(distribusiJam.semester, semester),
+    ));
     const distribusi = (activeRuangan.length > 0 && validClassIds.size > 0)
       ? distribusiRaw.filter(d => validClassIds.has(d.kelasId))
       : distribusiRaw;
 
-    if (distribusi.length === 0) return { generated: 0, failed: 0, total: 0, blocks: 0, failedBlocks: 0, message: 'Tidak ada distribusi jam', report: null };
-    emit({ phase: 'init', progress: 5, detail: `${distribusi.length} distribusi dimuat` });
+    if (distribusi.length === 0) {
+      return { generated: 0, failed: 0, total: 0, blocks: 0, failedBlocks: 0, message: 'Tidak ada distribusi jam', report: null };
+    }
+    emit({ phase: 'init', progress: 3, detail: `${distribusi.length} distribusi dimuat` });
 
+    // Subjects (master_subjects -- source of truth for constraints)
     const subjectList = await db.select().from(masterSubjects).where(eq(masterSubjects.isActive, true));
     const subjectMap = new Map(subjectList.map(s => [s.id, s]));
-    const unavail = await db.select().from(guruUnavailability).where(and(eq(guruUnavailability.academicYearId, academicYearId), eq(guruUnavailability.semester, semester)));
+
+    // Guru unavailability (hari kosong)
+    const unavail = await db.select().from(guruUnavailability).where(and(
+      eq(guruUnavailability.academicYearId, academicYearId),
+      eq(guruUnavailability.semester, semester),
+    ));
     const guruUnavailDays = new Map<string, Set<number>>();
-    for (const u of unavail) { if (!guruUnavailDays.has(u.guruId)) guruUnavailDays.set(u.guruId, new Set()); guruUnavailDays.get(u.guruId)!.add(u.dayOfWeek); }
-
-    // Load per-slot availability (Phase 3 enhancement)
-    const slotAvailData = await this.getAllGuruSlotAvailability(academicYearId, semester);
-    // Map: "guruId-day-jam" -> status ('unavailable' | 'conditional'). Missing = 'available'
-    const guruSlotStatus = new Map<string, string>();
-    const guruSlotConstraintCount = new Map<string, number>();
-    for (const sa of slotAvailData) {
-      guruSlotStatus.set(`${sa.guruId}-${sa.dayOfWeek}-${sa.jamKe}`, sa.status);
-      guruSlotConstraintCount.set(sa.guruId, (guruSlotConstraintCount.get(sa.guruId) || 0) + 1);
+    for (const u of unavail) {
+      if (!guruUnavailDays.has(u.guruId)) guruUnavailDays.set(u.guruId, new Set());
+      guruUnavailDays.get(u.guruId)!.add(u.dayOfWeek);
     }
-    const getSlotStatus = (guruId: string, day: number, jam: number): string => {
-      return guruSlotStatus.get(`${guruId}-${day}-${jam}`) || 'available';
+
+    // Guru per-slot availability
+    const slotAvailData = await this.getAllGuruSlotAvailability(academicYearId, semester);
+    const guruSlotStatusMap = new Map<string, string>();
+    for (const sa of slotAvailData) {
+      guruSlotStatusMap.set(`${sa.guruId}-${sa.dayOfWeek}-${sa.jamKe}`, sa.status);
+    }
+    const getGuruSlotStatus = (guruId: string, day: number, jam: number): string =>
+      guruSlotStatusMap.get(`${guruId}-${day}-${jam}`) || 'available';
+    emit({ phase: 'init', progress: 5, detail: `${slotAvailData.length} guru slot constraint dimuat` });
+
+    // Subject per-slot availability (waktu kosong mapel)
+    const subjectSlotData = await db.select({
+      subjectId: subjectSlotAvailability.subjectId,
+      dayOfWeek: subjectSlotAvailability.dayOfWeek,
+      jamKe: subjectSlotAvailability.jamKe,
+      status: subjectSlotAvailability.status,
+    }).from(subjectSlotAvailability);
+    const subjectSlotStatusMap = new Map<string, string>();
+    for (const ss of subjectSlotData) {
+      subjectSlotStatusMap.set(`${ss.subjectId}-${ss.dayOfWeek}-${ss.jamKe}`, ss.status);
+    }
+    const getSubjectSlotStatus = (subjectId: string, day: number, jam: number): string =>
+      subjectSlotStatusMap.get(`${subjectId}-${day}-${jam}`) || 'available';
+    emit({ phase: 'init', progress: 7, detail: `${subjectSlotData.length} subject slot constraint dimuat` });
+
+    // Scheduling rules (aturan jadwal aktif)
+    const allRules = await db.select().from(schedulingRules).where(eq(schedulingRules.isActive, true));
+    emit({ phase: 'init', progress: 8, detail: `${allRules.length} aturan jadwal aktif dimuat` });
+
+    // Pre-process scheduling rules by type
+    const rulesByType = {
+      not_same_day: allRules.filter(r => r.ruleType === 'not_same_day'),
+      must_first_or_last: allRules.filter(r => r.ruleType === 'must_first_or_last'),
+      same_period_daily: allRules.filter(r => r.ruleType === 'same_period_daily'),
     };
-    emit({ phase: 'init', progress: 8, detail: `${slotAvailData.length} slot constraint dimuat` });
 
+    // Schedule config
     const config = await this.getScheduleConfig(academicYearId, semester);
-    const splitRules: Record<string, number[]> = (config.defaultSplitRules as any) || { '2': [2], '3': [3], '4': [2, 2], '5': [3, 2], '6': [3, 3] };
-    const timeSlots = await db.execute(sql`SELECT DISTINCT day_of_week, jam_ke FROM jurnal_time_slots WHERE is_active = true ORDER BY day_of_week, jam_ke`);
-    const availableDays = new Map<number, number[]>();
-    for (const ts of (timeSlots as any).rows || timeSlots) { const d = Number(ts.day_of_week), j = Number(ts.jam_ke); if (!availableDays.has(d)) availableDays.set(d, []); availableDays.get(d)!.push(j); }
-    if (availableDays.size === 0) { for (let d = 1; d <= 6; d++) availableDays.set(d, [1, 2, 3, 4, 5, 6, 7, 8]); }
-    const rooms = await db.select({ id: ruangan.id, nama: ruangan.nama }).from(ruangan).where(eq(ruangan.isActive, true));
+    const splitRules: Record<string, number[]> = (config.defaultSplitRules as any) || {
+      '2': [2], '3': [3], '4': [2, 2], '5': [3, 2], '6': [3, 3],
+    };
 
-    // Precompute day slot counts and parity
+    // Time slots -> available days/jams grid
+    const timeSlots = await db.execute(sql`
+      SELECT DISTINCT day_of_week, jam_ke FROM jurnal_time_slots
+      WHERE is_active = true ORDER BY day_of_week, jam_ke
+    `);
+    const availableDays = new Map<number, number[]>();
+    for (const ts of (timeSlots as any).rows || timeSlots) {
+      const d = Number(ts.day_of_week), j = Number(ts.jam_ke);
+      if (!availableDays.has(d)) availableDays.set(d, []);
+      availableDays.get(d)!.push(j);
+    }
+    // Fallback if no time slots configured
+    if (availableDays.size === 0) {
+      for (let d = 1; d <= 6; d++) availableDays.set(d, [1, 2, 3, 4, 5, 6, 7, 8]);
+    }
+
+    const rooms = await db.select({ id: ruangan.id, nama: ruangan.nama }).from(ruangan).where(eq(ruangan.isActive, true));
+    const dayList = Array.from(availableDays.keys()).sort((a, b) => a - b);
     const daySlotCount = new Map<number, number>();
     for (const [d, jams] of availableDays) daySlotCount.set(d, jams.length);
 
+    // Pre-compute guru total JP for distribution balance
     const guruTotalJP = new Map<string, number>();
-    for (const d of distribusi) guruTotalJP.set(d.guruId, (guruTotalJP.get(d.guruId) || 0) + d.jumlahJam);
+    for (const d of distribusi) {
+      guruTotalJP.set(d.guruId, (guruTotalJP.get(d.guruId) || 0) + d.jumlahJam);
+    }
 
-    // Expand distribusi into blocks
-    interface Block { guruId: string; kelasId: string; subjectId: string; size: number; isHeavy: boolean; maxJamKe: number | null; minJamKe: number | null; difficulty: number; failReason?: string; passPlaced?: number; }
+    emit({ phase: 'init', progress: 10, detail: 'Data siap, membangun blok...' });
+
+    // --- 2. Build blocks from distribusi ---
+
+    type Block = {
+      guruId: string; kelasId: string; subjectId: string; size: number;
+      isHeavy: boolean; maxJamKe: number | null; minJamKe: number | null;
+      oncePerDay: boolean; canBeOverLunch: boolean; doubleLessonsOverBreaks: boolean;
+      isTemporary: boolean;
+      difficulty: number; failReason?: string; passPlaced?: number;
+    };
+
     const buildBlocks = (forceAutoSplit = false): Block[] => {
       const result: Block[] = [];
       for (const d of distribusi) {
@@ -782,185 +865,391 @@ export class KbmService {
         const isHeavy = subject?.isHeavy || false;
         const maxJamKe = subject?.maxJamKe || null;
         const minJamKe = subject?.minJamKe || null;
+        const oncePerDay = (subject as any)?.oncePerDay || false;
+        const canBeOverLunch = (subject as any)?.canBeOverLunch ?? true;
+        const doubleLessonsOverBreaks = (subject as any)?.doubleLessonsOverBreaks || false;
+        const isTemporary = (subject as any)?.isTemporary || false;
         const allowSingle = subject?.allowSingleSplit || false;
         const customSplit = subject?.customSplitRule as Record<string, number[]> | null;
         const jp = d.jumlahJam;
+        if (jp <= 0) continue;
+
         let blockSizes: number[];
-        if (customSplit && customSplit[String(jp)]) { blockSizes = customSplit[String(jp)]; }
-        else if (splitRules[String(jp)]) { blockSizes = [...splitRules[String(jp)]]; }
-        else { blockSizes = []; let rem = jp; while (rem > 0) { if (rem >= 3 && rem !== 4) { blockSizes.push(3); rem -= 3; } else if (rem >= 2) { blockSizes.push(2); rem -= 2; } else { blockSizes.push(1); rem -= 1; } } }
-        const shouldSplit = forceAutoSplit || allowSingle;
-        if (shouldSplit && !customSplit) {
+        if (customSplit && customSplit[String(jp)]) {
+          blockSizes = customSplit[String(jp)];
+        } else if (splitRules[String(jp)]) {
+          blockSizes = [...splitRules[String(jp)]];
+        } else {
+          blockSizes = [];
+          let rem = jp;
+          while (rem > 0) {
+            if (rem >= 3 && rem !== 4) { blockSizes.push(3); rem -= 3; }
+            else if (rem >= 2) { blockSizes.push(2); rem -= 2; }
+            else { blockSizes.push(1); rem -= 1; }
+          }
+        }
+
+        // Optional further splitting if allowed
+        if ((forceAutoSplit || allowSingle) && !customSplit) {
           if (jp === 3 && blockSizes.length === 1 && blockSizes[0] === 3) blockSizes = [2, 1];
           else if (jp === 5 && blockSizes.length === 2 && blockSizes[0] === 3 && blockSizes[1] === 2) blockSizes = [2, 2, 1];
         }
+
+        // Compute constraint difficulty for sorting priority
         const guruUnavailCount = guruUnavailDays.get(d.guruId)?.size || 0;
-        const slotConstraintCount = guruSlotConstraintCount.get(d.guruId) || 0;
+        let subjectSlotConstraints = 0;
+        for (const day of dayList) {
+          for (const jam of availableDays.get(day)!) {
+            if (getSubjectSlotStatus(d.subjectId, day, jam) !== 'available') subjectSlotConstraints++;
+          }
+        }
+
         for (const size of blockSizes) {
-          const difficulty = size * 10 + (isHeavy ? 50 : 0) + (maxJamKe ? 30 : 0) + (minJamKe ? 30 : 0) + guruUnavailCount * 15 + slotConstraintCount * 5 + (guruTotalJP.get(d.guruId)! > 20 ? 20 : 0);
-          result.push({ guruId: d.guruId, kelasId: d.kelasId, subjectId: d.subjectId, size, isHeavy, maxJamKe, minJamKe, difficulty });
+          const diff = size * 10
+            + (isHeavy ? 50 : 0)
+            + (maxJamKe ? 30 : 0)
+            + (minJamKe ? 30 : 0)
+            + (oncePerDay ? 20 : 0)
+            + guruUnavailCount * 15
+            + subjectSlotConstraints * 5
+            + (guruTotalJP.get(d.guruId)! > 20 ? 20 : 0);
+          result.push({
+            guruId: d.guruId, kelasId: d.kelasId, subjectId: d.subjectId, size,
+            isHeavy, maxJamKe, minJamKe, oncePerDay, canBeOverLunch,
+            doubleLessonsOverBreaks, isTemporary, difficulty: diff,
+          });
         }
       }
       return result;
     };
 
-    const dayList = Array.from(availableDays.keys()).sort((a, b) => a - b);
-    const slotKey = (day: number, jam: number) => `${day}-${jam}`;
-    const ensureSet = (map: Map<string, Set<string>>, key: string) => { if (!map.has(key)) map.set(key, new Set()); return map.get(key)!; };
-    const ensureMap = (map: Map<string, Map<number, number>>, key: string) => { if (!map.has(key)) map.set(key, new Map()); return map.get(key)!; };
-    const PASS_LABELS = ['Strict (semua constraint)', 'Relax distribusi merata', 'Relax afternoon + daily limit', 'Relax heavy separation', 'Force (hard constraint only)'];
+    // --- 3. Helpers ---
 
-    // --- Core placement function with scoring ---
-    const runAttempt = (blocks: Block[]): { placed: any[]; failed: Block[]; passResults: { pass: number; label: string; placed: number }[] } => {
-      const guruSlots = new Map<string, Set<string>>();
-      const kelasSlots = new Map<string, Set<string>>();
-      const roomSlots = new Map<string, Set<string>>();
+    const slotKey = (day: number, jam: number) => `${day}-${jam}`;
+    const ensureSet = (map: Map<string, Set<string>>, key: string) => {
+      if (!map.has(key)) map.set(key, new Set());
+      return map.get(key)!;
+    };
+    const ensureNumMap = (map: Map<string, Map<number, number>>, key: string) => {
+      if (!map.has(key)) map.set(key, new Map());
+      return map.get(key)!;
+    };
+
+    // Difficulty -> attempts, constraintMode -> pass count
+    const MAX_ATTEMPTS_MAP: Record<string, number> = { normal: 50, besar: 200, sangat_besar: 500 };
+    const MAX_ATTEMPTS = MAX_ATTEMPTS_MAP[difficulty] || 50;
+    const PASS_COUNT = constraintMode === 'konsep' ? 2 : constraintMode === 'tepat' ? 3 : 5;
+    const PASS_LABELS = [
+      'Strict (semua constraint)',
+      'Relax distribusi merata',
+      'Relax afternoon + daily limit',
+      'Relax heavy + scheduling rules',
+      'Force (hard constraint only)',
+    ];
+
+    // --- 4. Check scheduling rules for a block placement ---
+
+    const checkSchedulingRules = (
+      block: Block, day: number, startJam: number, endJamVal: number,
+      subjectKelasDay: Map<string, Set<number>>,
+      subjectKelasJam: Map<string, Map<number, number>>,
+      passLevel: number,
+    ): { ok: boolean; penalty: number } => {
+      let penalty = 0;
+
+      // Rule: not_same_day
+      for (const rule of rulesByType.not_same_day) {
+        const subjectIds = (rule.subjectIds || []) as string[];
+        if (!subjectIds.includes(block.subjectId)) continue;
+        if (rule.classScope === 'selected' && rule.classIds) {
+          if (!(rule.classIds as string[]).includes(block.kelasId)) continue;
+        }
+        for (const otherId of subjectIds) {
+          if (otherId === block.subjectId) continue;
+          const skKey = `${otherId}-${block.kelasId}`;
+          if (subjectKelasDay.get(skKey)?.has(day)) {
+            const isHigh = rule.priority === 'high';
+            if (isHigh || constraintMode === 'tepat') return { ok: false, penalty: 0 };
+            if (passLevel < 4) return { ok: false, penalty: 0 };
+            penalty += 60;
+          }
+        }
+      }
+
+      // Rule: must_first_or_last
+      for (const rule of rulesByType.must_first_or_last) {
+        const subjectIds = (rule.subjectIds || []) as string[];
+        if (!subjectIds.includes(block.subjectId)) continue;
+        if (rule.classScope === 'selected' && rule.classIds) {
+          if (!(rule.classIds as string[]).includes(block.kelasId)) continue;
+        }
+        const dayJams = availableDays.get(day)!;
+        const firstJam = dayJams[0];
+        const lastJam = dayJams[dayJams.length - 1];
+        const position = (rule.params as any)?.position;
+        const atFirst = startJam === firstJam;
+        const atLast = endJamVal === lastJam;
+
+        let posOk = false;
+        if (position === 'first') posOk = atFirst;
+        else if (position === 'last') posOk = atLast;
+        else posOk = atFirst || atLast;
+
+        if (!posOk) {
+          if (constraintMode === 'tepat' || rule.priority === 'high') return { ok: false, penalty: 0 };
+          if (passLevel < 3) return { ok: false, penalty: 0 };
+          penalty += 40;
+        }
+      }
+
+      // Rule: same_period_daily
+      for (const rule of rulesByType.same_period_daily) {
+        const subjectIds = (rule.subjectIds || []) as string[];
+        if (!subjectIds.includes(block.subjectId)) continue;
+        if (rule.classScope === 'selected' && rule.classIds) {
+          if (!(rule.classIds as string[]).includes(block.kelasId)) continue;
+        }
+        const existingJamKey = `${block.subjectId}-${block.kelasId}`;
+        const existingJamMap = subjectKelasJam.get(existingJamKey);
+        if (existingJamMap && existingJamMap.size > 0) {
+          const existingJams = Array.from(existingJamMap.values());
+          const targetJam = existingJams[0];
+          if (startJam !== targetJam) {
+            if (constraintMode === 'tepat') return { ok: false, penalty: 0 };
+            if (passLevel < 3) return { ok: false, penalty: 0 };
+            penalty += 30;
+          }
+        }
+      }
+
+      return { ok: true, penalty };
+    };
+
+    // --- 5. Core placement function ---
+
+    const runAttempt = (blocks: Block[]): {
+      placed: any[]; failed: Block[];
+      passResults: { pass: number; label: string; placed: number }[];
+    } => {
+      const guruSlotsUsed = new Map<string, Set<string>>();
+      const kelasSlotsUsed = new Map<string, Set<string>>();
+      const roomSlotsUsed = new Map<string, Set<string>>();
       const guruDayJP = new Map<string, Map<number, number>>();
-      const kelasHeavyDays = new Map<string, Set<number>>();
       const kelasDayJP = new Map<string, Map<number, number>>();
-      // Track guru-kelas-day blocks for adjacency check
-      const guruKelasDay = new Map<string, { startJam: number; endJam: number }[]>();
-      // Track subject-kelas-day to prevent same subject appearing split on same day in same class
-      const subjectKelasDay = new Map<string, Set<number>>();
-      // Track number of BLOCKS (not JP) per guru per day for even distribution
+      const kelasHeavyDays = new Map<string, Set<number>>();
       const guruBlocksPerDay = new Map<string, Map<number, number>>();
-      // Precompute total blocks per guru for idealMaxBlocksPerDay calculation
+      const subjectKelasDay = new Map<string, Set<number>>();
+      const subjectKelasJam = new Map<string, Map<number, number>>();
+      const guruDayJams = new Map<string, Map<number, number[]>>();
+
+      // Precompute total blocks per guru for idealMaxBlocksPerDay
       const guruTotalBlocks = new Map<string, number>();
       for (const b of blocks) {
         guruTotalBlocks.set(b.guruId, (guruTotalBlocks.get(b.guruId) || 0) + 1);
       }
+
       const placed: any[] = [];
       const passResults: { pass: number; label: string; placed: number }[] = [];
 
-      const tryPlace = (block: Block, passLevel: number): { day: number; startJam: number } | null => {
-        const threshold = config.maxDailyJpThreshold || 20;
-        const maxDailyLimit = config.maxDailyJpLimit || 6;
+      const tryPlace = (block: Block, passLevel: number): { day: number; startJam: number; score: number } | null => {
+        const threshold = (config as any).maxDailyJpThreshold || 20;
+        const maxDailyLimit = (config as any).maxDailyJpLimit || 6;
         const totalJP = guruTotalJP.get(block.guruId) || 0;
         let best: { day: number; startJam: number; score: number } | null = null;
 
-        // Precompute guru active days and ideal max blocks per day
         const activeDays = dayList.filter(d => !guruUnavailDays.get(block.guruId)?.has(d)).length;
         const totalBlocksForGuru = guruTotalBlocks.get(block.guruId) || 1;
         const idealMaxBlocksPerDay = activeDays > 0 ? Math.ceil(totalBlocksForGuru / activeDays) : 99;
 
         for (const day of dayList) {
+          // HARD: guru hari kosong
           if (guruUnavailDays.get(block.guruId)?.has(day)) continue;
-          if (passLevel < 4 && block.isHeavy && kelasHeavyDays.get(block.kelasId)?.has(day)) continue;
-          // Prevent same subject from appearing twice on the same day in the same class (HARD constraint)
+
+          // HARD: same subject already on this day in same class
           const skdKey = `${block.subjectId}-${block.kelasId}`;
           if (subjectKelasDay.get(skdKey)?.has(day)) continue;
-          // Hard constraint pass 1: enforce even block distribution per day
-          const guruBlocksThisDay = ensureMap(guruBlocksPerDay, block.guruId).get(day) || 0;
-          if (passLevel <= 1 && guruBlocksThisDay >= idealMaxBlocksPerDay) continue;
-          if (passLevel < 3 && totalJP > threshold) {
-            const curJP = ensureMap(guruDayJP, block.guruId).get(day) || 0;
-            if (curJP + block.size > maxDailyLimit) continue;
+
+          // SOFT: heavy subject -- no 2 heavy subjects same day in same class
+          if (block.isHeavy && kelasHeavyDays.get(block.kelasId)?.has(day)) {
+            if (constraintMode === 'tepat') continue;
+            if (passLevel < 4) continue;
           }
-          // maxJamKe is a HARD constraint for ALL subjects — never relax it
-          const enforceAfternoon = block.maxJamKe && !(config.afternoonExcludeFriday && day === 5);
+
+          // SOFT: even block distribution per day for guru
+          const guruBlocksThisDay = ensureNumMap(guruBlocksPerDay, block.guruId).get(day) || 0;
+          if (constraintMode !== 'konsep') {
+            if (passLevel <= 1 && guruBlocksThisDay >= idealMaxBlocksPerDay) continue;
+          }
+
+          // SOFT: daily JP limit for high-JP gurus
+          if (constraintMode !== 'konsep' && passLevel < 3) {
+            if (totalJP > threshold) {
+              const curJP = ensureNumMap(guruDayJP, block.guruId).get(day) || 0;
+              if (curJP + block.size > maxDailyLimit) continue;
+            }
+          }
+
+          const currentGuruDayJP = ensureNumMap(guruDayJP, block.guruId).get(day) || 0;
           const targetPerDay = activeDays > 0 ? Math.ceil(totalJP / activeDays) : 99;
-          const currentGuruDayJP = ensureMap(guruDayJP, block.guruId).get(day) || 0;
-          const isOverloaded = passLevel < 2 && currentGuruDayJP >= Math.ceil(targetPerDay * 1.5);
-          const daySlots = daySlotCount.get(day) || 8;
-          const dayIsEven = daySlots % 2 === 0;
+          const isOverloaded = currentGuruDayJP >= Math.ceil(targetPerDay * 1.5);
+          if (constraintMode !== 'konsep' && passLevel < 2 && isOverloaded) continue;
+
+          // maxJamKe -- HARD constraint (with Friday exception from config)
+          const enforceMaxJam = block.maxJamKe && !((config as any).afternoonExcludeFriday && day === 5);
 
           const jams = availableDays.get(day)!;
+
           for (let si = 0; si <= jams.length - block.size; si++) {
+            // Check consecutive slots
             let consecutive = true;
-            for (let o = 1; o < block.size; o++) { if (jams[si + o] !== jams[si] + o) { consecutive = false; break; } }
+            for (let o = 1; o < block.size; o++) {
+              if (jams[si + o] !== jams[si] + o) { consecutive = false; break; }
+            }
             if (!consecutive) continue;
-            const startJam = jams[si], endJam = startJam + block.size - 1;
-            if (enforceAfternoon && endJam > block.maxJamKe!) continue;
-            // minJamKe is a HARD constraint — subject must start at or after minJamKe
+
+            const startJam = jams[si];
+            const endJam = startJam + block.size - 1;
+
+            // HARD: maxJamKe / minJamKe
+            if (enforceMaxJam && endJam > block.maxJamKe!) continue;
             if (block.minJamKe && startJam < block.minJamKe) continue;
+
+            // HARD: guru clash, kelas clash, guru slot unavailable, subject slot unavailable
             let allFree = true;
             let hasUnavailable = false;
             let conditionalCount = 0;
+            let subjectSlotPenalty = 0;
+
             for (let j = startJam; j <= endJam; j++) {
               const sk = slotKey(day, j);
-              if (ensureSet(guruSlots, block.guruId).has(sk) || ensureSet(kelasSlots, block.kelasId).has(sk)) { allFree = false; break; }
-              // Per-slot availability check
-              const slotSt = getSlotStatus(block.guruId, day, j);
-              if (slotSt === 'unavailable') { hasUnavailable = true; break; }
-              if (slotSt === 'conditional') conditionalCount++;
+              if (ensureSet(guruSlotsUsed, block.guruId).has(sk) || ensureSet(kelasSlotsUsed, block.kelasId).has(sk)) {
+                allFree = false; break;
+              }
+              const guruSS = getGuruSlotStatus(block.guruId, day, j);
+              if (guruSS === 'unavailable') { hasUnavailable = true; break; }
+              if (guruSS === 'conditional') conditionalCount++;
+
+              const subjSS = getSubjectSlotStatus(block.subjectId, day, j);
+              if (subjSS === 'unavailable') { hasUnavailable = true; break; }
+              if (subjSS === 'conditional') subjectSlotPenalty += 20;
             }
             if (!allFree || hasUnavailable) continue;
 
-            // === SCORING ===
-            let score = 100;
-            // S0: Penalize conditional slots (soft constraint)
-            score -= conditionalCount * 30;
-            // S0b: Bonus if all slots in block are fully available
-            if (conditionalCount === 0) score += 10;
-            // S1: Prefer morning for heavy subjects
-            if (block.isHeavy) score += (10 - startJam) * 3;
-            // S2: Spread guru blocks across days — strong penalty to prevent stacking
-            if (guruBlocksThisDay >= idealMaxBlocksPerDay) score -= 100;
-            score -= guruBlocksThisDay * 25; // progressive penalty per block already on this day
-            score -= currentGuruDayJP * 12; // also penalize JP accumulation
-            // S3: Spread kelas across days
-            score -= (ensureMap(kelasDayJP, block.kelasId).get(day) || 0) * 2;
-            // S4: Penalize overloaded days
-            if (isOverloaded) score -= 50;
-            // S5: Avoid heavy clash days
-            if (kelasHeavyDays.get(block.kelasId)?.has(day)) score -= 20;
-            // S6: DAY PARITY — penalize odd block on even day, prefer even blocks on even days
-            if (dayIsEven && block.size % 2 !== 0) score -= 15;
-            if (!dayIsEven && block.size === 3) score += 5; // prefer 3-blocks on odd days
-            // S7: GURU-KELAS ADJACENCY — penalize if guru already has adjacent block in same class on this day
-            const gkKey = `${block.guruId}-${block.kelasId}-${day}`;
-            const existingBlocks = guruKelasDay.get(gkKey) || [];
-            for (const eb of existingBlocks) {
-              if (startJam === eb.endJam + 1 || endJam === eb.startJam - 1) {
-                score -= 40; // heavily penalize back-to-back same guru same class
-                break;
+            // Check scheduling rules
+            const ruleCheck = checkSchedulingRules(
+              block, day, startJam, endJam,
+              subjectKelasDay, subjectKelasJam, passLevel,
+            );
+            if (!ruleCheck.ok) continue;
+
+            // Istirahat mode: check guru has at least 1 gap on this day
+            let istirahatPenalty = 0;
+            if (constraintMode === 'istirahat' && passLevel < 4) {
+              const guruJamsToday = guruDayJams.get(block.guruId)?.get(day) || [];
+              if (guruJamsToday.length > 0) {
+                const allJams = [...guruJamsToday];
+                for (let j = startJam; j <= endJam; j++) allJams.push(j);
+                allJams.sort((a, b) => a - b);
+                let maxStretch = 1, curStretch = 1;
+                for (let i = 1; i < allJams.length; i++) {
+                  if (allJams[i] === allJams[i - 1] + 1) { curStretch++; maxStretch = Math.max(maxStretch, curStretch); }
+                  else curStretch = 1;
+                }
+                if (maxStretch > 4) {
+                  if (passLevel < 3) continue;
+                  istirahatPenalty += (maxStretch - 4) * 25;
+                }
               }
             }
+
+            // === SCORING ===
+            let score = 100;
+            score -= conditionalCount * 30;
+            score -= subjectSlotPenalty;
+            if (conditionalCount === 0 && subjectSlotPenalty === 0) score += 10;
+            score -= ruleCheck.penalty;
+            if (block.isHeavy) score += (10 - startJam) * 3;
+            if (guruBlocksThisDay >= idealMaxBlocksPerDay) score -= 100;
+            score -= guruBlocksThisDay * 25;
+            score -= currentGuruDayJP * 12;
+            score -= (ensureNumMap(kelasDayJP, block.kelasId).get(day) || 0) * 2;
+            if (isOverloaded) score -= 50;
+            if (kelasHeavyDays.get(block.kelasId)?.has(day)) score -= 20;
+            score -= istirahatPenalty;
+            if (startJam === jams[0]) score += 3;
+            if (endJam === jams[jams.length - 1]) score += 3;
+
             if (!best || score > best.score) best = { day, startJam, score };
           }
         }
         return best;
       };
 
-      // Multi-pass
+      // --- Multi-pass placement ---
+
       let remaining = [...blocks];
-      for (let pass = 1; pass <= 5; pass++) {
+      for (let pass = 1; pass <= PASS_COUNT; pass++) {
         if (remaining.length === 0) break;
         const nextRemaining: Block[] = [];
         let placedThisPass = 0;
+
         for (const block of remaining) {
           const result = tryPlace(block, pass);
           if (!result) { nextRemaining.push(block); continue; }
+
           const { day, startJam } = result;
           for (let j = startJam; j < startJam + block.size; j++) {
             const sk = slotKey(day, j);
-            ensureSet(guruSlots, block.guruId).add(sk);
-            ensureSet(kelasSlots, block.kelasId).add(sk);
+            ensureSet(guruSlotsUsed, block.guruId).add(sk);
+            ensureSet(kelasSlotsUsed, block.kelasId).add(sk);
             let assignedRoom: string | null = null;
-            for (const room of rooms) { if (!ensureSet(roomSlots, room.id).has(sk)) { assignedRoom = room.id; roomSlots.get(room.id)!.add(sk); break; } }
-            placed.push({ academicYearId, semester, guruId: block.guruId, kelasId: block.kelasId, subjectId: block.subjectId, ruanganId: assignedRoom, dayOfWeek: day, jamKe: j });
+            for (const room of rooms) {
+              if (!ensureSet(roomSlotsUsed, room.id).has(sk)) {
+                assignedRoom = room.id;
+                roomSlotsUsed.get(room.id)!.add(sk);
+                break;
+              }
+            }
+            placed.push({
+              academicYearId, semester,
+              guruId: block.guruId, kelasId: block.kelasId,
+              subjectId: block.subjectId, ruanganId: assignedRoom,
+              dayOfWeek: day, jamKe: j,
+            });
           }
-          ensureMap(guruDayJP, block.guruId).set(day, (ensureMap(guruDayJP, block.guruId).get(day) || 0) + block.size);
-          ensureMap(kelasDayJP, block.kelasId).set(day, (ensureMap(kelasDayJP, block.kelasId).get(day) || 0) + block.size);
-          // Track guru blocks per day for even distribution
-          ensureMap(guruBlocksPerDay, block.guruId).set(day, (ensureMap(guruBlocksPerDay, block.guruId).get(day) || 0) + 1);
-          if (block.isHeavy) { if (!kelasHeavyDays.has(block.kelasId)) kelasHeavyDays.set(block.kelasId, new Set()); kelasHeavyDays.get(block.kelasId)!.add(day); }
-          // Track subject-kelas-day (prevent split same subject on same day)
+
+          // Update tracking maps
+          ensureNumMap(guruDayJP, block.guruId).set(day, (ensureNumMap(guruDayJP, block.guruId).get(day) || 0) + block.size);
+          ensureNumMap(kelasDayJP, block.kelasId).set(day, (ensureNumMap(kelasDayJP, block.kelasId).get(day) || 0) + block.size);
+          ensureNumMap(guruBlocksPerDay, block.guruId).set(day, (ensureNumMap(guruBlocksPerDay, block.guruId).get(day) || 0) + 1);
+
+          if (block.isHeavy) {
+            if (!kelasHeavyDays.has(block.kelasId)) kelasHeavyDays.set(block.kelasId, new Set());
+            kelasHeavyDays.get(block.kelasId)!.add(day);
+          }
+
           const skdKey2 = `${block.subjectId}-${block.kelasId}`;
           if (!subjectKelasDay.has(skdKey2)) subjectKelasDay.set(skdKey2, new Set());
           subjectKelasDay.get(skdKey2)!.add(day);
-          // Track guru-kelas adjacency
-          const gkKey = `${block.guruId}-${block.kelasId}-${day}`;
-          if (!guruKelasDay.has(gkKey)) guruKelasDay.set(gkKey, []);
-          guruKelasDay.get(gkKey)!.push({ startJam, endJam: startJam + block.size - 1 });
+
+          if (!subjectKelasJam.has(skdKey2)) subjectKelasJam.set(skdKey2, new Map());
+          subjectKelasJam.get(skdKey2)!.set(day, startJam);
+
+          // Track guru day jams for istirahat constraint
+          if (!guruDayJams.has(block.guruId)) guruDayJams.set(block.guruId, new Map());
+          const gdj = guruDayJams.get(block.guruId)!;
+          if (!gdj.has(day)) gdj.set(day, []);
+          for (let j = startJam; j < startJam + block.size; j++) gdj.get(day)!.push(j);
+
           block.passPlaced = pass;
           placedThisPass++;
         }
-        passResults.push({ pass, label: PASS_LABELS[pass - 1], placed: placedThisPass });
+
+        passResults.push({ pass, label: PASS_LABELS[pass - 1] || `Pass ${pass}`, placed: placedThisPass });
         remaining = nextRemaining;
 
-        // After pass 5: try decomposing failed 3-blocks into 2+1
-        if (pass === 5 && remaining.length > 0) {
+        // After last pass: try decomposing failed large blocks into smaller ones
+        if (pass === PASS_COUNT && remaining.length > 0) {
           const decomposed: Block[] = [];
           const stillFailed: Block[] = [];
           for (const b of remaining) {
@@ -979,46 +1268,47 @@ export class KbmService {
           if (decomposed.length > 0) {
             let decomposedPlaced = 0;
             for (const block of decomposed) {
-              const result = tryPlace(block, 5);
-              if (!result) { block.failReason = 'no_slot'; stillFailed.push(block); continue; }
-              const { day, startJam } = result;
+              const dResult = tryPlace(block, PASS_COUNT);
+              if (!dResult) { block.failReason = 'no_slot'; stillFailed.push(block); continue; }
+              const { day, startJam } = dResult;
               for (let j = startJam; j < startJam + block.size; j++) {
                 const sk = slotKey(day, j);
-                ensureSet(guruSlots, block.guruId).add(sk);
-                ensureSet(kelasSlots, block.kelasId).add(sk);
+                ensureSet(guruSlotsUsed, block.guruId).add(sk);
+                ensureSet(kelasSlotsUsed, block.kelasId).add(sk);
                 let assignedRoom: string | null = null;
-                for (const room of rooms) { if (!ensureSet(roomSlots, room.id).has(sk)) { assignedRoom = room.id; roomSlots.get(room.id)!.add(sk); break; } }
-                placed.push({ academicYearId, semester, guruId: block.guruId, kelasId: block.kelasId, subjectId: block.subjectId, ruanganId: assignedRoom, dayOfWeek: day, jamKe: j });
+                for (const room of rooms) {
+                  if (!ensureSet(roomSlotsUsed, room.id).has(sk)) {
+                    assignedRoom = room.id;
+                    roomSlotsUsed.get(room.id)!.add(sk);
+                    break;
+                  }
+                }
+                placed.push({
+                  academicYearId, semester,
+                  guruId: block.guruId, kelasId: block.kelasId,
+                  subjectId: block.subjectId, ruanganId: assignedRoom,
+                  dayOfWeek: day, jamKe: j,
+                });
               }
-              ensureMap(guruDayJP, block.guruId).set(day, (ensureMap(guruDayJP, block.guruId).get(day) || 0) + block.size);
-              ensureMap(kelasDayJP, block.kelasId).set(day, (ensureMap(kelasDayJP, block.kelasId).get(day) || 0) + block.size);
-              // Track subject-kelas-day in decompose too
+              ensureNumMap(guruDayJP, block.guruId).set(day, (ensureNumMap(guruDayJP, block.guruId).get(day) || 0) + block.size);
               const dskKey = `${block.subjectId}-${block.kelasId}`;
               if (!subjectKelasDay.has(dskKey)) subjectKelasDay.set(dskKey, new Set());
               subjectKelasDay.get(dskKey)!.add(day);
               decomposedPlaced++;
             }
-            if (decomposedPlaced > 0) passResults.push({ pass: 6, label: 'Decompose blok gagal (pecah 3->2+1, 2->1+1)', placed: decomposedPlaced });
+            if (decomposedPlaced > 0) passResults.push({ pass: PASS_COUNT + 1, label: 'Decompose blok gagal', placed: decomposedPlaced });
             remaining = stillFailed;
           }
         }
       }
 
-      // Final: set failReason on remaining
       for (const b of remaining) if (!b.failReason) b.failReason = 'no_slot';
       return { placed, failed: remaining, passResults };
     };
 
-    // --- Multiple attempts: 1JP blocks ALWAYS placed last ---
-    // --- Multiple attempts: full random + per-attempt chain swap ---
-    const MAX_ATTEMPTS = 100;
-    const blocksNormal = buildBlocks(false);
-    const blocksAutoSplit = buildBlocks(true);
-    blocksNormal.sort((a, b) => b.difficulty - a.difficulty);
-    blocksAutoSplit.sort((a, b) => b.difficulty - a.difficulty);
+    // --- 6. Chain swap rescue ---
 
-    // Chain swap rescue function - applied to each attempt
-    const applyChainSwap = (attempt: { placed: any[]; failed: Block[]; passResults: any[] }) => {
+    const applyChainSwap = (attempt: ReturnType<typeof runAttempt>) => {
       if (attempt.failed.length === 0) return;
       const ss = attempt.placed;
       const gA = new Map<string, number>();
@@ -1027,8 +1317,8 @@ export class KbmService {
         gA.set(`${ss[i].guruId}-${ss[i].dayOfWeek}-${ss[i].jamKe}`, i);
         kA.set(`${ss[i].kelasId}-${ss[i].dayOfWeek}-${ss[i].jamKe}`, i);
       }
-      const gF = (g: string, d: number, j: number) => !gA.has(`${g}-${d}-${j}`);
-      const kF = (k: string, d: number, j: number) => !kA.has(`${k}-${d}-${j}`);
+      const gFree = (g: string, d: number, j: number) => !gA.has(`${g}-${d}-${j}`);
+      const kFree = (k: string, d: number, j: number) => !kA.has(`${k}-${d}-${j}`);
       const mv = (idx: number, nd: number, nj: number) => {
         const s = ss[idx];
         gA.delete(`${s.guruId}-${s.dayOfWeek}-${s.jamKe}`);
@@ -1043,13 +1333,6 @@ export class KbmService {
         kA.set(`${b.kelasId}-${d}-${j}`, ss.length - 1);
       };
 
-      // Build subject-kelas-day map from placed slots for interleaving prevention
-      const skdMap = new Map<string, Set<number>>();
-      for (const s of ss) {
-        const k = `${s.subjectId}-${s.kelasId}`;
-        if (!skdMap.has(k)) skdMap.set(k, new Set());
-        skdMap.get(k)!.add(s.dayOfWeek);
-      }
       let rescued = 0;
       let rem = [...attempt.failed];
       let changed = true;
@@ -1062,62 +1345,62 @@ export class KbmService {
           for (const day of dayList) {
             if (ok) break;
             if (guruUnavailDays.get(block.guruId)?.has(day)) continue;
-            // Enforce subject-kelas-day in chain swap rescue
-            const rskKey = `${block.subjectId}-${block.kelasId}`;
-            if (skdMap.get(rskKey)?.has(day)) continue;
             const jams = availableDays.get(day)!;
             for (let si = 0; si <= jams.length - block.size; si++) {
               let con = true;
-              for (let o = 1; o < block.size; o++) { if (jams[si+o] !== jams[si]+o) { con = false; break; } }
+              for (let o = 1; o < block.size; o++) { if (jams[si + o] !== jams[si] + o) { con = false; break; } }
               if (!con) continue;
               const sj = jams[si];
-              const ejr = sj + block.size - 1;
-              // Enforce maxJamKe in chain swap rescue too
-              if (block.maxJamKe && !(config.afternoonExcludeFriday && day === 5) && ejr > block.maxJamKe) continue;
-              // Enforce minJamKe in chain swap rescue too
+              const ej = sj + block.size - 1;
+              if (block.maxJamKe && !((config as any).afternoonExcludeFriday && day === 5) && ej > block.maxJamKe) continue;
               if (block.minJamKe && sj < block.minJamKe) continue;
+              // Check subject + guru slot availability (HARD)
+              let slotBlocked = false;
+              for (let j = sj; j <= ej; j++) {
+                if (getSubjectSlotStatus(block.subjectId, day, j) === 'unavailable') { slotBlocked = true; break; }
+                if (getGuruSlotStatus(block.guruId, day, j) === 'unavailable') { slotBlocked = true; break; }
+              }
+              if (slotBlocked) continue;
               let cf = true;
-              for (let j = sj; j < sj + block.size; j++) { if (!kF(block.kelasId, day, j)) { cf = false; break; } }
+              for (let j = sj; j < sj + block.size; j++) { if (!kFree(block.kelasId, day, j)) { cf = false; break; } }
               if (!cf) continue;
               let af = true;
-              for (let j = sj; j < sj + block.size; j++) { if (!gF(block.guruId, day, j)) { af = false; break; } }
+              for (let j = sj; j < sj + block.size; j++) { if (!gFree(block.guruId, day, j)) { af = false; break; } }
               if (af) {
                 for (let j = sj; j < sj + block.size; j++) pn(block, day, j);
-                if (!skdMap.has(rskKey)) skdMap.set(rskKey, new Set());
-                skdMap.get(rskKey)!.add(day);
                 ok = true; break;
               }
+              // 1-level swap for size=1 blocks
               if (block.size === 1) {
                 const bi = gA.get(`${block.guruId}-${day}-${sj}`);
                 if (bi === undefined) continue;
-                const b = ss[bi];
-                // 1-level swap
-                let m1 = false;
+                const bSlot = ss[bi];
+                let moved = false;
                 for (const ad of dayList) {
-                  if (guruUnavailDays.get(b.guruId)?.has(ad)) continue;
+                  if (guruUnavailDays.get(bSlot.guruId)?.has(ad)) continue;
                   for (const aj of availableDays.get(ad)!) {
                     if (ad === day && aj === sj) continue;
-                    if (!gF(b.guruId, ad, aj) || !kF(b.kelasId, ad, aj)) continue;
-                    mv(bi, ad, aj); pn(block, day, sj); ok = true; m1 = true; break;
+                    if (!gFree(bSlot.guruId, ad, aj) || !kFree(bSlot.kelasId, ad, aj)) continue;
+                    mv(bi, ad, aj); pn(block, day, sj); ok = true; moved = true; break;
                   }
-                  if (m1) break;
+                  if (moved) break;
                 }
                 if (ok) break;
                 // 2-level chain swap
                 for (const ad of dayList) {
                   if (ok) break;
-                  if (guruUnavailDays.get(b.guruId)?.has(ad)) continue;
+                  if (guruUnavailDays.get(bSlot.guruId)?.has(ad)) continue;
                   for (const aj of availableDays.get(ad)!) {
                     if (ad === day && aj === sj) continue;
-                    if (!kF(b.kelasId, ad, aj) || gF(b.guruId, ad, aj)) continue;
-                    const b2i = gA.get(`${b.guruId}-${ad}-${aj}`);
+                    if (!kFree(bSlot.kelasId, ad, aj) || gFree(bSlot.guruId, ad, aj)) continue;
+                    const b2i = gA.get(`${bSlot.guruId}-${ad}-${aj}`);
                     if (b2i === undefined || b2i === bi) continue;
                     for (const ad2 of dayList) {
                       if (ok) break;
                       if (guruUnavailDays.get(ss[b2i].guruId)?.has(ad2)) continue;
                       for (const aj2 of availableDays.get(ad2)!) {
                         if (ad2 === ad && aj2 === aj) continue;
-                        if (!gF(ss[b2i].guruId, ad2, aj2) || !kF(ss[b2i].kelasId, ad2, aj2)) continue;
+                        if (!gFree(ss[b2i].guruId, ad2, aj2) || !kFree(ss[b2i].kelasId, ad2, aj2)) continue;
                         mv(b2i, ad2, aj2); mv(bi, ad, aj); pn(block, day, sj); ok = true; break;
                       }
                     }
@@ -1132,26 +1415,39 @@ export class KbmService {
         }
         rem = next;
       }
-      if (rescued > 0) attempt.passResults.push({ pass: 8, label: `Swap rescue (${rescued} blok)`, placed: rescued });
+      if (rescued > 0) attempt.passResults.push({ pass: PASS_COUNT + 2, label: `Swap rescue (${rescued} blok)`, placed: rescued });
       attempt.failed = rem;
     };
 
-    // Run attempts: each gets its own chain swap rescue
-    emit({ phase: 'scheduling', progress: 10, detail: `Attempt 1/${MAX_ATTEMPTS} — ${blocksNormal.length} blok` });
+    // --- 7. Multi-attempt engine ---
+
+    const blocksNormal = buildBlocks(false);
+    const blocksAutoSplit = buildBlocks(true);
+    blocksNormal.sort((a, b) => b.difficulty - a.difficulty);
+    blocksAutoSplit.sort((a, b) => b.difficulty - a.difficulty);
+
+    emit({ phase: 'scheduling', progress: 12, detail: `Attempt 1/${MAX_ATTEMPTS} -- ${blocksNormal.length} blok, mode: ${constraintMode}` });
     let bestAttempt = runAttempt([...blocksNormal]);
     applyChainSwap(bestAttempt);
 
     if (bestAttempt.failed.length > 0) {
-      emit({ phase: 'scheduling', progress: 15, detail: `Attempt 2 (auto-split) — ${bestAttempt.failed.length} gagal` });
+      emit({ phase: 'scheduling', progress: 15, detail: `Attempt 2 (auto-split) -- ${bestAttempt.failed.length} gagal` });
       const r2 = runAttempt([...blocksAutoSplit]);
       applyChainSwap(r2);
       if (r2.failed.length < bestAttempt.failed.length) bestAttempt = r2;
     }
 
     for (let a = 2; a < MAX_ATTEMPTS && bestAttempt.failed.length > 0; a++) {
-      if (a % 5 === 0) emit({ phase: 'optimizing', progress: 15 + Math.round((a / MAX_ATTEMPTS) * 70), detail: `Attempt ${a + 1}/${MAX_ATTEMPTS} — terbaik: ${bestAttempt.failed.length} gagal` });
+      if (a % 10 === 0 || a === MAX_ATTEMPTS - 1) {
+        emit({
+          phase: 'optimizing',
+          progress: 15 + Math.round((a / MAX_ATTEMPTS) * 70),
+          detail: `Attempt ${a + 1}/${MAX_ATTEMPTS} -- terbaik: ${bestAttempt.failed.length} gagal`,
+        });
+      }
       const base = a % 2 === 0 ? blocksAutoSplit : blocksNormal;
       const shuffled = [...base];
+      // Fisher-Yates shuffle for genuine randomization per attempt
       for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
@@ -1162,45 +1458,56 @@ export class KbmService {
       if (bestAttempt.failed.length === 0) break;
     }
 
-    // Insert best attempt with version
+    // --- 8. Save best attempt ---
+
     emit({ phase: 'saving', progress: 90, detail: `Menyimpan ${bestAttempt.placed.length} slot...` });
 
-    // Count existing versions to auto-name
     let newVersion: any = null;
     let versionNum = 1;
     const totalSlots = blocksNormal.reduce((s, b) => s + b.size, 0);
     const now = new Date();
+
     try {
       const existingVersions = await db.select().from(jadwalVersion)
         .where(and(eq(jadwalVersion.academicYearId, academicYearId), eq(jadwalVersion.semester, semester)));
       versionNum = existingVersions.length + 1;
-      const versionName = `Auto v${versionNum} (${now.getDate()}/${now.getMonth() + 1})`;
 
-      // Deactivate old versions
+      const modeLabel: Record<string, string> = { konsep: 'Konsep', relax: 'Relax', istirahat: 'Istirahat', tepat: 'Tepat' };
+      const diffLabel: Record<string, string> = { normal: 'Normal', besar: 'Besar', sangat_besar: 'Sangat Besar' };
+      const versionName = `Auto v${versionNum} [${modeLabel[constraintMode] || constraintMode}/${diffLabel[difficulty] || difficulty}] (${now.getDate()}/${now.getMonth() + 1})`;
+
       if (existingVersions.length > 0) {
         await db.update(jadwalVersion).set({ isAktif: false })
           .where(and(eq(jadwalVersion.academicYearId, academicYearId), eq(jadwalVersion.semester, semester)));
       }
 
-      // Create new version
       [newVersion] = await db.insert(jadwalVersion).values({
         academicYearId, semester, nama: versionName, isAktif: true,
         totalSlots: bestAttempt.placed.length,
         totalFailed: bestAttempt.failed.reduce((s: number, b: any) => s + b.size, 0),
-        metadata: { passResults: bestAttempt.passResults, attempts: versionNum },
+        metadata: {
+          passResults: bestAttempt.passResults,
+          attempts: versionNum, difficulty, constraintMode,
+          schedulingRulesUsed: allRules.length,
+          subjectSlotsUsed: subjectSlotData.length,
+          guruSlotsUsed: slotAvailData.length,
+        },
       }).returning();
-    } catch { /* jadwal_version table may not exist yet — skip versioning */ }
+    } catch { /* jadwal_version table may not exist -- skip versioning */ }
 
-    // Insert jadwal rows tagged with versionId (if available)
+    // Insert jadwal rows in batches
     if (bestAttempt.placed.length > 0) {
-      const taggedSlots = bestAttempt.placed.map((p: any) => ({ ...p, ...(newVersion ? { versionId: newVersion.id } : {}) }));
+      const taggedSlots = bestAttempt.placed.map((p: any) => ({
+        ...p, ...(newVersion ? { versionId: newVersion.id } : {}),
+      }));
       for (let i = 0; i < taggedSlots.length; i += 100) {
         await db.insert(kbmJadwal).values(taggedSlots.slice(i, i + 100));
       }
     }
+
     emit({ phase: 'done', progress: 100, detail: 'Selesai' });
 
-    const versionName = newVersion?.nama || `Auto (${now.getDate()}/${now.getMonth() + 1})`;
+    const finalVersionName = newVersion?.nama || `Auto (${now.getDate()}/${now.getMonth() + 1})`;
     return {
       generated: bestAttempt.placed.length,
       failed: bestAttempt.failed.reduce((s: number, b: any) => s + b.size, 0),
@@ -1208,17 +1515,27 @@ export class KbmService {
       blocks: blocksNormal.length,
       failedBlocks: bestAttempt.failed.length,
       versionId: newVersion?.id || null,
-      versionName,
-      message: `${bestAttempt.placed.length} slot berhasil (${blocksNormal.length} blok)${bestAttempt.failed.length > 0 ? `, ${bestAttempt.failed.length} blok gagal` : ''} — ${versionName}`,
+      versionName: finalVersionName,
+      message: `${bestAttempt.placed.length} slot berhasil (${blocksNormal.length} blok)${bestAttempt.failed.length > 0 ? `, ${bestAttempt.failed.length} blok gagal` : ''} -- ${finalVersionName}`,
       report: {
         passResults: bestAttempt.passResults,
-        attempts: versionNum,
+        attempts: versionNum, difficulty, constraintMode,
+        constraintsUsed: {
+          schedulingRules: allRules.length,
+          subjectSlotConstraints: subjectSlotData.length,
+          guruSlotConstraints: slotAvailData.length,
+          guruUnavailDays: unavail.length,
+        },
         failedDetails: await Promise.all(bestAttempt.failed.map(async (b: any) => {
           const subj = subjectMap.get(b.subjectId);
           const kelasResult = await db.execute(sql`SELECT name FROM classes WHERE id = ${b.kelasId} LIMIT 1`);
           const kelasRow = ((kelasResult as any).rows || kelasResult)?.[0];
           const kelasName = (kelasRow as any)?.name || b.kelasId;
-          return { subject: subj?.nama || b.subjectId, kode: subj?.kode || '?', size: b.size, guruId: b.guruId, kelasId: b.kelasId, subjectId: b.subjectId, kelasName, reason: b.failReason || 'no_slot' };
+          return {
+            subject: subj?.nama || b.subjectId, kode: subj?.kode || '?',
+            size: b.size, guruId: b.guruId, kelasId: b.kelasId,
+            subjectId: b.subjectId, kelasName, reason: b.failReason || 'no_slot',
+          };
         })),
       },
     };
