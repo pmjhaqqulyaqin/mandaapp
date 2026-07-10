@@ -9,9 +9,9 @@ interface Announcement {
   title: string;
   description?: string;
   type: 'image' | 'announcement';
-  image_url?: string;
-  link_url?: string;
-  link_label?: string;
+  imageUrl?: string;
+  linkUrl?: string;
+  linkLabel?: string;
 }
 
 /**
@@ -137,9 +137,9 @@ export const AnnouncementPopup: React.FC = () => {
           {current.type === 'image' ? (
             /* ====== IMAGE TYPE ====== */
             <div className="relative">
-              {current.image_url ? (
+              {current.imageUrl ? (
                 <img
-                  src={resolveUrl(current.image_url)}
+                  src={resolveUrl(current.imageUrl)}
                   alt={current.title}
                   className="w-full h-auto max-h-[75vh] object-contain bg-gray-100"
                   loading="eager"
@@ -173,10 +173,10 @@ export const AnnouncementPopup: React.FC = () => {
               <div className="w-10 h-0.5 mx-auto my-3 rounded-full bg-gradient-to-r from-amber-400 to-emerald-500" />
 
               {/* Optional Image */}
-              {current.image_url && (
+              {current.imageUrl && (
                 <div className="mb-4 rounded-xl overflow-hidden shadow-md">
                   <img
-                    src={resolveUrl(current.image_url)}
+                    src={resolveUrl(current.imageUrl)}
                     alt={current.title}
                     className="w-full h-auto max-h-[40vh] object-contain bg-gray-50"
                     loading="eager"
@@ -199,15 +199,15 @@ export const AnnouncementPopup: React.FC = () => {
           <div className="flex items-center justify-between gap-2">
             {/* Link CTA */}
             <div className="flex-1 min-w-0">
-              {current.link_url ? (
+              {current.linkUrl ? (
                 <a
-                  href={current.link_url}
-                  target={current.link_url.startsWith('http') ? '_blank' : '_self'}
+                  href={current.linkUrl}
+                  target={current.linkUrl.startsWith('http') ? '_blank' : '_self'}
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-500 to-blue-600 text-white text-xs font-bold rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
                   onClick={handleDismiss}
                 >
-                  {current.link_label || 'Selengkapnya'}
+                  {current.linkLabel || 'Selengkapnya'}
                   <ExternalLink size={12} />
                 </a>
               ) : (

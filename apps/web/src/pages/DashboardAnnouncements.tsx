@@ -13,15 +13,15 @@ interface Announcement {
   title: string;
   description?: string;
   type: 'image' | 'announcement';
-  image_url?: string;
-  link_url?: string;
-  link_label?: string;
-  is_active: boolean;
-  start_date?: string;
-  end_date?: string;
+  imageUrl?: string;
+  linkUrl?: string;
+  linkLabel?: string;
+  isActive: boolean;
+  startDate?: string;
+  endDate?: string;
   priority: number;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 type AnnouncementFormData = {
@@ -52,11 +52,11 @@ const emptyForm: AnnouncementFormData = {
 
 function getStatusBadge(item: Announcement) {
   const now = new Date();
-  if (!item.is_active) {
+  if (!item.isActive) {
     return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">🔴 Nonaktif</span>;
   }
-  const start = item.start_date ? new Date(item.start_date) : null;
-  const end = item.end_date ? new Date(item.end_date) : null;
+  const start = item.startDate ? new Date(item.startDate) : null;
+  const end = item.endDate ? new Date(item.endDate) : null;
   if (start && now < start) {
     return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">🟡 Terjadwal</span>;
   }
@@ -187,12 +187,12 @@ export const DashboardAnnouncements: React.FC = () => {
       title: item.title,
       description: item.description || '',
       type: item.type as 'image' | 'announcement',
-      imageUrl: item.image_url || '',
-      linkUrl: item.link_url || '',
-      linkLabel: item.link_label || '',
-      isActive: item.is_active,
-      startDate: toLocalDatetime(item.start_date),
-      endDate: toLocalDatetime(item.end_date),
+      imageUrl: item.imageUrl || '',
+      linkUrl: item.linkUrl || '',
+      linkLabel: item.linkLabel || '',
+      isActive: item.isActive,
+      startDate: toLocalDatetime(item.startDate),
+      endDate: toLocalDatetime(item.endDate),
       priority: item.priority,
     });
     setEditingId(item.id);
@@ -302,9 +302,9 @@ export const DashboardAnnouncements: React.FC = () => {
                     {/* Title + thumbnail */}
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
-                        {item.image_url ? (
+                        {item.imageUrl ? (
                           <img
-                            src={resolveUrl(item.image_url)}
+                            src={resolveUrl(item.imageUrl)}
                             alt=""
                             className="w-10 h-10 rounded-lg object-cover bg-gray-100 shrink-0"
                           />
@@ -315,9 +315,9 @@ export const DashboardAnnouncements: React.FC = () => {
                         )}
                         <div className="min-w-0">
                           <p className="font-semibold text-gray-900 dark:text-white truncate max-w-[250px]">{item.title}</p>
-                          {item.link_url && (
+                          {item.linkUrl && (
                             <p className="text-[10px] text-blue-500 flex items-center gap-1 mt-0.5">
-                              <LinkIcon size={9} /> {item.link_label || 'Link'}
+                              <LinkIcon size={9} /> {item.linkLabel || 'Link'}
                             </p>
                           )}
                         </div>
@@ -338,8 +338,8 @@ export const DashboardAnnouncements: React.FC = () => {
                     {/* Schedule */}
                     <td className="py-3 px-3">
                       <div className="text-[11px] text-gray-500 dark:text-gray-400 space-y-0.5">
-                        <div>Mulai: {formatDate(item.start_date)}</div>
-                        <div>Selesai: {formatDate(item.end_date)}</div>
+                        <div>Mulai: {formatDate(item.startDate)}</div>
+                        <div>Selesai: {formatDate(item.endDate)}</div>
                       </div>
                     </td>
                     {/* Priority */}
@@ -354,13 +354,13 @@ export const DashboardAnnouncements: React.FC = () => {
                         <button
                           onClick={() => handleToggle(item.id)}
                           className={`p-1.5 rounded-lg transition-all ${
-                            item.is_active
+                            item.isActive
                               ? 'text-emerald-600 hover:bg-emerald-50'
                               : 'text-gray-400 hover:bg-gray-100'
                           }`}
-                          title={item.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                          title={item.isActive ? 'Nonaktifkan' : 'Aktifkan'}
                         >
-                          {item.is_active ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                          {item.isActive ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
                         </button>
                         <button
                           onClick={() => handleEdit(item)}
@@ -389,8 +389,8 @@ export const DashboardAnnouncements: React.FC = () => {
             {filteredItems.map((item) => (
               <div key={item.id} className="p-4 space-y-3">
                 <div className="flex items-start gap-3">
-                  {item.image_url ? (
-                    <img src={resolveUrl(item.image_url)} alt="" className="w-12 h-12 rounded-xl object-cover bg-gray-100 shrink-0" />
+                  {item.imageUrl ? (
+                    <img src={resolveUrl(item.imageUrl)} alt="" className="w-12 h-12 rounded-xl object-cover bg-gray-100 shrink-0" />
                   ) : (
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-100 to-emerald-100 flex items-center justify-center shrink-0">
                       <Megaphone size={18} className="text-emerald-500" />
@@ -409,10 +409,10 @@ export const DashboardAnnouncements: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <div className="text-[10px] text-gray-400">{formatDate(item.start_date)} — {formatDate(item.end_date)}</div>
+                  <div className="text-[10px] text-gray-400">{formatDate(item.startDate)} — {formatDate(item.endDate)}</div>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => handleToggle(item.id)} className={`p-1.5 rounded-lg ${item.is_active ? 'text-emerald-600' : 'text-gray-400'}`}>
-                      {item.is_active ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                    <button onClick={() => handleToggle(item.id)} className={`p-1.5 rounded-lg ${item.isActive ? 'text-emerald-600' : 'text-gray-400'}`}>
+                      {item.isActive ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
                     </button>
                     <button onClick={() => handleEdit(item)} className="p-1.5 rounded-lg text-blue-600"><Pencil size={14} /></button>
                     <button onClick={() => setDeleteConfirm(item.id)} className="p-1.5 rounded-lg text-red-500"><Trash2 size={14} /></button>
