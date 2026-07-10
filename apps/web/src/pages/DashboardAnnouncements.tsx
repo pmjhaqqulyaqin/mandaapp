@@ -24,7 +24,7 @@ interface Announcement {
   updated_at: string;
 }
 
-type FormData = {
+type AnnouncementFormData = {
   title: string;
   description: string;
   type: 'image' | 'announcement';
@@ -37,7 +37,7 @@ type FormData = {
   priority: number;
 };
 
-const emptyForm: FormData = {
+const emptyForm: AnnouncementFormData = {
   title: '',
   description: '',
   type: 'image',

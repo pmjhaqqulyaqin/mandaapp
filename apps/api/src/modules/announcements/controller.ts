@@ -30,9 +30,19 @@ export class AnnouncementController {
   /** Admin: Create announcement */
   static async create(req: Request, res: Response) {
     try {
+      const b = req.body;
       const item = await AnnouncementService.create({
-        ...req.body,
-        createdBy: req.authUser!.id,
+        title: b.title,
+        description: b.description || null,
+        type: b.type || 'image',
+        imageUrl: b.imageUrl || null,
+        linkUrl: b.linkUrl || null,
+        linkLabel: b.linkLabel || null,
+        isActive: b.isActive !== false,
+        startDate: b.startDate ? new Date(b.startDate) : null,
+        endDate: b.endDate ? new Date(b.endDate) : null,
+        priority: parseInt(b.priority) || 0,
+        createdBy: req.authUser?.id || null,
       });
       res.status(201).json(item);
     } catch (error: any) {
@@ -44,7 +54,20 @@ export class AnnouncementController {
   /** Admin: Update announcement */
   static async update(req: Request, res: Response) {
     try {
-      const item = await AnnouncementService.update(req.params.id, req.body);
+      const b = req.body;
+      const updateData: any = {};
+      if (b.title !== undefined) updateData.title = b.title;
+      if (b.description !== undefined) updateData.description = b.description || null;
+      if (b.type !== undefined) updateData.type = b.type;
+      if (b.imageUrl !== undefined) updateData.imageUrl = b.imageUrl || null;
+      if (b.linkUrl !== undefined) updateData.linkUrl = b.linkUrl || null;
+      if (b.linkLabel !== undefined) updateData.linkLabel = b.linkLabel || null;
+      if (b.isActive !== undefined) updateData.isActive = b.isActive;
+      if (b.startDate !== undefined) updateData.startDate = b.startDate ? new Date(b.startDate) : null;
+      if (b.endDate !== undefined) updateData.endDate = b.endDate ? new Date(b.endDate) : null;
+      if (b.priority !== undefined) updateData.priority = parseInt(b.priority) || 0;
+
+      const item = await AnnouncementService.update(req.params.id, updateData);
       if (!item) return res.status(404).json({ error: "Announcement not found" });
       res.json(item);
     } catch (error: any) {
