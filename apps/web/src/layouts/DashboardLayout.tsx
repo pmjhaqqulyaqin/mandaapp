@@ -63,6 +63,7 @@ import {
   BarChart3,
   Trophy,
   LayoutDashboard,
+  Megaphone,
 } from 'lucide-react';
 import { ProfileModal } from '../components/modals/ProfileModal';
 
@@ -320,6 +321,13 @@ const ALL_MENU_ITEMS = [
     group: 'main',
   },
   {
+    key: 'announcements',
+    label: 'Popup Pengumuman',
+    href: '/dashboard/announcements',
+    icon: <Megaphone size={16} />,
+    group: 'main',
+  },
+  {
     key: 'pages',
     label: 'Manajemen Halaman',
     href: '/dashboard/pages',
@@ -394,6 +402,7 @@ const MENU_ICON_COLORS: Record<string, { bg: string; text: string }> = {
   'ijazah':        { bg: 'bg-gradient-to-br from-fuchsia-400 to-fuchsia-500', text: 'text-white' },
   'ptsp':          { bg: 'bg-gradient-to-br from-blue-400 to-indigo-500',     text: 'text-white' },
   'contacts':      { bg: 'bg-gradient-to-br from-green-400 to-emerald-500',   text: 'text-white' },
+  'announcements': { bg: 'bg-gradient-to-br from-amber-400 to-orange-500',    text: 'text-white' },
   'alumni':        { bg: 'bg-gradient-to-br from-blue-400 to-indigo-500',     text: 'text-white' },
   'mutasi':        { bg: 'bg-gradient-to-br from-rose-400 to-red-500',        text: 'text-white' },
   // Data Master
@@ -436,6 +445,7 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'exams': 'exams',
   'ppdb': 'ppdb',
   'ppdb/penilaian': 'penilaian-pmb',
+  'announcements': 'announcements',
 };
 
 // ── Sidebar category system ──
@@ -481,6 +491,7 @@ const MENU_CATEGORY_MAP: Record<string, MenuCategory> = {
   'ijazah': 'app-dashboard',
   'ptsp': 'app-dashboard',
   'contacts': 'app-dashboard',
+  'announcements': 'app-dashboard',
   'pages': 'administrator',
   'menus': 'administrator',
   'settings': 'administrator',

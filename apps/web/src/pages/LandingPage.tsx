@@ -19,6 +19,7 @@ import { HeaderWithSettings } from '../components/HeaderWithSettings';
 import { API_BASE_URL } from '../lib/api';
 import { SEO } from '../components/SEO';
 import { PPDBPopupModal } from './ppdb/components/PPDBPopupModal';
+import { AnnouncementPopup } from '../components/AnnouncementPopup';
 import { useAuth } from '../contexts/AuthContext';
 import { Capacitor } from '@capacitor/core';
 
@@ -125,6 +126,7 @@ export const LandingPage = () => {
       <SEO />
       <HeaderWithSettings />
       <main className="flex-1">
+        <AnnouncementPopup />
         <PPDBPopupModal />
         <HeroSection 
           logoUrl={resolvedLogo} 

@@ -1245,3 +1245,21 @@ export const subjectSlotAvailability = pgTable("subject_slot_availability", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Popup Announcements — dynamic popup system for landing page
+export const popupAnnouncements = pgTable("popup_announcements", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),                       // Opsional: teks pengumuman
+  type: varchar("type", { length: 30 }).notNull().default("image"), // 'image' | 'announcement'
+  imageUrl: text("image_url"),                            // URL gambar/poster
+  linkUrl: text("link_url"),                              // Opsional: link tujuan
+  linkLabel: varchar("link_label", { length: 100 }),      // Label tombol link
+  isActive: boolean("is_active").default(true),           // Toggle aktif/nonaktif manual
+  startDate: timestamp("start_date"),                     // Kapan mulai tampil
+  endDate: timestamp("end_date"),                         // Kapan berhenti tampil
+  priority: integer("priority").default(0),               // Semakin tinggi = tampil duluan
+  createdBy: text("created_by"),                          // ID admin yang membuat
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});

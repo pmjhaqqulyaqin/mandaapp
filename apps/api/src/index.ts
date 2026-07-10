@@ -40,6 +40,7 @@ import { tracerRoutes } from './modules/tracer/routes';
 import mutationRoutes from './modules/mutation';
 import { teacherDutiesRouter } from './modules/teacher-duties/routes';
 import { subjectRoutes } from './modules/subjects';
+import { announcementsRoutes } from './modules/announcements/routes';
 
 dotenv.config();
 
@@ -202,6 +203,7 @@ app.use("/api/tracer", tracerRoutes);
 app.use("/api/mutations", mutationRoutes);
 app.use("/api/teacher-duties", teacherDutiesRouter);
 app.use("/api/subjects", subjectRoutes);
+app.use("/api/announcements", announcementsRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -793,6 +795,28 @@ async function runAutoMigration() {
       );
     `);
     logger.info("Teacher duties tables ready.");
+
+    // Auto-create Popup Announcements table
+    logger.info("Checking popup_announcements table...");
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "popup_announcements" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        "title" varchar(255) NOT NULL,
+        "description" text,
+        "type" varchar(30) NOT NULL DEFAULT 'image',
+        "image_url" text,
+        "link_url" text,
+        "link_label" varchar(100),
+        "is_active" boolean DEFAULT true,
+        "start_date" timestamp,
+        "end_date" timestamp,
+        "priority" integer DEFAULT 0,
+        "created_by" text,
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `);
+    logger.info("Popup announcements table ready.");
 
   } catch (err) {
     logger.error({ err }, "Auto-migration failed");
