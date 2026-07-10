@@ -9,21 +9,21 @@ import { SettingsService } from "../settings/service";
 // All available menu keys
 const ALL_MENU_KEYS = [
   "overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "classes", "employees", "nis",
-  "gallery", "contacts", "pages", "menus", "settings", "users", "updates", "e-office", "ptsp", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm", "subjects", "alumni", "mutasi"
+  "gallery", "contacts", "pages", "menus", "settings", "users", "updates", "e-office", "ptsp", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm", "subjects", "alumni", "mutasi", "announcements"
 ];
 
 const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
   admin: ALL_MENU_KEYS,
-  kepala_madrasah: ["overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm", "subjects", "alumni", "mutasi"],
-  wakil_kepala: ["overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm", "subjects", "alumni", "mutasi"],
+  kepala_madrasah: ["overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm", "subjects", "alumni", "mutasi", "announcements"],
+  wakil_kepala: ["overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm", "subjects", "alumni", "mutasi", "announcements"],
   kepala_unit: ["overview", "news", "calendar", "teacher-duties", "student-card", "gallery", "contacts", "exams", "penilaian-pmb", "attendance"],
   wali_kelas: ["overview", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "gallery", "penilaian-pmb", "ijazah", "attendance", "jurnal"],
   pembina_ekstra: ["overview", "news", "calendar", "teacher-duties", "student-card", "gallery", "penilaian-pmb"],
   guru: ["overview", "news", "calendar", "teacher-duties", "student-card", "exams", "penilaian-pmb", "attendance", "jurnal"],
   student: ["overview", "calendar", "student-card"],
-  kepala_tu: ["overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm", "subjects", "alumni", "mutasi"],
-  pegawai_tu: ["overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "employees", "e-office", "ppdb", "penilaian-pmb", "ijazah", "attendance", "kbm", "subjects", "alumni", "mutasi"],
-  operator: ["overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "employees", "gallery", "e-office", "ppdb", "penilaian-pmb", "ijazah", "attendance", "kbm", "subjects", "alumni", "mutasi"],
+  kepala_tu: ["overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm", "subjects", "alumni", "mutasi", "announcements"],
+  pegawai_tu: ["overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "employees", "e-office", "ppdb", "penilaian-pmb", "ijazah", "attendance", "kbm", "subjects", "alumni", "mutasi", "announcements"],
+  operator: ["overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "employees", "gallery", "e-office", "ppdb", "penilaian-pmb", "ijazah", "attendance", "kbm", "subjects", "alumni", "mutasi", "announcements"],
 };
 
 export async function getAuditLogsHandler(req: Request, res: Response) {
