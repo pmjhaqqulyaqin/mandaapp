@@ -155,11 +155,28 @@ export const PPDBPopupModal: React.FC<PPDBPopupModalProps> = ({ onClose }) => {
               setCountdownLabel(cdLabel);
               setTimeLeft(calculateTimeLeft(cdTarget));
             }
-            // Show after a brief delay for page load
-            setTimeout(() => {
-              setIsVisible(true);
-              setTimeout(() => setIsAnimating(true), 50);
-            }, 800);
+
+            // Helper to actually show the popup
+            const showPopup = () => {
+              setTimeout(() => {
+                setIsVisible(true);
+                setTimeout(() => setIsAnimating(true), 50);
+              }, 800);
+            };
+
+            // Check if AnnouncementPopup is currently showing (z-10000 element exists)
+            const announcementEl = document.querySelector('[class*="z-[10000]"]');
+            if (announcementEl) {
+              // Wait for announcement popup to close first
+              const handler = () => {
+                showPopup();
+                window.removeEventListener('announcement-popup-closed', handler);
+              };
+              window.addEventListener('announcement-popup-closed', handler);
+            } else {
+              // No announcement popup — show immediately
+              showPopup();
+            }
           }
         }
       } catch (err) {

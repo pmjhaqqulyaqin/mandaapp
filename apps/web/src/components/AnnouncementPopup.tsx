@@ -63,7 +63,11 @@ export const AnnouncementPopup: React.FC = () => {
 
   const handleDismiss = useCallback(() => {
     setIsAnimating(false);
-    setTimeout(() => setIsVisible(false), 300);
+    setTimeout(() => {
+      setIsVisible(false);
+      // Signal PPDBPopupModal that it can now show
+      window.dispatchEvent(new CustomEvent('announcement-popup-closed'));
+    }, 300);
   }, []);
 
   const goNext = useCallback(() => {
@@ -100,7 +104,7 @@ export const AnnouncementPopup: React.FC = () => {
 
   return (
     <div
-      className={`fixed inset-0 z-[9998] flex items-center justify-center p-4 transition-all duration-300 ${
+      className={`fixed inset-0 z-[10000] flex items-center justify-center p-4 transition-all duration-300 ${
         isAnimating ? 'opacity-100' : 'opacity-0'
       }`}
       onClick={handleDismiss}
