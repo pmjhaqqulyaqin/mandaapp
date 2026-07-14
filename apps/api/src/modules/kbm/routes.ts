@@ -82,6 +82,8 @@ router.post("/jadwal/manual-place", requireStaff, KbmController.manualPlaceBlock
 router.post("/jadwal/sync", requireStaff, KbmController.syncToJurnal);
 router.get("/jadwal/export", requireStaff, KbmController.exportJadwal);
 router.get("/jadwal/export-grid", requireStaff, KbmController.exportJadwalGrid);
+router.get("/jadwal/template", requireStaff, KbmController.downloadJadwalTemplate);
+router.post("/jadwal/import", requireStaff, upload.single('file'), KbmController.importJadwal);
 
 // Versioning
 router.get("/jadwal/versions", requireStaff, KbmController.listVersions);

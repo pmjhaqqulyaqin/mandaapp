@@ -1159,6 +1159,256 @@ export class KbmController {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
 
+  // ═══ Import Jadwal dari Excel ════════════════════════════════
+
+  static async downloadJadwalTemplate(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester } = req.query;
+      if (!academicYearId || !semester) return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+
+      const guruList = await KbmService.getGuruWithKode();
+      const subjectsList = await KbmService.getSubjects();
+      const classList = (await KbmService.getImportLookups()).classList.sort((a, b) => a.name.localeCompare(b.name));
+
+      const { academicYears } = await import('../../db/schema');
+      const { eq } = await import('drizzle-orm');
+      const { db } = await import('../../db');
+      const [ay] = await db.select().from(academicYears).where(eq(academicYears.id, academicYearId as string));
+      const tahunAjaran = ay?.tahunAjaran || '';
+      const semLabel = semester === 'ganjil' ? 'GANJIL' : 'GENAP';
+
+      // Build reference data
+      const guruRefs = guruList.filter(g => g.kodeGuru).sort((a, b) => {
+        const aNum = parseInt(a.kodeGuru || '999');
+        const bNum = parseInt(b.kodeGuru || '999');
+        if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+        return (a.kodeGuru || '').localeCompare(b.kodeGuru || '');
+      });
+      const subjectRefs = subjectsList.filter((s: any) => s.isActive !== false).sort((a: any, b: any) => (a.kode || '').localeCompare(b.kode || ''));
+
+      const classCount = classList.length;
+      const REF_GAP = 2;
+      const GURU_REF_COL = 2 + classCount + REF_GAP;
+      const MAPEL_REF_COL = GURU_REF_COL + 3;
+      const TOTAL_COLS = MAPEL_REF_COL + 3;
+
+      const makeRow = () => new Array(TOTAL_COLS).fill('');
+      const rows: any[][] = [];
+
+      // Row 0: Title
+      const titleRow = makeRow();
+      titleRow[0] = `TEMPLATE JADWAL PELAJARAN SEMESTER ${semLabel}`;
+      rows.push(titleRow);
+
+      // Row 1: Subtitle
+      const subRow = makeRow();
+      subRow[0] = `TAHUN AJARAN  ${tahunAjaran}`;
+      rows.push(subRow);
+
+      // Row 2: Instructions
+      const instrRow = makeRow();
+      instrRow[0] = 'Isi cell dengan format: {KodeGuru}{KodeMapel}, contoh: 1A = Guru kode 1, Mapel kode A';
+      rows.push(instrRow);
+
+      // Row 3: Header
+      const headerRow = makeRow();
+      headerRow[0] = 'HARI';
+      headerRow[1] = 'JAM';
+      classList.forEach((c, i) => { headerRow[2 + i] = c.name; });
+      headerRow[GURU_REF_COL] = 'Kode & Nama Guru';
+      headerRow[MAPEL_REF_COL] = 'Kode & Mata Pelajaran';
+      rows.push(headerRow);
+
+      // Row 4: sub header
+      rows.push(makeRow());
+
+      const dayNames: Record<number, string> = { 1: 'SENIN', 2: 'SELASA', 3: 'RABU', 4: 'KAMIS', 5: 'JUMAT', 6: 'SABTU' };
+      let refIdx = 0;
+
+      const writeRef = (row: any[]) => {
+        if (refIdx < guruRefs.length) {
+          row[GURU_REF_COL] = guruRefs[refIdx].kodeGuru;
+          row[GURU_REF_COL + 1] = guruRefs[refIdx].name;
+        }
+        if (refIdx < subjectRefs.length) {
+          row[MAPEL_REF_COL] = (subjectRefs[refIdx] as any).kode;
+          row[MAPEL_REF_COL + 1] = (subjectRefs[refIdx] as any).nama;
+        }
+        refIdx++;
+      };
+
+      // Empty data rows for 6 days × 10 jam
+      for (const day of [1, 2, 3, 4, 5, 6]) {
+        const maxJam = 10;
+        for (let jam = 1; jam <= maxJam; jam++) {
+          const row = makeRow();
+          row[0] = jam === 1 ? dayNames[day] : '';
+          row[1] = jam;
+          writeRef(row);
+          rows.push(row);
+        }
+      }
+
+      // Remaining reference rows
+      while (refIdx < guruRefs.length || refIdx < subjectRefs.length) {
+        const row = makeRow();
+        writeRef(row);
+        rows.push(row);
+      }
+
+      const ws = xlsx.utils.aoa_to_sheet(rows);
+
+      // Column widths
+      const cols: any[] = [{ wch: 10 }, { wch: 5 }];
+      classList.forEach(() => cols.push({ wch: 9 }));
+      for (let i = 0; i < REF_GAP; i++) cols.push({ wch: 2 });
+      cols.push({ wch: 6 }, { wch: 32 }, { wch: 2 }); // guru ref
+      cols.push({ wch: 5 }, { wch: 28 }); // mapel ref
+      ws['!cols'] = cols;
+
+      const wb = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(wb, ws, 'Template Jadwal');
+
+      const buf = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      res.setHeader('Content-Disposition', `attachment; filename=template_jadwal_${semLabel.toLowerCase()}_${tahunAjaran.replace('/', '-')}.xlsx`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(Buffer.from(buf));
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  static async importJadwal(req: Request, res: Response) {
+    try {
+      const { academicYearId, semester } = req.body;
+      if (!academicYearId || !semester) {
+        return res.status(400).json({ error: "academicYearId dan semester diperlukan" });
+      }
+      if (!req.file) {
+        return res.status(400).json({ error: "File Excel diperlukan" });
+      }
+
+      const wb = xlsx.read(req.file.buffer, { type: 'buffer' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rawRows: any[][] = xlsx.utils.sheet_to_json(ws, { header: 1 });
+
+      if (rawRows.length < 5) {
+        return res.status(400).json({ error: "File kosong atau format tidak valid (minimal 5 baris: 3 baris title + 1 header + 1 data)" });
+      }
+
+      // Row 3 = header row (HARI, JAM, class1, class2, ...)
+      const headerRow = rawRows[3] as string[];
+      if (!headerRow || String(headerRow[0]).toUpperCase().trim() !== 'HARI' || String(headerRow[1]).toUpperCase().trim() !== 'JAM') {
+        return res.status(400).json({ error: "Format header tidak sesuai. Baris ke-4 harus berisi HARI, JAM, lalu nama-nama kelas" });
+      }
+
+      // Find class columns — start at col 2, stop at first empty/reference column
+      const classColumns: string[] = [];
+      for (let i = 2; i < headerRow.length; i++) {
+        const val = String(headerRow[i] || '').trim();
+        if (!val || val.toLowerCase().startsWith('kode')) break;
+        classColumns.push(val);
+      }
+
+      if (classColumns.length === 0) {
+        return res.status(400).json({ error: "Tidak ditemukan kolom kelas di header" });
+      }
+
+      // Load lookup data
+      const lookups = await KbmService.getImportLookups();
+      const guruKodeMap = new Map<string, string>(); // kodeGuru → guruId
+      const guruList = await KbmService.getGuruWithKode();
+      guruList.forEach(g => { if (g.kodeGuru) guruKodeMap.set(g.kodeGuru.trim(), g.id); });
+
+      const subjectKodeMap = new Map<string, string>(); // kodeMapel → subjectId
+      const subjectsList = await KbmService.getSubjects();
+      subjectsList.forEach((s: any) => { subjectKodeMap.set(s.kode.trim().toUpperCase(), s.id); });
+
+      const classMap = new Map<string, string>(); // className → classId
+      lookups.classList.forEach(c => { classMap.set(c.name.trim().toUpperCase(), c.id); });
+
+      const dayNameMap: Record<string, number> = {
+        'SENIN': 1, 'SELASA': 2, 'RABU': 3, 'KAMIS': 4, 'JUMAT': 5, 'SABTU': 6,
+      };
+
+      const records: { academicYearId: string; semester: string; guruId: string; kelasId: string; subjectId: string; dayOfWeek: number; jamKe: number }[] = [];
+      const errors: string[] = [];
+      let currentDay = 0;
+
+      // Parse data rows (row 4+ = after sub-header, so start at index 4)
+      for (let i = 4; i < rawRows.length; i++) {
+        const row = rawRows[i];
+        if (!row || row.length < 2) continue;
+
+        const dayCell = String(row[0] || '').trim().toUpperCase();
+        const jamCell = parseInt(String(row[1] || '0'));
+
+        // Update current day when encountering a day name
+        if (dayCell && dayNameMap[dayCell]) {
+          currentDay = dayNameMap[dayCell];
+        }
+
+        if (!currentDay || !jamCell || jamCell < 1) continue;
+
+        // Parse each class column
+        for (let j = 0; j < classColumns.length; j++) {
+          const cellValue = String(row[2 + j] || '').trim();
+          if (!cellValue) continue;
+
+          // Parse cell: {numeric guru kode}{alphabetic mapel kode}
+          // e.g., "1A", "3AA", "12AB"
+          const match = cellValue.match(/^(\d+)([A-Za-z]+)$/);
+          if (!match) {
+            errors.push(`${dayNameMap[dayCell] ? dayCell : `Hari ${currentDay}`} Jam ${jamCell}, ${classColumns[j]}: Format "${cellValue}" tidak valid (harus {angka}{huruf}, contoh: 1A)`);
+            continue;
+          }
+
+          const [, guruKode, mapelKode] = match;
+
+          // Lookup guru
+          const guruId = guruKodeMap.get(guruKode);
+          if (!guruId) {
+            errors.push(`${dayNameMap[dayCell] ? dayCell : `Hari ${currentDay}`} Jam ${jamCell}, ${classColumns[j]}: Kode guru "${guruKode}" tidak ditemukan`);
+            continue;
+          }
+
+          // Lookup mapel
+          const subjectId = subjectKodeMap.get(mapelKode.toUpperCase());
+          if (!subjectId) {
+            errors.push(`${dayNameMap[dayCell] ? dayCell : `Hari ${currentDay}`} Jam ${jamCell}, ${classColumns[j]}: Kode mapel "${mapelKode}" tidak ditemukan`);
+            continue;
+          }
+
+          // Lookup kelas
+          const kelasId = classMap.get(classColumns[j].toUpperCase());
+          if (!kelasId) {
+            errors.push(`${dayNameMap[dayCell] ? dayCell : `Hari ${currentDay}`} Jam ${jamCell}: Kelas "${classColumns[j]}" tidak ditemukan di database`);
+            continue;
+          }
+
+          records.push({ academicYearId: academicYearId as string, semester: semester as string, guruId, kelasId, subjectId, dayOfWeek: currentDay, jamKe: jamCell });
+        }
+      }
+
+      if (records.length === 0) {
+        return res.status(400).json({
+          error: "Tidak ada data jadwal valid yang ditemukan",
+          errors: errors.slice(0, 30),
+        });
+      }
+
+      // Import via service (clear old + create version + bulk insert)
+      const result = await KbmService.importJadwal(academicYearId as string, semester as string, records);
+
+      res.json({
+        success: true,
+        imported: result.imported,
+        total: records.length,
+        errors: errors.length > 0 ? errors.slice(0, 30) : [],
+        versionName: result.versionName,
+        message: `${result.imported} slot jadwal berhasil diimport${errors.length > 0 ? `, ${errors.length} error` : ''}`,
+      });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
   // ═══ Kode Guru ══════════════════════════════════════════════
 
   static async getGuruKode(_req: Request, res: Response) {

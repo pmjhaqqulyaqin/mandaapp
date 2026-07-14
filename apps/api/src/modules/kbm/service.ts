@@ -1,4 +1,4 @@
-﻿import { db } from "../../db";
+import { db } from "../../db";
 import {
   distribusiJam, tugasTambahanMaster, tugasTambahan,
   ruangan, employees, classes, academicYears, masterSubjects,
@@ -1591,6 +1591,53 @@ export class KbmService {
       }
     }
     return { direct, needSwap, otherClasses: otherClasses.slice(0, 50) };
+  }
+
+  // ═══ Import Jadwal dari Excel ════════════════════════════════
+
+  static async importJadwal(academicYearId: string, semester: string, records: { academicYearId: string; semester: string; guruId: string; kelasId: string; subjectId: string; dayOfWeek: number; jamKe: number }[]) {
+    // 1. Clear existing jadwal for this semester
+    await db.delete(kbmJadwal).where(
+      and(eq(kbmJadwal.academicYearId, academicYearId), eq(kbmJadwal.semester, semester))
+    );
+
+    // 2. Create new version
+    let newVersion: any = null;
+    const now = new Date();
+    try {
+      const existingVersions = await db.select().from(jadwalVersion)
+        .where(and(eq(jadwalVersion.academicYearId, academicYearId), eq(jadwalVersion.semester, semester)));
+      const versionNum = existingVersions.length + 1;
+      const versionName = `Import Manual v${versionNum} (${now.getDate()}/${now.getMonth() + 1})`;
+
+      // Deactivate existing versions
+      if (existingVersions.length > 0) {
+        await db.update(jadwalVersion).set({ isAktif: false })
+          .where(and(eq(jadwalVersion.academicYearId, academicYearId), eq(jadwalVersion.semester, semester)));
+      }
+
+      [newVersion] = await db.insert(jadwalVersion).values({
+        academicYearId, semester, nama: versionName, isAktif: true,
+        totalSlots: records.length,
+        totalFailed: 0,
+        metadata: { source: 'excel-import', importedAt: now.toISOString() },
+      }).returning();
+    } catch { /* jadwal_version table may not exist -- skip versioning */ }
+
+    // 3. Bulk insert in batches
+    const taggedRecords = records.map(r => ({
+      ...r, ruanganId: null, ...(newVersion ? { versionId: newVersion.id } : {}),
+    }));
+
+    for (let i = 0; i < taggedRecords.length; i += 100) {
+      await db.insert(kbmJadwal).values(taggedRecords.slice(i, i + 100));
+    }
+
+    return {
+      imported: records.length,
+      versionName: newVersion?.nama || `Import Manual (${now.getDate()}/${now.getMonth() + 1})`,
+      message: `${records.length} slot jadwal berhasil diimport`,
+    };
   }
 
   static async manualPlaceBlock(academicYearId: string, semester: string, guruId: string, kelasId: string, subjectId: string, dayOfWeek: number, jamKe: number) {

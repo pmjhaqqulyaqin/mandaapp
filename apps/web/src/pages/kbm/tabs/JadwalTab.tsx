@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { apiClient } from '../../../lib/api';
-import { Download, FileSpreadsheet, RefreshCw, Zap, Trash2, AlertTriangle, Loader2, ChevronDown, CheckCircle2, XCircle, MapPin, GripVertical, ArrowLeftRight, Clock, Maximize2, Minimize2, Bot, ShieldCheck, Coffee, Target, FlaskConical } from 'lucide-react';
+import { Download, FileSpreadsheet, RefreshCw, Zap, Trash2, AlertTriangle, Loader2, ChevronDown, CheckCircle2, XCircle, MapPin, GripVertical, ArrowLeftRight, Clock, Maximize2, Minimize2, Bot, ShieldCheck, Coffee, Target, FlaskConical, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { DndContext, DragOverlay, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core';
 
@@ -125,6 +125,10 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const fullscreenRef = useRef<HTMLDivElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [showConfirmImport, setShowConfirmImport] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   // Generate options state
   const [genOptions, setGenOptions] = useState({
@@ -389,6 +393,57 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
     import('@/lib/mobileUtils').then(m => m.downloadFileFromUrl(`/api/kbm/jadwal/export-grid?academicYearId=${academicYearId}&semester=${semester}`, `Jadwal_Grid.xlsx`));
   };
 
+  const handleDownloadTemplate = () => {
+    import('@/lib/mobileUtils').then(m => m.downloadFileFromUrl(`/api/kbm/jadwal/template?academicYearId=${academicYearId}&semester=${semester}`, `Template_Jadwal.xlsx`));
+  };
+
+  const handleImportFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setImportFile(file);
+    setShowConfirmImport(true);
+  };
+
+  const handleImport = async () => {
+    if (!importFile) return;
+    setShowConfirmImport(false);
+    setImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+      formData.append('academicYearId', academicYearId);
+      formData.append('semester', semester);
+
+      const res = await fetch('/api/kbm/jadwal/import', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || 'Gagal import');
+        if (data.errors?.length > 0) {
+          data.errors.slice(0, 10).forEach((err: string) => toast.warning(err, { duration: 6000 }));
+        }
+        return;
+      }
+
+      toast.success(data.message);
+      if (data.errors?.length > 0) {
+        data.errors.slice(0, 10).forEach((err: string) => toast.warning(err, { duration: 6000 }));
+      }
+      setGenerateReport(null);
+      loadData();
+    } catch {
+      toast.error('Gagal import file');
+    } finally {
+      setImporting(false);
+      setImportFile(null);
+    }
+  };
+
   if (!academicYearId) {
     return <div className="flex items-center justify-center py-20 text-gray-400 text-sm">Pilih Tahun Ajaran terlebih dahulu</div>;
   }
@@ -486,6 +541,18 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
                   <FileSpreadsheet size={13} /> Export Grid Kode
                 </button>
                 <div className="border-t border-gray-100 dark:border-[#333] my-1" />
+                {canEdit && (
+                  <>
+                    <button onClick={() => { handleDownloadTemplate(); setShowMenu(false); }} className="w-full text-left px-3 py-2.5 text-[12px] text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 flex items-center gap-2">
+                      <Download size={13} /> Download Template
+                    </button>
+                    <button onClick={() => { importFileRef.current?.click(); setShowMenu(false); }} disabled={importing} className="w-full text-left px-3 py-2.5 text-[12px] text-blue-700 dark:text-blue-400 font-semibold hover:bg-blue-50 dark:hover:bg-blue-500/10 flex items-center gap-2 disabled:opacity-50">
+                      {importing ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+                      {importing ? 'Mengimport...' : 'Import dari Excel'}
+                    </button>
+                    <div className="border-t border-gray-100 dark:border-[#333] my-1" />
+                  </>
+                )}
                 <button onClick={() => { handleCheckConflicts(); setShowMenu(false); }} className="w-full text-left px-3 py-2.5 text-[12px] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#222] flex items-center gap-2">
                   <AlertTriangle size={13} /> Cek Konflik
                 </button>
@@ -1021,6 +1088,57 @@ export const JadwalTab = ({ academicYearId, semester, canEdit }: Props) => {
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {/* Hidden file input for import */}
+      <input
+        ref={importFileRef}
+        type="file"
+        accept=".xlsx,.xls"
+        className="hidden"
+        onChange={handleImportFileSelected}
+      />
+      {/* Import Confirmation Modal */}
+      {showConfirmImport && importFile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => { setShowConfirmImport(false); setImportFile(null); }}>
+          <div className="bg-white dark:bg-[#161616] rounded-2xl w-full max-w-md p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg">
+                <Upload size={20} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 dark:text-white">Import Jadwal dari Excel</h3>
+                <p className="text-[10px] text-gray-400">Upload file grid kode jadwal</p>
+              </div>
+            </div>
+            <div className="rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 p-3 mb-3">
+              <p className="text-[12px] font-semibold text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                <FileSpreadsheet size={14} /> {importFile.name}
+              </p>
+              <p className="text-[10px] text-blue-600 dark:text-blue-300 mt-0.5">
+                {(importFile.size / 1024).toFixed(1)} KB
+              </p>
+            </div>
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 mb-4">
+              <AlertTriangle size={14} className="text-amber-500 mt-0.5 shrink-0" />
+              <div className="text-[10px] text-amber-700 dark:text-amber-300">
+                <p className="font-semibold mb-0.5">Perhatian:</p>
+                <ul className="space-y-0.5">
+                  <li>• Jadwal lama akan <strong>dihapus</strong> dan diganti dengan data dari file ini</li>
+                  <li>• Format cell harus <strong>{'{kodeGuru}{kodeMapel}'}</strong> (contoh: <strong>1A</strong> = guru kode 1 + mapel kode A)</li>
+                  <li>• Gunakan template yang bisa di-download dari menu "Download Template"</li>
+                </ul>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => { setShowConfirmImport(false); setImportFile(null); }} className="px-4 py-2.5 text-[12px] font-semibold rounded-xl border border-gray-200 dark:border-[#333] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-all">
+                Batal
+              </button>
+              <button onClick={handleImport} className="flex items-center gap-2 px-5 py-2.5 text-[12px] font-bold rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-lg active:scale-95 transition-all">
+                <Upload size={14} /> Import Sekarang
+              </button>
+            </div>
           </div>
         </div>
       )}
