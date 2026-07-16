@@ -81,7 +81,58 @@ export class JurnalService {
     const settingsMap: Record<string, string> = {};
     for (const s of deadlineSettings) { if (s.key && s.value) settingsMap[s.key] = s.value; }
 
-    const schedule = results.map(r => ({ ...r, alreadyFilled: filledIds.has(r.id) }));
+    // ── Merge consecutive same-subject same-class slots ──
+    // Parse jamKe to get numeric start value for sorting/merging
+    const parseJamStart = (jamKe: string | null): number => {
+      if (!jamKe) return 0;
+      const n = parseInt(jamKe.split('-')[0]);
+      return isNaN(n) ? 0 : n;
+    };
+    const parseJamEnd = (jamKe: string | null): number => {
+      if (!jamKe) return 0;
+      const parts = jamKe.split('-');
+      const n = parseInt(parts[parts.length - 1]);
+      return isNaN(n) ? parseJamStart(jamKe) : n;
+    };
+
+    // Sort by jamKe numerically
+    const sorted = [...results].sort((a, b) => parseJamStart(a.jamKe) - parseJamStart(b.jamKe));
+
+    // Group consecutive items with same subjectId + classId
+    const merged: Array<typeof sorted[0] & { allIds: string[] }> = [];
+    for (const item of sorted) {
+      const last = merged[merged.length - 1];
+      if (
+        last &&
+        last.subjectId && item.subjectId &&
+        last.subjectId === item.subjectId &&
+        last.classId === item.classId &&
+        parseJamStart(item.jamKe) === parseJamEnd(last.jamKe) + 1
+      ) {
+        // Extend the last group
+        const newEnd = parseJamEnd(item.jamKe);
+        const startJam = parseJamStart(last.jamKe);
+        last.jamKe = startJam === newEnd ? String(startJam) : `${startJam}-${newEnd}`;
+        last.waktuSelesai = item.waktuSelesai || last.waktuSelesai;
+        last.allIds.push(item.id);
+      } else {
+        merged.push({ ...item, allIds: [item.id] });
+      }
+    }
+
+    // alreadyFilled: true if ANY id in the group has a jurnal entry
+    const schedule = merged.map(r => ({
+      id: r.id, // primary ID (first slot)
+      classId: r.classId,
+      className: r.className,
+      subjectId: r.subjectId,
+      subjectName: r.subjectName,
+      jamKe: r.jamKe,
+      waktuMulai: r.waktuMulai,
+      waktuSelesai: r.waktuSelesai,
+      alreadyFilled: r.allIds.some(id => filledIds.has(id)),
+      teachingSubjectIds: r.allIds, // all IDs in this group
+    }));
 
     return {
       schedule,
@@ -271,6 +322,7 @@ export class JurnalService {
 
     const scheduled = await db.select({
       employeeId: teachingSubjects.employeeId, employeeName: employees.name,
+      subjectId: teachingSubjects.subjectId,
       subjectName: masterSubjects.nama, className: classes.name,
       classId: teachingSubjects.classId, jamKe: teachingSubjects.jamKe,
       teachingSubjectId: teachingSubjects.id,
@@ -285,9 +337,49 @@ export class JurnalService {
       .from(jurnalEntries).where(eq(jurnalEntries.date, targetDate));
     const filledSet = new Set(filled.map(j => j.teachingSubjectId));
 
-    const teachers = scheduled.map(t => ({
-      ...t, filled: filledSet.has(t.teachingSubjectId),
-      jurnalStatus: filled.find(j => j.teachingSubjectId === t.teachingSubjectId)?.status || null,
+    // ── Merge consecutive same-subject same-class per teacher ──
+    const parseJamStart = (jamKe: string | null): number => {
+      if (!jamKe) return 0;
+      const n = parseInt(jamKe.split('-')[0]);
+      return isNaN(n) ? 0 : n;
+    };
+    const parseJamEnd = (jamKe: string | null): number => {
+      if (!jamKe) return 0;
+      const parts = jamKe.split('-');
+      const n = parseInt(parts[parts.length - 1]);
+      return isNaN(n) ? parseJamStart(jamKe) : n;
+    };
+
+    const merged: Array<typeof scheduled[0] & { allIds: string[] }> = [];
+    for (const item of scheduled) {
+      const last = merged[merged.length - 1];
+      if (
+        last &&
+        last.employeeId === item.employeeId &&
+        last.subjectId && item.subjectId &&
+        last.subjectId === item.subjectId &&
+        last.classId === item.classId &&
+        parseJamStart(item.jamKe) === parseJamEnd(last.jamKe) + 1
+      ) {
+        const newEnd = parseJamEnd(item.jamKe);
+        const startJam = parseJamStart(last.jamKe);
+        last.jamKe = startJam === newEnd ? String(startJam) : `${startJam}-${newEnd}`;
+        last.allIds.push(item.teachingSubjectId);
+      } else {
+        merged.push({ ...item, allIds: [item.teachingSubjectId] });
+      }
+    }
+
+    const teachers = merged.map(t => ({
+      employeeId: t.employeeId,
+      employeeName: t.employeeName,
+      subjectName: t.subjectName,
+      className: t.className,
+      classId: t.classId,
+      jamKe: t.jamKe,
+      teachingSubjectId: t.teachingSubjectId,
+      filled: t.allIds.some(id => filledSet.has(id)),
+      jurnalStatus: filled.find(j => t.allIds.includes(j.teachingSubjectId!))?.status || null,
     }));
 
     const filledCount = teachers.filter(t => t.filled).length;

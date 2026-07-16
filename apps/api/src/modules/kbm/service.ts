@@ -1989,18 +1989,56 @@ export class KbmService {
         AND tahun_ajaran = ${tahunAjaran}
     `);
 
-    // Insert new teaching_subjects from jadwal
+    // Insert new teaching_subjects from jadwal — GROUP consecutive same-subject same-class slots
+    // Sort by day, guru, class, subject, jamKe to enable grouping
+    const sorted = [...jadwal].sort((a, b) =>
+      a.dayOfWeek - b.dayOfWeek ||
+      (a.guruId || '').localeCompare(b.guruId || '') ||
+      (a.kelasId || '').localeCompare(b.kelasId || '') ||
+      (a.subjectId || '').localeCompare(b.subjectId || '') ||
+      a.jamKe - b.jamKe
+    );
+
+    // Group consecutive slots: same guru + kelas + subject + day + consecutive jamKe
+    const groups: { guruId: string; kelasId: string; subjectId: string | null; subjectNama: string; dayOfWeek: number; jams: number[] }[] = [];
+    for (const j of sorted) {
+      const last = groups[groups.length - 1];
+      if (
+        last &&
+        last.guruId === j.guruId &&
+        last.kelasId === j.kelasId &&
+        last.subjectId === j.subjectId &&
+        last.dayOfWeek === j.dayOfWeek &&
+        j.jamKe === last.jams[last.jams.length - 1] + 1
+      ) {
+        last.jams.push(j.jamKe);
+      } else {
+        groups.push({
+          guruId: j.guruId,
+          kelasId: j.kelasId,
+          subjectId: j.subjectId || null,
+          subjectNama: j.subjectNama || '',
+          dayOfWeek: j.dayOfWeek,
+          jams: [j.jamKe],
+        });
+      }
+    }
+
     const inserts: any[] = [];
-    for (const j of jadwal) {
-      const ts = timeMap.get(`${j.dayOfWeek}-${j.jamKe}`);
+    for (const g of groups) {
+      const firstJam = g.jams[0];
+      const lastJam = g.jams[g.jams.length - 1];
+      const jamKeStr = g.jams.length === 1 ? String(firstJam) : `${firstJam}-${lastJam}`;
+      const tsStart = timeMap.get(`${g.dayOfWeek}-${firstJam}`);
+      const tsEnd = timeMap.get(`${g.dayOfWeek}-${lastJam}`);
       inserts.push({
-        employeeId: j.guruId,
-        classId: j.kelasId,
-        subjectName: j.subjectNama || '',
-        dayOfWeek: j.dayOfWeek,
-        jamKe: String(j.jamKe),
-        waktuMulai: ts?.waktuMulai || null,
-        waktuSelesai: ts?.waktuSelesai || null,
+        employeeId: g.guruId,
+        classId: g.kelasId,
+        subjectId: g.subjectId,
+        dayOfWeek: g.dayOfWeek,
+        jamKe: jamKeStr,
+        waktuMulai: tsStart?.waktuMulai || null,
+        waktuSelesai: tsEnd?.waktuSelesai || null,
         semester,
         tahunAjaran,
         isActive: true,
