@@ -1168,11 +1168,20 @@ export class KbmController {
 
       const guruList = await KbmService.getGuruWithKode();
       const subjectsList = await KbmService.getSubjects();
-      const classList = (await KbmService.getImportLookups()).classList.sort((a, b) => a.name.localeCompare(b.name));
 
-      const { academicYears } = await import('../../db/schema');
-      const { eq } = await import('drizzle-orm');
+      const { academicYears, distribusiJam, classes } = await import('../../db/schema');
+      const { eq, and } = await import('drizzle-orm');
       const { db } = await import('../../db');
+
+      // Only include classes that have distribusi jam for this academic year & semester
+      const distribusiClasses = await db.selectDistinct({ id: classes.id, name: classes.name })
+        .from(distribusiJam)
+        .innerJoin(classes, eq(distribusiJam.kelasId, classes.id))
+        .where(and(
+          eq(distribusiJam.academicYearId, academicYearId as string),
+          eq(distribusiJam.semester, semester as string)
+        ));
+      const classList = distribusiClasses.sort((a, b) => a.name.localeCompare(b.name));
       const [ay] = await db.select().from(academicYears).where(eq(academicYears.id, academicYearId as string));
       const tahunAjaran = ay?.tahunAjaran || '';
       const semLabel = semester === 'ganjil' ? 'GANJIL' : 'GENAP';
