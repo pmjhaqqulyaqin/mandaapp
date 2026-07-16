@@ -728,6 +728,24 @@ async function runAutoMigration() {
       await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_kbm_jadwal_ay ON kbm_jadwal(academic_year_id, semester);`);
       await db.execute(sql`ALTER TABLE "teaching_subjects" ADD COLUMN IF NOT EXISTS "kbm_generated" boolean DEFAULT false;`);
     } catch (e) { /* column/index may already exist */ }
+
+    // Fix kbm_jadwal.subject_id FK: was pointing to kbm_subjects, should point to master_subjects
+    try {
+      await db.execute(sql`ALTER TABLE "kbm_jadwal" DROP CONSTRAINT IF EXISTS "kbm_jadwal_subject_id_fkey";`);
+      await db.execute(sql`ALTER TABLE "kbm_jadwal" DROP CONSTRAINT IF EXISTS "kbm_jadwal_subject_id_kbm_subjects_id_fk";`);
+      await db.execute(sql`
+        DO $$ BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'kbm_jadwal_subject_id_master_subjects_id_fk'
+            AND table_name = 'kbm_jadwal'
+          ) THEN
+            ALTER TABLE "kbm_jadwal" ADD CONSTRAINT "kbm_jadwal_subject_id_master_subjects_id_fk"
+              FOREIGN KEY ("subject_id") REFERENCES "public"."master_subjects"("id") ON DELETE no action ON UPDATE no action;
+          END IF;
+        END $$;
+      `);
+    } catch (e) { /* constraint may already be correct */ }
     logger.info("KBM tables ready.");
 
     // Auto-create Mutation tables

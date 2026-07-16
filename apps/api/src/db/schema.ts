@@ -1112,7 +1112,7 @@ export const kbmJadwal = pgTable("kbm_jadwal", {
   versionId: uuid("version_id").references(() => jadwalVersion.id, { onDelete: "cascade" }),
   guruId: uuid("guru_id").references(() => employees.id, { onDelete: "cascade" }).notNull(),
   kelasId: uuid("kelas_id").references(() => classes.id).notNull(),
-  subjectId: uuid("subject_id").references(() => kbmSubjects.id).notNull(),
+  subjectId: uuid("subject_id").references(() => masterSubjects.id).notNull(),
   ruanganId: uuid("ruangan_id").references(() => ruangan.id, { onDelete: "set null" }),
   dayOfWeek: integer("day_of_week").notNull(), // 1=Senin..6=Sabtu
   jamKe: integer("jam_ke").notNull(), // 1, 2, 3, ...
