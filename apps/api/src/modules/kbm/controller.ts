@@ -1169,19 +1169,46 @@ export class KbmController {
       const guruList = await KbmService.getGuruWithKode();
       const subjectsList = await KbmService.getSubjects();
 
-      const { academicYears, distribusiJam, classes } = await import('../../db/schema');
+      const { academicYears, distribusiJam, classes, kbmJadwal, jadwalVersion } = await import('../../db/schema');
       const { eq, and } = await import('drizzle-orm');
       const { db } = await import('../../db');
 
-      // Only include classes that have distribusi jam for this academic year & semester
-      const distribusiClasses = await db.selectDistinct({ id: classes.id, name: classes.name })
-        .from(distribusiJam)
-        .innerJoin(classes, eq(distribusiJam.kelasId, classes.id))
+      // Match the grid view: use classes from kbm_jadwal (active version) first
+      // This ensures template columns match exactly what's displayed in the app
+      let classList: { id: string; name: string }[] = [];
+
+      // Try active version first
+      const [activeVer] = await db.select({ id: jadwalVersion.id }).from(jadwalVersion)
         .where(and(
-          eq(distribusiJam.academicYearId, academicYearId as string),
-          eq(distribusiJam.semester, semester as string)
-        ));
-      const classList = distribusiClasses.sort((a, b) => a.name.localeCompare(b.name));
+          eq(jadwalVersion.academicYearId, academicYearId as string),
+          eq(jadwalVersion.semester, semester as string),
+          eq(jadwalVersion.isAktif, true)
+        )).limit(1).catch(() => []);
+
+      const jadwalConditions: any[] = [
+        eq(kbmJadwal.academicYearId, academicYearId as string),
+        eq(kbmJadwal.semester, semester as string),
+      ];
+      if (activeVer) jadwalConditions.push(eq(kbmJadwal.versionId, activeVer.id));
+
+      const jadwalClasses = await db.selectDistinct({ id: classes.id, name: classes.name })
+        .from(kbmJadwal)
+        .innerJoin(classes, eq(kbmJadwal.kelasId, classes.id))
+        .where(and(...jadwalConditions));
+
+      if (jadwalClasses.length > 0) {
+        classList = jadwalClasses;
+      } else {
+        // Fallback: use distribusi jam if no jadwal generated yet
+        classList = await db.selectDistinct({ id: classes.id, name: classes.name })
+          .from(distribusiJam)
+          .innerJoin(classes, eq(distribusiJam.kelasId, classes.id))
+          .where(and(
+            eq(distribusiJam.academicYearId, academicYearId as string),
+            eq(distribusiJam.semester, semester as string)
+          ));
+      }
+      classList.sort((a, b) => a.name.localeCompare(b.name));
       const [ay] = await db.select().from(academicYears).where(eq(academicYears.id, academicYearId as string));
       const tahunAjaran = ay?.tahunAjaran || '';
       const semLabel = semester === 'ganjil' ? 'GANJIL' : 'GENAP';
