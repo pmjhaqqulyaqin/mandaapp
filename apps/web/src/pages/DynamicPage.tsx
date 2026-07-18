@@ -33,7 +33,29 @@ export const DynamicPage = () => {
   const { get } = useSiteSettings();
 
   if (!slug) return <RouterNavigate to="/" replace />;
-  
+
+  // ── Special slugs that don't need a page record in the database ──
+  const isSpecialSlug = slug === 'cetak-kartu-pelajar' || slug === 'unduhan' || slug === 'layanan';
+  const isServicePage = SERVICES.some(s => slug.includes(s.slug) || s.slug.includes(slug));
+
+  if (isSpecialSlug || isServicePage) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex flex-col">
+        <HeaderWithSettings />
+        {slug === 'cetak-kartu-pelajar'
+          ? <PublicCetakKartu />
+          : slug === 'unduhan'
+          ? <PublicDownloadsPage />
+          : slug === 'layanan'
+          ? <LayananPage />
+          : <ServiceForm pageSlug={slug} />
+        }
+        <FooterWithSettings />
+      </div>
+    );
+  }
+
+  // ── Normal dynamic pages from the database ──
   const { data: page, isLoading, error } = queryBySlug(slug);
 
   if (isLoading) {
@@ -170,19 +192,10 @@ export const DynamicPage = () => {
     </main>
   );
 
-  const isServicePage = SERVICES.some(s => slug.includes(s.slug) || s.slug.includes(slug));
-
   return (
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex flex-col">
       <HeaderWithSettings />
-      {slug === 'cetak-kartu-pelajar' 
-         ? <PublicCetakKartu />
-         : slug === 'unduhan'
-         ? <PublicDownloadsPage />
-         : slug === 'layanan'
-         ? <LayananPage />
-         : (isServicePage ? <ServiceForm pageSlug={slug} /> : (layout.length > 0 ? renderLayout() : renderDefaultContent()))
-      }
+      {layout.length > 0 ? renderLayout() : renderDefaultContent()}
       <FooterWithSettings />
     </div>
   );
