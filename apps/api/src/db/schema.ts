@@ -1263,3 +1263,20 @@ export const popupAnnouncements = pgTable("popup_announcements", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Downloads — public file download management
+export const downloads = pgTable("downloads", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: varchar("title", { length: 255 }).notNull(),       // Nama file yang ditampilkan
+  description: text("description"),                          // Deskripsi/departemen (e.g. "Accounting")
+  fileName: varchar("file_name", { length: 255 }).notNull(), // Nama file asli
+  filePath: text("file_path").notNull(),                     // Path relatif: /uploads/downloads/...
+  fileSize: integer("file_size").notNull().default(0),       // Ukuran dalam bytes
+  fileType: varchar("file_type", { length: 20 }).notNull().default("pdf"), // pdf, docx, xlsx, zip, pptx, img, apk
+  category: varchar("category", { length: 50 }).notNull().default("pdf_documents"), // pdf_documents, project_assets, archive
+  downloadCount: integer("download_count").notNull().default(0),
+  isPublished: boolean("is_published").notNull().default(true), // true = Public, false = Private
+  uploadedBy: text("uploaded_by").references(() => user.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});

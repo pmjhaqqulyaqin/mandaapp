@@ -16,6 +16,7 @@ import { useGallery } from '../hooks/api/useGallery';
 import { useSiteSettings } from '../hooks/api/useSettings';
 import { contactsService } from '../lib/services/contacts';
 import { PublicCetakKartu } from './PublicCetakKartu';
+import { PublicDownloadsPage } from './PublicDownloadsPage';
 import { ServiceForm, SERVICES } from './layanan/ServiceForm';
 import { LayananPage } from './layanan/LayananPage';
 
@@ -176,6 +177,8 @@ export const DynamicPage = () => {
       <HeaderWithSettings />
       {slug === 'cetak-kartu-pelajar' 
          ? <PublicCetakKartu />
+         : slug === 'unduhan'
+         ? <PublicDownloadsPage />
          : slug === 'layanan'
          ? <LayananPage />
          : (isServicePage ? <ServiceForm pageSlug={slug} /> : (layout.length > 0 ? renderLayout() : renderDefaultContent()))

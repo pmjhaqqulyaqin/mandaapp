@@ -64,6 +64,7 @@ import {
   Trophy,
   LayoutDashboard,
   Megaphone,
+  Download,
 } from 'lucide-react';
 import { ProfileModal } from '../components/modals/ProfileModal';
 
@@ -328,6 +329,13 @@ const ALL_MENU_ITEMS = [
     group: 'main',
   },
   {
+    key: 'downloads',
+    label: 'Unduhan',
+    href: '/dashboard/downloads',
+    icon: <Download size={16} />,
+    group: 'main',
+  },
+  {
     key: 'pages',
     label: 'Manajemen Halaman',
     href: '/dashboard/pages',
@@ -413,6 +421,7 @@ const MENU_ICON_COLORS: Record<string, { bg: string; text: string }> = {
   'settings':      { bg: 'bg-gradient-to-br from-gray-500 to-gray-600',       text: 'text-white' },
   'users':         { bg: 'bg-gradient-to-br from-blue-500 to-indigo-600',     text: 'text-white' },
   'updates':       { bg: 'bg-gradient-to-br from-emerald-500 to-teal-600',    text: 'text-white' },
+  'downloads':     { bg: 'bg-gradient-to-br from-sky-500 to-blue-600',         text: 'text-white' },
 };
 
 // Map route segments to menu keys for route protection
@@ -446,6 +455,7 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'ppdb': 'ppdb',
   'ppdb/penilaian': 'penilaian-pmb',
   'announcements': 'announcements',
+  'downloads': 'downloads',
 };
 
 // ── Sidebar category system ──
@@ -497,6 +507,7 @@ const MENU_CATEGORY_MAP: Record<string, MenuCategory> = {
   'settings': 'administrator',
   'users': 'administrator',
   'updates': 'administrator',
+  'downloads': 'app-dashboard',
 };
 
 // ── Sub-App Configurations for Contextual Sidebar ──

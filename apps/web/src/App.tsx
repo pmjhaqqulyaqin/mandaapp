@@ -87,6 +87,7 @@ const PrintBuktiKelulusan = React.lazy(() => import('./pages/ppdb/print/PrintBuk
 const PrintDetailPeserta = React.lazy(() => import('./pages/ppdb/print/PrintDetailPeserta').then(m => ({ default: m.PrintDetailPeserta })));
 const DashboardSubjects = React.lazy(() => import('./pages/subjects/DashboardSubjects').then(m => ({ default: m.DashboardSubjects })));
 const DashboardAnnouncements = React.lazy(() => import('./pages/DashboardAnnouncements'));
+const DashboardDownloads = React.lazy(() => import('./pages/DashboardDownloads').then(m => ({ default: m.DashboardDownloads })));
 // Loading fallback component
 const PageSpinner = () => (
   <div className="flex h-screen w-full items-center justify-center bg-gray-50/50">
@@ -250,6 +251,7 @@ function App() {
               <Route path="updates" element={<ProtectedRoute allowedRoles={['admin']}><SystemUpdateCenter /></ProtectedRoute>} />
               <Route path="services" element={<DashboardServices />} />
               <Route path="announcements" element={<DashboardAnnouncements />} />
+              <Route path="downloads" element={<DashboardDownloads />} />
               <Route path="ppdb/penilaian" element={<PPDBPenilaianPage />} />
               <Route path="ppdb/*" element={<PPDBAdminPage />} />
             </Route>

@@ -41,6 +41,7 @@ import mutationRoutes from './modules/mutation';
 import { teacherDutiesRouter } from './modules/teacher-duties/routes';
 import { subjectRoutes } from './modules/subjects';
 import { announcementsRoutes } from './modules/announcements/routes';
+import { downloadsRoutes } from './modules/downloads/routes';
 
 dotenv.config();
 
@@ -204,6 +205,7 @@ app.use("/api/mutations", mutationRoutes);
 app.use("/api/teacher-duties", teacherDutiesRouter);
 app.use("/api/subjects", subjectRoutes);
 app.use("/api/announcements", announcementsRoutes);
+app.use("/api/downloads", downloadsRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -835,6 +837,27 @@ async function runAutoMigration() {
       );
     `);
     logger.info("Popup announcements table ready.");
+
+    // Auto-create Downloads table
+    logger.info("Checking downloads table...");
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "downloads" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        "title" varchar(255) NOT NULL,
+        "description" text,
+        "file_name" varchar(255) NOT NULL,
+        "file_path" text NOT NULL,
+        "file_size" integer NOT NULL DEFAULT 0,
+        "file_type" varchar(20) NOT NULL DEFAULT 'pdf',
+        "category" varchar(50) NOT NULL DEFAULT 'pdf_documents',
+        "download_count" integer NOT NULL DEFAULT 0,
+        "is_published" boolean NOT NULL DEFAULT true,
+        "uploaded_by" text REFERENCES "user"("id"),
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `);
+    logger.info("Downloads table ready.");
 
   } catch (err) {
     logger.error({ err }, "Auto-migration failed");
