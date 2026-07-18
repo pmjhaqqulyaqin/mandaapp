@@ -48,12 +48,14 @@ const upload = multer({
 
 // Public routes
 router.get('/', getPublicDownloadsHandler);
-router.post('/:id/hit', hitDownloadHandler);
 
-// Protected routes (staff only)
+// Protected routes (staff only) — static paths MUST come before /:id
 router.get('/admin', requireStaff, getAdminDownloadsHandler);
 router.get('/stats', requireStaff, getStatsHandler);
 router.post('/upload', requireStaff, upload.single('file'), uploadHandler);
+
+// Dynamic param routes (must be after static routes)
+router.post('/:id/hit', hitDownloadHandler);
 router.patch('/:id', requireStaff, updateHandler);
 router.delete('/:id', requireStaff, deleteHandler);
 
