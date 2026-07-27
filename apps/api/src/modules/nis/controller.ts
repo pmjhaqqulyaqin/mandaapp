@@ -121,21 +121,45 @@ export class NISController {
       const worksheet = workbook.Sheets[sheetName];
       const data: any[] = xlsx.utils.sheet_to_json(worksheet);
 
+      // Helper: find column value case-insensitively with multiple possible names
+      const getCol = (row: any, ...keys: string[]): string => {
+        // First try exact match
+        for (const k of keys) {
+          if (row[k] !== undefined && row[k] !== null) return String(row[k]);
+        }
+        // Then try case-insensitive match against all row keys
+        const rowKeys = Object.keys(row);
+        for (const k of keys) {
+          const lower = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const found = rowKeys.find(rk => rk.toLowerCase().replace(/[^a-z0-9]/g, '') === lower);
+          if (found && row[found] !== undefined && row[found] !== null) return String(row[found]);
+        }
+        return '';
+      };
+
+      let tempNisnCounter = 0;
       const parsed = data.map((row) => {
         let parsedDate: string | null = null;
-        const rawDate = row['Tanggal Lahir'] || row.TanggalLahir || row.Tgl_Lahir;
+        const rawDate = getCol(row, 'Tanggal Lahir', 'TanggalLahir', 'Tgl_Lahir', 'Tgl Lahir', 'Birth Date', 'birthDate');
         if (rawDate) {
           const d = new Date(rawDate);
           if (!isNaN(d.getTime())) parsedDate = d.toISOString().split('T')[0];
         }
 
+        let nisn = getCol(row, 'NISN', 'Nisn', 'nisn', 'No NISN', 'No. NISN', 'NO_NISN', 'NoNISN');
+        // If no NISN found, generate a temporary one
+        if (!nisn.trim()) {
+          tempNisnCounter++;
+          nisn = `TEMP${Date.now()}${String(tempNisnCounter).padStart(4, '0')}`;
+        }
+
         return {
-          fullName: row.Nama || row.NamaSiswa || row.Name || row['Nama Lengkap'] || '',
-          nisn: String(row.NISN || ''),
-          gender: row['Jenis Kelamin'] || row.JenisKelamin || row.Jenis_Kelamin || '',
-          birthPlace: row['Tempat Lahir'] || row.TempatLahir || '',
+          fullName: getCol(row, 'Nama', 'NamaSiswa', 'Name', 'Nama Lengkap', 'Nama Siswa', 'FullName', 'NAMA', 'NAMA LENGKAP', 'NAMA SISWA'),
+          nisn,
+          gender: getCol(row, 'Jenis Kelamin', 'JenisKelamin', 'Jenis_Kelamin', 'JK', 'Gender', 'L/P'),
+          birthPlace: getCol(row, 'Tempat Lahir', 'TempatLahir', 'Tempat_Lahir', 'TTL'),
           birthDate: parsedDate,
-          asalSekolah: row['Asal Sekolah'] || row.Asal || '',
+          asalSekolah: getCol(row, 'Asal Sekolah', 'Asal', 'AsalSekolah', 'Sekolah Asal'),
         };
       }).filter(r => r.fullName.trim() !== '');
 
@@ -150,11 +174,17 @@ export class NISController {
         if (count > 1) duplicates.push(name);
       });
 
+      // Log detected columns for debugging
+      const sampleRow = data[0] || {};
+      const detectedColumns = Object.keys(sampleRow);
+
       res.json({
         totalRows: parsed.length,
         duplicates,
         duplicateCount: duplicates.length,
-        students: parsed
+        students: parsed,
+        detectedColumns,
+        tempNisnGenerated: tempNisnCounter,
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message || "Failed to parse file" });

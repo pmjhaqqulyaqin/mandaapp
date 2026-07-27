@@ -497,53 +497,63 @@ export class NISService {
     const skipped: string[] = [];
 
     for (const s of students) {
-      if (!s.fullName || !s.nisn) {
-        skipped.push(s.fullName || '(tanpa nama)');
+      if (!s.fullName || !s.fullName.trim()) {
+        skipped.push('(tanpa nama)');
         continue;
       }
 
-      const nisn = String(s.nisn).trim();
+      const nisn = String(s.nisn || '').trim();
+      // If no NISN at all, skip
+      if (!nisn) {
+        skipped.push(`${s.fullName} (tanpa NISN)`);
+        continue;
+      }
 
-      // Check if student with this NISN already exists
-      const existing = await db.select({ id: studentProfiles.id, nis: studentProfiles.nis })
-        .from(studentProfiles)
-        .where(eq(studentProfiles.nisn, nisn))
-        .limit(1);
+      try {
+        // Check if student with this NISN already exists
+        const existing = await db.select({ id: studentProfiles.id, nis: studentProfiles.nis })
+          .from(studentProfiles)
+          .where(eq(studentProfiles.nisn, nisn))
+          .limit(1);
 
-      if (existing.length > 0) {
-        // If already has NIS, skip (don't overwrite existing NIS)
-        if (existing[0].nis && existing[0].nis.trim() !== '') {
-          skipped.push(`${s.fullName} (sudah punya NIS)`);
-          continue;
-        }
-        // Update existing profile without NIS
-        await db.update(studentProfiles)
-          .set({
+        if (existing.length > 0) {
+          // If already has NIS, skip (don't overwrite existing NIS)
+          if (existing[0].nis && existing[0].nis.trim() !== '') {
+            skipped.push(`${s.fullName} (sudah punya NIS)`);
+            continue;
+          }
+          // Update existing profile without NIS
+          await db.update(studentProfiles)
+            .set({
+              fullName: s.fullName,
+              gender: s.gender || null,
+              birthPlace: s.birthPlace || null,
+              birthDate: s.birthDate || null,
+              updatedAt: new Date(),
+            })
+            .where(eq(studentProfiles.id, existing[0].id));
+          studentIds.push(existing[0].id);
+        } else {
+          // Create new student profile
+          const created = await db.insert(studentProfiles).values({
             fullName: s.fullName,
+            nisn,
             gender: s.gender || null,
             birthPlace: s.birthPlace || null,
             birthDate: s.birthDate || null,
-            updatedAt: new Date(),
-          })
-          .where(eq(studentProfiles.id, existing[0].id));
-        studentIds.push(existing[0].id);
-      } else {
-        // Create new student profile
-        const created = await db.insert(studentProfiles).values({
-          fullName: s.fullName,
-          nisn,
-          gender: s.gender || null,
-          birthPlace: s.birthPlace || null,
-          birthDate: s.birthDate || null,
-          status: 'active',
-          createdSource: 'nis_module',
-        }).returning();
-        studentIds.push(created[0].id);
+            status: 'active',
+            createdSource: 'nis_module',
+          }).returning();
+          studentIds.push(created[0].id);
+        }
+      } catch (err: any) {
+        // Handle unique constraint or other DB errors per-student
+        skipped.push(`${s.fullName} (error: ${err.message?.substring(0, 60)})`);
       }
     }
 
     if (studentIds.length === 0) {
-      throw new Error("Tidak ada siswa yang bisa diproses. Pastikan data memiliki Nama dan NISN yang valid.");
+      throw new Error(`Tidak ada siswa yang bisa diproses. ${skipped.length} siswa dilewati. Pastikan file Excel memiliki kolom Nama dan NISN.`);
     }
 
     // Now generate preview using existing previewBatchNIS
