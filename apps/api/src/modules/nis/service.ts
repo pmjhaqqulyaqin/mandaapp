@@ -1,6 +1,6 @@
 import { db } from "../../db";
 import { academicYears, nisBatches, nisActivityLogs, studentProfiles, user } from "../../db/schema";
-import { eq, desc, sql, ilike, or, and, isNull, count, exists } from "drizzle-orm";
+import { eq, desc, sql, ilike, or, and, isNull, count, exists, inArray } from "drizzle-orm";
 
 export class NISService {
   // ─── Dashboard Stats ───
@@ -94,7 +94,7 @@ export class NISService {
 
     // Fetch students
     const students = await db.select().from(studentProfiles)
-      .where(sql`${studentProfiles.id} = ANY(${studentIds})`);
+      .where(inArray(studentProfiles.id, studentIds));
 
     // Sort alphabetically
     students.sort((a, b) => (a.fullName || '').localeCompare(b.fullName || '', 'id'));
@@ -134,7 +134,7 @@ export class NISService {
 
     // Fetch & sort students
     const students = await db.select().from(studentProfiles)
-      .where(sql`${studentProfiles.id} = ANY(${studentIds})`);
+      .where(inArray(studentProfiles.id, studentIds));
     students.sort((a, b) => (a.fullName || '').localeCompare(b.fullName || '', 'id'));
 
     const startSeq = currentSeq + 1;
