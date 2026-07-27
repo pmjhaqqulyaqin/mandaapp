@@ -278,4 +278,21 @@ export class NISController {
       res.status(500).json({ error: error.message || "Failed to fetch batch history" });
     }
   }
+
+  // POST /api/nis/import-uploaded-batch — Import uploaded students to DB and preview NIS
+  static async importUploadedBatch(req: Request, res: Response) {
+    try {
+      const { students, academicYearId } = req.body;
+      if (!students || !Array.isArray(students) || students.length === 0) {
+        return res.status(400).json({ error: "Data siswa tidak boleh kosong" });
+      }
+      if (!academicYearId) {
+        return res.status(400).json({ error: "academicYearId wajib" });
+      }
+      const result = await NISService.importAndPreviewBatch(students, academicYearId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to import uploaded batch" });
+    }
+  }
 }

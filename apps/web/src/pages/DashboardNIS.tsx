@@ -124,6 +124,7 @@ export const DashboardNIS = () => {
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [batchPreview, setBatchPreview] = useState<PreviewItem[]>([]);
   const [batchGenerating, setBatchGenerating] = useState(false);
+  const [uploadImporting, setUploadImporting] = useState(false);
   const [sourceMode, setSourceMode] = useState<'upload' | 'existing'>('existing');
 
   // Single state
@@ -197,6 +198,27 @@ export const DashboardNIS = () => {
     e.target.value = '';
   };
 
+  const handleUploadContinue = async () => {
+    const activeYear = stats.activeYear || academicYears.find(y => y.isActive);
+    if (!activeYear) { toast.error('Pilih tahun ajaran aktif terlebih dahulu'); return; }
+    if (uploadedStudents.length === 0) { toast.error('Tidak ada data siswa untuk diproses'); return; }
+    setUploadImporting(true);
+    try {
+      const res = await apiClient<any>('/nis/import-uploaded-batch', {
+        method: 'POST',
+        data: { students: uploadedStudents, academicYearId: activeYear.id }
+      });
+      if (res.skippedCount > 0) {
+        toast.warning(`${res.skippedCount} siswa dilewati: ${res.skipped.slice(0, 3).join(', ')}${res.skippedCount > 3 ? '...' : ''}`);
+      }
+      toast.success(`${res.importedCount} siswa berhasil diimpor`);
+      setSelectedStudentIds(res.studentIds);
+      setBatchPreview(res.preview);
+      setBatchStep(3);
+    } catch (err: any) { toast.error(err.message || 'Gagal mengimpor data siswa'); }
+    finally { setUploadImporting(false); }
+  };
+
   const handlePreviewBatch = async () => {
     const activeYear = stats.activeYear || academicYears.find(y => y.isActive);
     if (!activeYear) { toast.error('Pilih tahun ajaran aktif terlebih dahulu'); return; }
@@ -215,7 +237,7 @@ export const DashboardNIS = () => {
     try {
       const res = await apiClient<any>('/nis/generate-batch', { method: 'POST', data: { studentIds: selectedStudentIds, academicYearId: activeYear.id } });
       toast.success(`${res.totalGenerated} NIS berhasil di-generate!`);
-      setBatchStep(1); setSelectedStudentIds([]); setBatchPreview([]);
+      setBatchStep(1); setSelectedStudentIds([]); setBatchPreview([]); setUploadedStudents([]);
       fetchStats(); fetchActivity(); fetchRecords(); fetchStudentsWithoutNIS();
     } catch (err: any) { toast.error(err.message); }
     finally { setBatchGenerating(false); }
@@ -512,7 +534,10 @@ export const DashboardNIS = () => {
                     <p className="text-sm text-text-secondary">{uploadedStudents.length} siswa dari file upload. Silakan lanjut ke step berikut untuk membuat profil dan generate NIS.</p>
                     <div className="flex gap-2 justify-end">
                       <Button variant="ghost" onClick={() => { setBatchStep(1); setUploadedStudents([]); }}>Upload Ulang</Button>
-                      <Button onClick={() => { toast.info('Gunakan mode "Pilih dari Data Siswa" untuk generate NIS existing students, atau import dulu via Data Siswa.'); }}>Lanjutkan</Button>
+                      <Button onClick={handleUploadContinue} disabled={uploadImporting} className="flex items-center gap-2">
+                        {uploadImporting ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                        {uploadImporting ? 'Mengimpor...' : 'Lanjutkan'}
+                      </Button>
                     </div>
                   </div>
                 )}

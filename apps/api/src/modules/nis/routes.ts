@@ -25,6 +25,7 @@ router.get("/pull-candidates", requireStaff, NISController.getPullCandidates);
 router.post("/preview-batch", requireStaff, NISController.previewBatch);
 router.post("/generate-batch", requireStaff, NISController.generateBatch);
 router.post("/upload-batch", requireStaff, upload.single("file"), NISController.uploadBatch);
+router.post("/import-uploaded-batch", requireStaff, NISController.importUploadedBatch);
 router.get("/batch-history", requireStaff, NISController.getBatchHistory);
 
 // Single Assignment

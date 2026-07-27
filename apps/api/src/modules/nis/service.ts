@@ -474,4 +474,87 @@ export class NISService {
 
     return batches;
   }
+
+  // ─── Import Uploaded Students & Preview NIS ───
+  // Takes parsed student data from Excel upload, upserts into student_profiles,
+  // then returns preview NIS assignments (same as previewBatchNIS).
+  static async importAndPreviewBatch(
+    students: {
+      fullName: string;
+      nisn: string;
+      gender?: string;
+      birthPlace?: string;
+      birthDate?: string | null;
+      asalSekolah?: string;
+    }[],
+    academicYearId: string
+  ) {
+    const year = await db.select().from(academicYears)
+      .where(eq(academicYears.id, academicYearId)).limit(1);
+    if (!year[0]) throw new Error("Tahun ajaran tidak ditemukan");
+
+    const studentIds: string[] = [];
+    const skipped: string[] = [];
+
+    for (const s of students) {
+      if (!s.fullName || !s.nisn) {
+        skipped.push(s.fullName || '(tanpa nama)');
+        continue;
+      }
+
+      const nisn = String(s.nisn).trim();
+
+      // Check if student with this NISN already exists
+      const existing = await db.select({ id: studentProfiles.id, nis: studentProfiles.nis })
+        .from(studentProfiles)
+        .where(eq(studentProfiles.nisn, nisn))
+        .limit(1);
+
+      if (existing.length > 0) {
+        // If already has NIS, skip (don't overwrite existing NIS)
+        if (existing[0].nis && existing[0].nis.trim() !== '') {
+          skipped.push(`${s.fullName} (sudah punya NIS)`);
+          continue;
+        }
+        // Update existing profile without NIS
+        await db.update(studentProfiles)
+          .set({
+            fullName: s.fullName,
+            gender: s.gender || null,
+            birthPlace: s.birthPlace || null,
+            birthDate: s.birthDate || null,
+            updatedAt: new Date(),
+          })
+          .where(eq(studentProfiles.id, existing[0].id));
+        studentIds.push(existing[0].id);
+      } else {
+        // Create new student profile
+        const created = await db.insert(studentProfiles).values({
+          fullName: s.fullName,
+          nisn,
+          gender: s.gender || null,
+          birthPlace: s.birthPlace || null,
+          birthDate: s.birthDate || null,
+          status: 'active',
+          createdSource: 'nis_module',
+        }).returning();
+        studentIds.push(created[0].id);
+      }
+    }
+
+    if (studentIds.length === 0) {
+      throw new Error("Tidak ada siswa yang bisa diproses. Pastikan data memiliki Nama dan NISN yang valid.");
+    }
+
+    // Now generate preview using existing previewBatchNIS
+    const preview = await NISService.previewBatchNIS(studentIds, academicYearId);
+
+    return {
+      ...preview,
+      importedCount: studentIds.length,
+      skippedCount: skipped.length,
+      skipped,
+      studentIds,
+    };
+  }
 }
