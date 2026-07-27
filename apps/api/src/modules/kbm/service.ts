@@ -442,8 +442,9 @@ export class KbmService {
   static async getImportLookups() {
     const guruList = await db.select({ id: employees.id, name: employees.name, nip: employees.nip })
       .from(employees).where(eq(employees.type, 'Guru'));
+    // Include ALL subjects (not just active) to prevent FK errors during import
     const subjectList = await db.select({ id: masterSubjects.id, kode: masterSubjects.kode, nama: masterSubjects.nama })
-      .from(masterSubjects).where(eq(masterSubjects.isActive, true));
+      .from(masterSubjects);
     const classList = await db.select({ id: classes.id, name: classes.name }).from(classes);
     return { guruList, subjectList, classList };
   }

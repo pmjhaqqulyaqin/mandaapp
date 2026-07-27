@@ -201,6 +201,8 @@ export class KbmController {
       const nipMap = new Map(lookups.guruList.map(g => [String(g.nip || '').trim(), g.id]));
       const nameMap = new Map(lookups.guruList.map(g => [g.name.toLowerCase().trim(), g.id]));
       const kodeMap = new Map(lookups.subjectList.map(s => [s.kode.toLowerCase().trim(), s.id]));
+      // Also build a name-based subject map for fallback matching
+      const subjectNameMap = new Map(lookups.subjectList.map(s => [s.nama.toLowerCase().trim(), s.id]));
       const classMap = new Map(lookups.classList.map(c => [c.name.toLowerCase().trim(), c.id]));
 
       const records: any[] = [];
@@ -213,17 +215,24 @@ export class KbmController {
         const nip = String(row[0] || '').trim();
         const nama = String(row[1] || '').trim();
         const kodeMapel = String(row[2] || '').trim();
+        const namaMapel = String(row[3] || '').trim();
 
         if (!nip && !nama) continue; // Skip empty rows
-        if (!kodeMapel) { errors.push(`Baris ${i + 1}: Kode mapel kosong`); continue; }
+        if (!kodeMapel && !namaMapel) { errors.push(`Baris ${i + 1}: Kode dan nama mapel kosong`); continue; }
 
         // Match guru
         let guruId = nipMap.get(nip) || nameMap.get(nama.toLowerCase());
         if (!guruId) { errors.push(`Baris ${i + 1}: Guru "${nama}" (NIP: ${nip}) tidak ditemukan`); continue; }
 
-        // Match mapel
+        // Match mapel — try kode first, then nama, then kode-as-nama fallback
         let subjectId = kodeMap.get(kodeMapel.toLowerCase());
-        if (!subjectId) { errors.push(`Baris ${i + 1}: Mapel kode "${kodeMapel}" tidak ditemukan`); continue; }
+        if (!subjectId && namaMapel) {
+          subjectId = subjectNameMap.get(namaMapel.toLowerCase());
+        }
+        if (!subjectId) {
+          subjectId = subjectNameMap.get(kodeMapel.toLowerCase());
+        }
+        if (!subjectId) { errors.push(`Baris ${i + 1}: Mapel "${kodeMapel}" / "${namaMapel}" tidak ditemukan di master mapel`); continue; }
 
         // Parse class columns
         for (let j = 0; j < classColumns.length; j++) {
@@ -241,19 +250,27 @@ export class KbmController {
       // Delete existing distribusi for this semester first (full replace)
       await KbmService.deleteAllDistribusi(academicYearId, semester);
 
-      // Bulk insert new data
+      // Bulk insert with per-record error handling
       let imported = 0;
+      const insertErrors: string[] = [];
       if (records.length > 0) {
-        const results = await KbmService.bulkUpsertDistribusi(records);
-        imported = results.filter(r => r.action !== 'skipped').length;
+        for (const record of records) {
+          try {
+            const result = await KbmService.upsertDistribusi(record);
+            if (result.action !== 'skipped') imported++;
+          } catch (err: any) {
+            insertErrors.push(`Insert error: ${err.message?.substring(0, 100)}`);
+          }
+        }
       }
 
+      const allErrors = [...errors, ...insertErrors];
       res.json({
         success: true,
         imported,
         total: records.length,
-        errors: errors.length > 0 ? errors.slice(0, 20) : [],
-        message: `${imported} data berhasil diimport${errors.length > 0 ? `, ${errors.length} error` : ''}`,
+        errors: allErrors.length > 0 ? allErrors.slice(0, 30) : [],
+        message: `${imported} data berhasil diimport${allErrors.length > 0 ? `, ${allErrors.length} error` : ''}`,
       });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
