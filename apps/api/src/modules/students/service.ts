@@ -178,7 +178,15 @@ export class StudentService {
              }
           }
 
-          const recordToInsert = { ...statusToInsert, studentId: id };
+           const recordToInsert = { ...statusToInsert, studentId: id };
+          // Sanitize empty strings to null (prevents unique constraint violation on ijazahNumber)
+          for (const key of Object.keys(recordToInsert)) {
+            if (typeof recordToInsert[key] === 'string' && recordToInsert[key].trim() === '') {
+              recordToInsert[key] = null;
+            }
+          }
+          // Remove any 'id' from previous record to avoid conflict
+          delete recordToInsert.id;
           await tx.insert(bukuIndukFinalStatus).values([recordToInsert]);
           
           // Auto update student status
