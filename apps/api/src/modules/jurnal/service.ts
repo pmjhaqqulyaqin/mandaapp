@@ -2,7 +2,8 @@ import { db } from "../../db";
 import {
   teachingSubjects, jurnalEntries, jurnalStudentAttendance,
   jurnalAttachments, jurnalTemplates, employees, classes,
-  studentProfiles, attendanceRecords, jurnalTimeSlots, teachingMethods, siteSettings, masterSubjects
+  studentProfiles, attendanceRecords, jurnalTimeSlots, teachingMethods, siteSettings, masterSubjects,
+  academicYears
 } from "../../db/schema";
 import { eq, and, desc, count, sql } from "drizzle-orm";
 
@@ -48,6 +49,22 @@ export class JurnalService {
     const jsDay = new Date(y, m - 1, d).getDay(); // 0=Sunday, 1=Monday...
     if (jsDay === 0) return { schedule: [], deadlineMode: 'waktu_tertentu', deadlineTime: '17:00' };
 
+    // Get active academic year to filter only current schedules
+    const [activeAY] = await db.select({ tahunAjaran: academicYears.tahunAjaran })
+      .from(academicYears)
+      .where(eq(academicYears.isActive, true))
+      .limit(1);
+
+    const conditions: any[] = [
+      eq(teachingSubjects.employeeId, employeeId),
+      eq(teachingSubjects.dayOfWeek, jsDay),
+      eq(teachingSubjects.isActive, true),
+    ];
+    // Filter by active academic year's tahunAjaran
+    if (activeAY?.tahunAjaran) {
+      conditions.push(eq(teachingSubjects.tahunAjaran, activeAY.tahunAjaran));
+    }
+
     const results = await db.select({
       id: teachingSubjects.id,
       classId: teachingSubjects.classId,
@@ -61,11 +78,7 @@ export class JurnalService {
       .from(teachingSubjects)
       .leftJoin(classes, eq(teachingSubjects.classId, classes.id))
       .leftJoin(masterSubjects, eq(teachingSubjects.subjectId, masterSubjects.id))
-      .where(and(
-        eq(teachingSubjects.employeeId, employeeId),
-        eq(teachingSubjects.dayOfWeek, jsDay),
-        eq(teachingSubjects.isActive, true)
-      ))
+      .where(and(...conditions))
       .orderBy(teachingSubjects.jamKe);
 
     const todayJurnals = await db.select({ teachingSubjectId: jurnalEntries.teachingSubjectId })
