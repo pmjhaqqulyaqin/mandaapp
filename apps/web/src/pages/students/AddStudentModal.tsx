@@ -235,15 +235,17 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, api
     e.preventDefault();
     setSaving(true);
     
+    const { parents: _p, education: _e, physical: _ph, grades: _g, attendance: _a, extracurriculars: _ex, p5: _p5, finalStatus: _fs, ...cleanStudentData } = studentForm as any;
+    
     const payload = {
-      student: studentForm,
-      parents: parentsForm.filter(p => p.name.trim() !== ''),
-      education: educationForm.filter(e => e.previousSchoolName.trim() !== ''),
-      physical: physicalForm.filter(p => p.heightCm || p.weightKg || p.hearingCondition),
+      student: cleanStudentData,
+      parents: parentsForm.filter(p => p?.name?.trim()),
+      education: educationForm.filter(e => e?.previousSchoolName?.trim()),
+      physical: physicalForm.filter(p => p?.heightCm || p?.weightKg || p?.hearingCondition),
       grades: flattenGrades(),
-      attendance: attendanceData.filter(a => a.sick || a.excused || a.unexcused || a.promotionStatus),
-      extracurriculars: extracurriculars.filter(e => e.activityName?.trim()),
-      p5: p5Data.filter(p => p.projectName?.trim()),
+      attendance: attendanceData.filter(a => a?.sick || a?.excused || a?.unexcused || a?.promotionStatus),
+      extracurriculars: extracurriculars.filter(e => e?.activityName?.trim()),
+      p5: p5Data.filter(p => p?.projectName?.trim()),
       finalStatus: finalStatusForm.statusType ? [finalStatusForm] : []
     };
 

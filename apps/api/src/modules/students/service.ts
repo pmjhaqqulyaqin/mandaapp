@@ -73,10 +73,30 @@ export class StudentService {
 
   static async saveStudentCompleteData(id: string, payload: any) {
     return db.transaction(async (tx) => {
-      // 1. Update Student Profile
-      const studentData = payload.student || {};
+      // 1. Update Student Profile (only known columns)
+      const raw = payload.student || {};
+      const allowedFields = [
+        'fullName', 'nis', 'nisn', 'nik', 'noKk', 'classId', 'className',
+        'birthPlace', 'birthDate', 'gender', 'agama', 'kewarganegaraan',
+        'anakKe', 'jumlahSaudara', 'bahasaSehariHari', 'golonganDarah',
+        'tempatTinggal', 'jarakSekolahKm', 'address', 'photoUrl', 'status',
+        'isNotable', 'createdSource'
+      ];
+      const studentData: any = {};
+      for (const key of allowedFields) {
+        if (raw[key] !== undefined) {
+          // Sanitize empty strings for date/uuid columns
+          if ((key === 'birthDate' || key === 'classId') && raw[key] === '') {
+            studentData[key] = null;
+          } else {
+            studentData[key] = raw[key];
+          }
+        }
+      }
+      studentData.updatedAt = new Date();
+
       let updatedStudent = null;
-      if (Object.keys(studentData).length > 0) {
+      if (Object.keys(studentData).length > 1) { // > 1 because updatedAt is always present
         const results = await tx.update(studentProfiles).set(studentData).where(eq(studentProfiles.id, id)).returning();
         updatedStudent = results[0];
       }
