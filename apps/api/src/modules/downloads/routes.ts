@@ -10,6 +10,7 @@ import {
   updateHandler,
   deleteHandler,
   hitDownloadHandler,
+  serveDownloadHandler,
 } from './controller';
 import { requireStaff } from '../auth/middleware';
 
@@ -55,6 +56,7 @@ router.get('/stats', requireStaff, getStatsHandler);
 router.post('/upload', requireStaff, upload.single('file'), uploadHandler);
 
 // Dynamic param routes (must be after static routes)
+router.get('/:id/file', serveDownloadHandler); // Public: serves file + counts download atomically
 router.post('/:id/hit', hitDownloadHandler);
 router.patch('/:id', requireStaff, updateHandler);
 router.delete('/:id', requireStaff, deleteHandler);

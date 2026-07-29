@@ -142,3 +142,36 @@ export const hitDownloadHandler = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to register download' });
   }
 };
+
+// Serve file download: atomically increment count + redirect to file
+// This ensures every download is counted regardless of frontend JS execution
+export const serveDownloadHandler = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const item = await downloadsService.getDownloadById(id);
+    if (!item) {
+      return res.status(404).json({ error: 'Download not found' });
+    }
+
+    // Increment download count (fire-and-forget, don't block the redirect)
+    downloadsService.incrementDownloadCount(id).catch((err) => {
+      console.error('Error incrementing download count:', err);
+    });
+
+    // Resolve absolute file path and stream it as attachment
+    const filePath = path.join(process.cwd(), item.filePath.replace(/^\//, ''));
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File not found on disk' });
+    }
+
+    // Set Content-Disposition to trigger download with original filename
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(item.fileName)}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error('Error serving download:', error);
+    res.status(500).json({ error: 'Failed to serve download' });
+  }
+};

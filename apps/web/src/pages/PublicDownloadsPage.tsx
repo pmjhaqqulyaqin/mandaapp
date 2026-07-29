@@ -49,7 +49,7 @@ function getTypeBadge(fileType: string): string {
 type CategoryFilter = 'all' | 'pdf_documents' | 'project_assets' | 'archive';
 
 export const PublicDownloadsPage = () => {
-  const { queryPublic, hitDownload } = useDownloads();
+  const { queryPublic } = useDownloads();
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const items = queryPublic.data || [];
@@ -82,21 +82,15 @@ export const PublicDownloadsPage = () => {
   }, [items, activeCategory, searchQuery]);
 
   const handleDownload = async (item: DownloadItem) => {
-    try {
-      await hitDownload(item.id);
-      const url = `${SERVER_BASE}${item.filePath}`;
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = item.fileName;
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch {
-      // Still allow download even if hit fails
-      const url = `${SERVER_BASE}${item.filePath}`;
-      window.open(url, '_blank');
-    }
+    // Use the server-side endpoint that atomically counts + serves the file
+    // This guarantees every download is tracked, unlike the old two-step approach
+    const url = `${API_BASE_URL}/downloads/${item.id}/file`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = item.fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleCopyLink = async (item: DownloadItem) => {
