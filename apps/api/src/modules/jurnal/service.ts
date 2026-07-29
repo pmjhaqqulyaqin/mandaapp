@@ -512,4 +512,85 @@ export class JurnalService {
     const results = await db.insert(teachingMethods).values({ name: trimmed, createdBy }).returning();
     return results[0];
   }
+
+  // ─── Daily Class Report ──────────────────────────────────────────────
+
+  static async getDailyClassReport(classId: string, date: string) {
+    // 1. Get class info
+    const [classInfo] = await db.select({ id: classes.id, name: classes.name })
+      .from(classes).where(eq(classes.id, classId)).limit(1);
+    if (!classInfo) throw new Error('Kelas tidak ditemukan');
+
+    // 2. Get students in the class (active, sorted by name)
+    const students = await db.select({
+      id: studentProfiles.id,
+      fullName: studentProfiles.fullName,
+      nis: studentProfiles.nis,
+      gender: studentProfiles.gender,
+    })
+      .from(studentProfiles)
+      .where(and(eq(studentProfiles.classId, classId), eq(studentProfiles.status, 'active')))
+      .orderBy(studentProfiles.fullName);
+
+    // 3. Get jurnal entries for this class on this date (with teacher + subject)
+    const entries = await db.select({
+      id: jurnalEntries.id,
+      teacherId: jurnalEntries.teacherId,
+      teacherName: employees.name,
+      subjectName: masterSubjects.nama,
+      jamKe: jurnalEntries.jamKe,
+      materiPembelajaran: jurnalEntries.materiPembelajaran,
+      capaianPembelajaran: jurnalEntries.capaianPembelajaran,
+    })
+      .from(jurnalEntries)
+      .leftJoin(employees, eq(jurnalEntries.teacherId, employees.id))
+      .leftJoin(masterSubjects, eq(jurnalEntries.subjectId, masterSubjects.id))
+      .where(and(eq(jurnalEntries.classId, classId), eq(jurnalEntries.date, date)))
+      .orderBy(jurnalEntries.jamKe);
+
+    // 4. Get student attendance for each jurnal entry
+    const entryIds = entries.map(e => e.id);
+    let attendanceRecordsData: { jurnalEntryId: string; studentId: string; status: string }[] = [];
+    if (entryIds.length > 0) {
+      attendanceRecordsData = await db.select({
+        jurnalEntryId: jurnalStudentAttendance.jurnalEntryId,
+        studentId: jurnalStudentAttendance.studentId,
+        status: jurnalStudentAttendance.status,
+      })
+        .from(jurnalStudentAttendance)
+        .where(sql`${jurnalStudentAttendance.jurnalEntryId} IN (${sql.join(entryIds.map(id => sql`${id}`), sql`, `)})`);
+    }
+
+    // 5. Get school name from site_settings
+    const [schoolSetting] = await db.select({ value: siteSettings.value })
+      .from(siteSettings)
+      .where(eq(siteSettings.key, 'school_name'))
+      .limit(1);
+    const schoolName = schoolSetting?.value || 'MAN 2 LOTIM';
+
+    // 6. Get active academic year
+    const [activeAY] = await db.select({
+      tahunAjaran: academicYears.tahunAjaran,
+      tanggalMulai: academicYears.tanggalMulai,
+    })
+      .from(academicYears)
+      .where(eq(academicYears.isActive, true))
+      .limit(1);
+
+    // Determine semester from date
+    const tahunAjaran = activeAY?.tahunAjaran || '-';
+    // Simple heuristic: Jul-Dec = Ganjil, Jan-Jun = Genap
+    const month = parseInt(date.split('-')[1]);
+    const semester = month >= 7 ? 'GANJIL' : 'GENAP';
+
+    return {
+      classInfo,
+      students,
+      entries,
+      attendanceRecords: attendanceRecordsData,
+      schoolName,
+      tahunAjaran,
+      semester,
+    };
+  }
 }

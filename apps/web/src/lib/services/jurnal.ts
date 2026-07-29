@@ -1,4 +1,4 @@
-import { apiClient } from '../api';
+import { apiClient, API_BASE_URL } from '../api';
 
 const BASE = '/jurnal';
 
@@ -65,4 +65,21 @@ export const jurnalService = {
   // Teaching Methods (Shared)
   getMethods: () => apiClient<any[]>(`${BASE}/methods`),
   createMethod: (name: string) => apiClient<any>(`${BASE}/methods`, { method: 'POST', data: { name } }),
+
+  // Reports (Download)
+  downloadDailyClassReport: async (classId: string, date: string) => {
+    const url = `${API_BASE_URL}${BASE}/report/daily-class?classId=${classId}&date=${date}`;
+    const response = await fetch(url, { credentials: 'include' });
+    if (!response.ok) throw new Error('Download gagal');
+    const blob = await response.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    const disposition = response.headers.get('Content-Disposition');
+    const fileName = disposition?.match(/filename="?([^"]+)"?/)?.[1] || `Jurnal_Kelas_${date}.xlsx`;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+  },
 };

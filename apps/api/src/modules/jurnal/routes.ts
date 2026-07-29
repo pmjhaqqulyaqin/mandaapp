@@ -77,4 +77,7 @@ router.delete("/time-slots/:id", JurnalController.deleteTimeSlot);
 router.get("/methods", JurnalController.getTeachingMethods);
 router.post("/methods", JurnalController.createTeachingMethod);
 
+// Reports (Download)
+router.get("/report/daily-class", JurnalController.downloadDailyClassReport);
+
 export const jurnalRoutes = router;

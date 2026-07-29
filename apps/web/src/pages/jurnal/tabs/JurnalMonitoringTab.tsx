@@ -1,13 +1,48 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useJurnalMonitoring } from '../../../hooks/api/useJurnal';
-import { CheckCircle2, XCircle, Clock, Users, Calendar } from 'lucide-react';
+import { jurnalService } from '../../../lib/services/jurnal';
+import { CheckCircle2, XCircle, Clock, Calendar, Download, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export const JurnalMonitoringTab = () => {
   const [date, setDate] = useState(() => new Date().toLocaleDateString('sv-SE'));
   const monitoring = useJurnalMonitoring(date);
   const data = monitoring.data;
 
+  // Download state
+  const [selectedClassId, setSelectedClassId] = useState('');
+  const [downloading, setDownloading] = useState(false);
+
   const pct = data?.summary ? Math.round((data.summary.filled / Math.max(data.summary.total, 1)) * 100) : 0;
+
+  // Extract unique classes from monitoring data
+  const uniqueClasses = useMemo(() => {
+    if (!data?.teachers) return [];
+    const map = new Map<string, string>();
+    for (const t of data.teachers) {
+      if (t.classId && t.className && !map.has(t.classId)) {
+        map.set(t.classId, t.className);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [data?.teachers]);
+
+  const handleDownload = async () => {
+    if (!selectedClassId) {
+      toast.error('Pilih kelas terlebih dahulu');
+      return;
+    }
+    setDownloading(true);
+    try {
+      await jurnalService.downloadDailyClassReport(selectedClassId, date);
+      toast.success('Laporan berhasil didownload');
+    } catch (err: any) {
+      toast.error('Gagal download: ' + (err.message || 'Unknown error'));
+    }
+    setDownloading(false);
+  };
 
   return (
     <div className="space-y-4">
@@ -45,6 +80,43 @@ export const JurnalMonitoringTab = () => {
             </div>
             <div className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
               <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+
+          {/* Download Laporan Harian */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800/40 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <FileSpreadsheet size={16} className="text-blue-600 dark:text-blue-400" />
+              <h3 className="text-sm font-bold text-blue-800 dark:text-blue-300">Download Laporan Harian</h3>
+            </div>
+            <p className="text-[11px] text-blue-600/80 dark:text-blue-400/70 leading-relaxed">
+              Download jurnal kelas harian dalam format Excel. Berisi daftar siswa, absensi per jam, nama guru, dan tujuan pembelajaran.
+            </p>
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <label className="text-[10px] font-semibold text-blue-700 dark:text-blue-400 uppercase mb-1 block">Pilih Kelas</label>
+                <select
+                  value={selectedClassId}
+                  onChange={e => setSelectedClassId(e.target.value)}
+                  className="w-full bg-white dark:bg-[#1a1a1a] border border-blue-200 dark:border-blue-700 rounded-lg px-3 py-2 text-xs text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500/30 outline-none transition-all"
+                >
+                  <option value="">-- Pilih Kelas --</option>
+                  {uniqueClasses.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={handleDownload}
+                disabled={!selectedClassId || downloading}
+                className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg active:scale-95 transition-all shadow-sm shadow-blue-500/20"
+              >
+                {downloading ? (
+                  <><Loader2 size={14} className="animate-spin" /> Mengunduh...</>
+                ) : (
+                  <><Download size={14} /> Download</>
+                )}
+              </button>
             </div>
           </div>
 

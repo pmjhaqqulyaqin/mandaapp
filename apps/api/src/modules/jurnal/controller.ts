@@ -590,4 +590,314 @@ export class JurnalController {
       res.status(201).json(result);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   }
+
+  // ─── Daily Class Report (Excel Download) ─────────────────────────────
+
+  static async downloadDailyClassReport(req: Request, res: Response) {
+    try {
+      const { classId, date } = req.query;
+      if (!classId || !date) return res.status(400).json({ error: 'classId and date required' });
+
+      const data = await JurnalService.getDailyClassReport(classId as string, date as string);
+      const { classInfo, students, entries, attendanceRecords, schoolName, tahunAjaran, semester } = data;
+
+      // ── Build attendance lookup: entryId → Map<studentId, status> ──
+      const attMap = new Map<string, Map<string, string>>();
+      for (const r of attendanceRecords) {
+        if (!attMap.has(r.jurnalEntryId)) attMap.set(r.jurnalEntryId, new Map());
+        attMap.get(r.jurnalEntryId)!.set(r.studentId, r.status);
+      }
+
+      // ── Map jam numbers to entries ──
+      const jamEntryMap = new Map<number, typeof entries[0]>();
+      for (const entry of entries) {
+        if (!entry.jamKe) continue;
+        const parts = entry.jamKe.split('-');
+        const start = parseInt(parts[0]);
+        const end = parts.length > 1 ? parseInt(parts[parts.length - 1]) : start;
+        for (let j = start; j <= end; j++) {
+          jamEntryMap.set(j, entry);
+        }
+      }
+
+      // ── Format date ──
+      const [y, m, d] = (date as string).split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      const formattedDate = `${dayNames[dateObj.getDay()]}, ${d} ${monthNames[m - 1]} ${y}`;
+
+      const MAX_JAM = 10;
+      const MAX_RIGHT_JAM = 9; // I - IX
+      const numStudents = students.length;
+      const rowsPerJam = Math.max(2, Math.ceil(numStudents / MAX_RIGHT_JAM));
+      const totalDataRows = Math.max(numStudents, rowsPerJam * MAX_RIGHT_JAM);
+
+      // ── Create workbook with ExcelJS ──
+      const ExcelJS = require('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const ws = workbook.addWorksheet('Jurnal Kelas', {
+        pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
+      });
+
+      // Column widths: A-R (18 columns)
+      ws.columns = [
+        { width: 5 },   // A: Urut
+        { width: 10 },  // B: Induk/NIS
+        { width: 30 },  // C: Nama Siswa
+        { width: 4 },   // D: L/P
+        { width: 3.5 }, // E: Jam 1
+        { width: 3.5 }, // F: Jam 2
+        { width: 3.5 }, // G: Jam 3
+        { width: 3.5 }, // H: Jam 4
+        { width: 3.5 }, // I: Jam 5
+        { width: 3.5 }, // J: Jam 6
+        { width: 3.5 }, // K: Jam 7
+        { width: 3.5 }, // L: Jam 8
+        { width: 3.5 }, // M: Jam 9
+        { width: 3.5 }, // N: Jam 10
+        { width: 6 },   // O: JAM KE-
+        { width: 24 },  // P: NAMA GURU
+        { width: 38 },  // Q: TUJUAN PEMBELAJARAN
+        { width: 10 },  // R: PARAF
+      ];
+
+      const thinBorder: any = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+
+      // ── Row 1: Title ──
+      ws.mergeCells('A1:R1');
+      const titleCell = ws.getCell('A1');
+      titleCell.value = `JURNAL KELAS ${schoolName.toUpperCase()}`;
+      titleCell.font = { bold: true, size: 14 };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      ws.getRow(1).height = 22;
+
+      // ── Row 2: Subtitle ──
+      ws.mergeCells('A2:R2');
+      const subtitleCell = ws.getCell('A2');
+      subtitleCell.value = `SEMESTER ${semester} TAHUN AJARAN ${tahunAjaran}`;
+      subtitleCell.font = { bold: true, size: 12 };
+      subtitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      ws.getRow(2).height = 20;
+
+      // ── Row 3: empty ──
+      ws.getRow(3).height = 8;
+
+      // ── Row 4: Class & Date info ──
+      ws.mergeCells('A4:D4');
+      const classCell = ws.getCell('A4');
+      classCell.value = `KELAS : ${classInfo.name || '-'}`;
+      classCell.font = { bold: true, size: 10 };
+      ws.mergeCells('O4:R4');
+      const dateCell = ws.getCell('O4');
+      dateCell.value = `HARI/TGL : ${formattedDate}`;
+      dateCell.font = { bold: true, size: 10 };
+
+      // ── Rows 5-6: Header ──
+      const headerFont: any = { bold: true, size: 9 };
+      const headerAlign: any = { horizontal: 'center', vertical: 'middle', wrapText: true };
+
+      // Row 5: NOMOR (merged A5:B5), NAMA SISWA (C5:C6), L/P (D5:D6), JAM KE- (E5:N5), JAM KE- (O5:O6), NAMA GURU (P5:P6), TUJUAN (Q5:Q6), PARAF (R5:R6)
+      ws.mergeCells('A5:B5'); // NOMOR
+      ws.getCell('A5').value = 'NOMOR';
+      ws.getCell('A5').font = headerFont;
+      ws.getCell('A5').alignment = headerAlign;
+      ws.getCell('A5').border = thinBorder;
+      ws.getCell('B5').border = thinBorder;
+
+      ws.mergeCells('C5:C6'); // NAMA SISWA
+      ws.getCell('C5').value = 'NAMA SISWA';
+      ws.getCell('C5').font = headerFont;
+      ws.getCell('C5').alignment = headerAlign;
+      ws.getCell('C5').border = thinBorder;
+
+      ws.mergeCells('D5:D6'); // L/P
+      ws.getCell('D5').value = 'L/P';
+      ws.getCell('D5').font = headerFont;
+      ws.getCell('D5').alignment = headerAlign;
+      ws.getCell('D5').border = thinBorder;
+
+      // JAM KE- header spanning E5:N5
+      ws.mergeCells('E5:N5');
+      ws.getCell('E5').value = 'JAM KE-';
+      ws.getCell('E5').font = headerFont;
+      ws.getCell('E5').alignment = headerAlign;
+      ws.getCell('E5').border = thinBorder;
+
+      // Right side headers (merged rows 5-6)
+      ws.mergeCells('O5:O6');
+      ws.getCell('O5').value = 'JAM\nKE-';
+      ws.getCell('O5').font = headerFont;
+      ws.getCell('O5').alignment = headerAlign;
+      ws.getCell('O5').border = thinBorder;
+
+      ws.mergeCells('P5:P6');
+      ws.getCell('P5').value = 'NAMA GURU';
+      ws.getCell('P5').font = headerFont;
+      ws.getCell('P5').alignment = headerAlign;
+      ws.getCell('P5').border = thinBorder;
+
+      ws.mergeCells('Q5:Q6');
+      ws.getCell('Q5').value = 'TUJUAN  PEMBELAJARAN/\nINDIKATOR';
+      ws.getCell('Q5').font = headerFont;
+      ws.getCell('Q5').alignment = headerAlign;
+      ws.getCell('Q5').border = thinBorder;
+
+      ws.mergeCells('R5:R6');
+      ws.getCell('R5').value = 'PARAF';
+      ws.getCell('R5').font = headerFont;
+      ws.getCell('R5').alignment = headerAlign;
+      ws.getCell('R5').border = thinBorder;
+
+      // Row 6: Sub-headers (Urut, Induk, 1-10)
+      ws.getCell('A6').value = 'Urut';
+      ws.getCell('A6').font = headerFont;
+      ws.getCell('A6').alignment = headerAlign;
+      ws.getCell('A6').border = thinBorder;
+
+      ws.getCell('B6').value = 'Induk';
+      ws.getCell('B6').font = headerFont;
+      ws.getCell('B6').alignment = headerAlign;
+      ws.getCell('B6').border = thinBorder;
+
+      // Jam 1-10 sub-headers
+      for (let j = 1; j <= MAX_JAM; j++) {
+        const col = 4 + j; // E=5, F=6 ... N=14 (1-indexed)
+        const cell = ws.getCell(6, col);
+        cell.value = j;
+        cell.font = headerFont;
+        cell.alignment = headerAlign;
+        cell.border = thinBorder;
+      }
+
+      // Apply borders to remaining merged header cells in row 6
+      for (let c = 15; c <= 18; c++) {
+        ws.getCell(6, c).border = thinBorder;
+      }
+
+      ws.getRow(5).height = 28;
+      ws.getRow(6).height = 18;
+
+      // ── Data rows (starting row 7) ──
+      const dataStartRow = 7;
+      const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
+      const dataFont: any = { size: 9 };
+      const centerAlign: any = { horizontal: 'center', vertical: 'middle' };
+      const leftAlign: any = { vertical: 'middle', wrapText: true };
+
+      for (let i = 0; i < totalDataRows; i++) {
+        const rowNum = dataStartRow + i;
+
+        // Left side: student data
+        if (i < numStudents) {
+          const student = students[i];
+
+          const cellUrut = ws.getCell(rowNum, 1);
+          cellUrut.value = i + 1;
+          cellUrut.font = dataFont;
+          cellUrut.alignment = centerAlign;
+          cellUrut.border = thinBorder;
+
+          const cellNis = ws.getCell(rowNum, 2);
+          cellNis.value = student.nis || '';
+          cellNis.font = dataFont;
+          cellNis.alignment = centerAlign;
+          cellNis.border = thinBorder;
+
+          const cellName = ws.getCell(rowNum, 3);
+          cellName.value = student.fullName || '';
+          cellName.font = dataFont;
+          cellName.alignment = leftAlign;
+          cellName.border = thinBorder;
+
+          const cellGender = ws.getCell(rowNum, 4);
+          cellGender.value = student.gender === 'Laki-laki' ? 'L' : student.gender === 'Perempuan' ? 'P' : '';
+          cellGender.font = dataFont;
+          cellGender.alignment = centerAlign;
+          cellGender.border = thinBorder;
+
+          // Jam ke 1-10: attendance marks
+          for (let j = 1; j <= MAX_JAM; j++) {
+            const col = 4 + j;
+            const cell = ws.getCell(rowNum, col);
+            const entry = jamEntryMap.get(j);
+            if (entry) {
+              const entryAtt = attMap.get(entry.id);
+              if (entryAtt) {
+                const status = entryAtt.get(student.id);
+                if (status === 'Alpa') cell.value = 'A';
+                else if (status === 'Izin') cell.value = 'I';
+                else if (status === 'Sakit') cell.value = 'S';
+                // Hadir = leave empty (checklist is implicit in the format)
+              }
+            }
+            cell.font = { ...dataFont, color: cell.value ? { argb: 'FFFF0000' } : undefined };
+            cell.alignment = centerAlign;
+            cell.border = thinBorder;
+          }
+        } else {
+          // Empty student rows - still need borders
+          for (let c = 1; c <= 14; c++) {
+            const cell = ws.getCell(rowNum, c);
+            cell.border = thinBorder;
+          }
+        }
+
+        // Right side: JAM KE- info
+        const jamIndex = Math.floor(i / rowsPerJam);
+        const isFirstRowOfJam = i % rowsPerJam === 0;
+        if (isFirstRowOfJam && jamIndex < MAX_RIGHT_JAM) {
+          const endRow = rowNum + rowsPerJam - 1;
+
+          // JAM KE- column (O)
+          ws.mergeCells(rowNum, 15, endRow, 15);
+          const cellJam = ws.getCell(rowNum, 15);
+          cellJam.value = romanNumerals[jamIndex];
+          cellJam.font = { bold: true, size: 10 };
+          cellJam.alignment = centerAlign;
+          cellJam.border = thinBorder;
+
+          // NAMA GURU column (P)
+          ws.mergeCells(rowNum, 16, endRow, 16);
+          const cellGuru = ws.getCell(rowNum, 16);
+          const entry = jamEntryMap.get(jamIndex + 1);
+          cellGuru.value = entry?.teacherName || '';
+          cellGuru.font = dataFont;
+          cellGuru.alignment = leftAlign;
+          cellGuru.border = thinBorder;
+
+          // TUJUAN PEMBELAJARAN column (Q)
+          ws.mergeCells(rowNum, 17, endRow, 17);
+          const cellMateri = ws.getCell(rowNum, 17);
+          cellMateri.value = entry?.materiPembelajaran || entry?.capaianPembelajaran || '';
+          cellMateri.font = dataFont;
+          cellMateri.alignment = leftAlign;
+          cellMateri.border = thinBorder;
+
+          // PARAF column (R)
+          ws.mergeCells(rowNum, 18, endRow, 18);
+          const cellParaf = ws.getCell(rowNum, 18);
+          cellParaf.value = '';
+          cellParaf.border = thinBorder;
+        }
+
+        // Apply borders to right-side merged cells for non-first rows
+        if (!isFirstRowOfJam || jamIndex >= MAX_RIGHT_JAM) {
+          for (let c = 15; c <= 18; c++) {
+            ws.getCell(rowNum, c).border = thinBorder;
+          }
+        }
+      }
+
+      // ── Send file ──
+      const fileName = `Jurnal_${(classInfo.name || 'Kelas').replace(/\s+/g, '_')}_${date}.xlsx`;
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
 }
