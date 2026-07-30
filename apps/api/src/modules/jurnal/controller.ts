@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { JurnalService } from "./service";
 import * as xlsx from "xlsx";
+import puppeteer from "puppeteer";
 import { db } from "../../db";
 import { employees, classes, masterSubjects } from "../../db/schema";
 
@@ -899,5 +900,170 @@ export class JurnalController {
       await workbook.xlsx.write(res);
       res.end();
     } catch (err: any) { res.status(500).json({ error: err.message }); }
+  }
+
+  // ─── Daily Class Report PDF ───────────────────────────────────────────
+
+  static async downloadDailyClassReportPdf(req: Request, res: Response) {
+    try {
+      const { classId, date } = req.query;
+      if (!classId || !date) return res.status(400).json({ error: 'classId and date required' });
+
+      const data = await JurnalService.getDailyClassReport(classId as string, date as string);
+      const { classInfo, students, entries, attendanceRecords, schoolName, tahunAjaran, semester } = data;
+
+      // Build attendance lookup
+      const attMap = new Map<string, Map<string, string>>();
+      for (const r of attendanceRecords) {
+        if (!attMap.has(r.jurnalEntryId)) attMap.set(r.jurnalEntryId, new Map());
+        attMap.get(r.jurnalEntryId)!.set(r.studentId, r.status);
+      }
+
+      // Map jam numbers to entries
+      const jamEntryMap = new Map<number, typeof entries[0]>();
+      for (const entry of entries) {
+        if (!entry.jamKe) continue;
+        const parts = entry.jamKe.split('-');
+        const start = parseInt(parts[0]);
+        const end = parts.length > 1 ? parseInt(parts[parts.length - 1]) : start;
+        for (let j = start; j <= end; j++) {
+          jamEntryMap.set(j, entry);
+        }
+      }
+
+      // Format date
+      const [y, m, d] = (date as string).split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      const formattedDate = `${dayNames[dateObj.getDay()]}, ${d} ${monthNames[m - 1]} ${y}`;
+
+      const MAX_JAM = 10;
+      const MAX_RIGHT_JAM = 9;
+      const numStudents = students.length;
+      const rowsPerJam = Math.max(2, Math.ceil(numStudents / MAX_RIGHT_JAM));
+      const totalDataRows = Math.max(numStudents, rowsPerJam * MAX_RIGHT_JAM);
+      const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
+
+      // Build student rows HTML
+      let studentRowsHtml = '';
+      for (let i = 0; i < totalDataRows; i++) {
+        const student = i < numStudents ? students[i] : null;
+        const jamIndex = Math.floor(i / rowsPerJam);
+        const isFirstRowOfJam = i % rowsPerJam === 0;
+
+        studentRowsHtml += '<tr>';
+
+        // Left: student data
+        studentRowsHtml += `<td class="c">${student ? i + 1 : ''}</td>`;
+        studentRowsHtml += `<td class="c">${student?.nis || ''}</td>`;
+        studentRowsHtml += `<td class="name">${student?.fullName || ''}</td>`;
+        studentRowsHtml += `<td class="c">${student ? (student.gender === 'Laki-laki' ? 'L' : student.gender === 'Perempuan' ? 'P' : '') : ''}</td>`;
+
+        // Jam 1-10 attendance
+        for (let j = 1; j <= MAX_JAM; j++) {
+          let mark = '';
+          if (student) {
+            const entry = jamEntryMap.get(j);
+            if (entry) {
+              const entryAtt = attMap.get(entry.id);
+              if (entryAtt) {
+                const status = entryAtt.get(student.id);
+                if (status === 'Alpa') mark = '<span class="red">A</span>';
+                else if (status === 'Izin') mark = '<span class="red">I</span>';
+                else if (status === 'Sakit') mark = '<span class="red">S</span>';
+              }
+            }
+          }
+          studentRowsHtml += `<td class="c jam">${mark}</td>`;
+        }
+
+        // Right: JAM KE- info
+        if (isFirstRowOfJam && jamIndex < MAX_RIGHT_JAM) {
+          const entry = jamEntryMap.get(jamIndex + 1);
+          studentRowsHtml += `<td class="c" rowspan="${rowsPerJam}"><b>${romanNumerals[jamIndex]}</b></td>`;
+          studentRowsHtml += `<td rowspan="${rowsPerJam}">${entry?.teacherName || ''}</td>`;
+          studentRowsHtml += `<td rowspan="${rowsPerJam}">${entry?.materiPembelajaran || entry?.capaianPembelajaran || ''}</td>`;
+          studentRowsHtml += `<td rowspan="${rowsPerJam}"></td>`;
+        }
+
+        studentRowsHtml += '</tr>';
+      }
+
+      // Build full HTML
+      const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  @page { size: A4 landscape; margin: 10mm 8mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; font-size: 9px; }
+  h1 { font-size: 14px; text-align: center; margin-bottom: 2px; }
+  h2 { font-size: 11px; text-align: center; margin-bottom: 8px; }
+  .info { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 10px; font-weight: bold; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #000; padding: 2px 3px; vertical-align: middle; }
+  th { font-weight: bold; text-align: center; font-size: 8px; background: #f9f9f9; }
+  td.c { text-align: center; }
+  td.name { text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+  td.jam { width: 18px; min-width: 18px; font-size: 8px; }
+  .red { color: red; font-weight: bold; }
+</style>
+</head><body>
+<h1>JURNAL KELAS ${schoolName.toUpperCase()}</h1>
+<h2>SEMESTER ${semester} TAHUN AJARAN ${tahunAjaran}</h2>
+<div class="info">
+  <span>KELAS : ${classInfo.name || '-'}</span>
+  <span>HARI/TGL : ${formattedDate}</span>
+</div>
+<table>
+  <thead>
+    <tr>
+      <th colspan="2">NOMOR</th>
+      <th rowspan="2">NAMA SISWA</th>
+      <th rowspan="2">L/P</th>
+      <th colspan="${MAX_JAM}">JAM KE-</th>
+      <th rowspan="2">JAM<br>KE-</th>
+      <th rowspan="2">NAMA GURU</th>
+      <th rowspan="2">TUJUAN PEMBELAJARAN/<br>INDIKATOR</th>
+      <th rowspan="2">PARAF</th>
+    </tr>
+    <tr>
+      <th>Urut</th>
+      <th>Induk</th>
+      ${Array.from({length: MAX_JAM}, (_, i) => `<th>${i+1}</th>`).join('')}
+    </tr>
+  </thead>
+  <tbody>
+    ${studentRowsHtml}
+  </tbody>
+</table>
+</body></html>`;
+
+      // Generate PDF with Puppeteer
+      const launchOptions: any = { headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] };
+      if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+      }
+      const browser = await puppeteer.launch(launchOptions);
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        landscape: true,
+        printBackground: true,
+        margin: { top: '10mm', bottom: '10mm', left: '8mm', right: '8mm' }
+      });
+      await browser.close();
+
+      const pdfNodeBuffer = Buffer.from(pdfBuffer);
+      const fileName = `Jurnal_${(classInfo.name || 'Kelas').replace(/\s+/g, '_')}_${date}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Length', pdfNodeBuffer.length.toString());
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.end(pdfNodeBuffer);
+    } catch (err: any) {
+      console.error('[Jurnal PDF Error]', err.message, err.stack);
+      res.status(500).json({ error: err.message });
+    }
   }
 }

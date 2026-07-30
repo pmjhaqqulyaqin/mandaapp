@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useJurnalMonitoring } from '../../../hooks/api/useJurnal';
 import { jurnalService } from '../../../lib/services/jurnal';
-import { CheckCircle2, XCircle, Clock, Calendar, Download, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Calendar, Download, FileSpreadsheet, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const JurnalMonitoringTab = () => {
@@ -12,6 +12,7 @@ export const JurnalMonitoringTab = () => {
   // Download state
   const [selectedClassId, setSelectedClassId] = useState('');
   const [downloading, setDownloading] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const pct = data?.summary ? Math.round((data.summary.filled / Math.max(data.summary.total, 1)) * 100) : 0;
 
@@ -37,11 +38,26 @@ export const JurnalMonitoringTab = () => {
     setDownloading(true);
     try {
       await jurnalService.downloadDailyClassReport(selectedClassId, date);
-      toast.success('Laporan berhasil didownload');
+      toast.success('Laporan Excel berhasil didownload');
     } catch (err: any) {
       toast.error('Gagal download: ' + (err.message || 'Unknown error'));
     }
     setDownloading(false);
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!selectedClassId) {
+      toast.error('Pilih kelas terlebih dahulu');
+      return;
+    }
+    setDownloadingPdf(true);
+    try {
+      await jurnalService.downloadDailyClassReportPdf(selectedClassId, date);
+      toast.success('Laporan PDF berhasil didownload');
+    } catch (err: any) {
+      toast.error('Gagal download PDF: ' + (err.message || 'Unknown error'));
+    }
+    setDownloadingPdf(false);
   };
 
   return (
@@ -109,12 +125,25 @@ export const JurnalMonitoringTab = () => {
               <button
                 onClick={handleDownload}
                 disabled={!selectedClassId || downloading}
-                className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg active:scale-95 transition-all shadow-sm shadow-blue-500/20"
+                className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg active:scale-95 transition-all shadow-sm shadow-emerald-500/20"
+                title="Download Excel"
               >
                 {downloading ? (
-                  <><Loader2 size={14} className="animate-spin" /> Mengunduh...</>
+                  <><Loader2 size={14} className="animate-spin" /> Excel...</>
                 ) : (
-                  <><Download size={14} /> Download</>
+                  <><FileSpreadsheet size={14} /> Excel</>
+                )}
+              </button>
+              <button
+                onClick={handleDownloadPdf}
+                disabled={!selectedClassId || downloadingPdf}
+                className="flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg active:scale-95 transition-all shadow-sm shadow-red-500/20"
+                title="Download PDF"
+              >
+                {downloadingPdf ? (
+                  <><Loader2 size={14} className="animate-spin" /> PDF...</>
+                ) : (
+                  <><FileText size={14} /> PDF</>
                 )}
               </button>
             </div>

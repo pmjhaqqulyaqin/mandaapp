@@ -82,4 +82,19 @@ export const jurnalService = {
     document.body.removeChild(link);
     URL.revokeObjectURL(link.href);
   },
+  downloadDailyClassReportPdf: async (classId: string, date: string) => {
+    const url = `${API_BASE_URL}${BASE}/report/daily-class-pdf?classId=${classId}&date=${date}`;
+    const response = await fetch(url, { credentials: 'include' });
+    if (!response.ok) throw new Error('Download gagal');
+    const blob = await response.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    const disposition = response.headers.get('Content-Disposition');
+    const fileName = disposition?.match(/filename="?([^"]+)"?/)?.[1] || `Jurnal_Kelas_${date}.pdf`;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+  },
 };

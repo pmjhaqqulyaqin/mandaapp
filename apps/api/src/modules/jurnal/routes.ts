@@ -79,5 +79,6 @@ router.post("/methods", JurnalController.createTeachingMethod);
 
 // Reports (Download)
 router.get("/report/daily-class", JurnalController.downloadDailyClassReport);
+router.get("/report/daily-class-pdf", JurnalController.downloadDailyClassReportPdf);
 
 export const jurnalRoutes = router;
