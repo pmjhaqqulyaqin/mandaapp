@@ -119,15 +119,23 @@ export class JurnalService {
         last &&
         last.subjectId && item.subjectId &&
         last.subjectId === item.subjectId &&
-        last.classId === item.classId &&
-        parseJamStart(item.jamKe) === parseJamEnd(last.jamKe) + 1
+        last.classId === item.classId
       ) {
-        // Extend the last group
-        const newEnd = parseJamEnd(item.jamKe);
-        const startJam = parseJamStart(last.jamKe);
-        last.jamKe = startJam === newEnd ? String(startJam) : `${startJam}-${newEnd}`;
-        last.waktuSelesai = item.waktuSelesai || last.waktuSelesai;
-        last.allIds.push(item.id);
+        const itemStart = parseJamStart(item.jamKe);
+        const itemEnd = parseJamEnd(item.jamKe);
+        const lastStart = parseJamStart(last.jamKe);
+        const lastEnd = parseJamEnd(last.jamKe);
+
+        // Merge if overlapping, identical, or consecutive
+        if (itemStart <= lastEnd + 1) {
+          const newStart = Math.min(itemStart, lastStart);
+          const newEnd = Math.max(itemEnd, lastEnd);
+          last.jamKe = newStart === newEnd ? String(newStart) : `${newStart}-${newEnd}`;
+          last.waktuSelesai = item.waktuSelesai || last.waktuSelesai;
+          last.allIds.push(item.id);
+        } else {
+          merged.push({ ...item, allIds: [item.id] });
+        }
       } else {
         merged.push({ ...item, allIds: [item.id] });
       }
@@ -363,21 +371,36 @@ export class JurnalService {
       return isNaN(n) ? parseJamStart(jamKe) : n;
     };
 
-    const merged: Array<typeof scheduled[0] & { allIds: string[] }> = [];
-    for (const item of scheduled) {
+    const sortedScheduled = [...scheduled].sort((a, b) => {
+      const nameCmp = (a.employeeName || "").localeCompare(b.employeeName || "");
+      if (nameCmp !== 0) return nameCmp;
+      return parseJamStart(a.jamKe) - parseJamStart(b.jamKe);
+    });
+
+    const merged: Array<typeof sortedScheduled[0] & { allIds: string[] }> = [];
+    for (const item of sortedScheduled) {
       const last = merged[merged.length - 1];
       if (
         last &&
         last.employeeId === item.employeeId &&
         last.subjectId && item.subjectId &&
         last.subjectId === item.subjectId &&
-        last.classId === item.classId &&
-        parseJamStart(item.jamKe) === parseJamEnd(last.jamKe) + 1
+        last.classId === item.classId
       ) {
-        const newEnd = parseJamEnd(item.jamKe);
-        const startJam = parseJamStart(last.jamKe);
-        last.jamKe = startJam === newEnd ? String(startJam) : `${startJam}-${newEnd}`;
-        last.allIds.push(item.teachingSubjectId);
+        const itemStart = parseJamStart(item.jamKe);
+        const itemEnd = parseJamEnd(item.jamKe);
+        const lastStart = parseJamStart(last.jamKe);
+        const lastEnd = parseJamEnd(last.jamKe);
+
+        // Merge if overlapping, identical, or consecutive
+        if (itemStart <= lastEnd + 1) {
+          const newStart = Math.min(itemStart, lastStart);
+          const newEnd = Math.max(itemEnd, lastEnd);
+          last.jamKe = newStart === newEnd ? String(newStart) : `${newStart}-${newEnd}`;
+          last.allIds.push(item.teachingSubjectId);
+        } else {
+          merged.push({ ...item, allIds: [item.teachingSubjectId] });
+        }
       } else {
         merged.push({ ...item, allIds: [item.teachingSubjectId] });
       }
