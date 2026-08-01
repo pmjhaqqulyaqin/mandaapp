@@ -326,175 +326,204 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
   };
 
   return (
-    <div className="pb-4 -mx-3 md:mx-0">
-      {/* Sticky Header */}
-      <div className="bg-white dark:bg-[#111] px-4 pt-3 pb-3 sticky top-0 z-40 border-b border-gray-100 dark:border-gray-800 md:rounded-t-xl">
-        <div className="flex justify-between items-center">
+    <div className="jurnal-input-accessible pb-4 -mx-3 md:mx-0">
+      {/* ── Sticky Header ── */}
+      <div className="bg-white dark:bg-[#111] px-5 sticky top-0 z-40 border-b border-gray-100 dark:border-gray-800 md:rounded-t-xl"
+        style={{ height: '56px', display: 'flex', alignItems: 'center' }}>
+        <div className="flex justify-between items-center w-full">
           <div className="flex items-center gap-3">
-            <button onClick={onBack} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95">
-              <ArrowLeft size={18} className="text-gray-600 dark:text-gray-400" />
+            <button onClick={onBack}
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-transform">
+              <ArrowLeft size={22} className="text-emerald-700 dark:text-emerald-400" />
             </button>
-            <h1 className="text-lg font-bold text-gray-800 dark:text-white">Jurnal Baru</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Jurnal Baru</h1>
           </div>
           <button onClick={() => handleSave(true)} disabled={saving || !form.classId}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-emerald-600 text-white disabled:opacity-40 active:scale-95 transition-all">
-            <Check size={16} />
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-emerald-600 text-white disabled:opacity-40 active:scale-95 transition-all">
+            <Check size={20} />
           </button>
         </div>
       </div>
 
-      <div className="px-4 py-4 space-y-4">
-        {/* Section 1: Pilih Jadwal */}
-        <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-          <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3 flex items-center gap-2">
-            <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-xs flex items-center justify-center font-bold">1</span>
-            Pilih Jadwal
-          </h3>
-          {schedule.isLoading && <p className="text-sm text-gray-400">Memuat jadwal...</p>}
-          {!schedule.isLoading && scheduleItems.length === 0 && <p className="text-sm text-gray-400">Tidak ada jadwal hari ini</p>}
-          <div className="space-y-2">
-            {scheduleItems.map((item: any) => {
-              const status = getScheduleStatus(item, currentTime, deadlineMode, deadlineTime, scheduleItems);
-              const config = STATUS_BADGE[status];
-              const isDisabled = config.disabled;
-              const StatusIcon = config.icon;
-              const isSelected = form.teachingSubjectId === item.id;
-
-              return (
-                <button key={item.id} onClick={() => !isDisabled && selectSchedule(item)} disabled={isDisabled}
-                  className={`w-full text-left p-3 rounded-lg border transition-all active:scale-[0.98] ${
-                    isSelected ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 ring-2 ring-emerald-500/30'
-                    : isDisabled ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-60 cursor-not-allowed'
-                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#222] hover:border-emerald-300'
-                  }`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className={`text-xs font-medium mb-0.5 ${
-                        status === 'sedang_berlangsung' ? 'text-emerald-600 dark:text-emerald-400' :
-                        status === 'bisa_diisi' ? 'text-amber-600 dark:text-amber-400' :
-                        'text-gray-400 dark:text-gray-500'
-                      }`}>
-                        {item.waktuMulai || '--:--'} - {item.waktuSelesai || '--:--'}
-                      </p>
-                      <p className={`font-semibold text-sm ${isDisabled && status !== 'tersimpan' ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{item.subjectName}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{item.className} • Jam ke {item.jamKe || '-'}</p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full flex items-center gap-1 ${config.badgeClass}`}>
-                        {StatusIcon && <StatusIcon size={10} />}
-                        {config.badge}
-                      </span>
-                      {isSelected && <Check size={18} className="text-emerald-600" />}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+      <div className="px-5 pt-6 space-y-8">
+        {/* ══════════════════════════════════════════════════
+           Section 1: Pilih Jadwal
+           ══════════════════════════════════════════════════ */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="w-8 h-8 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-sm">1</span>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Pilih Jadwal</h2>
           </div>
 
-          {/* Link RPP */}
-          <div className="mt-3">
-            <label className="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1"><LinkIcon size={14} /> Link RPP (opsional)</label>
-            <input type="url" placeholder="https://drive.google.com/..." value={form.linkRpp} onChange={e => setForm(f => ({ ...f, linkRpp: e.target.value }))}
-              className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs bg-gray-50 dark:bg-[#111] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" />
-          </div>
-        </div>
+          <div className="bg-white dark:bg-[#1a1a1a] p-6 rounded-xl jurnal-card-shadow border border-gray-200/60 dark:border-gray-700">
+            {schedule.isLoading && <p className="text-base text-gray-400 italic text-center py-4">Memuat jadwal...</p>}
+            {!schedule.isLoading && scheduleItems.length === 0 && (
+              <p className="text-base text-gray-400 dark:text-gray-500 italic text-center py-4">Tidak ada jadwal hari ini</p>
+            )}
+            <div className="space-y-3">
+              {scheduleItems.map((item: any) => {
+                const status = getScheduleStatus(item, currentTime, deadlineMode, deadlineTime, scheduleItems);
+                const config = STATUS_BADGE[status];
+                const isDisabled = config.disabled;
+                const StatusIcon = config.icon;
+                const isSelected = form.teachingSubjectId === item.id;
 
-        {/* Section 2: Materi & Kegiatan */}
-        <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-          <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3 flex items-center gap-2">
-            <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-xs flex items-center justify-center font-bold">2</span>
-            Materi & Kegiatan
-          </h3>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Materi Pokok <span className="text-red-400">*</span></label>
-              <textarea className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs bg-gray-50 dark:bg-[#111] focus:border-emerald-500 outline-none resize-none"
-                rows={2} placeholder="Contoh: Perubahan Wujud Benda" value={form.materiPembelajaran}
-                onChange={e => setForm(f => ({ ...f, materiPembelajaran: e.target.value }))} />
+                return (
+                  <button key={item.id} onClick={() => !isDisabled && selectSchedule(item)} disabled={isDisabled}
+                    className={`w-full text-left p-4 rounded-xl border-2 transition-all active:scale-[0.98] ${
+                      isSelected ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 ring-2 ring-emerald-500/30'
+                      : isDisabled ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-60 cursor-not-allowed'
+                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#222] hover:border-emerald-300'
+                    }`}
+                    style={{ minHeight: '56px' }}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className={`text-sm font-semibold mb-0.5 ${
+                          status === 'sedang_berlangsung' ? 'text-emerald-600 dark:text-emerald-400' :
+                          status === 'bisa_diisi' ? 'text-amber-600 dark:text-amber-400' :
+                          'text-gray-400 dark:text-gray-500'
+                        }`}>
+                          {item.waktuMulai || '--:--'} - {item.waktuSelesai || '--:--'}
+                        </p>
+                        <p className={`font-bold text-base ${isDisabled && status !== 'tersimpan' ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{item.subjectName}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{item.className} • Jam ke {item.jamKe || '-'}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`px-3 py-1 text-xs font-semibold rounded-full flex items-center gap-1 ${config.badgeClass}`}>
+                          {StatusIcon && <StatusIcon size={12} />}
+                          {config.badge}
+                        </span>
+                        {isSelected && <Check size={22} className="text-emerald-600" />}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-            <div>
-              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Tujuan Pembelajaran</label>
-              <textarea className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs bg-gray-50 dark:bg-[#111] focus:border-emerald-500 outline-none resize-none"
-                rows={2} placeholder="Siswa dapat menjelaskan..." value={form.capaianPembelajaran}
-                onChange={e => setForm(f => ({ ...f, capaianPembelajaran: e.target.value }))} />
+
+            {/* Link RPP */}
+            <div className="mt-6 space-y-2">
+              <label className="text-base font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                <LinkIcon size={18} className="text-emerald-600" />
+                Link RPP (opsional)
+              </label>
+              <input type="url" placeholder="https://drive.google.com/..."
+                value={form.linkRpp} onChange={e => setForm(f => ({ ...f, linkRpp: e.target.value }))}
+                className="w-full h-14 px-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-[#111] text-base text-gray-900 dark:text-white placeholder-gray-400" />
             </div>
-            <div>
-              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Metode Pembelajaran</label>
-              <div className="flex flex-wrap gap-2 mt-2">
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════════════
+           Section 2: Materi & Kegiatan
+           ══════════════════════════════════════════════════ */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="w-8 h-8 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-sm">2</span>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Materi & Kegiatan</h2>
+          </div>
+
+          <div className="bg-white dark:bg-[#1a1a1a] p-6 rounded-xl jurnal-card-shadow border border-gray-200/60 dark:border-gray-700 space-y-6">
+            {/* Materi Pokok */}
+            <div className="space-y-2">
+              <label className="text-base font-semibold text-gray-800 dark:text-gray-200">
+                Materi Pokok <span className="text-red-500">*</span>
+              </label>
+              <input type="text" placeholder="Contoh: Perubahan Wujud Benda"
+                value={form.materiPembelajaran} onChange={e => setForm(f => ({ ...f, materiPembelajaran: e.target.value }))}
+                className="w-full h-14 px-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-[#111] text-base text-gray-900 dark:text-white placeholder-gray-400" />
+            </div>
+
+            {/* Tujuan Pembelajaran */}
+            <div className="space-y-2">
+              <label className="text-base font-semibold text-gray-800 dark:text-gray-200">Tujuan Pembelajaran</label>
+              <textarea rows={4} placeholder="Siswa dapat menjelaskan..."
+                value={form.capaianPembelajaran} onChange={e => setForm(f => ({ ...f, capaianPembelajaran: e.target.value }))}
+                className="w-full p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-[#111] text-base text-gray-900 dark:text-white placeholder-gray-400 resize-none" />
+            </div>
+
+            {/* Metode Pembelajaran */}
+            <div className="space-y-3">
+              <label className="text-base font-semibold text-gray-800 dark:text-gray-200">Metode Pembelajaran</label>
+              <div className="flex flex-wrap gap-2">
                 {methods.query.data?.map((m: any) => (
                   <button key={m.id} onClick={() => toggleMethod(m.name)}
-                    className={`px-3 py-1.5 text-xs rounded-full font-medium transition-all active:scale-95 ${
+                    className={`h-12 px-6 rounded-full text-base font-semibold transition-all active:scale-95 ${
                       selectedMethods.includes(m.name)
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                        ? 'jurnal-chip-active shadow-sm'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`}>{m.name}</button>
                 ))}
                 <button onClick={handleAddMethod}
-                  className="px-3 py-1.5 border border-dashed border-gray-300 dark:border-gray-600 text-gray-400 text-xs rounded-full hover:border-emerald-400 hover:text-emerald-500 transition-colors flex items-center gap-1 active:scale-95">
-                  <Plus size={12} /> Lainnya
+                  className="h-12 px-6 border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400 rounded-full hover:border-emerald-400 hover:text-emerald-500 transition-colors flex items-center gap-2 text-base font-semibold active:scale-95">
+                  <Plus size={16} /> Lainnya
                 </button>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Section 3: Absensi */}
-        <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
-          <div className="p-4">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-semibold text-sm text-gray-800 dark:text-white flex items-center gap-2">
-                <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-xs flex items-center justify-center font-bold">3</span>
-                Absensi Siswa
-              </h3>
-              <button onClick={() => setAttendanceExpanded(!attendanceExpanded)}
-                className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
-                {attendanceExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                {attendanceExpanded ? 'Tutup' : 'Isi Absensi'}
-              </button>
+        {/* ══════════════════════════════════════════════════
+           Section 3: Absensi Siswa
+           ══════════════════════════════════════════════════ */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-8 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-sm">3</span>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Absensi Siswa</h2>
             </div>
-            <div className="flex gap-3 text-center">
-              <div className="flex-1 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-2">
-                <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{attSummary.hadir}</p>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400">Hadir</p>
-              </div>
-              <div className="flex-1 bg-red-50 dark:bg-red-900/20 rounded-lg p-2">
-                <p className="text-xl font-bold text-red-500 dark:text-red-400">{attSummary.sakit}</p>
-                <p className="text-xs text-red-500 dark:text-red-400">Sakit</p>
-              </div>
-              <div className="flex-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2">
-                <p className="text-xl font-bold text-blue-500 dark:text-blue-400">{attSummary.izin}</p>
-                <p className="text-xs text-blue-500 dark:text-blue-400">Izin</p>
-              </div>
-              <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
-                <p className="text-xl font-bold text-gray-500 dark:text-gray-400">{attSummary.alpa}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Alpa</p>
-              </div>
+            <button onClick={() => setAttendanceExpanded(!attendanceExpanded)}
+              className="text-emerald-700 dark:text-emerald-400 font-semibold text-base flex items-center gap-1 active:scale-95 transition-transform"
+              style={{ minHeight: '48px' }}>
+              {attendanceExpanded ? 'Tutup' : 'Isi Absensi'}
+              {attendanceExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </button>
+          </div>
+
+          {/* 2×2 Attendance Summary Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-green-50 dark:bg-emerald-900/20 p-4 rounded-xl border border-green-100 dark:border-emerald-800 flex flex-col items-center justify-center text-center">
+              <span className="text-3xl font-bold text-green-800 dark:text-emerald-400">{attSummary.hadir}</span>
+              <span className="text-base font-semibold text-green-700 dark:text-emerald-400 mt-1">Hadir</span>
+            </div>
+            <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl border border-red-100 dark:border-red-800 flex flex-col items-center justify-center text-center">
+              <span className="text-3xl font-bold text-red-800 dark:text-red-400">{attSummary.sakit}</span>
+              <span className="text-base font-semibold text-red-700 dark:text-red-400 mt-1">Sakit</span>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800 flex flex-col items-center justify-center text-center">
+              <span className="text-3xl font-bold text-blue-800 dark:text-blue-400">{attSummary.izin}</span>
+              <span className="text-base font-semibold text-blue-700 dark:text-blue-400 mt-1">Izin</span>
+            </div>
+            <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-xl border border-orange-100 dark:border-orange-800 flex flex-col items-center justify-center text-center">
+              <span className="text-3xl font-bold text-orange-800 dark:text-orange-400">{attSummary.alpa}</span>
+              <span className="text-base font-semibold text-orange-700 dark:text-orange-400 mt-1">Alpa</span>
             </div>
           </div>
 
           {/* Expanded: Student list */}
           {attendanceExpanded && (
-            <div className="border-t border-gray-100 dark:border-gray-800">
-              <div className="px-4 py-2 flex items-center justify-between">
-                <p className="text-xs text-gray-500 dark:text-gray-400">Tap untuk ubah status</p>
-                <button onClick={setAllHadir} className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-full active:scale-95">
+            <div className="bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200/60 dark:border-gray-700 overflow-hidden jurnal-card-shadow">
+              <div className="px-5 py-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Tap untuk ubah status</p>
+                <button onClick={setAllHadir}
+                  className="text-sm font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-full active:scale-95"
+                  style={{ minHeight: '40px' }}>
                   Semua Hadir
                 </button>
               </div>
-              <div className="max-h-80 overflow-y-auto px-4 pb-3 space-y-1.5">
+              <div className="max-h-80 overflow-y-auto px-5 py-3 space-y-2">
                 {attendance.map((s, i) => (
-                  <div key={s.studentId} className="flex items-center gap-3 bg-white dark:bg-[#222] rounded-lg p-2.5">
-                    <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-xs shrink-0">
+                  <div key={s.studentId} className="flex items-center gap-3 bg-white dark:bg-[#222] rounded-xl p-3 border border-gray-100 dark:border-gray-700">
+                    <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-sm shrink-0">
                       {s.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{s.name}</p>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{s.name}</p>
                     </div>
-                    <div className="flex gap-1 shrink-0">
+                    <div className="flex gap-1.5 shrink-0">
                       {['Hadir', 'Sakit', 'Izin', 'Alpa'].map(st => (
                         <button key={st} onClick={() => toggleStudentStatus(s.studentId, st)}
-                          className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all active:scale-90 ${
+                          className={`w-9 h-9 rounded-full text-sm font-bold transition-all active:scale-90 flex items-center justify-center ${
                             s.status === st ? statusColors[st] : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500'
                           }`}>{st.charAt(0)}</button>
                       ))}
@@ -502,55 +531,68 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
                   </div>
                 ))}
                 {attendance.length === 0 && (
-                  <p className="text-sm text-gray-400 text-center py-6">Pilih jadwal di atas untuk memuat data siswa</p>
+                  <p className="text-base text-gray-400 text-center py-6">Pilih jadwal di atas untuk memuat data siswa</p>
                 )}
               </div>
             </div>
           )}
-        </div>
+        </section>
 
-        {/* Section 4: Evaluasi & Lampiran */}
-        <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-          <h3 className="font-semibold text-sm text-gray-800 dark:text-white mb-3 flex items-center gap-2">
-            <span className="w-6 h-6 bg-emerald-600 text-white rounded-full text-xs flex items-center justify-center font-bold">4</span>
-            Evaluasi & Lampiran
-          </h3>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Catatan Guru</label>
-              <textarea className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs bg-gray-50 dark:bg-[#111] focus:border-emerald-500 outline-none resize-none"
-                rows={3} placeholder="Kendala, perilaku khusus siswa, atau hal penting..." value={form.catatan}
-                onChange={e => setForm(f => ({ ...f, catatan: e.target.value }))} />
+        {/* ══════════════════════════════════════════════════
+           Section 4: Evaluasi & Lampiran
+           ══════════════════════════════════════════════════ */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="w-8 h-8 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-sm">4</span>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Evaluasi & Lampiran</h2>
+          </div>
+
+          <div className="bg-white dark:bg-[#1a1a1a] p-6 rounded-xl jurnal-card-shadow border border-gray-200/60 dark:border-gray-700 space-y-6">
+            {/* Catatan Guru */}
+            <div className="space-y-2">
+              <label className="text-base font-semibold text-gray-800 dark:text-gray-200">Catatan Guru</label>
+              <textarea rows={3} placeholder="Kendala, perilaku khusus siswa, atau hal penting..."
+                value={form.catatan} onChange={e => setForm(f => ({ ...f, catatan: e.target.value }))}
+                className="w-full p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-[#111] text-base text-gray-900 dark:text-white placeholder-gray-400 resize-none" />
             </div>
-            <div>
-              <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Foto Kegiatan</label>
-              <div className="flex gap-2 mt-2 flex-wrap">
-                <label className="w-16 h-16 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:border-emerald-400 hover:text-emerald-500 transition-colors shrink-0">
-                  <Camera size={16} />
-                  <span className="text-[9px] mt-0.5">Tambah</span>
+
+            {/* Foto Kegiatan */}
+            <div className="space-y-2">
+              <label className="text-base font-semibold text-gray-800 dark:text-gray-200">Foto Kegiatan</label>
+              <div className="flex gap-3 flex-wrap">
+                <label className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 cursor-pointer hover:border-emerald-400 hover:text-emerald-500 transition-colors active:scale-95 bg-gray-50 dark:bg-[#111]"
+                  style={{ minHeight: '128px' }}>
+                  <Camera size={32} />
+                  <span className="text-base font-semibold">Tambah Foto</span>
                   <input type="file" accept="image/*" capture="environment" className="hidden"
                     onChange={e => { if (e.target.files?.[0]) setPhotos(p => [...p, e.target.files![0]]); }} />
                 </label>
-                {photos.map((f, i) => (
-                  <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0">
-                    <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
-                    <button onClick={() => setPhotos(p => p.filter((_, j) => j !== i))}
-                      className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white rounded-full text-[9px] flex items-center justify-center leading-none">×</button>
+                {photos.length > 0 && (
+                  <div className="flex gap-3 flex-wrap w-full">
+                    {photos.map((f, i) => (
+                      <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0">
+                        <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
+                        <button onClick={() => setPhotos(p => p.filter((_, j) => j !== i))}
+                          className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold flex items-center justify-center leading-none active:scale-90">×</button>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 pt-2 pb-2">
+        {/* ══════════════════════════════════════════════════
+           Action Buttons
+           ══════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-2 gap-4 pt-4 pb-4">
           <button onClick={() => handleSave(false)} disabled={saving || !form.classId}
-            className="flex-1 py-3 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 rounded-xl text-sm font-medium disabled:opacity-40 active:scale-[0.98] transition-all">
+            className="h-14 rounded-full border-2 border-emerald-700 text-emerald-700 dark:border-emerald-400 dark:text-emerald-400 text-lg font-bold disabled:opacity-40 active:scale-95 transition-all">
             Simpan Draft
           </button>
           <button onClick={() => handleSave(true)} disabled={saving || !form.classId}
-            className="flex-1 py-3 bg-emerald-600 text-white rounded-xl text-sm font-medium shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30 disabled:opacity-40 active:scale-[0.98] transition-all">
+            className="h-14 rounded-full bg-emerald-700 text-white text-lg font-bold shadow-lg shadow-emerald-200/50 dark:shadow-emerald-900/30 disabled:opacity-40 active:scale-95 transition-all">
             {saving ? 'Menyimpan...' : 'Simpan Jurnal'}
           </button>
         </div>

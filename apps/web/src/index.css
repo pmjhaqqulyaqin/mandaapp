@@ -344,3 +344,56 @@ main .text-xs { font-size: 0.6875rem !important; }
   }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   JURNAL BARU — Accessible Form Overrides (Mobile Only)
+   Scoped to .jurnal-input-accessible to avoid side effects
+   ═══════════════════════════════════════════════════════════ */
+.jurnal-input-accessible {
+  font-family: 'Atkinson Hyperlegible Next', 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.jurnal-input-accessible label {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+}
+
+.jurnal-input-accessible input[type="text"],
+.jurnal-input-accessible input[type="url"],
+.jurnal-input-accessible input[type="email"],
+.jurnal-input-accessible input[type="date"],
+.jurnal-input-accessible input[type="time"],
+.jurnal-input-accessible textarea {
+  font-size: 1rem !important;
+  font-family: 'Atkinson Hyperlegible Next', 'Inter', sans-serif !important;
+  border-width: 2px !important;
+  border-radius: 0.75rem !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.jurnal-input-accessible input:focus,
+.jurnal-input-accessible textarea:focus {
+  border-color: #005032 !important;
+  box-shadow: 0 0 0 3px rgba(0, 80, 50, 0.12) !important;
+  outline: none !important;
+}
+
+.jurnal-card-shadow {
+  box-shadow: 0 4px 12px rgba(0, 80, 50, 0.04);
+}
+
+.jurnal-chip-active {
+  background-color: #005032 !important;
+  color: #ffffff !important;
+}
+
+.dark .jurnal-input-accessible label {
+  color: #e5e7eb !important;
+}
+
+.dark .jurnal-input-accessible input:focus,
+.dark .jurnal-input-accessible textarea:focus {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+}
