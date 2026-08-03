@@ -76,6 +76,19 @@ export class EmployeeController {
     }
   }
 
+  /** Unlink the current user's account from their employee record */
+  static async unlink(req: Request, res: Response) {
+    try {
+      const user = req.authUser;
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+      await EmployeeService.unlinkUserFromEmployee(user.id);
+      res.json({ message: "Successfully unlinked" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   /** Upload profile photo for the current user's employee record */
   static async uploadPhoto(req: Request, res: Response) {
     try {

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { authClient } from '../../lib/auth-client';
-import { useMyEmployee, useLookupNip, useLinkNip, useUploadProfilePhoto } from '../../hooks/api/useEmployeeProfile';
+import { useMyEmployee, useLookupNip, useLinkNip, useUploadProfilePhoto, useUnlinkNip } from '../../hooks/api/useEmployeeProfile';
 import { compressImage } from '../../lib/imageCompressor';
 import { API_BASE_URL } from '../../lib/api';
 import { X, ChevronRight, ChevronLeft, Camera, User as UserIcon, Link2, Lock, LogOut, ShieldAlert, Check, Loader2, Mail, BadgeCheck, Briefcase } from 'lucide-react';
@@ -278,6 +278,7 @@ function LinkNipView({ user, employee, goBack, onLinked }: any) {
   const [nip, setNip] = useState('');
   const { data: lookup, isFetching, isTyping, error: lookupError } = useLookupNip(nip);
   const linkMut = useLinkNip();
+  const unlinkMut = useUnlinkNip();
   const [msg, setMsg] = useState('');
 
   const isSearching = isFetching || isTyping;
@@ -300,6 +301,22 @@ function LinkNipView({ user, employee, goBack, onLinked }: any) {
           <div className="p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800 rounded-xl w-full">
             <p className="text-[11px] text-emerald-700 dark:text-emerald-400 text-center">✅ Akun Anda sudah terhubung dengan data pegawai ini.</p>
           </div>
+          <button
+            onClick={async () => {
+              if (window.confirm('Apakah Anda yakin ingin memutuskan hubungan dengan data pegawai ini?')) {
+                try {
+                  await unlinkMut.mutateAsync();
+                  onLinked();
+                } catch (err: any) {
+                  alert(err.message || 'Gagal memutuskan hubungan');
+                }
+              }
+            }}
+            disabled={unlinkMut.isPending}
+            className="w-full mt-2 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/10 dark:hover:bg-red-900/20 dark:text-red-400 rounded-xl text-[13px] font-semibold transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+          >
+            {unlinkMut.isPending ? <><Loader2 size={14} className="animate-spin" /> Memproses...</> : 'Ganti Data Pegawai'}
+          </button>
         </div>
       </>
     );

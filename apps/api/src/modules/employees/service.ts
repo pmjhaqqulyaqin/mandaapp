@@ -75,6 +75,15 @@ export class EmployeeService {
     return results[0];
   }
 
+  /** Unlink the current user's account from any employee record */
+  static async unlinkUserFromEmployee(userId: string) {
+    const results = await db.update(employees)
+      .set({ userId: null, updatedAt: new Date() })
+      .where(eq(employees.userId, userId))
+      .returning();
+    return results;
+  }
+
   /** Update employee photo URL */
   static async updatePhoto(employeeId: string, photoUrl: string) {
     const results = await db.update(employees)

@@ -95,6 +95,19 @@ export function useLinkNip() {
   });
 }
 
+/** Unlink current user from employee */
+export function useUnlinkNip() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiClient('/employees/unlink', {
+      method: 'POST',
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['employee', 'me'] });
+    },
+  });
+}
+
 /** Upload profile photo */
 export function useUploadProfilePhoto() {
   const qc = useQueryClient();

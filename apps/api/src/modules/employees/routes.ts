@@ -17,6 +17,7 @@ const upload = multer({
 router.get("/me", requireStaff, EmployeeController.getMe);
 router.get("/lookup/:nip", requireStaff, EmployeeController.lookupByNip);
 router.post("/link-by-nip", requireStaff, EmployeeController.linkByNip);
+router.post("/unlink", requireStaff, EmployeeController.unlink);
 router.post("/me/photo", requireStaff, upload.single("photo"), EmployeeController.uploadPhoto);
 
 // ── Admin CRUD endpoints ──
