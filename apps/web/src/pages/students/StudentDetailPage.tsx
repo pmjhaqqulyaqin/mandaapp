@@ -1,13 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { apiClient } from '../../lib/api';
+import { apiClient, API_BASE_URL } from '../../lib/api';
 import { Input } from '@mandaapp/ui/src/components/Input';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import {
   ArrowLeft, Printer, Edit2, User, Users, BookOpen, ClipboardList,
   Award, Flag, Loader2, Phone, Briefcase, MapPin, Calendar,
-  Heart, GraduationCap, Activity, Star, CheckCircle2, XCircle, AlertCircle, Save, X, Plus, Trash2
+  Heart, GraduationCap, Activity, Star, CheckCircle2, XCircle, AlertCircle, Save, X, Plus, Trash2,
+  Camera, Upload, RefreshCw, Image as ImageIcon
 } from 'lucide-react';
+import { CameraCapture } from '../../components/CameraCapture';
+import { galleryService } from '../../lib/services/gallery';
 
 // --- UTILS ---
 const avatarColor = (name: string) => {
@@ -662,6 +665,12 @@ export default function StudentDetailPage() {
   const [educationForm, setEducationForm] = useState<any[]>([]);
   const [physicalForm, setPhysicalForm] = useState<any[]>([]);
 
+  // Photo upload states
+  const [showCamera, setShowCamera] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string>('');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -696,10 +705,79 @@ export default function StudentDetailPage() {
 
   useEffect(() => { fetchData(); }, [id]);
 
+  // ── Photo Handlers ──
+  const getFullPhotoUrl = (url: string | undefined | null) => {
+    if (!url) return '';
+    if (url.startsWith('data:')) return url;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    // Relative URL — prepend API base (strip /api suffix to get server origin)
+    const serverBase = API_BASE_URL.replace(/\/api$/, '');
+    return `${serverBase}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
+  const handlePhotoFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingPhoto(true);
+    try {
+      const uploaded = await galleryService.upload(file);
+      setPhotoPreview(getFullPhotoUrl(uploaded.url));
+      setStudentForm((prev: any) => ({ ...prev, photoUrl: uploaded.url }));
+    } catch (err: any) {
+      alert('Gagal mengunggah foto: ' + (err.message || 'Error'));
+    } finally {
+      setIsUploadingPhoto(false);
+      if (photoInputRef.current) photoInputRef.current.value = '';
+    }
+  };
+
+  const handleCameraCapture = async (base64: string) => {
+    setShowCamera(false);
+    setIsUploadingPhoto(true);
+    try {
+      const res = await fetch(base64);
+      const blob = await res.blob();
+      const uploaded = await galleryService.upload(blob);
+      setPhotoPreview(getFullPhotoUrl(uploaded.url));
+      setStudentForm((prev: any) => ({ ...prev, photoUrl: uploaded.url }));
+    } catch (err: any) {
+      alert('Gagal mengunggah foto kamera: ' + (err.message || 'Error'));
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleSyncPhoto = () => {
+    if (data?.photoUrl) {
+      setPhotoPreview(getFullPhotoUrl(data.photoUrl));
+      setStudentForm((prev: any) => ({ ...prev, photoUrl: data.photoUrl }));
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoPreview('');
+    setStudentForm((prev: any) => ({ ...prev, photoUrl: null }));
+  };
+
+  // Quick photo upload in view mode (no edit mode needed)
+  const handleQuickPhotoUpload = async (file: File) => {
+    setIsUploadingPhoto(true);
+    try {
+      const uploaded = await galleryService.upload(file);
+      await apiClient(`/students/${id}`, { method: 'PUT', data: { student: { photoUrl: uploaded.url } } });
+      fetchData();
+    } catch (err: any) {
+      alert('Gagal mengunggah foto: ' + (err.message || 'Error'));
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
   const toggleEditMode = () => {
     if (!isEditing && data) {
       // Initialize form states
       setStudentForm({ ...data });
+      setPhotoPreview(getFullPhotoUrl(data.photoUrl));
       setParentsForm([
         (data.parents || []).find((p:any) => p.type === 'ayah') || { type: 'ayah', name: '' },
         (data.parents || []).find((p:any) => p.type === 'ibu') || { type: 'ibu', name: '' },
@@ -738,6 +816,9 @@ export default function StudentDetailPage() {
         ijazahNumber: fs.ijazahNumber || '', continueTo: fs.continueTo || '',
         leaveReason: fs.leaveReason || '', leaveDate: fs.leaveDate ? fs.leaveDate.split('T')[0] : ''
       });
+    } else {
+      // Exiting edit mode — reset photo preview
+      setPhotoPreview('');
     }
     setIsEditing(!isEditing);
   };
@@ -829,19 +910,108 @@ export default function StudentDetailPage() {
       <div className="flex flex-col md:flex-row gap-4 md:gap-5">
         {/* SIDEBAR */}
         <div className="md:w-72 lg:w-80 shrink-0">
+          {/* Hidden file input for photo upload */}
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={isEditing ? handlePhotoFileSelect : (e) => {
+              const file = e.target.files?.[0];
+              if (file) handleQuickPhotoUpload(file);
+              if (photoInputRef.current) photoInputRef.current.value = '';
+            }}
+          />
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden sticky top-4">
-            <div className="h-20 bg-gradient-to-br from-primary/80 via-primary to-primary/60 relative">
-              <div className="absolute -bottom-8 left-4">
-                {data.photoUrl ? (
-                  <img src={data.photoUrl} alt={data.fullName} className="w-16 h-16 rounded-xl object-cover border-4 border-white shadow-lg" />
-                ) : (
-                  <div className={`w-16 h-16 rounded-xl ${avatarColor(data.fullName || '')} text-white text-lg font-bold flex items-center justify-center border-4 border-white shadow-lg`}>
-                    {initials(data.fullName || '?')}
+            {/* ── Photo Section ── */}
+            {isEditing ? (
+              /* ═══ EDIT MODE: Full photo upload area ═══ */
+              <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4 border-b border-gray-100">
+                <p className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <ImageIcon size={12} className="text-primary" /> Foto Siswa
+                </p>
+                {/* Photo Preview */}
+                <div className="flex justify-center mb-3">
+                  <div className="relative">
+                    {(photoPreview || studentForm.photoUrl) ? (
+                      <div className="relative group">
+                        <img
+                          src={photoPreview || getFullPhotoUrl(studentForm.photoUrl)}
+                          alt="Foto siswa"
+                          className="w-28 h-36 rounded-xl object-cover border-2 border-primary/30 shadow-lg"
+                        />
+                        <button
+                          onClick={handleRemovePhoto}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                          title="Hapus foto"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className={`w-28 h-36 rounded-xl ${avatarColor(data.fullName || '')} text-white text-2xl font-bold flex items-center justify-center border-2 border-dashed border-gray-300 shadow-inner`}>
+                        {initials(data.fullName || '?')}
+                      </div>
+                    )}
+                    {isUploadingPhoto && (
+                      <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center">
+                        <Loader2 className="animate-spin text-white" size={24} />
+                      </div>
+                    )}
                   </div>
+                </div>
+                {/* Action Buttons */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setShowCamera(true)}
+                    disabled={isUploadingPhoto}
+                    className="flex items-center justify-center gap-1.5 h-8 bg-primary/10 text-primary rounded-lg text-[11px] font-semibold hover:bg-primary/20 transition-colors disabled:opacity-50"
+                  >
+                    <Camera size={13} /> Kamera
+                  </button>
+                  <button
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={isUploadingPhoto}
+                    className="flex items-center justify-center gap-1.5 h-8 bg-primary/10 text-primary rounded-lg text-[11px] font-semibold hover:bg-primary/20 transition-colors disabled:opacity-50"
+                  >
+                    <Upload size={13} /> Upload File
+                  </button>
+                </div>
+                {/* Sync Button — shown if photo exists in DB but not yet in current form */}
+                {data.photoUrl && (!studentForm.photoUrl || studentForm.photoUrl !== data.photoUrl) && (
+                  <button
+                    onClick={handleSyncPhoto}
+                    className="mt-2 w-full flex items-center justify-center gap-1.5 h-8 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-[11px] font-semibold hover:bg-emerald-100 transition-colors"
+                  >
+                    <RefreshCw size={12} /> Sinkron Foto dari Data
+                  </button>
                 )}
               </div>
-            </div>
-            <div className="pt-10 px-4 pb-4">
+            ) : (
+              /* ═══ VIEW MODE: Photo with hover overlay ═══ */
+              <div className="h-20 bg-gradient-to-br from-primary/80 via-primary to-primary/60 relative">
+                <div className="absolute -bottom-8 left-4">
+                  <div className="relative group cursor-pointer" onClick={() => photoInputRef.current?.click()}>
+                    {data.photoUrl ? (
+                      <img src={getFullPhotoUrl(data.photoUrl)} alt={data.fullName} className="w-16 h-16 rounded-xl object-cover border-4 border-white shadow-lg" />
+                    ) : (
+                      <div className={`w-16 h-16 rounded-xl ${avatarColor(data.fullName || '')} text-white text-lg font-bold flex items-center justify-center border-4 border-white shadow-lg`}>
+                        {initials(data.fullName || '?')}
+                      </div>
+                    )}
+                    {/* Hover overlay with camera icon */}
+                    <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border-4 border-transparent">
+                      {isUploadingPhoto ? (
+                        <Loader2 size={16} className="text-white animate-spin" />
+                      ) : (
+                        <Camera size={16} className="text-white" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className={`${isEditing ? 'pt-3' : 'pt-10'} px-4 pb-4`}>
               <div className="flex items-start justify-between">
                 <div className="min-w-0">
                   <h2 className="text-base font-bold text-text-primary truncate">{data.fullName}</h2>
@@ -923,6 +1093,29 @@ export default function StudentDetailPage() {
             {saving ? <Loader2 size={16} className="animate-spin mr-1.5" /> : <Save size={16} className="mr-1.5" />}
             Simpan Perubahan
           </Button>
+        </div>
+      )}
+
+      {/* ── CAMERA FULLSCREEN OVERLAY ── */}
+      {showCamera && (
+        <div className="fixed inset-0 z-[2100] flex items-center justify-center sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-black w-full h-full sm:max-w-4xl sm:h-[80vh] sm:rounded-2xl sm:border sm:border-gray-800 sm:shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
+            <div className="hidden sm:flex items-center justify-between p-4 bg-[#111] border-b border-gray-800">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Camera className="w-5 h-5 text-primary" />
+                Ambil Foto Siswa
+              </h3>
+              <button onClick={() => setShowCamera(false)} className="text-gray-400 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 flex flex-col bg-black min-h-0 relative">
+              <CameraCapture
+                onCapture={handleCameraCapture}
+                onClose={() => setShowCamera(false)}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>
