@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useJurnalRecap } from '../../../hooks/api/useJurnal';
-import { ArrowLeft, Clock, CheckCircle2, Users, BookOpen, FileText, FileSpreadsheet } from 'lucide-react';
+import { ArrowLeft, Clock, CheckCircle2, Users, BookOpen, FileText, FileSpreadsheet, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -11,6 +11,9 @@ export const JurnalRecapTab = ({ onBack }: Props) => {
   const today = new Date();
   const [mode, setMode] = useState<'daily' | 'weekly' | 'monthly' | 'semester'>('daily');
   const [date, setDate] = useState(today.toLocaleDateString('sv-SE'));
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+
+  const toggleCard = (card: string) => setExpandedCard(prev => prev === card ? null : card);
 
   const getRange = () => {
     const d = new Date(date);
@@ -86,23 +89,37 @@ export const JurnalRecapTab = ({ onBack }: Props) => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-            <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center mb-2">
-              <Clock size={14} className="text-emerald-600 dark:text-emerald-400" />
+          {/* Card: Total Sesi Mengajar */}
+          <button onClick={() => toggleCard('sesi')} className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 text-left active:scale-[0.97] transition-all cursor-pointer relative">
+            <div className="flex items-start justify-between">
+              <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center mb-2">
+                <Clock size={14} className="text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedCard === 'sesi' ? 'rotate-180' : ''}`} />
             </div>
             <p className="text-2xl font-bold text-gray-800 dark:text-white">{totalEntries}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Total Sesi Mengajar</p>
-          </div>
-          <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-            <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center mb-2">
-              <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-400" />
+          </button>
+
+          {/* Card: Jurnal Tersimpan */}
+          <button onClick={() => toggleCard('jurnal')} className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 text-left active:scale-[0.97] transition-all cursor-pointer relative">
+            <div className="flex items-start justify-between">
+              <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center mb-2">
+                <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedCard === 'jurnal' ? 'rotate-180' : ''}`} />
             </div>
             <p className="text-2xl font-bold text-gray-800 dark:text-white">{approved + submitted}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Jurnal Tersimpan</p>
-          </div>
-          <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-            <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-2">
-              <Users size={14} className="text-purple-500 dark:text-purple-400" />
+          </button>
+
+          {/* Card: Rata-rata Kehadiran */}
+          <button onClick={() => toggleCard('kehadiran')} className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 text-left active:scale-[0.97] transition-all cursor-pointer relative">
+            <div className="flex items-start justify-between">
+              <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-2">
+                <Users size={14} className="text-purple-500 dark:text-purple-400" />
+              </div>
+              <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedCard === 'kehadiran' ? 'rotate-180' : ''}`} />
             </div>
             <p className="text-2xl font-bold text-gray-800 dark:text-white">
               {(() => {
@@ -114,15 +131,107 @@ export const JurnalRecapTab = ({ onBack }: Props) => {
               })()}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Rata-rata Kehadiran</p>
-          </div>
-          <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-            <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center mb-2">
-              <BookOpen size={14} className="text-amber-500 dark:text-amber-400" />
+          </button>
+
+          {/* Card: Mapel Diampu */}
+          <button onClick={() => toggleCard('mapel')} className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 text-left active:scale-[0.97] transition-all cursor-pointer relative">
+            <div className="flex items-start justify-between">
+              <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center mb-2">
+                <BookOpen size={14} className="text-amber-500 dark:text-amber-400" />
+              </div>
+              <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedCard === 'mapel' ? 'rotate-180' : ''}`} />
             </div>
             <p className="text-2xl font-bold text-gray-800 dark:text-white">{Object.keys(subjectCounts).length}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Mapel Diampu</p>
-          </div>
+          </button>
         </div>
+
+        {/* Expanded Detail Panel */}
+        {expandedCard && (
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+              <h3 className="font-semibold text-sm text-gray-800 dark:text-white">
+                {expandedCard === 'sesi' && 'Detail Sesi Mengajar'}
+                {expandedCard === 'jurnal' && 'Jurnal Tersimpan'}
+                {expandedCard === 'kehadiran' && 'Detail Kehadiran per Sesi'}
+                {expandedCard === 'mapel' && 'Daftar Mapel Diampu'}
+              </h3>
+            </div>
+            <div className="max-h-64 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800">
+              {/* Detail: Sesi Mengajar */}
+              {expandedCard === 'sesi' && (() => {
+                const entries = recap.data?.entries || [];
+                if (entries.length === 0) return <p className="text-sm text-gray-400 text-center py-6">Belum ada sesi</p>;
+                return entries.map((e: any, i: number) => (
+                  <div key={i} className="px-4 py-3 flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.subjectName || '-'}</p>
+                      <p className="text-xs text-gray-400">{e.className || '-'} • {e.jamKe ? `Jam ke-${e.jamKe}` : '-'}</p>
+                    </div>
+                    <span className="text-xs text-gray-400 shrink-0 ml-2">
+                      {e.date ? new Date(e.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : '-'}
+                    </span>
+                  </div>
+                ));
+              })()}
+
+              {/* Detail: Jurnal Tersimpan */}
+              {expandedCard === 'jurnal' && (() => {
+                const entries = (recap.data?.entries || []).filter((e: any) => e.status === 'submitted' || e.status === 'approved');
+                if (entries.length === 0) return <p className="text-sm text-gray-400 text-center py-6">Belum ada jurnal tersimpan</p>;
+                return entries.map((e: any, i: number) => (
+                  <div key={i} className="px-4 py-3 flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.subjectName || '-'}</p>
+                      <p className="text-xs text-gray-400">{e.className || '-'} • {e.materiPembelajaran || '-'}</p>
+                    </div>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ml-2 ${
+                      e.status === 'approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                      : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    }`}>{e.status === 'approved' ? 'Disetujui' : 'Dikirim'}</span>
+                  </div>
+                ));
+              })()}
+
+              {/* Detail: Kehadiran */}
+              {expandedCard === 'kehadiran' && (() => {
+                const entries = recap.data?.entries || [];
+                if (entries.length === 0) return <p className="text-sm text-gray-400 text-center py-6">Belum ada data kehadiran</p>;
+                return entries.map((e: any, i: number) => {
+                  const hadir = e.jumlahHadir || 0;
+                  const total = e.totalSiswa || 0;
+                  const pct = total > 0 ? Math.round((hadir / total) * 100) : 0;
+                  return (
+                    <div key={i} className="px-4 py-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.subjectName || '-'} — {e.className || '-'}</p>
+                        <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 shrink-0 ml-2">{hadir}/{total} ({pct}%)</span>
+                      </div>
+                      <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
+                        <div className={`h-1.5 rounded-full transition-all ${pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+
+              {/* Detail: Mapel Diampu */}
+              {expandedCard === 'mapel' && (() => {
+                const subjects = Object.entries(subjectCounts).sort((a, b) => b[1] - a[1]);
+                if (subjects.length === 0) return <p className="text-sm text-gray-400 text-center py-6">Belum ada mapel</p>;
+                return subjects.map(([name, count], i) => (
+                  <div key={name} className="px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="w-6 h-6 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full text-[10px] flex items-center justify-center font-bold shrink-0">{i + 1}</span>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{name}</p>
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0 ml-2">{count} sesi</span>
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+        )}
 
         {/* Bar Chart */}
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
