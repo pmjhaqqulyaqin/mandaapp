@@ -481,22 +481,22 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
           </div>
 
           {/* 2×2 Attendance Summary Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-green-50 dark:bg-emerald-900/20 p-4 rounded-xl border border-green-100 dark:border-emerald-800 flex flex-col items-center justify-center text-center">
+          <div className="grid grid-cols-4 gap-2">
+            <div className="bg-green-50 dark:bg-emerald-900/20 p-2 rounded-lg border border-green-100 dark:border-emerald-800 flex flex-col items-center justify-center text-center">
               <span className="text-3xl font-bold text-green-800 dark:text-emerald-400">{attSummary.hadir}</span>
-              <span className="text-base font-semibold text-green-700 dark:text-emerald-400 mt-1">Hadir</span>
+              <span className="text-base font-semibold text-green-700 dark:text-emerald-400">Hadir</span>
             </div>
-            <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl border border-red-100 dark:border-red-800 flex flex-col items-center justify-center text-center">
+            <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded-lg border border-red-100 dark:border-red-800 flex flex-col items-center justify-center text-center">
               <span className="text-3xl font-bold text-red-800 dark:text-red-400">{attSummary.sakit}</span>
-              <span className="text-base font-semibold text-red-700 dark:text-red-400 mt-1">Sakit</span>
+              <span className="text-base font-semibold text-red-700 dark:text-red-400">Sakit</span>
             </div>
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800 flex flex-col items-center justify-center text-center">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg border border-blue-100 dark:border-blue-800 flex flex-col items-center justify-center text-center">
               <span className="text-3xl font-bold text-blue-800 dark:text-blue-400">{attSummary.izin}</span>
-              <span className="text-base font-semibold text-blue-700 dark:text-blue-400 mt-1">Izin</span>
+              <span className="text-base font-semibold text-blue-700 dark:text-blue-400">Izin</span>
             </div>
-            <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-xl border border-orange-100 dark:border-orange-800 flex flex-col items-center justify-center text-center">
+            <div className="bg-orange-50 dark:bg-orange-900/20 p-2 rounded-lg border border-orange-100 dark:border-orange-800 flex flex-col items-center justify-center text-center">
               <span className="text-3xl font-bold text-orange-800 dark:text-orange-400">{attSummary.alpa}</span>
-              <span className="text-base font-semibold text-orange-700 dark:text-orange-400 mt-1">Alpa</span>
+              <span className="text-base font-semibold text-orange-700 dark:text-orange-400">Alpa</span>
             </div>
           </div>
 
@@ -511,7 +511,7 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
                   Semua Hadir
                 </button>
               </div>
-              <div className="max-h-80 overflow-y-auto px-5 py-3 space-y-2">
+              <div className="max-h-[70vh] overflow-y-auto px-5 py-3 space-y-2">
                 {attendance.map((s, i) => (
                   <div key={s.studentId} className="flex items-center gap-3 bg-white dark:bg-[#222] rounded-xl p-3 border border-gray-100 dark:border-gray-700">
                     <div className="flex-1 min-w-0">
