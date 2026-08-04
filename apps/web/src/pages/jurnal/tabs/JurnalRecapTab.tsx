@@ -9,11 +9,14 @@ interface Props {
 
 export const JurnalRecapTab = ({ onBack }: Props) => {
   const today = new Date();
-  const [mode, setMode] = useState<'weekly' | 'monthly' | 'semester'>('weekly');
+  const [mode, setMode] = useState<'daily' | 'weekly' | 'monthly' | 'semester'>('daily');
   const [date, setDate] = useState(today.toLocaleDateString('sv-SE'));
 
   const getRange = () => {
     const d = new Date(date);
+    if (mode === 'daily') {
+      return { dateFrom: date, dateTo: date };
+    }
     if (mode === 'weekly') {
       const dayOfWeek = d.getDay();
       const monday = new Date(d); monday.setDate(d.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
@@ -73,7 +76,7 @@ export const JurnalRecapTab = ({ onBack }: Props) => {
       <div className="px-4 py-4 space-y-4">
         {/* Period Selector */}
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-800 flex gap-2">
-          {([['weekly', 'Minggu Ini'], ['monthly', 'Bulan Ini'], ['semester', 'Semester']] as const).map(([key, label]) => (
+          {([['daily', 'Hari Ini'], ['weekly', 'Minggu Ini'], ['monthly', 'Bulan Ini'], ['semester', 'Semester']] as const).map(([key, label]) => (
             <button key={key} onClick={() => setMode(key)}
               className={`flex-1 py-2 text-xs rounded-lg font-medium transition-all active:scale-95 ${
                 mode === key ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
