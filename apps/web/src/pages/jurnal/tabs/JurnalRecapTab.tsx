@@ -165,7 +165,7 @@ export const JurnalRecapTab = ({ onBack }: Props) => {
                 return entries.map((e: any, i: number) => (
                   <div key={i} className="px-4 py-3 flex items-center justify-between">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.subjectName || '-'}</p>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.teacherName || 'Guru'} — {e.subjectName || '-'}</p>
                       <p className="text-xs text-gray-400">{e.className || '-'} • {e.jamKe ? `Jam ke-${e.jamKe}` : '-'}</p>
                     </div>
                     <span className="text-xs text-gray-400 shrink-0 ml-2">
@@ -177,20 +177,44 @@ export const JurnalRecapTab = ({ onBack }: Props) => {
 
               {/* Detail: Jurnal Tersimpan */}
               {expandedCard === 'jurnal' && (() => {
-                const entries = (recap.data?.entries || []).filter((e: any) => e.status === 'submitted' || e.status === 'approved');
-                if (entries.length === 0) return <p className="text-sm text-gray-400 text-center py-6">Belum ada jurnal tersimpan</p>;
-                return entries.map((e: any, i: number) => (
-                  <div key={i} className="px-4 py-3 flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.subjectName || '-'}</p>
-                      <p className="text-xs text-gray-400">{e.className || '-'} • {e.materiPembelajaran || '-'}</p>
-                    </div>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ml-2 ${
-                      e.status === 'approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                      : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                    }`}>{e.status === 'approved' ? 'Disetujui' : 'Dikirim'}</span>
-                  </div>
-                ));
+                const allEntries = recap.data?.entries || [];
+                const savedEntries = allEntries.filter((e: any) => e.status === 'submitted' || e.status === 'approved');
+                const unsavedEntries = allEntries.filter((e: any) => e.status !== 'submitted' && e.status !== 'approved');
+                if (allEntries.length === 0) return <p className="text-sm text-gray-400 text-center py-6">Belum ada jurnal</p>;
+                return (
+                  <>
+                    {savedEntries.map((e: any, i: number) => (
+                      <div key={`saved-${i}`} className="px-4 py-3 flex items-center justify-between">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.teacherName || 'Guru'} — {e.subjectName || '-'}</p>
+                          <p className="text-xs text-gray-400">{e.className || '-'} • {e.materiPembelajaran || '-'}</p>
+                        </div>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ml-2 ${
+                          e.status === 'approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                        }`}>{e.status === 'approved' ? 'Disetujui' : 'Dikirim'}</span>
+                      </div>
+                    ))}
+                    {unsavedEntries.length > 0 && (
+                      <>
+                        <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 border-t border-red-100 dark:border-red-800">
+                          <p className="text-xs font-semibold text-red-600 dark:text-red-400">Belum Disubmit ({unsavedEntries.length})</p>
+                        </div>
+                        {unsavedEntries.map((e: any, i: number) => (
+                          <div key={`unsaved-${i}`} className="px-4 py-3 flex items-center justify-between bg-red-50/30 dark:bg-red-900/10">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.teacherName || 'Guru'} — {e.subjectName || '-'}</p>
+                              <p className="text-xs text-gray-400">{e.className || '-'} • {e.materiPembelajaran || '-'}</p>
+                            </div>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ml-2 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                              {e.status === 'draft' ? 'Draft' : e.status === 'rejected' ? 'Ditolak' : 'Belum'}
+                            </span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </>
+                );
               })()}
 
               {/* Detail: Kehadiran */}
@@ -204,7 +228,7 @@ export const JurnalRecapTab = ({ onBack }: Props) => {
                   return (
                     <div key={i} className="px-4 py-3">
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.subjectName || '-'} — {e.className || '-'}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.teacherName || 'Guru'} — {e.subjectName || '-'} ({e.className || '-'})</p>
                         <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 shrink-0 ml-2">{hadir}/{total} ({pct}%)</span>
                       </div>
                       <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
