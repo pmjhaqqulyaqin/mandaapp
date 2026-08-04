@@ -514,9 +514,6 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
               <div className="max-h-80 overflow-y-auto px-5 py-3 space-y-2">
                 {attendance.map((s, i) => (
                   <div key={s.studentId} className="flex items-center gap-3 bg-white dark:bg-[#222] rounded-xl p-3 border border-gray-100 dark:border-gray-700">
-                    <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-sm shrink-0">
-                      {s.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
-                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 break-words whitespace-normal">{s.name}</p>
                     </div>
