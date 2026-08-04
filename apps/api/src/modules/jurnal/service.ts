@@ -430,7 +430,8 @@ export class JurnalService {
     if (filters.classId) conditions.push(eq(jurnalEntries.classId, filters.classId));
 
     const results = await db.select({
-      teacherName: employees.name, className: classes.name, subjectName: masterSubjects.nama,
+      teacherName: employees.name, className: classes.name,
+      subjectName: sql<string>`COALESCE(${masterSubjects.nama}, ts_subj."nama")`.as('subjectName'),
       date: jurnalEntries.date, jamKe: jurnalEntries.jamKe, materiPembelajaran: jurnalEntries.materiPembelajaran,
       metode: jurnalEntries.metode, catatan: jurnalEntries.catatan, evaluasi: jurnalEntries.evaluasi,
       jumlahHadir: jurnalEntries.jumlahHadir, totalSiswa: jurnalEntries.totalSiswa, status: jurnalEntries.status,
@@ -438,6 +439,8 @@ export class JurnalService {
       .leftJoin(employees, eq(jurnalEntries.teacherId, employees.id))
       .leftJoin(classes, eq(jurnalEntries.classId, classes.id))
       .leftJoin(masterSubjects, eq(jurnalEntries.subjectId, masterSubjects.id))
+      .leftJoin(teachingSubjects, eq(jurnalEntries.teachingSubjectId, teachingSubjects.id))
+      .leftJoin(sql`master_subjects as ts_subj`, sql`${teachingSubjects.subjectId} = ts_subj."id"`)
       .where(and(...conditions)).orderBy(jurnalEntries.date, jurnalEntries.jamKe);
 
     const statusCounts = { draft: 0, submitted: 0, approved: 0, rejected: 0 };
