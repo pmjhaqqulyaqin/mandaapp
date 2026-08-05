@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import {
   useListUsers,
+  useUsersDropdown,
   useCreateUser,
   useSetUserRole,
   useSetUserPassword,
@@ -920,7 +921,7 @@ function PermissionsTab() {
   const { roles, fetchRoles } = useRoles();
   const { data, loading, saving, fetchPermissions, updatePermissions } = useRoleMenuPermissions();
   const { saving: userSaving, updateUserPermissions } = useUserMenuPermissions();
-  const { users: allUsers, fetchUsers } = useListUsers();
+  const { users: allUsers, fetchUsers } = useUsersDropdown();
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -938,7 +939,7 @@ function PermissionsTab() {
   useEffect(() => {
     fetchRoles();
     fetchPermissions();
-    fetchUsers({ limit: 200 });
+    fetchUsers();
   }, [fetchRoles, fetchPermissions, fetchUsers]);
 
   // Sync server data into local state when data changes

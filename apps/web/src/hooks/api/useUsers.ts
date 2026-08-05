@@ -94,6 +94,27 @@ export function useListUsers() {
   return { users, total, loading, fetchUsers };
 }
 
+export function useUsersDropdown() {
+  const [users, setUsers] = useState<UserItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await apiClient<UserItem[]>('/users/dropdown');
+      if (Array.isArray(result)) {
+        setUsers(result);
+      }
+    } catch (err) {
+      console.error('Failed to fetch users dropdown:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { users, loading, fetchUsers };
+}
+
 // ─── Create User ───
 export function useCreateUser() {
   const [loading, setLoading] = useState(false);
