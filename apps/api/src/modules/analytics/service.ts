@@ -1,5 +1,5 @@
 import { db } from "../../db";
-import { studentProfiles, employees, attendanceRecords, suratMasuks, suratKeluars, serviceRequests, schoolEvents, classSchedules, jurnalEntries, classes, user, masterSubjects, teachingSubjects } from "../../db/schema";
+import { studentProfiles, employees, attendanceRecords, suratMasuks, suratKeluars, serviceRequests, schoolEvents, classSchedules, jurnalEntries, classes, user, masterSubjects, teachingSubjects, jurnalTimeSlots } from "../../db/schema";
 import { eq, and, sql, gte, lte, desc, count, inArray } from "drizzle-orm";
 
 export class AnalyticsService {
@@ -39,100 +39,181 @@ export class AnalyticsService {
   }
 
   static async getClassroomMonitor() {
-    const today = new Date();
-    const jsDayOfWeek = today.getDay(); // 0=Minggu, 1=Senin, ..., 6=Sabtu
-    const todayStr = today.toISOString().split("T")[0];
-
-    // teachingSubjects uses 1=Senin..6=Sabtu (no Minggu)
-    // JS getDay() returns 0=Minggu, 1=Senin, ..., 6=Sabtu
-    // So jsDayOfWeek maps directly (1=Senin=1, 2=Selasa=2, etc.)
-    // Minggu (0) has no teaching schedules
-    const teachingDay = jsDayOfWeek; // 0=Minggu won't match any teaching_subjects
+    const now = new Date();
+    const jsDayOfWeek = now.getDay(); // 0=Minggu, 1=Senin, ..., 6=Sabtu
+    const todayStr = now.toISOString().split("T")[0];
+    const currentTime = now.toTimeString().slice(0, 8); // "HH:MM:SS"
 
     const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const teachingDay = jsDayOfWeek; // 1=Senin..6=Sabtu matches teachingSubjects convention
 
     if (teachingDay === 0) {
-      // Hari Minggu — tidak ada jadwal mengajar
       return {
         dayOfWeek: jsDayOfWeek,
         dayName: dayNames[jsDayOfWeek],
-        totalJadwal: 0,
+        currentJamKe: null,
+        currentTimeSlot: null,
+        totalKelas: 0,
         totalTerisi: 0,
         totalKosong: 0,
         schedules: [],
       };
     }
 
-    // Query jadwal dari teachingSubjects (sistem KBM/Jurnal yang aktif)
-    const schedules = await db.select({
+    // 1. Get all time slots for today to determine current jam ke
+    const timeSlots = await db.select()
+      .from(jurnalTimeSlots)
+      .where(and(
+        eq(jurnalTimeSlots.dayOfWeek, teachingDay),
+        eq(jurnalTimeSlots.isActive, true),
+      ))
+      .orderBy(jurnalTimeSlots.jamKe);
+
+    // 2. Determine current jam ke based on current time
+    let currentJamKe: number | null = null;
+    let currentSlotInfo: { waktuMulai: string; waktuSelesai: string } | null = null;
+
+    for (const slot of timeSlots) {
+      if (currentTime >= slot.waktuMulai && currentTime < slot.waktuSelesai) {
+        currentJamKe = slot.jamKe;
+        currentSlotInfo = { waktuMulai: slot.waktuMulai, waktuSelesai: slot.waktuSelesai };
+        break;
+      }
+    }
+
+    // If no exact match, find the most recent completed or upcoming slot
+    if (currentJamKe === null && timeSlots.length > 0) {
+      // If before first slot, use jam ke 1
+      if (currentTime < timeSlots[0].waktuMulai) {
+        currentJamKe = timeSlots[0].jamKe;
+        currentSlotInfo = { waktuMulai: timeSlots[0].waktuMulai, waktuSelesai: timeSlots[0].waktuSelesai };
+      } else {
+        // Use the last slot that has started (most recent)
+        for (let i = timeSlots.length - 1; i >= 0; i--) {
+          if (currentTime >= timeSlots[i].waktuMulai) {
+            currentJamKe = timeSlots[i].jamKe;
+            currentSlotInfo = { waktuMulai: timeSlots[i].waktuMulai, waktuSelesai: timeSlots[i].waktuSelesai };
+            break;
+          }
+        }
+      }
+    }
+
+    // 3. Get all active classes
+    const allClasses = await db.select({
+      id: classes.id,
+      name: classes.name,
+    }).from(classes).orderBy(classes.name);
+
+    if (allClasses.length === 0) {
+      return {
+        dayOfWeek: jsDayOfWeek,
+        dayName: dayNames[jsDayOfWeek],
+        currentJamKe,
+        currentTimeSlot: currentSlotInfo,
+        totalKelas: 0,
+        totalTerisi: 0,
+        totalKosong: 0,
+        schedules: [],
+      };
+    }
+
+    // 4. Get teaching schedule for today — find which teacher+subject is assigned to each class for current jam ke
+    const todaySchedules = await db.select({
       id: teachingSubjects.id,
-      jamKe: teachingSubjects.jamKe,
-      waktuMulai: teachingSubjects.waktuMulai,
-      waktuSelesai: teachingSubjects.waktuSelesai,
-      employeeId: teachingSubjects.employeeId,
       classId: teachingSubjects.classId,
-      subjectId: teachingSubjects.subjectId,
+      jamKe: teachingSubjects.jamKe,
       teacherName: employees.name,
-      className: classes.name,
       subjectName: masterSubjects.nama,
     })
       .from(teachingSubjects)
       .leftJoin(employees, eq(teachingSubjects.employeeId, employees.id))
-      .leftJoin(classes, eq(teachingSubjects.classId, classes.id))
       .leftJoin(masterSubjects, eq(teachingSubjects.subjectId, masterSubjects.id))
       .where(and(
         eq(teachingSubjects.dayOfWeek, teachingDay),
         eq(teachingSubjects.isActive, true),
-      ))
-      .orderBy(teachingSubjects.waktuMulai, teachingSubjects.jamKe);
+      ));
 
-    // Query jurnal entries hari ini untuk menentukan mana yang sudah terisi
+    // Build map: classId -> schedule info for current jam ke
+    // jamKe in teachingSubjects is varchar like "1-2", "3-4" — parse to check if current jam is within range
+    const classScheduleMap = new Map<string, { teacherName: string; subjectName: string; teachingSubjectId: string; jamKe: string }>();
+
+    todaySchedules.forEach(s => {
+      if (!s.classId || !s.jamKe || currentJamKe === null) return;
+      // Parse jamKe: can be "1-2", "3", "3-4", etc.
+      const parts = s.jamKe.split('-').map(Number);
+      const jamStart = parts[0];
+      const jamEnd = parts.length > 1 ? parts[1] : parts[0];
+      if (currentJamKe >= jamStart && currentJamKe <= jamEnd) {
+        classScheduleMap.set(s.classId, {
+          teacherName: s.teacherName || '-',
+          subjectName: s.subjectName || '-',
+          teachingSubjectId: s.id,
+          jamKe: s.jamKe,
+        });
+      }
+    });
+
+    // 5. Get jurnal entries for today — check which classes have filled jurnals for current jam ke
     const jurnals = await db.select({
-      teachingSubjectId: jurnalEntries.teachingSubjectId,
       classId: jurnalEntries.classId,
-      subjectId: jurnalEntries.subjectId,
       jamKe: jurnalEntries.jamKe,
+      teachingSubjectId: jurnalEntries.teachingSubjectId,
     })
       .from(jurnalEntries)
       .where(eq(jurnalEntries.date, todayStr));
 
-    // Build lookup sets for matching
-    const filledByTeachingSubjectId = new Set<string>();
-    const filledByClassSubject = new Set<string>();
-    const filledByClassJamKe = new Set<string>();
-
+    // Build set of classIds that have jurnal filled for current jam ke
+    const filledClassIds = new Set<string>();
     jurnals.forEach(j => {
-      if (j.teachingSubjectId) filledByTeachingSubjectId.add(j.teachingSubjectId);
-      if (j.classId && j.subjectId) filledByClassSubject.add(`${j.classId}-${j.subjectId}`);
-      if (j.classId && j.jamKe) filledByClassJamKe.add(`${j.classId}-${j.jamKe}`);
+      if (!j.classId || currentJamKe === null) return;
+      // Check by teachingSubjectId match
+      const schedInfo = classScheduleMap.get(j.classId);
+      if (schedInfo && j.teachingSubjectId && schedInfo.teachingSubjectId === j.teachingSubjectId) {
+        filledClassIds.add(j.classId);
+        return;
+      }
+      // Check by jamKe match
+      if (j.jamKe) {
+        const parts = j.jamKe.split('-').map(Number);
+        const jamStart = parts[0];
+        const jamEnd = parts.length > 1 ? parts[1] : parts[0];
+        if (currentJamKe >= jamStart && currentJamKe <= jamEnd) {
+          filledClassIds.add(j.classId);
+        }
+      }
     });
 
-    const result = schedules.map(s => {
-      // Check if filled via multiple matching strategies
-      const isFilled =
-        filledByTeachingSubjectId.has(s.id) ||
-        (s.classId && s.subjectId ? filledByClassSubject.has(`${s.classId}-${s.subjectId}`) : false) ||
-        (s.classId && s.jamKe ? filledByClassJamKe.has(`${s.classId}-${s.jamKe}`) : false);
+    // 6. Build result — one entry per class
+    const schedules = allClasses.map(cls => {
+      const schedInfo = classScheduleMap.get(cls.id);
+      const isFilled = filledClassIds.has(cls.id);
 
       return {
-        id: s.id,
-        time: s.waktuMulai || null,
-        jamKe: s.jamKe || null,
-        subject: s.subjectName || '-',
-        className: s.className || '-',
-        teacherName: s.teacherName || '-',
+        classId: cls.id,
+        className: cls.name,
+        subject: schedInfo?.subjectName || null,
+        teacherName: schedInfo?.teacherName || null,
+        jamKe: schedInfo?.jamKe || null,
+        hasSchedule: !!schedInfo,
         isFilled,
-        statusLabel: isFilled ? "Terisi" : "Belum Terisi",
+        statusLabel: !schedInfo ? 'Tidak Ada Jadwal' : (isFilled ? 'Terisi' : 'Kosong'),
       };
     });
+
+    // Only count classes that have a schedule for current jam ke
+    const scheduledClasses = schedules.filter(s => s.hasSchedule);
 
     return {
       dayOfWeek: jsDayOfWeek,
       dayName: dayNames[jsDayOfWeek],
-      totalJadwal: schedules.length,
-      totalTerisi: result.filter(r => r.isFilled).length,
-      totalKosong: result.filter(r => !r.isFilled).length,
-      schedules: result,
+      currentJamKe,
+      currentTimeSlot: currentSlotInfo,
+      totalKelas: allClasses.length,
+      totalTerisi: scheduledClasses.filter(r => r.isFilled).length,
+      totalKosong: scheduledClasses.filter(r => !r.isFilled).length,
+      totalTidakAdaJadwal: schedules.filter(s => !s.hasSchedule).length,
+      schedules,
     };
   }
 

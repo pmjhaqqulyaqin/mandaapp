@@ -142,12 +142,17 @@ export const DashboardOverview = () => {
             <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
               <BookOpen size={16} className="text-violet-500" /> Monitor Kelas Real-Time
               {classroom && <span className="text-[10px] font-normal text-gray-500">({classroom.dayName})</span>}
+              {classroom?.currentJamKe && (
+                <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 px-1.5 py-0.5 rounded">
+                  Jam ke-{classroom.currentJamKe}
+                </span>
+              )}
             </h3>
             {classroom && (
               <div className="flex gap-2 text-[10px] font-bold">
                 <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-full">{classroom.totalTerisi} Terisi</span>
                 <span className="px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400 rounded-full">{classroom.totalKosong} Kosong</span>
-                <span className="px-2 py-0.5 bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 rounded-full">{classroom.totalJadwal} Total</span>
+                <span className="px-2 py-0.5 bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 rounded-full">{classroom.totalKelas} Kelas</span>
               </div>
             )}
           </div>
@@ -158,17 +163,20 @@ export const DashboardOverview = () => {
             ) : (
               classroom.schedules.map((s: any, i: number) => (
                 <div key={i} className={`flex items-center gap-3 p-2.5 rounded-xl border transition-colors ${
+                  !s.hasSchedule ? 'border-gray-100 dark:border-[#222] bg-gray-50/50 dark:bg-white/[0.02] opacity-60' :
                   s.isFilled ? 'border-gray-100 dark:border-[#222] bg-white dark:bg-[#111]' : 'border-red-200/60 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10'
                 }`}>
-                  <div className="text-center shrink-0 w-14">
-                    <div className="text-[11px] font-mono font-bold text-gray-700 dark:text-gray-300">{s.time?.slice(0, 5) || '-'}</div>
-                    {s.jamKe && <div className="text-[9px] text-gray-400">Jam {s.jamKe}</div>}
-                  </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-bold text-gray-800 dark:text-gray-200 truncate">{s.subject}</p>
-                    <p className="text-[10px] text-gray-500 truncate">{s.className} • {s.teacherName || '-'}</p>
+                    <p className="text-[13px] font-bold text-gray-800 dark:text-gray-200 truncate">{s.className}</p>
+                    <p className="text-[10px] text-gray-500 truncate">
+                      {s.hasSchedule ? `${s.subject} • ${s.teacherName}` : 'Tidak ada jadwal'}
+                    </p>
                   </div>
-                  {s.isFilled ? (
+                  {!s.hasSchedule ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 text-[10px] font-bold shrink-0">
+                      — Kosong
+                    </span>
+                  ) : s.isFilled ? (
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 text-[10px] font-bold shrink-0">
                       <CheckCircle2 size={10} /> Terisi
                     </span>
@@ -189,7 +197,6 @@ export const DashboardOverview = () => {
               <table className="w-full text-xs">
                 <thead className="bg-gray-50 dark:bg-[#1a1a1a] sticky top-0 z-10">
                   <tr>
-                    <th className="p-2 text-left font-semibold text-gray-500">Jam</th>
                     <th className="p-2 text-left font-semibold text-gray-500">Kelas</th>
                     <th className="p-2 text-left font-semibold text-gray-500">Mata Pelajaran</th>
                     <th className="p-2 text-left font-semibold text-gray-500">Guru Pengajar</th>
@@ -198,16 +205,19 @@ export const DashboardOverview = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
                   {classroom.schedules.map((s: any, i: number) => (
-                    <tr key={i} className={`transition-colors ${s.isFilled ? 'hover:bg-gray-50 dark:hover:bg-white/5' : 'bg-red-50/40 dark:bg-red-900/5 hover:bg-red-50 dark:hover:bg-red-900/10'}`}>
-                      <td className="p-2 font-mono text-gray-600 dark:text-gray-400">
-                        {s.time?.slice(0, 5) || '-'}
-                        {s.jamKe && <span className="ml-1 text-[10px] text-gray-400 font-sans">(Jam {s.jamKe})</span>}
-                      </td>
+                    <tr key={i} className={`transition-colors ${
+                      !s.hasSchedule ? 'opacity-50' :
+                      s.isFilled ? 'hover:bg-gray-50 dark:hover:bg-white/5' : 'bg-red-50/40 dark:bg-red-900/5 hover:bg-red-50 dark:hover:bg-red-900/10'
+                    }`}>
                       <td className="p-2 font-bold text-gray-800 dark:text-gray-200">{s.className}</td>
-                      <td className="p-2 text-gray-700 dark:text-gray-300">{s.subject}</td>
+                      <td className="p-2 text-gray-700 dark:text-gray-300">{s.subject || '-'}</td>
                       <td className="p-2 text-gray-600 dark:text-gray-400">{s.teacherName || '-'}</td>
                       <td className="p-2 text-center">
-                        {s.isFilled ? (
+                        {!s.hasSchedule ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 text-[10px] font-bold">
+                            — Kosong
+                          </span>
+                        ) : s.isFilled ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 text-[10px] font-bold">
                             <CheckCircle2 size={10} /> Terisi
                           </span>
