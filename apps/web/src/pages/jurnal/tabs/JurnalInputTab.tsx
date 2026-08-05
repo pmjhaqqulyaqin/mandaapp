@@ -123,6 +123,7 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
   const [saving, setSaving] = useState(false);
   const [attendanceExpanded, setAttendanceExpanded] = useState(false);
   const [selectedMethods, setSelectedMethods] = useState<string[]>([]);
+  const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
 
   const methods = useTeachingMethodsList();
 
@@ -219,9 +220,11 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
   const setAllHadir = () => setAttendance(a => a.map(s => ({ ...s, status: 'Hadir' })));
 
   const toggleMethod = (name: string) => {
-    setSelectedMethods(prev =>
-      prev.includes(name) ? prev.filter(m => m !== name) : [...prev, name]
-    );
+    setSelectedMethods(prev => {
+      const next = prev.includes(name) ? prev.filter(m => m !== name) : [...prev, name];
+      if (next.length > 0) setValidationErrors(v => ({ ...v, metode: false }));
+      return next;
+    });
   };
 
   const handleAddMethod = () => {
@@ -244,6 +247,44 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
 
   const handleSave = async (andSubmit: boolean) => {
     if (!form.classId || !form.subjectName) { toast.error('Pilih jadwal terlebih dahulu'); return; }
+
+    // ── Validation: check required fields ──
+    const errors: Record<string, boolean> = {};
+    const missing: string[] = [];
+
+    if (!form.materiPembelajaran.trim()) {
+      errors.materi = true;
+      missing.push('Materi Pokok');
+    }
+    if (!form.capaianPembelajaran.trim()) {
+      errors.tujuan = true;
+      missing.push('Tujuan Pembelajaran');
+    }
+    if (selectedMethods.length === 0) {
+      errors.metode = true;
+      missing.push('Metode Pembelajaran');
+    }
+    if (attendance.length === 0) {
+      errors.absensi = true;
+      missing.push('Daftar Hadir / Absensi');
+    }
+
+    if (missing.length > 0) {
+      setValidationErrors(errors);
+      toast.error(
+        `Lengkapi data berikut sebelum menyimpan:\n• ${missing.join('\n• ')}`,
+        { duration: 5000 }
+      );
+      // Auto-expand attendance section if it's the issue
+      if (errors.absensi) setAttendanceExpanded(true);
+      // Scroll to first error
+      const firstErrorId = errors.materi ? 'field-materi' : errors.tujuan ? 'field-tujuan' : errors.metode ? 'field-metode' : 'field-absensi';
+      setTimeout(() => {
+        document.getElementById(firstErrorId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+      return;
+    }
+    setValidationErrors({});
     setSaving(true);
 
     const payload = {
@@ -425,26 +466,28 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
 
           <div className="bg-white dark:bg-[#1a1a1a] p-6 rounded-xl jurnal-card-shadow border border-gray-200/60 dark:border-gray-700 space-y-6">
             {/* Materi Pokok */}
-            <div className="space-y-2">
+            <div id="field-materi" className="space-y-2">
               <label className="text-base font-semibold text-gray-800 dark:text-gray-200">
                 Materi Pokok <span className="text-red-500">*</span>
               </label>
               <input type="text" placeholder="Contoh: Perubahan Wujud Benda"
-                value={form.materiPembelajaran} onChange={e => setForm(f => ({ ...f, materiPembelajaran: e.target.value }))}
-                className="w-full h-14 px-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-[#111] text-base text-gray-900 dark:text-white placeholder-gray-400" />
+                value={form.materiPembelajaran} onChange={e => { setForm(f => ({ ...f, materiPembelajaran: e.target.value })); if (e.target.value.trim()) setValidationErrors(v => ({ ...v, materi: false })); }}
+                className={`w-full h-14 px-4 rounded-xl border-2 bg-white dark:bg-[#111] text-base text-gray-900 dark:text-white placeholder-gray-400 transition-colors ${validationErrors.materi ? 'border-red-400 dark:border-red-500 ring-2 ring-red-200 dark:ring-red-900/40' : 'border-gray-200 dark:border-gray-600'}`} />
+              {validationErrors.materi && <p className="text-sm text-red-500 font-medium">Materi Pokok wajib diisi</p>}
             </div>
 
             {/* Tujuan Pembelajaran */}
-            <div className="space-y-2">
-              <label className="text-base font-semibold text-gray-800 dark:text-gray-200">Tujuan Pembelajaran</label>
+            <div id="field-tujuan" className="space-y-2">
+              <label className="text-base font-semibold text-gray-800 dark:text-gray-200">Tujuan Pembelajaran <span className="text-red-500">*</span></label>
               <textarea rows={4} placeholder="Siswa dapat menjelaskan..."
-                value={form.capaianPembelajaran} onChange={e => setForm(f => ({ ...f, capaianPembelajaran: e.target.value }))}
-                className="w-full p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-[#111] text-base text-gray-900 dark:text-white placeholder-gray-400 resize-none" />
+                value={form.capaianPembelajaran} onChange={e => { setForm(f => ({ ...f, capaianPembelajaran: e.target.value })); if (e.target.value.trim()) setValidationErrors(v => ({ ...v, tujuan: false })); }}
+                className={`w-full p-4 rounded-xl border-2 bg-white dark:bg-[#111] text-base text-gray-900 dark:text-white placeholder-gray-400 resize-none transition-colors ${validationErrors.tujuan ? 'border-red-400 dark:border-red-500 ring-2 ring-red-200 dark:ring-red-900/40' : 'border-gray-200 dark:border-gray-600'}`} />
+              {validationErrors.tujuan && <p className="text-sm text-red-500 font-medium">Tujuan Pembelajaran wajib diisi</p>}
             </div>
 
             {/* Metode Pembelajaran */}
-            <div className="space-y-3">
-              <label className="text-base font-semibold text-gray-800 dark:text-gray-200">Metode Pembelajaran</label>
+            <div id="field-metode" className="space-y-3">
+              <label className="text-base font-semibold text-gray-800 dark:text-gray-200">Metode Pembelajaran <span className="text-red-500">*</span></label>
               <div className="flex flex-wrap gap-2">
                 {methods.query.data?.map((m: any) => (
                   <button key={m.id} onClick={() => toggleMethod(m.name)}
@@ -459,6 +502,7 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
                   <Plus size={16} /> Lainnya
                 </button>
               </div>
+              {validationErrors.metode && <p className="text-sm text-red-500 font-medium">Pilih minimal 1 metode pembelajaran</p>}
             </div>
           </div>
         </section>
@@ -466,11 +510,11 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
         {/* ══════════════════════════════════════════════════
            Section 3: Absensi Siswa
            ══════════════════════════════════════════════════ */}
-        <section className="space-y-4">
+        <section id="field-absensi" className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-sm">3</span>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Absensi Siswa</h2>
+              <span className={`w-8 h-8 rounded-full text-white flex items-center justify-center font-bold text-sm ${validationErrors.absensi ? 'bg-red-500 animate-pulse' : 'bg-emerald-700'}`}>3</span>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Absensi Siswa <span className="text-red-500">*</span></h2>
             </div>
             <button onClick={() => setAttendanceExpanded(!attendanceExpanded)}
               className="text-emerald-700 dark:text-emerald-400 font-semibold text-base flex items-center gap-1 active:scale-95 transition-transform"
@@ -528,7 +572,11 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
                   </div>
                 ))}
                 {attendance.length === 0 && (
-                  <p className="text-base text-gray-400 text-center py-6">Pilih jadwal di atas untuk memuat data siswa</p>
+                  <div className="text-center py-6">
+                    <p className={`text-base ${validationErrors.absensi ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
+                      {validationErrors.absensi ? 'Daftar hadir wajib diisi — pilih jadwal di atas untuk memuat data siswa' : 'Pilih jadwal di atas untuk memuat data siswa'}
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
