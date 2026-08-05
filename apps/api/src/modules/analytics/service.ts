@@ -4,7 +4,8 @@ import { eq, and, sql, gte, lte, desc, count, inArray } from "drizzle-orm";
 
 export class AnalyticsService {
   static async getSummary() {
-    const today = new Date().toISOString().split("T")[0];
+    const witaOpts: Intl.DateTimeFormatOptions = { timeZone: 'Asia/Makassar', hour12: false };
+    const today = new Intl.DateTimeFormat('en-CA', { ...witaOpts, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); // WITA date
     const monthStart = new Date(today.slice(0, 7) + "-01");
 
     const [
@@ -40,9 +41,16 @@ export class AnalyticsService {
 
   static async getClassroomMonitor() {
     const now = new Date();
-    const jsDayOfWeek = now.getDay(); // 0=Minggu, 1=Senin, ..., 6=Sabtu
-    const todayStr = now.toISOString().split("T")[0];
-    const currentTime = now.toTimeString().slice(0, 8); // "HH:MM:SS"
+
+    // Use WITA (Asia/Makassar, UTC+8) timezone to ensure correct date/time
+    // regardless of server timezone (e.g. UTC in Docker)
+    const witaOpts: Intl.DateTimeFormatOptions = { timeZone: 'Asia/Makassar', hour12: false };
+    const todayStr = new Intl.DateTimeFormat('en-CA', { ...witaOpts, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now); // "YYYY-MM-DD"
+    const currentTime = new Intl.DateTimeFormat('en-GB', { ...witaOpts, hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(now); // "HH:MM:SS"
+
+    // Derive day-of-week from the WITA date string (timezone-safe)
+    const [y, m, d] = todayStr.split("-").map(Number);
+    const jsDayOfWeek = new Date(y, m - 1, d).getDay(); // 0=Minggu, 1=Senin, ..., 6=Sabtu
 
     const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
     const teachingDay = jsDayOfWeek; // 1=Senin..6=Sabtu matches teachingSubjects convention
@@ -264,7 +272,8 @@ export class AnalyticsService {
   }
 
   static async getUpcomingEvents(limit: number = 5) {
-    const today = new Date().toISOString().split("T")[0];
+    const witaOpts: Intl.DateTimeFormatOptions = { timeZone: 'Asia/Makassar', hour12: false };
+    const today = new Intl.DateTimeFormat('en-CA', { ...witaOpts, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
     return db.select({
       id: schoolEvents.id, title: schoolEvents.title,
       startDate: schoolEvents.eventDate, endDate: schoolEvents.endDate,
