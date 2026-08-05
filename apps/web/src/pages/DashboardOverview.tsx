@@ -160,8 +160,9 @@ export const DashboardOverview = () => {
                 <div key={i} className={`flex items-center gap-3 p-2.5 rounded-xl border transition-colors ${
                   s.isFilled ? 'border-gray-100 dark:border-[#222] bg-white dark:bg-[#111]' : 'border-red-200/60 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10'
                 }`}>
-                  <div className="text-center shrink-0 w-11">
-                    <div className="text-[11px] font-mono font-bold text-gray-700 dark:text-gray-300">{s.time?.slice(0, 5)}</div>
+                  <div className="text-center shrink-0 w-14">
+                    <div className="text-[11px] font-mono font-bold text-gray-700 dark:text-gray-300">{s.time?.slice(0, 5) || '-'}</div>
+                    {s.jamKe && <div className="text-[9px] text-gray-400">Jam {s.jamKe}</div>}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-bold text-gray-800 dark:text-gray-200 truncate">{s.subject}</p>
@@ -198,7 +199,10 @@ export const DashboardOverview = () => {
                 <tbody className="divide-y divide-gray-100 dark:divide-[#222]">
                   {classroom.schedules.map((s: any, i: number) => (
                     <tr key={i} className={`transition-colors ${s.isFilled ? 'hover:bg-gray-50 dark:hover:bg-white/5' : 'bg-red-50/40 dark:bg-red-900/5 hover:bg-red-50 dark:hover:bg-red-900/10'}`}>
-                      <td className="p-2 font-mono text-gray-600 dark:text-gray-400">{s.time?.slice(0, 5)}</td>
+                      <td className="p-2 font-mono text-gray-600 dark:text-gray-400">
+                        {s.time?.slice(0, 5) || '-'}
+                        {s.jamKe && <span className="ml-1 text-[10px] text-gray-400 font-sans">(Jam {s.jamKe})</span>}
+                      </td>
                       <td className="p-2 font-bold text-gray-800 dark:text-gray-200">{s.className}</td>
                       <td className="p-2 text-gray-700 dark:text-gray-300">{s.subject}</td>
                       <td className="p-2 text-gray-600 dark:text-gray-400">{s.teacherName || '-'}</td>

@@ -1,6 +1,6 @@
 import { db } from "../../db";
-import { studentProfiles, employees, attendanceRecords, suratMasuks, suratKeluars, serviceRequests, schoolEvents, classSchedules, jurnalEntries, classes, user, masterSubjects } from "../../db/schema";
-import { eq, and, sql, gte, lte, desc, count } from "drizzle-orm";
+import { studentProfiles, employees, attendanceRecords, suratMasuks, suratKeluars, serviceRequests, schoolEvents, classSchedules, jurnalEntries, classes, user, masterSubjects, teachingSubjects } from "../../db/schema";
+import { eq, and, sql, gte, lte, desc, count, inArray } from "drizzle-orm";
 
 export class AnalyticsService {
   static async getSummary() {
@@ -40,57 +40,95 @@ export class AnalyticsService {
 
   static async getClassroomMonitor() {
     const today = new Date();
-    const dayOfWeek = today.getDay();
+    const jsDayOfWeek = today.getDay(); // 0=Minggu, 1=Senin, ..., 6=Sabtu
     const todayStr = today.toISOString().split("T")[0];
 
-    const schedules = await db.select({
-      id: classSchedules.id,
-      time: classSchedules.time,
-      ampm: classSchedules.ampm,
-      subject: classSchedules.subject,
-      className: classSchedules.className,
-      location: classSchedules.location,
-      teacherId: classSchedules.teacherId,
-      teacherName: user.name,
-    })
-      .from(classSchedules)
-      .leftJoin(user, eq(classSchedules.teacherId, user.id))
-      .where(and(
-        eq(classSchedules.dayOfWeek, dayOfWeek),
-        eq(classSchedules.isActive, true),
-      ))
-      .orderBy(classSchedules.time);
+    // teachingSubjects uses 1=Senin..6=Sabtu (no Minggu)
+    // JS getDay() returns 0=Minggu, 1=Senin, ..., 6=Sabtu
+    // So jsDayOfWeek maps directly (1=Senin=1, 2=Selasa=2, etc.)
+    // Minggu (0) has no teaching schedules
+    const teachingDay = jsDayOfWeek; // 0=Minggu won't match any teaching_subjects
 
-    const jurnals = await db.select({
-      classId: jurnalEntries.classId,
-      teacherId: jurnalEntries.teacherId,
-      jamKe: jurnalEntries.jamKe,
-      subjectName: masterSubjects.nama,
-      status: jurnalEntries.status,
+    const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+    if (teachingDay === 0) {
+      // Hari Minggu — tidak ada jadwal mengajar
+      return {
+        dayOfWeek: jsDayOfWeek,
+        dayName: dayNames[jsDayOfWeek],
+        totalJadwal: 0,
+        totalTerisi: 0,
+        totalKosong: 0,
+        schedules: [],
+      };
+    }
+
+    // Query jadwal dari teachingSubjects (sistem KBM/Jurnal yang aktif)
+    const schedules = await db.select({
+      id: teachingSubjects.id,
+      jamKe: teachingSubjects.jamKe,
+      waktuMulai: teachingSubjects.waktuMulai,
+      waktuSelesai: teachingSubjects.waktuSelesai,
+      employeeId: teachingSubjects.employeeId,
+      classId: teachingSubjects.classId,
+      subjectId: teachingSubjects.subjectId,
+      teacherName: employees.name,
       className: classes.name,
+      subjectName: masterSubjects.nama,
+    })
+      .from(teachingSubjects)
+      .leftJoin(employees, eq(teachingSubjects.employeeId, employees.id))
+      .leftJoin(classes, eq(teachingSubjects.classId, classes.id))
+      .leftJoin(masterSubjects, eq(teachingSubjects.subjectId, masterSubjects.id))
+      .where(and(
+        eq(teachingSubjects.dayOfWeek, teachingDay),
+        eq(teachingSubjects.isActive, true),
+      ))
+      .orderBy(teachingSubjects.waktuMulai, teachingSubjects.jamKe);
+
+    // Query jurnal entries hari ini untuk menentukan mana yang sudah terisi
+    const jurnals = await db.select({
+      teachingSubjectId: jurnalEntries.teachingSubjectId,
+      classId: jurnalEntries.classId,
+      subjectId: jurnalEntries.subjectId,
+      jamKe: jurnalEntries.jamKe,
     })
       .from(jurnalEntries)
-      .leftJoin(classes, eq(jurnalEntries.classId, classes.id))
-      .leftJoin(masterSubjects, eq(jurnalEntries.subjectId, masterSubjects.id))
       .where(eq(jurnalEntries.date, todayStr));
 
-    const filledSet = new Set<string>();
+    // Build lookup sets for matching
+    const filledByTeachingSubjectId = new Set<string>();
+    const filledByClassSubject = new Set<string>();
+    const filledByClassJamKe = new Set<string>();
+
     jurnals.forEach(j => {
-      if (j.className) {
-        filledSet.add(`${j.className}-${j.subjectName}`.toLowerCase());
-        if (j.jamKe) filledSet.add(`${j.className}-${j.jamKe}`.toLowerCase());
-      }
+      if (j.teachingSubjectId) filledByTeachingSubjectId.add(j.teachingSubjectId);
+      if (j.classId && j.subjectId) filledByClassSubject.add(`${j.classId}-${j.subjectId}`);
+      if (j.classId && j.jamKe) filledByClassJamKe.add(`${j.classId}-${j.jamKe}`);
     });
 
     const result = schedules.map(s => {
-      const key1 = `${s.className}-${s.subject}`.toLowerCase();
-      const isFilled = filledSet.has(key1);
-      return { ...s, isFilled, statusLabel: isFilled ? "Terisi" : "Belum Terisi" };
+      // Check if filled via multiple matching strategies
+      const isFilled =
+        filledByTeachingSubjectId.has(s.id) ||
+        (s.classId && s.subjectId ? filledByClassSubject.has(`${s.classId}-${s.subjectId}`) : false) ||
+        (s.classId && s.jamKe ? filledByClassJamKe.has(`${s.classId}-${s.jamKe}`) : false);
+
+      return {
+        id: s.id,
+        time: s.waktuMulai || null,
+        jamKe: s.jamKe || null,
+        subject: s.subjectName || '-',
+        className: s.className || '-',
+        teacherName: s.teacherName || '-',
+        isFilled,
+        statusLabel: isFilled ? "Terisi" : "Belum Terisi",
+      };
     });
 
     return {
-      dayOfWeek,
-      dayName: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][dayOfWeek],
+      dayOfWeek: jsDayOfWeek,
+      dayName: dayNames[jsDayOfWeek],
       totalJadwal: schedules.length,
       totalTerisi: result.filter(r => r.isFilled).length,
       totalKosong: result.filter(r => !r.isFilled).length,
