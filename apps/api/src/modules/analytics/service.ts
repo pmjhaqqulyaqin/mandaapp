@@ -197,22 +197,18 @@ export class AnalyticsService {
         jamKe: schedInfo?.jamKe || null,
         hasSchedule: !!schedInfo,
         isFilled,
-        statusLabel: !schedInfo ? 'Tidak Ada Jadwal' : (isFilled ? 'Terisi' : 'Kosong'),
+        statusLabel: isFilled ? 'Terisi' : 'Kosong',
       };
-    });
-
-    // Only count classes that have a schedule for current jam ke
-    const scheduledClasses = schedules.filter(s => s.hasSchedule);
+    }).filter(s => s.subject !== null); // Only include classes with schedule for current jam ke
 
     return {
       dayOfWeek: jsDayOfWeek,
       dayName: dayNames[jsDayOfWeek],
       currentJamKe,
       currentTimeSlot: currentSlotInfo,
-      totalKelas: allClasses.length,
-      totalTerisi: scheduledClasses.filter(r => r.isFilled).length,
-      totalKosong: scheduledClasses.filter(r => !r.isFilled).length,
-      totalTidakAdaJadwal: schedules.filter(s => !s.hasSchedule).length,
+      totalKelas: schedules.length,
+      totalTerisi: schedules.filter(r => r.isFilled).length,
+      totalKosong: schedules.filter(r => !r.isFilled).length,
       schedules,
     };
   }
