@@ -138,43 +138,79 @@ export const DashboardOverview = () => {
 
       {/* Classroom Monitor */}
       {!classroomReady ? <SkeletonClassroomMonitor /> : (
-        <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-100 dark:border-[#222] shadow-sm overflow-hidden">
-          <div className="px-4 py-3 flex items-center justify-between bg-gray-50/50 dark:bg-white/[0.02]">
-            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-              <BookOpen size={16} className="text-violet-500" /> Monitor Kelas Real-Time
-              {classroom && <span className="text-[10px] font-normal text-gray-500">({classroom.dayName})</span>}
-              {classroom?.currentJamKe && (
-                <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 px-1.5 py-0.5 rounded">
-                  Jam ke-{classroom.currentJamKe}
-                </span>
-              )}
-            </h3>
-            {classroom && (
-              <div className="flex gap-2 text-[10px] font-bold">
-                <button
-                  onClick={() => setMonitorFilter(monitorFilter === 'terisi' ? null : 'terisi')}
-                  className={`px-2 py-0.5 rounded-full cursor-pointer transition-all ${
-                    monitorFilter === 'terisi'
-                      ? 'bg-emerald-600 text-white ring-2 ring-emerald-300 dark:ring-emerald-700 scale-105'
-                      : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/40'
-                  }`}
-                >
-                  {classroom.totalTerisi} Terisi
-                </button>
-                <button
-                  onClick={() => setMonitorFilter(monitorFilter === 'kosong' ? null : 'kosong')}
-                  className={`px-2 py-0.5 rounded-full cursor-pointer transition-all ${
-                    monitorFilter === 'kosong'
-                      ? 'bg-red-600 text-white ring-2 ring-red-300 dark:ring-red-700 scale-105'
-                      : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/40'
-                  }`}
-                >
-                  {classroom.totalKosong} Kosong
-                </button>
-                <span className="px-2 py-0.5 bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 rounded-full">{classroom.totalKelas} Kelas</span>
+        <div className="bg-white dark:bg-[#111] rounded-xl border border-gray-100 dark:border-[#222] shadow-[0_4px_10px_rgba(0,0,0,0.04)] p-5 flex flex-col gap-4 relative overflow-hidden">
+          {/* Header Row */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+            {/* Left: Icon + Title + Jam Ke */}
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <div className="w-10 h-10 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+                <BookOpen size={20} />
               </div>
-            )}
+              <div className="flex items-center flex-wrap gap-2">
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight">Monitor Kelas</h3>
+                <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                  <Clock size={12} />
+                  Real-Time{classroom ? ` (${classroom.dayName})` : ''}
+                </p>
+                {classroom?.currentJamKe && (
+                  <div className="flex items-center bg-violet-50 dark:bg-violet-900/20 px-2.5 py-1 rounded-lg border border-violet-100 dark:border-violet-800/30 shrink-0">
+                    <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 mr-1">Jam ke-</span>
+                    <span className="text-sm font-bold text-violet-700 dark:text-violet-300">{classroom.currentJamKe}</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
+
+          {/* Status Cards Row */}
+          {classroom && (
+            <div className="flex items-center justify-center gap-3">
+              {/* Terisi */}
+              <button
+                onClick={() => setMonitorFilter(monitorFilter === 'terisi' ? null : 'terisi')}
+                className={`flex flex-col items-center justify-center h-16 rounded-xl border shrink-0 w-24 cursor-pointer transition-all duration-200 ${
+                  monitorFilter === 'terisi'
+                    ? 'bg-emerald-600 border-emerald-500 ring-2 ring-emerald-300 dark:ring-emerald-700 scale-105 shadow-lg'
+                    : 'bg-emerald-50 dark:bg-emerald-900/15 border-emerald-200 dark:border-emerald-800/30 shadow-sm hover:shadow-md hover:scale-[1.02]'
+                }`}
+              >
+                <span className={`text-lg font-bold leading-none ${monitorFilter === 'terisi' ? 'text-white' : 'text-emerald-700 dark:text-emerald-400'}`}>
+                  {classroom.totalTerisi}
+                </span>
+                <span className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${monitorFilter === 'terisi' ? 'text-emerald-100' : 'text-emerald-600 dark:text-emerald-500'}`}>
+                  Terisi
+                </span>
+              </button>
+
+              {/* Kosong */}
+              <button
+                onClick={() => setMonitorFilter(monitorFilter === 'kosong' ? null : 'kosong')}
+                className={`flex flex-col items-center justify-center h-16 rounded-xl border shrink-0 w-24 cursor-pointer transition-all duration-200 ${
+                  monitorFilter === 'kosong'
+                    ? 'bg-red-600 border-red-500 ring-2 ring-red-300 dark:ring-red-700 scale-105 shadow-lg'
+                    : 'bg-red-50 dark:bg-red-900/15 border-red-200 dark:border-red-800/30 shadow-sm hover:shadow-md hover:scale-[1.02]'
+                }`}
+              >
+                <span className={`text-lg font-bold leading-none ${monitorFilter === 'kosong' ? 'text-white' : 'text-red-700 dark:text-red-400'}`}>
+                  {classroom.totalKosong}
+                </span>
+                <span className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${monitorFilter === 'kosong' ? 'text-red-100' : 'text-red-600 dark:text-red-500'}`}>
+                  Kosong
+                </span>
+              </button>
+
+              {/* Total */}
+              <div className="flex flex-col items-center justify-center h-16 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-800/30 shrink-0 w-24">
+                <span className="text-lg font-bold text-gray-700 dark:text-gray-300 leading-none">
+                  {classroom.totalKelas}
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mt-0.5">
+                  Total
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Collapsible list — only shown when a filter badge is tapped */}
           {monitorFilter && classroom?.schedules?.length > 0 && (() => {
             const filtered = classroom.schedules.filter((s: any) =>
@@ -188,7 +224,7 @@ export const DashboardOverview = () => {
             return (
               <>
                 {/* Mobile: Card list */}
-                <div className="md:hidden p-2.5 space-y-2 max-h-[320px] overflow-y-auto border-t border-gray-100 dark:border-[#222]">
+                <div className="md:hidden space-y-2 max-h-[280px] overflow-y-auto border-t border-gray-100 dark:border-[#222] pt-3">
                   {filtered.map((s: any, i: number) => (
                     <div key={i} className={`flex items-center gap-3 p-2.5 rounded-xl border transition-colors ${
                       s.isFilled ? 'border-gray-100 dark:border-[#222] bg-white dark:bg-[#111]' : 'border-red-200/60 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10'
@@ -210,7 +246,7 @@ export const DashboardOverview = () => {
                   ))}
                 </div>
                 {/* Desktop: Table */}
-                <div className="hidden md:block overflow-x-auto max-h-[320px] overflow-y-auto border-t border-gray-100 dark:border-[#222]">
+                <div className="hidden md:block overflow-x-auto max-h-[280px] overflow-y-auto border-t border-gray-100 dark:border-[#222] pt-1">
                   <table className="w-full text-xs">
                     <thead className="bg-gray-50 dark:bg-[#1a1a1a] sticky top-0 z-10">
                       <tr>
@@ -247,9 +283,11 @@ export const DashboardOverview = () => {
               </>
             );
           })()}
+
+          {/* Hint text */}
           {!monitorFilter && classroom?.schedules?.length > 0 && (
-            <div className="px-4 py-3 text-center text-[11px] text-gray-400 border-t border-gray-100 dark:border-[#222]">
-              Tap <span className="font-bold text-emerald-600">Terisi</span> atau <span className="font-bold text-red-600">Kosong</span> untuk melihat detail
+            <div className="text-center text-[11px] text-gray-400 dark:text-gray-500">
+              Tap <span className="font-bold text-emerald-600 dark:text-emerald-400">Terisi</span> atau <span className="font-bold text-red-600 dark:text-red-400">Kosong</span> untuk melihat detail
             </div>
           )}
         </div>
