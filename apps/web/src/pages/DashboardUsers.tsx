@@ -1200,7 +1200,7 @@ function PermissionsTab() {
                 </button>
 
                 {userDropdownOpen && (
-                  <div className="absolute z-50 mt-1 w-full bg-white dark:bg-[#111] border border-border-light dark:border-border-dark rounded-lg shadow-xl max-h-[280px] flex flex-col overflow-hidden">
+                  <div className="absolute z-50 mt-1 w-full bg-white dark:bg-[#111] border border-border-light dark:border-border-dark rounded-lg shadow-xl max-h-[400px] flex flex-col overflow-hidden">
                     <div className="p-2 border-b border-border-light dark:border-border-dark shrink-0">
                       <input
                         type="text"
