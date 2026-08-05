@@ -328,6 +328,7 @@ export function useRoles() {
 export interface RoleMenuPermissions {
   permissions: Record<string, string[]>;
   allMenus: string[];
+  userPermissions: Record<string, string[]>;
 }
 
 export function useRoleMenuPermissions() {
@@ -368,4 +369,28 @@ export function useRoleMenuPermissions() {
   }, [data]);
 
   return { data, loading, saving, fetchPermissions, updatePermissions };
+}
+
+// ─── User-Level Menu Permissions ───
+export function useUserMenuPermissions() {
+  const [saving, setSaving] = useState(false);
+
+  const updateUserPermissions = useCallback(async (userId: string, menus: string[] | null) => {
+    setSaving(true);
+    try {
+      const result = await apiClient<{ success: boolean; userPermissions: Record<string, string[]> }>(
+        '/users/user-permissions',
+        {
+          method: 'PUT',
+          body: JSON.stringify({ userId, menus }),
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+      return result;
+    } finally {
+      setSaving(false);
+    }
+  }, []);
+
+  return { saving, updateUserPermissions };
 }

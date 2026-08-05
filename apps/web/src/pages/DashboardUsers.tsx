@@ -15,6 +15,7 @@ import {
   useAuditLogs,
   useRoles,
   useRoleMenuPermissions,
+  useUserMenuPermissions,
   UserItem,
   SessionItem,
   RoleItem,
@@ -918,21 +919,35 @@ const MENU_LABELS: Record<string, { label: string; description: string }> = {
 function PermissionsTab() {
   const { roles, fetchRoles } = useRoles();
   const { data, loading, saving, fetchPermissions, updatePermissions } = useRoleMenuPermissions();
+  const { saving: userSaving, updateUserPermissions } = useUserMenuPermissions();
+  const { users: allUsers, fetchUsers } = useListUsers();
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   // Local optimistic state for instant toggle feedback
   const [localMenus, setLocalMenus] = useState<Record<string, string[]>>({});
 
+  // ── User-level permissions state ──
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [userSearch, setUserSearch] = useState('');
+  const [localUserMenus, setLocalUserMenus] = useState<Record<string, string[]>>({});
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  // Track which mode is active: 'role' or 'user'
+  const [activeMode, setActiveMode] = useState<'role' | 'user'>('role');
+
   useEffect(() => {
     fetchRoles();
     fetchPermissions();
-  }, [fetchRoles, fetchPermissions]);
+    fetchUsers({ limit: 200 });
+  }, [fetchRoles, fetchPermissions, fetchUsers]);
 
   // Sync server data into local state when data changes
   useEffect(() => {
     if (data?.permissions) {
       setLocalMenus(data.permissions);
+    }
+    if (data?.userPermissions) {
+      setLocalUserMenus(data.userPermissions);
     }
   }, [data]);
 
@@ -972,6 +987,92 @@ function PermissionsTab() {
     }
   };
 
+  // ── User-level permission handlers ──
+  const selectedUser = allUsers.find(u => u.id === selectedUserId);
+  const userCurrentMenus = localUserMenus[selectedUserId] || [];
+  const hasUserOverride = selectedUserId ? !!localUserMenus[selectedUserId] : false;
+
+  const handleUserToggle = async (menuKey: string) => {
+    if (!selectedUserId) return;
+    setSuccessMsg('');
+    setErrorMsg('');
+
+    const current = localUserMenus[selectedUserId] || [];
+    const newMenus = current.includes(menuKey)
+      ? current.filter((m) => m !== menuKey)
+      : [...current, menuKey];
+
+    // Optimistic
+    setLocalUserMenus((prev) => ({ ...prev, [selectedUserId]: newMenus }));
+
+    try {
+      const result = await updateUserPermissions(selectedUserId, newMenus);
+      if (result.userPermissions) setLocalUserMenus(result.userPermissions);
+      setSuccessMsg('Hak akses pengguna berhasil disimpan!');
+      setTimeout(() => setSuccessMsg(''), 2500);
+    } catch (err: any) {
+      setLocalUserMenus((prev) => ({ ...prev, [selectedUserId]: current }));
+      setErrorMsg(err?.message || 'Gagal menyimpan perubahan');
+      setTimeout(() => setErrorMsg(''), 5000);
+    }
+  };
+
+  const handleRemoveUserOverride = async () => {
+    if (!selectedUserId) return;
+    setSuccessMsg('');
+    setErrorMsg('');
+
+    const backup = localUserMenus[selectedUserId];
+    // Optimistic
+    setLocalUserMenus((prev) => {
+      const next = { ...prev };
+      delete next[selectedUserId];
+      return next;
+    });
+
+    try {
+      const result = await updateUserPermissions(selectedUserId, null);
+      if (result.userPermissions) setLocalUserMenus(result.userPermissions);
+      setSuccessMsg('Override dihapus — pengguna kembali ke hak akses role.');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err: any) {
+      if (backup) setLocalUserMenus((prev) => ({ ...prev, [selectedUserId]: backup }));
+      setErrorMsg(err?.message || 'Gagal menghapus override');
+      setTimeout(() => setErrorMsg(''), 5000);
+    }
+  };
+
+  const handleInitUserOverride = async () => {
+    if (!selectedUserId || !selectedUser) return;
+    // Initialize with the user's current role menus
+    const roleMenus = localMenus[selectedUser.role] || [];
+    setLocalUserMenus((prev) => ({ ...prev, [selectedUserId]: [...roleMenus] }));
+
+    try {
+      const result = await updateUserPermissions(selectedUserId, roleMenus);
+      if (result.userPermissions) setLocalUserMenus(result.userPermissions);
+      setSuccessMsg('Override aktif — sesuaikan menu yang diinginkan.');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err: any) {
+      setLocalUserMenus((prev) => {
+        const next = { ...prev };
+        delete next[selectedUserId];
+        return next;
+      });
+      setErrorMsg(err?.message || 'Gagal mengaktifkan override');
+      setTimeout(() => setErrorMsg(''), 5000);
+    }
+  };
+
+  // Filtered users for dropdown search
+  const filteredUsers = allUsers.filter(u =>
+    u.name?.toLowerCase().includes(userSearch.toLowerCase()) ||
+    u.email?.toLowerCase().includes(userSearch.toLowerCase())
+  );
+
+  // Count users with overrides
+  const overrideCount = Object.keys(localUserMenus).length;
+
   if (loading && Object.keys(localMenus).length === 0) {
     return (
       <div className="bg-white dark:bg-[#0a0a0a] border border-border-light dark:border-border-dark rounded-xl p-12 text-center text-text-secondary">
@@ -983,6 +1084,25 @@ function PermissionsTab() {
       </div>
     );
   }
+
+  // Active menu list for right panel
+  const rightPanelMenus = activeMode === 'user' && selectedUserId
+    ? (hasUserOverride ? userCurrentMenus : [])
+    : currentMenus;
+
+  const rightPanelTitle = activeMode === 'user' && selectedUser
+    ? selectedUser.name
+    : (ROLE_LABELS[selectedRole] || selectedRole);
+
+  const rightPanelSubtitle = activeMode === 'user'
+    ? (hasUserOverride
+        ? 'Hak akses individual aktif — role diabaikan untuk pengguna ini.'
+        : 'Belum ada override. Klik "Aktifkan Override" untuk mulai.')
+    : (isAdmin ? 'Super Admin memiliki akses ke semua menu (tidak dapat diubah).' : 'Aktifkan/nonaktifkan menu yang tersedia untuk role ini.');
+
+  const canToggleRight = activeMode === 'user'
+    ? (selectedUserId && hasUserOverride)
+    : !isAdmin;
 
   return (
     <div className="space-y-4">
@@ -1002,93 +1122,275 @@ function PermissionsTab() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
-        {/* Role selector */}
-        <div className="bg-white dark:bg-[#0a0a0a] border border-border-light dark:border-border-dark rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-border-light dark:border-border-dark">
-            <h3 className="font-semibold text-sm text-text-primary dark:text-text-darkPrimary">Pilih Role</h3>
+        {/* ══ Left Panel: Role selector + User selector ══ */}
+        <div className="space-y-4">
+          {/* Role selector */}
+          <div className="bg-white dark:bg-[#0a0a0a] border border-border-light dark:border-border-dark rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-border-light dark:border-border-dark">
+              <h3 className="font-semibold text-sm text-text-primary dark:text-text-darkPrimary">Pilih Role</h3>
+            </div>
+            <div className="p-2 space-y-1">
+              {roles.map((r) => (
+                <button
+                  key={r.value}
+                  onClick={() => { setSelectedRole(r.value); setActiveMode('role'); setSuccessMsg(''); setErrorMsg(''); }}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 flex items-center justify-between ${
+                    activeMode === 'role' && selectedRole === r.value
+                      ? 'bg-primary/10 text-primary dark:bg-primary/20'
+                      : 'text-text-secondary hover:bg-gray-50 dark:hover:bg-[#111] hover:text-text-primary dark:hover:text-text-darkPrimary'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full transition-colors duration-150 ${
+                      activeMode === 'role' && selectedRole === r.value ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
+                    }`} />
+                    {r.label}
+                  </span>
+                  {r.value === 'admin' && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-text-secondary">Full</span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="p-2 space-y-1">
-            {roles.map((r) => (
-              <button
-                key={r.value}
-                onClick={() => { setSelectedRole(r.value); setSuccessMsg(''); setErrorMsg(''); }}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 flex items-center justify-between ${
-                  selectedRole === r.value
-                    ? 'bg-primary/10 text-primary dark:bg-primary/20'
-                    : 'text-text-secondary hover:bg-gray-50 dark:hover:bg-[#111] hover:text-text-primary dark:hover:text-text-darkPrimary'
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full transition-colors duration-150 ${
-                    selectedRole === r.value ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
-                  }`} />
-                  {r.label}
-                </span>
-                {r.value === 'admin' && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-text-secondary">Full</span>
+
+          {/* ── User-level permissions selector ── */}
+          <div className="bg-white dark:bg-[#0a0a0a] border-2 border-amber-200 dark:border-amber-800/50 rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-amber-100 dark:border-amber-800/30 bg-amber-50/50 dark:bg-amber-900/10">
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <h3 className="font-semibold text-sm text-amber-800 dark:text-amber-300">Hak Akses per Pengguna</h3>
+                {overrideCount > 0 && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 font-bold">{overrideCount}</span>
                 )}
-              </button>
-            ))}
+              </div>
+              <p className="text-[11px] text-amber-600 dark:text-amber-400/70 mt-1">Override hak akses role untuk pengguna tertentu</p>
+            </div>
+
+            <div className="p-3 space-y-2">
+              {/* Custom dropdown with search */}
+              <div className="relative">
+                <button
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-colors duration-150 flex items-center justify-between ${
+                    activeMode === 'user' && selectedUserId
+                      ? 'border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-900/10'
+                      : 'border-border-light dark:border-border-dark bg-white dark:bg-[#111]'
+                  }`}
+                >
+                  <span className={selectedUser ? 'text-text-primary dark:text-text-darkPrimary font-medium' : 'text-text-secondary'}>
+                    {selectedUser ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 flex items-center justify-center text-[10px] font-bold">
+                          {selectedUser.name?.charAt(0) || '?'}
+                        </span>
+                        <span className="truncate">{selectedUser.name}</span>
+                        {localUserMenus[selectedUser.id] && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 font-bold shrink-0">OVERRIDE</span>
+                        )}
+                      </span>
+                    ) : 'Pilih pengguna...'}
+                  </span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`}>
+                    <path d="m6 9 6 6 6-6"/>
+                  </svg>
+                </button>
+
+                {userDropdownOpen && (
+                  <div className="absolute z-50 mt-1 w-full bg-white dark:bg-[#111] border border-border-light dark:border-border-dark rounded-lg shadow-xl max-h-[280px] flex flex-col overflow-hidden">
+                    <div className="p-2 border-b border-border-light dark:border-border-dark shrink-0">
+                      <input
+                        type="text"
+                        placeholder="Cari nama atau email..."
+                        value={userSearch}
+                        onChange={(e) => setUserSearch(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-md border border-border-light dark:border-border-dark bg-gray-50 dark:bg-[#0a0a0a] text-sm text-text-primary dark:text-text-darkPrimary placeholder-text-secondary focus:outline-none focus:ring-1 focus:ring-amber-400"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="overflow-y-auto flex-1">
+                      {filteredUsers.length === 0 ? (
+                        <div className="px-3 py-4 text-center text-xs text-text-secondary">Tidak ditemukan</div>
+                      ) : (
+                        filteredUsers.map((u) => (
+                          <button
+                            key={u.id}
+                            onClick={() => {
+                              setSelectedUserId(u.id);
+                              setActiveMode('user');
+                              setUserDropdownOpen(false);
+                              setUserSearch('');
+                              setSuccessMsg('');
+                              setErrorMsg('');
+                            }}
+                            className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${
+                              selectedUserId === u.id ? 'bg-amber-50 dark:bg-amber-900/10' : ''
+                            }`}
+                          >
+                            <span className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 text-text-secondary flex items-center justify-center text-[10px] font-bold shrink-0">
+                              {u.name?.charAt(0) || '?'}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-medium text-text-primary dark:text-text-darkPrimary truncate flex items-center gap-1.5">
+                                {u.name}
+                                {localUserMenus[u.id] && (
+                                  <span className="text-[8px] px-1 py-0.5 rounded bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 font-bold shrink-0">OVR</span>
+                                )}
+                              </div>
+                              <div className="text-[11px] text-text-secondary truncate">{u.email} · {ROLE_LABELS[u.role] || u.role}</div>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Users with active overrides list */}
+              {overrideCount > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider px-1">Override Aktif</p>
+                  {Object.keys(localUserMenus).map(uid => {
+                    const u = allUsers.find(usr => usr.id === uid);
+                    if (!u) return null;
+                    return (
+                      <button
+                        key={uid}
+                        onClick={() => { setSelectedUserId(uid); setActiveMode('user'); setSuccessMsg(''); setErrorMsg(''); }}
+                        className={`w-full text-left px-2.5 py-2 rounded-lg text-xs font-medium transition-colors duration-150 flex items-center gap-2 ${
+                          activeMode === 'user' && selectedUserId === uid
+                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300'
+                            : 'text-text-secondary hover:bg-gray-50 dark:hover:bg-[#111]'
+                        }`}
+                      >
+                        <span className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 flex items-center justify-center text-[9px] font-bold shrink-0">
+                          {u.name?.charAt(0) || '?'}
+                        </span>
+                        <span className="truncate">{u.name}</span>
+                        <span className="text-[9px] px-1 py-0.5 rounded bg-amber-200/60 dark:bg-amber-800/40 text-amber-700 dark:text-amber-300 ml-auto shrink-0">
+                          {localUserMenus[uid]?.length || 0} menu
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Menu toggles */}
+        {/* ══ Right Panel: Menu toggles ══ */}
         <div className="bg-white dark:bg-[#0a0a0a] border border-border-light dark:border-border-dark rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-border-light dark:border-border-dark flex items-center justify-between">
+          <div className={`px-4 py-3 border-b flex items-center justify-between ${
+            activeMode === 'user'
+              ? 'border-amber-100 dark:border-amber-800/30 bg-amber-50/30 dark:bg-amber-900/5'
+              : 'border-border-light dark:border-border-dark'
+          }`}>
             <div>
-              <h3 className="font-semibold text-sm text-text-primary dark:text-text-darkPrimary">
-                Menu untuk: <span className="text-primary">{ROLE_LABELS[selectedRole] || selectedRole}</span>
+              <h3 className="font-semibold text-sm text-text-primary dark:text-text-darkPrimary flex items-center gap-2">
+                Menu untuk: <span className={activeMode === 'user' ? 'text-amber-600 dark:text-amber-400' : 'text-primary'}>{rightPanelTitle}</span>
+                {activeMode === 'user' && hasUserOverride && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 font-bold">INDIVIDUAL</span>
+                )}
               </h3>
               <p className="text-xs text-text-secondary mt-0.5">
-                {isAdmin ? 'Super Admin memiliki akses ke semua menu (tidak dapat diubah).' : 'Aktifkan/nonaktifkan menu yang tersedia untuk role ini.'}
+                {rightPanelSubtitle}
               </p>
             </div>
-          </div>
-          <div className="p-4 grid gap-2">
-            {allMenus.map((menuKey) => {
-              const menuInfo = MENU_LABELS[menuKey] || { label: menuKey, description: '' };
-              const isEnabled = currentMenus.includes(menuKey);
-              return (
-                <div
-                  key={menuKey}
-                  onClick={() => !isAdmin && handleToggle(menuKey)}
-                  className={`flex items-center justify-between p-3 rounded-lg border border-border-light dark:border-border-dark select-none ${
-                    isAdmin ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50 dark:hover:bg-[#111]'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-150 ${
-                      isEnabled
-                        ? 'bg-primary/10 text-primary'
-                        : 'bg-gray-100 dark:bg-gray-800 text-text-secondary'
-                    }`}>
-                      <MenuItemIcon menuKey={menuKey} />
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-text-primary dark:text-text-darkPrimary">
-                        {menuInfo.label}
-                      </div>
-                      <div className="text-xs text-text-secondary">
-                        {menuInfo.description}
-                      </div>
-                    </div>
-                  </div>
-                  {/* Toggle switch — only this part animates */}
-                  <div
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-150 ${
-                      isEnabled ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
-                    } ${isAdmin ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+            {activeMode === 'user' && selectedUserId && (
+              <div className="flex items-center gap-2 shrink-0">
+                {hasUserOverride ? (
+                  <button
+                    onClick={handleRemoveUserOverride}
+                    disabled={userSaving}
+                    className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
                   >
-                    <span
-                      className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-150 ease-in-out ${
-                        isEnabled ? 'translate-x-[22px]' : 'translate-x-[3px]'
-                      }`}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                    Hapus Override
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleInitUserOverride}
+                    disabled={userSaving}
+                    className="px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors disabled:opacity-50"
+                  >
+                    Aktifkan Override
+                  </button>
+                )}
+              </div>
+            )}
           </div>
+
+          {activeMode === 'user' && selectedUserId && !hasUserOverride ? (
+            <div className="p-8 text-center">
+              <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </div>
+              <p className="text-sm font-medium text-text-primary dark:text-text-darkPrimary mb-1">
+                Pengguna ini menggunakan hak akses role: <span className="text-primary font-semibold">{ROLE_LABELS[selectedUser?.role || ''] || selectedUser?.role}</span>
+              </p>
+              <p className="text-xs text-text-secondary mb-4">
+                Klik "Aktifkan Override" untuk menentukan hak akses khusus yang menggantikan hak akses role.
+              </p>
+            </div>
+          ) : (
+            <div className="p-4 grid gap-2">
+              {allMenus.map((menuKey) => {
+                const menuInfo = MENU_LABELS[menuKey] || { label: menuKey, description: '' };
+                const isEnabled = activeMode === 'user'
+                  ? userCurrentMenus.includes(menuKey)
+                  : currentMenus.includes(menuKey);
+                const isDisabled = activeMode === 'role' ? isAdmin : !canToggleRight;
+                return (
+                  <div
+                    key={menuKey}
+                    onClick={() => {
+                      if (isDisabled) return;
+                      if (activeMode === 'user') handleUserToggle(menuKey);
+                      else handleToggle(menuKey);
+                    }}
+                    className={`flex items-center justify-between p-3 rounded-lg border border-border-light dark:border-border-dark select-none ${
+                      isDisabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50 dark:hover:bg-[#111]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-150 ${
+                        isEnabled
+                          ? (activeMode === 'user' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' : 'bg-primary/10 text-primary')
+                          : 'bg-gray-100 dark:bg-gray-800 text-text-secondary'
+                      }`}>
+                        <MenuItemIcon menuKey={menuKey} />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-text-primary dark:text-text-darkPrimary">
+                          {menuInfo.label}
+                        </div>
+                        <div className="text-xs text-text-secondary">
+                          {menuInfo.description}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Toggle switch */}
+                    <div
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-150 ${
+                        isEnabled
+                          ? (activeMode === 'user' ? 'bg-amber-500' : 'bg-primary')
+                          : 'bg-gray-300 dark:bg-gray-600'
+                      } ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-150 ease-in-out ${
+                          isEnabled ? 'translate-x-[22px]' : 'translate-x-[3px]'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>

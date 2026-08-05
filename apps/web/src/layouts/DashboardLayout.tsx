@@ -636,10 +636,16 @@ export const DashboardLayout = () => {
     if (!user) return;
 
     // Fire both requests simultaneously to avoid waterfall
-    const fetchPermissions = apiClient<{ permissions: Record<string, string[]>; allMenus: string[] }>('/users/role-permissions')
+    const fetchPermissions = apiClient<{ permissions: Record<string, string[]>; allMenus: string[]; userPermissions?: Record<string, string[]> }>('/users/role-permissions')
       .then(result => {
         const role = user?.role || 'student';
-        if (role === 'admin') {
+        const userId = user?.id || '';
+
+        // Check for user-level override first
+        if (result.userPermissions && userId && result.userPermissions[userId]) {
+          // Individual override exists — role permissions are completely ignored
+          setAllowedMenus(result.userPermissions[userId]);
+        } else if (role === 'admin') {
           setAllowedMenus(result.allMenus);
         } else {
           const roleMenus = result.permissions[role] || [];

@@ -184,6 +184,7 @@ export async function getUsersDropdownHandler(_req: Request, res: Response) {
 // ─── Role Menu Permissions ───
 
 const ROLE_PERMISSIONS_KEY = "role_menu_permissions";
+const USER_PERMISSIONS_KEY = "user_menu_permissions";
 const ROLE_PERMISSIONS_GROUP = "permissions";
 
 export async function getRoleMenuPermissionsHandler(_req: Request, res: Response) {
@@ -214,9 +215,17 @@ export async function getRoleMenuPermissionsHandler(_req: Request, res: Response
     // Admin always has all menus
     permissions.admin = ALL_MENU_KEYS;
 
+    // Also load user-level permission overrides
+    let userPermissions: Record<string, string[]> = {};
+    const userSetting = settings.find((s) => s.key === USER_PERMISSIONS_KEY);
+    if (userSetting?.value) {
+      try { userPermissions = JSON.parse(userSetting.value); } catch {}
+    }
+
     res.json({
       permissions,
       allMenus: ALL_MENU_KEYS,
+      userPermissions,
     });
   } catch (error) {
     console.error("Error fetching role menu permissions:", error);
@@ -282,6 +291,82 @@ export async function updateRoleMenuPermissionsHandler(req: Request, res: Respon
   } catch (error) {
     console.error("Error updating role menu permissions:", error);
     res.status(500).json({ error: "Gagal menyimpan konfigurasi hak akses menu" });
+  }
+}
+
+// ─── User-Level Menu Permissions ───
+
+export async function getUserMenuPermissionsHandler(_req: Request, res: Response) {
+  try {
+    const settings = await SettingsService.getAll();
+    const setting = settings.find((s) => s.key === USER_PERMISSIONS_KEY);
+
+    let userPermissions: Record<string, string[]> = {};
+    if (setting?.value) {
+      try { userPermissions = JSON.parse(setting.value); } catch {}
+    }
+
+    res.json({ userPermissions, allMenus: ALL_MENU_KEYS });
+  } catch (error) {
+    console.error("Error fetching user menu permissions:", error);
+    res.status(500).json({ error: "Gagal mengambil konfigurasi hak akses per pengguna" });
+  }
+}
+
+export async function updateUserMenuPermissionsHandler(req: Request, res: Response) {
+  try {
+    const { userId: targetUserId, menus } = req.body;
+
+    if (!targetUserId) {
+      return res.status(400).json({ error: "userId harus disediakan" });
+    }
+
+    // Get existing user permissions
+    const settings = await SettingsService.getAll();
+    const setting = settings.find((s) => s.key === USER_PERMISSIONS_KEY);
+    let userPermissions: Record<string, string[]> = {};
+    if (setting?.value) {
+      try { userPermissions = JSON.parse(setting.value); } catch {}
+    }
+
+    if (menus === null || menus === undefined) {
+      // Remove user override (revert to role-based)
+      delete userPermissions[targetUserId];
+    } else if (Array.isArray(menus)) {
+      // Validate menu keys
+      const invalidMenus = menus.filter((m: string) => !ALL_MENU_KEYS.includes(m));
+      if (invalidMenus.length > 0) {
+        return res.status(400).json({ error: `Menu tidak valid: ${invalidMenus.join(", ")}` });
+      }
+      userPermissions[targetUserId] = menus;
+    } else {
+      return res.status(400).json({ error: "menus harus berupa array atau null" });
+    }
+
+    // Save
+    await SettingsService.upsert(
+      USER_PERMISSIONS_KEY,
+      JSON.stringify(userPermissions),
+      ROLE_PERMISSIONS_GROUP
+    );
+
+    // Audit log
+    const session = await auth.api.getSession({ headers: req.headers as any });
+    if (session?.user) {
+      await logAuditEvent({
+        userId: session.user.id,
+        action: "update_user_permissions",
+        targetType: "user",
+        targetId: targetUserId,
+        details: JSON.stringify({ menus }),
+        ipAddress: req.ip || undefined,
+      });
+    }
+
+    res.json({ success: true, userPermissions });
+  } catch (error) {
+    console.error("Error updating user menu permissions:", error);
+    res.status(500).json({ error: "Gagal menyimpan konfigurasi hak akses per pengguna" });
   }
 }
 
