@@ -435,6 +435,7 @@ export class JurnalService {
       date: jurnalEntries.date, jamKe: jurnalEntries.jamKe, materiPembelajaran: jurnalEntries.materiPembelajaran,
       metode: jurnalEntries.metode, catatan: jurnalEntries.catatan, evaluasi: jurnalEntries.evaluasi,
       jumlahHadir: jurnalEntries.jumlahHadir, totalSiswa: jurnalEntries.totalSiswa, status: jurnalEntries.status,
+      teachingSubjectId: jurnalEntries.teachingSubjectId,
     }).from(jurnalEntries)
       .leftJoin(employees, eq(jurnalEntries.teacherId, employees.id))
       .leftJoin(classes, eq(jurnalEntries.classId, classes.id))
@@ -445,7 +446,114 @@ export class JurnalService {
 
     const statusCounts = { draft: 0, submitted: 0, approved: 0, rejected: 0 };
     for (const r of results) { if (r.status && r.status in statusCounts) statusCounts[r.status as keyof typeof statusCounts]++; }
-    return { entries: results, summary: { totalEntries: results.length, ...statusCounts } };
+
+    // ── Count actual scheduled sessions from teaching_subjects for the date range ──
+    // Enumerate each date in the range, get dayOfWeek, count teaching_subjects for that day
+    const [activeAY] = await db.select({ tahunAjaran: academicYears.tahunAjaran })
+      .from(academicYears)
+      .where(eq(academicYears.isActive, true))
+      .limit(1);
+
+    // Collect unique dayOfWeek values across the date range
+    const dateFrom = new Date(filters.dateFrom + 'T00:00:00');
+    const dateTo = new Date(filters.dateTo + 'T00:00:00');
+    const dayOfWeekCounts: Record<number, number> = {}; // dayOfWeek -> number of occurrences
+    const dateList: { date: string; dayOfWeek: number }[] = [];
+
+    for (let d = new Date(dateFrom); d <= dateTo; d.setDate(d.getDate() + 1)) {
+      const jsDay = d.getDay(); // 0=Sunday
+      if (jsDay === 0) continue; // Skip Sundays (no schedule)
+      dayOfWeekCounts[jsDay] = (dayOfWeekCounts[jsDay] || 0) + 1;
+      dateList.push({ date: d.toISOString().split('T')[0], dayOfWeek: jsDay });
+    }
+
+    // Query teaching_subjects for all relevant days
+    const uniqueDays = Object.keys(dayOfWeekCounts).map(Number);
+    let totalScheduledSessions = 0;
+    const unfilledSessions: Array<{
+      teacherName: string | null; subjectName: string | null; className: string | null;
+      jamKe: string | null; date: string; teachingSubjectId: string;
+    }> = [];
+
+    if (uniqueDays.length > 0) {
+      const tsConds: any[] = [
+        eq(teachingSubjects.isActive, true),
+        sql`${teachingSubjects.dayOfWeek} IN (${sql.raw(uniqueDays.join(','))})`,
+      ];
+      if (activeAY?.tahunAjaran) {
+        tsConds.push(eq(teachingSubjects.tahunAjaran, activeAY.tahunAjaran));
+      }
+      if (filters.teacherId) {
+        tsConds.push(eq(teachingSubjects.employeeId, filters.teacherId));
+      }
+      if (filters.classId) {
+        tsConds.push(eq(teachingSubjects.classId, filters.classId));
+      }
+
+      const scheduleRows = await db.select({
+        id: teachingSubjects.id,
+        employeeId: teachingSubjects.employeeId,
+        teacherName: employees.name,
+        classId: teachingSubjects.classId,
+        className: classes.name,
+        subjectName: masterSubjects.nama,
+        dayOfWeek: teachingSubjects.dayOfWeek,
+        jamKe: teachingSubjects.jamKe,
+      })
+        .from(teachingSubjects)
+        .leftJoin(employees, eq(teachingSubjects.employeeId, employees.id))
+        .leftJoin(classes, eq(teachingSubjects.classId, classes.id))
+        .leftJoin(masterSubjects, eq(teachingSubjects.subjectId, masterSubjects.id))
+        .where(and(...tsConds));
+
+      // Group scheduleRows by dayOfWeek
+      const scheduleByDay: Record<number, typeof scheduleRows> = {};
+      for (const row of scheduleRows) {
+        const dow = row.dayOfWeek!;
+        if (!scheduleByDay[dow]) scheduleByDay[dow] = [];
+        scheduleByDay[dow].push(row);
+      }
+
+      // For each date, count sessions and check if journal exists
+      const filledTsIds = new Set(results.map(r => r.teachingSubjectId).filter(Boolean));
+
+      for (const { date: dateStr, dayOfWeek } of dateList) {
+        const daySchedule = scheduleByDay[dayOfWeek] || [];
+        totalScheduledSessions += daySchedule.length;
+
+        // Find unfilled sessions for this date
+        for (const sched of daySchedule) {
+          // Check if a jurnal entry exists for this teaching_subject on this date
+          const isFilled = results.some(
+            r => r.teachingSubjectId === sched.id && r.date === dateStr
+          );
+          if (!isFilled) {
+            unfilledSessions.push({
+              teacherName: sched.teacherName,
+              subjectName: sched.subjectName,
+              className: sched.className,
+              jamKe: sched.jamKe,
+              date: dateStr,
+              teachingSubjectId: sched.id,
+            });
+          }
+        }
+      }
+    }
+
+    const filledSessions = results.length;
+
+    return {
+      entries: results,
+      unfilledSessions,
+      summary: {
+        totalEntries: results.length,
+        totalScheduledSessions,
+        filledSessions,
+        unfilledCount: totalScheduledSessions - filledSessions,
+        ...statusCounts,
+      },
+    };
   }
 
   // ─── Templates ────────────────────────────────────────────────────────

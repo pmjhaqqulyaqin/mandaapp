@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useJurnalRecap } from '../../../hooks/api/useJurnal';
-import { ArrowLeft, Clock, CheckCircle2, Users, BookOpen, FileText, FileSpreadsheet, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Clock, CheckCircle2, Users, FileText, FileSpreadsheet, ChevronDown, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -39,9 +39,16 @@ export const JurnalRecapTab = ({ onBack }: Props) => {
   const filters = getRange();
   const recap = useJurnalRecap(filters);
 
-  const totalEntries = recap.data?.summary?.totalEntries || 0;
+  // New real-time data from backend
+  const totalScheduled = recap.data?.summary?.totalScheduledSessions || 0;
+  const filledSessions = recap.data?.summary?.filledSessions || 0;
+  const unfilledCount = recap.data?.summary?.unfilledCount || 0;
   const approved = recap.data?.summary?.approved || 0;
   const submitted = recap.data?.summary?.submitted || 0;
+  const draft = recap.data?.summary?.draft || 0;
+
+  // Unfilled sessions detail
+  const unfilledSessions: any[] = recap.data?.unfilledSessions || [];
 
   // Calculate bar chart data (entries per day of week)
   const dayBuckets = [0, 0, 0, 0, 0, 0, 0]; // Mon-Sun
@@ -61,6 +68,9 @@ export const JurnalRecapTab = ({ onBack }: Props) => {
   });
   const topSubjects = Object.entries(subjectCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
   const maxSubjectCount = topSubjects.length > 0 ? topSubjects[0][1] : 1;
+
+  // Completion percentage
+  const completionPct = totalScheduled > 0 ? Math.round((filledSessions / totalScheduled) * 100) : 0;
 
   return (
     <div className="pb-4 -mx-3 md:mx-0">
@@ -87,21 +97,40 @@ export const JurnalRecapTab = ({ onBack }: Props) => {
           ))}
         </div>
 
+        {/* Completion Progress Bar */}
+        <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Progres Pengisian Jurnal</p>
+            <span className={`text-sm font-bold ${completionPct >= 80 ? 'text-emerald-600' : completionPct >= 50 ? 'text-amber-600' : 'text-red-500'}`}>
+              {completionPct}%
+            </span>
+          </div>
+          <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2.5">
+            <div
+              className={`h-2.5 rounded-full transition-all duration-700 ${completionPct >= 80 ? 'bg-emerald-500' : completionPct >= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
+              style={{ width: `${completionPct}%` }}
+            />
+          </div>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
+            {filledSessions} dari {totalScheduled} sesi sudah diisi jurnalnya
+          </p>
+        </div>
+
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
-          {/* Card: Total Sesi Mengajar */}
+          {/* Card: Total Sesi Mengajar (dari jadwal riil) */}
           <button onClick={() => toggleCard('sesi')} className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 text-left active:scale-[0.97] transition-all cursor-pointer relative">
             <div className="flex items-start justify-between">
-              <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center mb-2">
-                <Clock size={14} className="text-emerald-600 dark:text-emerald-400" />
+              <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-2">
+                <Clock size={14} className="text-blue-600 dark:text-blue-400" />
               </div>
               <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedCard === 'sesi' ? 'rotate-180' : ''}`} />
             </div>
-            <p className="text-2xl font-bold text-gray-800 dark:text-white">{totalEntries}</p>
+            <p className="text-2xl font-bold text-gray-800 dark:text-white">{totalScheduled}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Total Sesi Mengajar</p>
           </button>
 
-          {/* Card: Jurnal Tersimpan */}
+          {/* Card: Jurnal Terisi */}
           <button onClick={() => toggleCard('jurnal')} className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 text-left active:scale-[0.97] transition-all cursor-pointer relative">
             <div className="flex items-start justify-between">
               <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center mb-2">
@@ -109,8 +138,26 @@ export const JurnalRecapTab = ({ onBack }: Props) => {
               </div>
               <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedCard === 'jurnal' ? 'rotate-180' : ''}`} />
             </div>
-            <p className="text-2xl font-bold text-gray-800 dark:text-white">{approved + submitted}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Jurnal Tersimpan</p>
+            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{filledSessions}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Jurnal Terisi</p>
+          </button>
+
+          {/* Card: Belum Mengisi */}
+          <button onClick={() => toggleCard('belum')} className={`rounded-xl p-4 shadow-sm border text-left active:scale-[0.97] transition-all cursor-pointer relative ${
+            unfilledCount > 0
+              ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'
+              : 'bg-white dark:bg-[#1a1a1a] border-gray-100 dark:border-gray-800'
+          }`}>
+            <div className="flex items-start justify-between">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${
+                unfilledCount > 0 ? 'bg-red-100 dark:bg-red-900/30' : 'bg-gray-100 dark:bg-gray-800'
+              }`}>
+                <AlertTriangle size={14} className={unfilledCount > 0 ? 'text-red-500 dark:text-red-400' : 'text-gray-400'} />
+              </div>
+              <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedCard === 'belum' ? 'rotate-180' : ''}`} />
+            </div>
+            <p className={`text-2xl font-bold ${unfilledCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-white'}`}>{unfilledCount}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Belum Mengisi</p>
           </button>
 
           {/* Card: Rata-rata Kehadiran */}
@@ -132,89 +179,132 @@ export const JurnalRecapTab = ({ onBack }: Props) => {
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Rata-rata Kehadiran</p>
           </button>
-
-          {/* Card: Mapel Diampu */}
-          <button onClick={() => toggleCard('mapel')} className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 text-left active:scale-[0.97] transition-all cursor-pointer relative">
-            <div className="flex items-start justify-between">
-              <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center mb-2">
-                <BookOpen size={14} className="text-amber-500 dark:text-amber-400" />
-              </div>
-              <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedCard === 'mapel' ? 'rotate-180' : ''}`} />
-            </div>
-            <p className="text-2xl font-bold text-gray-800 dark:text-white">{Object.keys(subjectCounts).length}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Mapel Diampu</p>
-          </button>
         </div>
+
+        {/* Status Breakdown (mini badges below stats) */}
+        {filledSessions > 0 && (
+          <div className="flex gap-2 flex-wrap">
+            {approved > 0 && (
+              <span className="px-2.5 py-1 text-[10px] font-semibold rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                ✓ Disetujui: {approved}
+              </span>
+            )}
+            {submitted > 0 && (
+              <span className="px-2.5 py-1 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                ↑ Dikirim: {submitted}
+              </span>
+            )}
+            {draft > 0 && (
+              <span className="px-2.5 py-1 text-[10px] font-semibold rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                ✎ Draft: {draft}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Expanded Detail Panel */}
         {expandedCard && (
           <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
               <h3 className="font-semibold text-sm text-gray-800 dark:text-white">
-                {expandedCard === 'sesi' && 'Detail Sesi Mengajar'}
-                {expandedCard === 'jurnal' && 'Jurnal Tersimpan'}
+                {expandedCard === 'sesi' && 'Detail Sesi Mengajar (Jadwal)'}
+                {expandedCard === 'jurnal' && 'Jurnal yang Sudah Diisi'}
+                {expandedCard === 'belum' && 'Sesi yang Belum Diisi Jurnal'}
                 {expandedCard === 'kehadiran' && 'Detail Kehadiran per Sesi'}
-                {expandedCard === 'mapel' && 'Daftar Mapel Diampu'}
               </h3>
             </div>
             <div className="max-h-64 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800">
-              {/* Detail: Sesi Mengajar */}
+              {/* Detail: Sesi Mengajar (semua jurnal entries + unfilled) */}
               {expandedCard === 'sesi' && (() => {
                 const entries = recap.data?.entries || [];
-                if (entries.length === 0) return <p className="text-sm text-gray-400 text-center py-6">Belum ada sesi</p>;
-                return entries.map((e: any, i: number) => (
+                const unfilled = unfilledSessions;
+                if (entries.length === 0 && unfilled.length === 0) return <p className="text-sm text-gray-400 text-center py-6">Belum ada sesi</p>;
+                return (
+                  <>
+                    {entries.map((e: any, i: number) => (
+                      <div key={`filled-${i}`} className="px-4 py-3 flex items-center justify-between">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.subjectName || '-'}</p>
+                          <p className="text-xs text-gray-400">{e.className || '-'} • {e.jamKe ? `Jam ke-${e.jamKe}` : '-'}</p>
+                        </div>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ml-2 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                          Terisi
+                        </span>
+                      </div>
+                    ))}
+                    {unfilled.map((e: any, i: number) => (
+                      <div key={`unfilled-${i}`} className="px-4 py-3 flex items-center justify-between bg-red-50/30 dark:bg-red-900/10">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.subjectName || '-'}</p>
+                          <p className="text-xs text-gray-400">{e.className || '-'} • {e.jamKe ? `Jam ke-${e.jamKe}` : '-'}</p>
+                        </div>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ml-2 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                          Belum
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                );
+              })()}
+
+              {/* Detail: Jurnal Terisi */}
+              {expandedCard === 'jurnal' && (() => {
+                const allEntries = recap.data?.entries || [];
+                if (allEntries.length === 0) return <p className="text-sm text-gray-400 text-center py-6">Belum ada jurnal</p>;
+                return allEntries.map((e: any, i: number) => (
                   <div key={i} className="px-4 py-3 flex items-center justify-between">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.teacherName || 'Guru'} — {e.subjectName || '-'}</p>
-                      <p className="text-xs text-gray-400">{e.className || '-'} • {e.jamKe ? `Jam ke-${e.jamKe}` : '-'}</p>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.subjectName || '-'}</p>
+                      <p className="text-xs text-gray-400">{e.className || '-'} • {e.materiPembelajaran || '-'}</p>
                     </div>
-                    <span className="text-xs text-gray-400 shrink-0 ml-2">
-                      {e.date ? new Date(e.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : '-'}
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                        e.status === 'approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                        : e.status === 'submitted' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                        : e.status === 'draft' ? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                        : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                      }`}>
+                        {e.status === 'approved' ? 'Disetujui' : e.status === 'submitted' ? 'Dikirim' : e.status === 'draft' ? 'Draft' : 'Ditolak'}
+                      </span>
+                      {e.date && (
+                        <span className="text-xs text-gray-400">
+                          {new Date(e.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ));
               })()}
 
-              {/* Detail: Jurnal Tersimpan */}
-              {expandedCard === 'jurnal' && (() => {
-                const allEntries = recap.data?.entries || [];
-                const savedEntries = allEntries.filter((e: any) => e.status === 'submitted' || e.status === 'approved');
-                const unsavedEntries = allEntries.filter((e: any) => e.status !== 'submitted' && e.status !== 'approved');
-                if (allEntries.length === 0) return <p className="text-sm text-gray-400 text-center py-6">Belum ada jurnal</p>;
-                return (
-                  <>
-                    {savedEntries.map((e: any, i: number) => (
-                      <div key={`saved-${i}`} className="px-4 py-3 flex items-center justify-between">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.teacherName || 'Guru'} — {e.subjectName || '-'}</p>
-                          <p className="text-xs text-gray-400">{e.className || '-'} • {e.materiPembelajaran || '-'}</p>
-                        </div>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ml-2 ${
-                          e.status === 'approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                        }`}>{e.status === 'approved' ? 'Disetujui' : 'Dikirim'}</span>
-                      </div>
-                    ))}
-                    {unsavedEntries.length > 0 && (
-                      <>
-                        <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 border-t border-red-100 dark:border-red-800">
-                          <p className="text-xs font-semibold text-red-600 dark:text-red-400">Belum Disubmit ({unsavedEntries.length})</p>
-                        </div>
-                        {unsavedEntries.map((e: any, i: number) => (
-                          <div key={`unsaved-${i}`} className="px-4 py-3 flex items-center justify-between bg-red-50/30 dark:bg-red-900/10">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.teacherName || 'Guru'} — {e.subjectName || '-'}</p>
-                              <p className="text-xs text-gray-400">{e.className || '-'} • {e.materiPembelajaran || '-'}</p>
-                            </div>
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ml-2 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
-                              {e.status === 'draft' ? 'Draft' : e.status === 'rejected' ? 'Ditolak' : 'Belum'}
-                            </span>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                  </>
-                );
+              {/* Detail: Belum Mengisi */}
+              {expandedCard === 'belum' && (() => {
+                if (unfilledSessions.length === 0) {
+                  return (
+                    <div className="text-center py-8">
+                      <CheckCircle2 size={32} className="mx-auto text-emerald-500 mb-2" />
+                      <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Semua sesi sudah diisi! 🎉</p>
+                      <p className="text-xs text-gray-400 mt-1">Tidak ada jurnal yang tertinggal</p>
+                    </div>
+                  );
+                }
+                return unfilledSessions.map((e: any, i: number) => (
+                  <div key={i} className="px-4 py-3 flex items-center justify-between bg-red-50/30 dark:bg-red-900/10">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.teacherName || 'Guru'} — {e.subjectName || '-'}</p>
+                      <p className="text-xs text-gray-400">{e.className || '-'} • {e.jamKe ? `Jam ke-${e.jamKe}` : '-'}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-0.5 shrink-0 ml-2">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                        Belum Diisi
+                      </span>
+                      {e.date && (
+                        <span className="text-[10px] text-gray-400">
+                          {new Date(e.date).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ));
               })()}
 
               {/* Detail: Kehadiran */}
@@ -228,7 +318,7 @@ export const JurnalRecapTab = ({ onBack }: Props) => {
                   return (
                     <div key={i} className="px-4 py-3">
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.teacherName || 'Guru'} — {e.subjectName || '-'} ({e.className || '-'})</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{e.subjectName || '-'} ({e.className || '-'})</p>
                         <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 shrink-0 ml-2">{hadir}/{total} ({pct}%)</span>
                       </div>
                       <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
@@ -237,21 +327,6 @@ export const JurnalRecapTab = ({ onBack }: Props) => {
                     </div>
                   );
                 });
-              })()}
-
-              {/* Detail: Mapel Diampu */}
-              {expandedCard === 'mapel' && (() => {
-                const subjects = Object.entries(subjectCounts).sort((a, b) => b[1] - a[1]);
-                if (subjects.length === 0) return <p className="text-sm text-gray-400 text-center py-6">Belum ada mapel</p>;
-                return subjects.map(([name, count], i) => (
-                  <div key={name} className="px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <span className="w-6 h-6 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full text-[10px] flex items-center justify-center font-bold shrink-0">{i + 1}</span>
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{name}</p>
-                    </div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0 ml-2">{count} sesi</span>
-                  </div>
-                ));
               })()}
             </div>
           </div>
