@@ -448,32 +448,50 @@ export class JurnalService {
     for (const r of results) { if (r.status && r.status in statusCounts) statusCounts[r.status as keyof typeof statusCounts]++; }
 
     // ── Count actual scheduled sessions from teaching_subjects for the date range ──
-    // Enumerate each date in the range, get dayOfWeek, count teaching_subjects for that day
     const [activeAY] = await db.select({ tahunAjaran: academicYears.tahunAjaran })
       .from(academicYears)
       .where(eq(academicYears.isActive, true))
       .limit(1);
 
-    // Collect unique dayOfWeek values across the date range
+    // Collect dates in the range
     const dateFrom = new Date(filters.dateFrom + 'T00:00:00');
     const dateTo = new Date(filters.dateTo + 'T00:00:00');
-    const dayOfWeekCounts: Record<number, number> = {}; // dayOfWeek -> number of occurrences
     const dateList: { date: string; dayOfWeek: number }[] = [];
+    const uniqueDaysSet = new Set<number>();
 
     for (let d = new Date(dateFrom); d <= dateTo; d.setDate(d.getDate() + 1)) {
       const jsDay = d.getDay(); // 0=Sunday
-      if (jsDay === 0) continue; // Skip Sundays (no schedule)
-      dayOfWeekCounts[jsDay] = (dayOfWeekCounts[jsDay] || 0) + 1;
+      if (jsDay === 0) continue; // Skip Sundays
+      uniqueDaysSet.add(jsDay);
       dateList.push({ date: d.toISOString().split('T')[0], dayOfWeek: jsDay });
     }
 
-    // Query teaching_subjects for all relevant days
-    const uniqueDays = Object.keys(dayOfWeekCounts).map(Number);
+    const uniqueDays = Array.from(uniqueDaysSet);
     let totalScheduledSessions = 0;
     const unfilledSessions: Array<{
       teacherName: string | null; subjectName: string | null; className: string | null;
       jamKe: string | null; date: string; teachingSubjectId: string;
     }> = [];
+
+    // ── Helper: merge consecutive same-subject same-class slots (same logic as getScheduleToday) ──
+    const parseJamStart = (jamKe: string | null): number => {
+      if (!jamKe) return 0;
+      const n = parseInt(jamKe.split('-')[0]);
+      return isNaN(n) ? 0 : n;
+    };
+    const parseJamEnd = (jamKe: string | null): number => {
+      if (!jamKe) return 0;
+      const parts = jamKe.split('-');
+      const n = parseInt(parts[parts.length - 1]);
+      return isNaN(n) ? parseJamStart(jamKe) : n;
+    };
+
+    // ── Normalize date to "YYYY-MM-DD" string (handles both Date objects and strings) ──
+    const normalizeDate = (d: any): string => {
+      if (!d) return '';
+      if (d instanceof Date) return d.toISOString().split('T')[0];
+      return String(d).split('T')[0]; // handles "2026-08-05T00:00:00.000Z" strings too
+    };
 
     if (uniqueDays.length > 0) {
       const tsConds: any[] = [
@@ -496,6 +514,7 @@ export class JurnalService {
         teacherName: employees.name,
         classId: teachingSubjects.classId,
         className: classes.name,
+        subjectId: teachingSubjects.subjectId,
         subjectName: masterSubjects.nama,
         dayOfWeek: teachingSubjects.dayOfWeek,
         jamKe: teachingSubjects.jamKe,
@@ -506,7 +525,8 @@ export class JurnalService {
         .leftJoin(masterSubjects, eq(teachingSubjects.subjectId, masterSubjects.id))
         .where(and(...tsConds));
 
-      // Group scheduleRows by dayOfWeek
+      // ── Merge consecutive same-subject same-class per dayOfWeek (same as getScheduleToday) ──
+      // Group by dayOfWeek first, then merge within each day
       const scheduleByDay: Record<number, typeof scheduleRows> = {};
       for (const row of scheduleRows) {
         const dow = row.dayOfWeek!;
@@ -514,34 +534,76 @@ export class JurnalService {
         scheduleByDay[dow].push(row);
       }
 
-      // For each date, count sessions and check if journal exists
-      const filledTsIds = new Set(results.map(r => r.teachingSubjectId).filter(Boolean));
+      // Merge consecutive slots per day → produces merged sessions with allIds
+      type MergedSession = typeof scheduleRows[0] & { allIds: string[] };
+      const mergedByDay: Record<number, MergedSession[]> = {};
 
+      for (const [dow, rows] of Object.entries(scheduleByDay)) {
+        const sorted = [...rows].sort((a, b) => parseJamStart(a.jamKe) - parseJamStart(b.jamKe));
+        const merged: MergedSession[] = [];
+
+        for (const item of sorted) {
+          const last = merged[merged.length - 1];
+          if (
+            last &&
+            last.subjectId && item.subjectId &&
+            last.subjectId === item.subjectId &&
+            last.classId === item.classId &&
+            last.employeeId === item.employeeId
+          ) {
+            const itemStart = parseJamStart(item.jamKe);
+            const lastEnd = parseJamEnd(last.jamKe);
+            const lastStart = parseJamStart(last.jamKe);
+
+            // Merge if consecutive or overlapping
+            if (itemStart <= lastEnd + 1) {
+              const newStart = Math.min(itemStart, lastStart);
+              const newEnd = Math.max(parseJamEnd(item.jamKe), lastEnd);
+              last.jamKe = newStart === newEnd ? String(newStart) : `${newStart}-${newEnd}`;
+              last.allIds.push(item.id);
+            } else {
+              merged.push({ ...item, allIds: [item.id] });
+            }
+          } else {
+            merged.push({ ...item, allIds: [item.id] });
+          }
+        }
+
+        mergedByDay[Number(dow)] = merged;
+      }
+
+      // ── Build filled lookup: for each date, which teachingSubjectIds have jurnal entries ──
+      // Map: "dateStr|teachingSubjectId" → true
+      const filledLookup = new Set<string>();
+      for (const r of results) {
+        if (r.teachingSubjectId) {
+          filledLookup.add(`${normalizeDate(r.date)}|${r.teachingSubjectId}`);
+        }
+      }
+
+      // ── For each date, count merged sessions and check if filled ──
       for (const { date: dateStr, dayOfWeek } of dateList) {
-        const daySchedule = scheduleByDay[dayOfWeek] || [];
-        totalScheduledSessions += daySchedule.length;
+        const dayMerged = mergedByDay[dayOfWeek] || [];
+        totalScheduledSessions += dayMerged.length;
 
-        // Find unfilled sessions for this date
-        for (const sched of daySchedule) {
-          // Check if a jurnal entry exists for this teaching_subject on this date
-          const isFilled = results.some(
-            r => r.teachingSubjectId === sched.id && r.date === dateStr
-          );
+        for (const session of dayMerged) {
+          // A merged session is filled if ANY of its allIds has a jurnal entry on this date
+          const isFilled = session.allIds.some(id => filledLookup.has(`${dateStr}|${id}`));
           if (!isFilled) {
             unfilledSessions.push({
-              teacherName: sched.teacherName,
-              subjectName: sched.subjectName,
-              className: sched.className,
-              jamKe: sched.jamKe,
+              teacherName: session.teacherName,
+              subjectName: session.subjectName,
+              className: session.className,
+              jamKe: session.jamKe,
               date: dateStr,
-              teachingSubjectId: sched.id,
+              teachingSubjectId: session.id,
             });
           }
         }
       }
     }
 
-    const filledSessions = results.length;
+    const filledSessions = totalScheduledSessions - unfilledSessions.length;
 
     return {
       entries: results,
@@ -550,7 +612,7 @@ export class JurnalService {
         totalEntries: results.length,
         totalScheduledSessions,
         filledSessions,
-        unfilledCount: totalScheduledSessions - filledSessions,
+        unfilledCount: unfilledSessions.length,
         ...statusCounts,
       },
     };
