@@ -463,7 +463,11 @@ export class JurnalService {
       const jsDay = d.getDay(); // 0=Sunday
       if (jsDay === 0) continue; // Skip Sundays
       uniqueDaysSet.add(jsDay);
-      dateList.push({ date: d.toISOString().split('T')[0], dayOfWeek: jsDay });
+      
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      dateList.push({ date: `${yyyy}-${mm}-${dd}`, dayOfWeek: jsDay });
     }
 
     const uniqueDays = Array.from(uniqueDaysSet);
@@ -489,7 +493,12 @@ export class JurnalService {
     // ── Normalize date to "YYYY-MM-DD" string (handles both Date objects and strings) ──
     const normalizeDate = (d: any): string => {
       if (!d) return '';
-      if (d instanceof Date) return d.toISOString().split('T')[0];
+      if (d instanceof Date) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      }
       return String(d).split('T')[0]; // handles "2026-08-05T00:00:00.000Z" strings too
     };
 
