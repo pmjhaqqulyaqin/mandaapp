@@ -461,4 +461,112 @@ export class StudentController {
       res.status(500).json({ error: error.message || "Failed to copy class mapels" });
     }
   }
+
+  // ─── Self-Service Data Update (Public, no auth) ──────────────────────────────
+
+  /**
+   * Search students by name (for self-service update page).
+   * Returns minimal data (id, name, nisn, nis, className, status) for the user to select.
+   */
+  static async selfUpdateSearch(req: Request, res: Response) {
+    try {
+      const { name } = req.body;
+      if (!name || name.trim().length < 2) {
+        return res.status(400).json({ error: "Masukkan minimal 2 karakter nama." });
+      }
+      const results = await StudentService.selfUpdateSearchByName(name.trim());
+      res.json(results);
+    } catch (error: any) {
+      res.status(500).json({ error: "Gagal mencari data siswa." });
+    }
+  }
+
+  /**
+   * Get complete student data for self-update form.
+   * Returns student profile + parents + education + physical data.
+   */
+  static async selfUpdateGetData(req: Request, res: Response) {
+    try {
+      const { studentId } = req.body;
+      if (!studentId) {
+        return res.status(400).json({ error: "studentId wajib diisi." });
+      }
+      const data = await StudentService.selfUpdateGetCompleteData(studentId);
+      if (!data) return res.status(404).json({ error: "Data siswa tidak ditemukan." });
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: "Gagal mengambil data siswa." });
+    }
+  }
+
+  /**
+   * Save self-update data (Data Pribadi, Orang Tua, Pendidikan, Jasmani).
+   * Only allowed fields can be updated; NISN, NIS, status, classId are protected.
+   */
+  static async selfUpdateSave(req: Request, res: Response) {
+    try {
+      const { studentId, student, parents, education, physical } = req.body;
+      if (!studentId) {
+        return res.status(400).json({ error: "studentId wajib diisi." });
+      }
+      await StudentService.selfUpdateSaveData(studentId, { student, parents, education, physical });
+      res.json({ message: "Data berhasil disimpan." });
+    } catch (error: any) {
+      console.error("selfUpdateSave error:", error);
+      res.status(500).json({ error: error.message || "Gagal menyimpan data." });
+    }
+  }
+
+  /**
+   * Upload student photo (3x4) — public endpoint.
+   * Converts to WebP and saves to uploads/students/, updates photoUrl in student_profiles.
+   */
+  static async selfUpdateUploadPhoto(req: Request, res: Response) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Tidak ada file yang diupload." });
+      }
+      const { studentId } = req.body;
+      if (!studentId) {
+        return res.status(400).json({ error: "studentId wajib diisi." });
+      }
+
+      const student = await StudentService.getStudentById(studentId);
+      if (!student) return res.status(404).json({ error: "Siswa tidak ditemukan." });
+
+      const path = require("path");
+      const fs = require("fs");
+      let sharp: any;
+      try { sharp = require("sharp"); } catch { sharp = null; }
+
+      const uploadDir = path.resolve(process.cwd(), "uploads/students");
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+      const baseName = `student_${studentId}_${Date.now()}`;
+      let finalFilename = `${baseName}.webp`;
+      const finalPath = path.join(uploadDir, finalFilename);
+
+      if (sharp) {
+        await sharp(req.file.path).resize(300, 400, { fit: "cover" }).webp({ quality: 85 }).toFile(finalPath);
+        fs.unlink(req.file.path, () => {});
+      } else {
+        // Fallback: just rename the original file
+        fs.renameSync(req.file.path, finalPath);
+        finalFilename = `${baseName}${path.extname(req.file.originalname)}`;
+      }
+
+      const protocol = req.protocol;
+      const host = req.get("host");
+      const effectiveProtocol = host?.includes("localhost") ? protocol : "https";
+      const photoUrl = `${effectiveProtocol}://${host}/api/system/file/${finalFilename}`;
+
+      // Update student photoUrl
+      await StudentService.updateStudent(studentId, { photoUrl });
+
+      res.json({ message: "Foto berhasil diupload.", photoUrl });
+    } catch (error: any) {
+      console.error("selfUpdateUploadPhoto error:", error);
+      res.status(500).json({ error: error.message || "Gagal mengupload foto." });
+    }
+  }
 }

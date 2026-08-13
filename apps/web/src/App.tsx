@@ -88,6 +88,7 @@ const PrintDetailPeserta = React.lazy(() => import('./pages/ppdb/print/PrintDeta
 const DashboardSubjects = React.lazy(() => import('./pages/subjects/DashboardSubjects').then(m => ({ default: m.DashboardSubjects })));
 const DashboardAnnouncements = React.lazy(() => import('./pages/DashboardAnnouncements'));
 const DashboardDownloads = React.lazy(() => import('./pages/DashboardDownloads').then(m => ({ default: m.DashboardDownloads })));
+const PublicSelfUpdatePage = React.lazy(() => import('./pages/PublicSelfUpdatePage').then(m => ({ default: m.PublicSelfUpdatePage || m.default })));
 // Loading fallback component
 const PageSpinner = () => (
   <div className="flex h-screen w-full items-center justify-center bg-gray-50/50">
@@ -141,6 +142,9 @@ function App() {
             
             {/* Public Alumni Route */}
             <Route path="/alumni-public" element={<MaintenanceGuard><PublicAlumniDirectory /></MaintenanceGuard>} />
+
+            {/* Self-Service Student Data Update */}
+            <Route path="/update-data-siswa" element={<MaintenanceGuard><PublicSelfUpdatePage /></MaintenanceGuard>} />
             
             <Route path="/login" element={<LoginPage />} />
             <Route path="/portal-ortu" element={

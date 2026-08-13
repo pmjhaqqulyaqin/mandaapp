@@ -317,4 +317,107 @@ export class StudentService {
     
     return await this.updateClassMapels(targetClassId, source.mapels as string[]);
   }
+
+  // ─── Self-Service Methods (Public, no auth) ──────────────────────────────────
+
+  /**
+   * Search students by name for self-service update.
+   * Returns id, fullName, nisn, nis, className, status.
+   */
+  static async selfUpdateSearchByName(name: string) {
+    const results = await db.select({
+      id: studentProfiles.id,
+      fullName: studentProfiles.fullName,
+      nisn: studentProfiles.nisn,
+      nis: studentProfiles.nis,
+      className: studentProfiles.className,
+      status: studentProfiles.status,
+      photoUrl: studentProfiles.photoUrl,
+    })
+    .from(studentProfiles)
+    .where(ilike(studentProfiles.fullName, `%${name}%`))
+    .orderBy(studentProfiles.fullName)
+    .limit(20);
+    return results;
+  }
+
+  /**
+   * Get complete student data for self-update form (profile + parents + education + physical).
+   * Excludes sensitive fields like classId reference; returns denormalized data.
+   */
+  static async selfUpdateGetCompleteData(id: string) {
+    const student = await this.getStudentById(id);
+    if (!student) return null;
+    const parents = await db.select().from(parentProfiles).where(eq(parentProfiles.studentId, id));
+    const education = await db.select().from(educationHistory).where(eq(educationHistory.studentId, id));
+    const physical = await db.select().from(physicalData).where(eq(physicalData.studentId, id));
+    return { ...student, parents, education, physical };
+  }
+
+  /**
+   * Save student self-update data. Only whitelisted fields are allowed.
+   * NISN, NIS, classId, status are protected and cannot be changed.
+   */
+  static async selfUpdateSaveData(id: string, payload: {
+    student?: any;
+    parents?: any[];
+    education?: any[];
+    physical?: any[];
+  }) {
+    return db.transaction(async (tx) => {
+      // 1. Update student profile — whitelist only safe fields
+      if (payload.student) {
+        const raw = payload.student;
+        const ALLOWED_STUDENT_FIELDS = [
+          'nik', 'noKk', 'birthPlace', 'birthDate', 'gender', 'agama',
+          'kewarganegaraan', 'anakKe', 'jumlahSaudara', 'bahasaSehariHari',
+          'golonganDarah', 'tempatTinggal', 'jarakSekolahKm', 'address',
+        ];
+        const studentData: any = {};
+        for (const key of ALLOWED_STUDENT_FIELDS) {
+          if (raw[key] !== undefined) {
+            studentData[key] = (key === 'birthDate' && raw[key] === '') ? null : raw[key];
+          }
+        }
+        if (Object.keys(studentData).length > 0) {
+          studentData.updatedAt = new Date();
+          await tx.update(studentProfiles).set(studentData).where(eq(studentProfiles.id, id));
+        }
+      }
+
+      // 2. Overwrite parents
+      if (payload.parents && Array.isArray(payload.parents)) {
+        await tx.delete(parentProfiles).where(eq(parentProfiles.studentId, id));
+        if (payload.parents.length > 0) {
+          const toInsert = payload.parents
+            .filter((p: any) => p.name && p.name.trim() !== '')
+            .map((p: any) => ({ ...p, studentId: id }));
+          if (toInsert.length > 0) await tx.insert(parentProfiles).values(toInsert);
+        }
+      }
+
+      // 3. Overwrite education history
+      if (payload.education && Array.isArray(payload.education)) {
+        await tx.delete(educationHistory).where(eq(educationHistory.studentId, id));
+        if (payload.education.length > 0) {
+          const toInsert = payload.education.map((e: any) => ({
+            ...e,
+            studentId: id,
+            sttbDate: e.sttbDate || null,
+            transferAcceptDate: e.transferAcceptDate || null,
+          }));
+          await tx.insert(educationHistory).values(toInsert);
+        }
+      }
+
+      // 4. Overwrite physical data
+      if (payload.physical && Array.isArray(payload.physical)) {
+        await tx.delete(physicalData).where(eq(physicalData.studentId, id));
+        const toInsert = payload.physical
+          .filter((p: any) => p.semester)
+          .map((p: any) => ({ ...p, studentId: id }));
+        if (toInsert.length > 0) await tx.insert(physicalData).values(toInsert);
+      }
+    });
+  }
 }
