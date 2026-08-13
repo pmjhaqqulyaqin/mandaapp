@@ -194,7 +194,21 @@ export const PublicSelfUpdatePage:React.FC = () => {
   };
 
   const doSave=async()=>{
-    if(!selected)return;setSaving(true);setSaveError('');
+    if(!selected)return;
+    setSaveError('');
+    // ── Validasi wajib isi ──
+    const errors:string[]=[];
+    if(!form.nik.trim()) errors.push('NIK wajib diisi');
+    if(!form.birthPlace.trim()) errors.push('Tempat Lahir wajib diisi');
+    if(!form.birthDate) errors.push('Tanggal Lahir wajib diisi');
+    if(!form.gender) errors.push('Jenis Kelamin wajib dipilih');
+    if(!form.agama) errors.push('Agama wajib dipilih');
+    if(!form.address.trim()) errors.push('Alamat wajib diisi');
+    if(errors.length>0){setSaveError('Data Pribadi belum lengkap: '+errors.join(', '));setActiveTab('pribadi');return;}
+    const hasParent=parents.some(p=>p.name.trim()!=='');
+    if(!hasParent){setSaveError('Minimal isi nama salah satu orang tua (Ayah/Ibu/Wali).');setActiveTab('ortu');return;}
+    // ── Simpan ──
+    setSaving(true);
     try{
       if(photoFile){const u=await uploadPhoto();if(u)setPhotoUrl(u);}
       await postApi('/students/self-update/save',{studentId:selected.id,
