@@ -196,17 +196,47 @@ export const PublicSelfUpdatePage:React.FC = () => {
   const doSave=async()=>{
     if(!selected)return;
     setSaveError('');
-    // ── Validasi wajib isi ──
-    const errors:string[]=[];
-    if(!form.nik.trim()) errors.push('NIK wajib diisi');
-    if(!form.birthPlace.trim()) errors.push('Tempat Lahir wajib diisi');
-    if(!form.birthDate) errors.push('Tanggal Lahir wajib diisi');
-    if(!form.gender) errors.push('Jenis Kelamin wajib dipilih');
-    if(!form.agama) errors.push('Agama wajib dipilih');
-    if(!form.address.trim()) errors.push('Alamat wajib diisi');
-    if(errors.length>0){setSaveError('Data Pribadi belum lengkap: '+errors.join(', '));setActiveTab('pribadi');return;}
-    const hasParent=parents.some(p=>p.name.trim()!=='');
-    if(!hasParent){setSaveError('Minimal isi nama salah satu orang tua (Ayah/Ibu/Wali).');setActiveTab('ortu');return;}
+    // ── Validasi Tab 1: Data Pribadi (semua wajib) ──
+    const e1:string[]=[];
+    if(!form.nik.trim()) e1.push('NIK');
+    if(!form.noKk.trim()) e1.push('No. KK');
+    if(!form.birthPlace.trim()) e1.push('Tempat Lahir');
+    if(!form.birthDate) e1.push('Tanggal Lahir');
+    if(!form.gender) e1.push('Jenis Kelamin');
+    if(!form.agama) e1.push('Agama');
+    if(!form.kewarganegaraan) e1.push('Kewarganegaraan');
+    if(!form.anakKe.trim()) e1.push('Anak Ke-');
+    if(!form.jumlahSaudara.trim()) e1.push('Jumlah Saudara');
+    if(!form.bahasaSehariHari.trim()) e1.push('Bahasa Sehari-hari');
+    if(!form.golonganDarah) e1.push('Golongan Darah');
+    if(!form.tempatTinggal) e1.push('Tempat Tinggal');
+    if(!form.jarakSekolahKm.trim()) e1.push('Jarak ke Sekolah');
+    if(!form.address.trim()) e1.push('Alamat');
+    if(e1.length>0){setSaveError('Data Pribadi belum lengkap: '+e1.join(', '));setActiveTab('pribadi');return;}
+    // ── Validasi Tab 2: Orang Tua (Ayah & Ibu wajib lengkap) ──
+    const ayah=parents.find(p=>p.type==='ayah');
+    const ibu=parents.find(p=>p.type==='ibu');
+    const e2:string[]=[];
+    if(!ayah?.name.trim()) e2.push('Nama Ayah');
+    if(!ayah?.educationLevel) e2.push('Pendidikan Ayah');
+    if(!ayah?.occupation.trim()) e2.push('Pekerjaan Ayah');
+    if(!ayah?.phone.trim()) e2.push('No. Telp Ayah');
+    if(!ibu?.name.trim()) e2.push('Nama Ibu');
+    if(!ibu?.educationLevel) e2.push('Pendidikan Ibu');
+    if(!ibu?.occupation.trim()) e2.push('Pekerjaan Ibu');
+    if(!ibu?.phone.trim()) e2.push('No. Telp Ibu');
+    if(e2.length>0){setSaveError('Data Orang Tua belum lengkap: '+e2.join(', '));setActiveTab('ortu');return;}
+    // ── Validasi Tab 3: Pendidikan (sekolah asal wajib) ──
+    const e3:string[]=[];
+    if(!education.previousSchoolName.trim()) e3.push('Nama Sekolah Asal');
+    if(!education.sttbNumber.trim()) e3.push('No. STTB/Ijazah');
+    if(e3.length>0){setSaveError('Data Pendidikan belum lengkap: '+e3.join(', '));setActiveTab('pendidikan');return;}
+    // ── Validasi Tab 4: Jasmani (minimal semester 1 wajib isi) ──
+    const sem1=physical[0];
+    const e4:string[]=[];
+    if(!sem1?.heightCm) e4.push('Tinggi Badan');
+    if(!sem1?.weightKg) e4.push('Berat Badan');
+    if(e4.length>0){setSaveError('Data Jasmani Semester 1 belum lengkap: '+e4.join(', '));setActiveTab('jasmani');return;}
     // ── Simpan ──
     setSaving(true);
     try{
