@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight, ExternalLink, Megaphone } from 'lucide-react';
 import { apiClient, API_BASE_URL } from '../lib/api';
+import { useQuery } from '@tanstack/react-query';
 
 const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
 
@@ -20,31 +21,33 @@ interface Announcement {
  * Click outside (backdrop) to dismiss.
  */
 export const AnnouncementPopup: React.FC = () => {
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [dismissed, setDismissed] = useState(false);
 
+  // Use react-query — always refetch on mount, no stale cache
+  const { data: announcements = [] } = useQuery<Announcement[]>({
+    queryKey: ['announcements', 'active-popup'],
+    queryFn: () => apiClient<Announcement[]>('/announcements/active'),
+    staleTime: 0,       // Always refetch on mount
+    gcTime: 0,           // Don't cache — always fresh
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+    retry: 2,
+  });
+
+  // Show popup immediately when data arrives (and not dismissed)
   useEffect(() => {
-    const fetchAnnouncements = async () => {
-      try {
-        const data = await apiClient<Announcement[]>('/announcements/active');
-        if (data && data.length > 0) {
-          setAnnouncements(data);
-          // Show after brief delay for page load
-          setTimeout(() => {
-            setIsVisible(true);
-            setTimeout(() => setIsAnimating(true), 50);
-          }, 600);
-        }
-      } catch (err) {
-        // Silently fail — popup is non-critical
-        console.error('Failed to load announcements:', err);
-      }
-    };
-    fetchAnnouncements();
-  }, []);
+    if (announcements.length > 0 && !dismissed && !isVisible) {
+      // Small RAF delay to ensure DOM is ready
+      requestAnimationFrame(() => {
+        setIsVisible(true);
+        requestAnimationFrame(() => setIsAnimating(true));
+      });
+    }
+  }, [announcements, dismissed]);
 
   // Hide FAB & lock body scroll when popup is visible
   useEffect(() => {
@@ -63,6 +66,7 @@ export const AnnouncementPopup: React.FC = () => {
 
   const handleDismiss = useCallback(() => {
     setIsAnimating(false);
+    setDismissed(true);
     setTimeout(() => {
       setIsVisible(false);
       // Signal PPDBPopupModal that it can now show
