@@ -42,6 +42,7 @@ import { teacherDutiesRouter } from './modules/teacher-duties/routes';
 import { subjectRoutes } from './modules/subjects';
 import { announcementsRoutes } from './modules/announcements/routes';
 import { downloadsRoutes } from './modules/downloads/routes';
+import { integrationsRoutes } from './modules/integrations/routes';
 
 dotenv.config();
 
@@ -206,6 +207,7 @@ app.use("/api/teacher-duties", teacherDutiesRouter);
 app.use("/api/subjects", subjectRoutes);
 app.use("/api/announcements", announcementsRoutes);
 app.use("/api/downloads", downloadsRoutes);
+app.use("/api/integrations", integrationsRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -858,6 +860,21 @@ async function runAutoMigration() {
       );
     `);
     logger.info("Downloads table ready.");
+
+    // Auto-create Integration API table
+    logger.info("Checking integration_apps table...");
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "integration_apps" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        "name" varchar(150) NOT NULL,
+        "api_key" varchar(100) UNIQUE NOT NULL,
+        "is_active" boolean DEFAULT true,
+        "created_by" text REFERENCES "user"("id"),
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `);
+    logger.info("Integration Apps table ready.");
 
   } catch (err) {
     logger.error({ err }, "Auto-migration failed");

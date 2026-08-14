@@ -89,6 +89,8 @@ const DashboardSubjects = React.lazy(() => import('./pages/subjects/DashboardSub
 const DashboardAnnouncements = React.lazy(() => import('./pages/DashboardAnnouncements'));
 const DashboardDownloads = React.lazy(() => import('./pages/DashboardDownloads').then(m => ({ default: m.DashboardDownloads })));
 const PublicSelfUpdatePage = React.lazy(() => import('./pages/PublicSelfUpdatePage').then(m => ({ default: m.PublicSelfUpdatePage || m.default })));
+const IntegrationsPage = React.lazy(() => import('./pages/integrations/IntegrationsPage').then(m => ({ default: m.IntegrationsPage })));
+
 // Loading fallback component
 const PageSpinner = () => (
   <div className="flex h-screen w-full items-center justify-center bg-gray-50/50">
@@ -256,6 +258,8 @@ function App() {
               <Route path="services" element={<DashboardServices />} />
               <Route path="announcements" element={<DashboardAnnouncements />} />
               <Route path="downloads" element={<DashboardDownloads />} />
+              <Route path="integrations" element={<ProtectedRoute allowedRoles={['admin']}><IntegrationsPage /></ProtectedRoute>} />
+
               <Route path="ppdb/penilaian" element={<PPDBPenilaianPage />} />
               <Route path="ppdb/*" element={<PPDBAdminPage />} />
             </Route>

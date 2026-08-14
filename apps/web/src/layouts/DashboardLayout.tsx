@@ -65,6 +65,7 @@ import {
   LayoutDashboard,
   Megaphone,
   Download,
+  Plug,
 } from 'lucide-react';
 import { ProfileModal } from '../components/modals/ProfileModal';
 
@@ -385,6 +386,13 @@ const ALL_MENU_ITEMS = [
     icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
     group: 'system',
   },
+  {
+    key: 'integrations',
+    label: 'Integrasi API',
+    href: '/dashboard/integrations',
+    icon: <Plug size={16} />,
+    group: 'system',
+  },
 ];
 
 // ── Colorful icon backgrounds for mobile bottom-sheet grid ──
@@ -422,6 +430,7 @@ const MENU_ICON_COLORS: Record<string, { bg: string; text: string }> = {
   'users':         { bg: 'bg-gradient-to-br from-blue-500 to-indigo-600',     text: 'text-white' },
   'updates':       { bg: 'bg-gradient-to-br from-emerald-500 to-teal-600',    text: 'text-white' },
   'downloads':     { bg: 'bg-gradient-to-br from-sky-500 to-blue-600',         text: 'text-white' },
+  'integrations':  { bg: 'bg-gradient-to-br from-purple-500 to-indigo-600',   text: 'text-white' },
 };
 
 // Map route segments to menu keys for route protection
@@ -456,6 +465,7 @@ const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'ppdb/penilaian': 'penilaian-pmb',
   'announcements': 'announcements',
   'downloads': 'downloads',
+  'integrations': 'integrations',
 };
 
 // ── Sidebar category system ──
@@ -508,6 +518,7 @@ const MENU_CATEGORY_MAP: Record<string, MenuCategory> = {
   'users': 'administrator',
   'updates': 'administrator',
   'downloads': 'app-dashboard',
+  'integrations': 'administrator',
 };
 
 // ── Sub-App Configurations for Contextual Sidebar ──

@@ -1280,3 +1280,17 @@ export const downloads = pgTable("downloads", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// ═══════════════════════════════════════════════════════════════
+// Integration API (Single Source of Truth)
+// ═══════════════════════════════════════════════════════════════
+
+export const integrationApps = pgTable("integration_apps", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 150 }).notNull(),
+  apiKey: varchar("api_key", { length: 100 }).unique().notNull(),
+  isActive: boolean("is_active").default(true),
+  createdBy: text("created_by").references(() => user.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
