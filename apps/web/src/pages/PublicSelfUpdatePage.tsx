@@ -11,15 +11,13 @@ interface StudentSummary { id:string; fullName:string; nisn:string; nis:string; 
 interface ParentData { type:'ayah'|'ibu'|'wali'; name:string; relationship?:string; educationLevel:string; occupation:string; phone:string; }
 interface EducationData { previousSchoolName:string; sttbDate:string; sttbNumber:string; transferFromSchool:string; transferFromClass:string; transferAcceptDate:string; }
 interface PhysicalEntry { semester:number; academicYear:string; heightCm:string; weightKg:string; hearingCondition:string; visionCondition:string; dentalCondition:string; }
-interface StudentForm { nik:string; noKk:string; birthPlace:string; birthDate:string; gender:string; agama:string; kewarganegaraan:string; anakKe:string; jumlahSaudara:string; bahasaSehariHari:string; golonganDarah:string; tempatTinggal:string; jarakSekolahKm:string; address:string; }
+interface StudentForm { nisn:string; nik:string; noKk:string; birthPlace:string; birthDate:string; gender:string; agama:string; kewarganegaraan:string; anakKe:string; jumlahSaudara:string; bahasaSehariHari:string; golonganDarah:string; tempatTinggal:string; jarakSekolahKm:string; address:string; }
 type TabId = 'pribadi'|'ortu'|'pendidikan'|'jasmani';
 
 const SEMESTER_COLS = [
-  {semester:1,classLevel:'X',label:'Kelas X / Semester 1'},{semester:2,classLevel:'X',label:'Kelas X / Semester 2'},
-  {semester:3,classLevel:'XI',label:'Kelas XI / Semester 1'},{semester:4,classLevel:'XI',label:'Kelas XI / Semester 2'},
-  {semester:5,classLevel:'XII',label:'Kelas XII / Semester 1'},{semester:6,classLevel:'XII',label:'Kelas XII / Semester 2'},
+  {semester:1,classLevel:'X',label:'Kelas X / Semester 1'},
 ];
-const EMPTY_STUDENT:StudentForm = { nik:'',noKk:'',birthPlace:'',birthDate:'',gender:'',agama:'',kewarganegaraan:'Indonesia',anakKe:'',jumlahSaudara:'',bahasaSehariHari:'',golonganDarah:'',tempatTinggal:'',jarakSekolahKm:'',address:'' };
+const EMPTY_STUDENT:StudentForm = { nisn:'',nik:'',noKk:'',birthPlace:'',birthDate:'',gender:'',agama:'',kewarganegaraan:'Indonesia',anakKe:'',jumlahSaudara:'',bahasaSehariHari:'',golonganDarah:'',tempatTinggal:'',jarakSekolahKm:'',address:'' };
 const EMPTY_PARENTS:ParentData[] = [{type:'ayah',name:'',educationLevel:'',occupation:'',phone:''},{type:'ibu',name:'',educationLevel:'',occupation:'',phone:''},{type:'wali',name:'',relationship:'',educationLevel:'',occupation:'',phone:''}];
 const EMPTY_EDU:EducationData = {previousSchoolName:'',sttbDate:'',sttbNumber:'',transferFromSchool:'',transferFromClass:'',transferAcceptDate:''};
 const mkPhys = ():PhysicalEntry[] => SEMESTER_COLS.map(c=>({semester:c.semester,academicYear:'',heightCm:'',weightKg:'',hearingCondition:'',visionCondition:'',dentalCondition:''}));
@@ -157,7 +155,7 @@ export const PublicSelfUpdatePage:React.FC = () => {
     setSelected(s);setLoadingData(true);
     try{
       const d=await postApi('/students/self-update/get-data',{studentId:s.id});
-      setForm({nik:d.nik||'',noKk:d.noKk||'',birthPlace:d.birthPlace||'',
+      setForm({nisn:d.nisn||s.nisn||'',nik:d.nik||'',noKk:d.noKk||'',birthPlace:d.birthPlace||'',
         birthDate:d.birthDate?d.birthDate.substring(0,10):'',gender:d.gender||'',agama:d.agama||'',
         kewarganegaraan:d.kewarganegaraan||'Indonesia',anakKe:d.anakKe?.toString()||'',
         jumlahSaudara:d.jumlahSaudara?.toString()||'',bahasaSehariHari:d.bahasaSehariHari||'',
@@ -242,7 +240,7 @@ export const PublicSelfUpdatePage:React.FC = () => {
     try{
       if(photoFile){const u=await uploadPhoto();if(u)setPhotoUrl(u);}
       await postApi('/students/self-update/save',{studentId:selected.id,
-        student:{...form,anakKe:form.anakKe?parseInt(form.anakKe):null,jumlahSaudara:form.jumlahSaudara?parseInt(form.jumlahSaudara):null},
+        student:{...form,nisn:form.nisn||undefined,anakKe:form.anakKe?parseInt(form.anakKe):null,jumlahSaudara:form.jumlahSaudara?parseInt(form.jumlahSaudara):null},
         parents,education:[{...education}],
         physical:physical.map(p=>({...p,heightCm:p.heightCm?parseInt(p.heightCm):null,weightKg:p.weightKg?parseInt(p.weightKg):null}))
           .filter(p=>p.heightCm||p.weightKg||p.hearingCondition||p.visionCondition||p.dentalCondition)});
@@ -364,6 +362,7 @@ export const PublicSelfUpdatePage:React.FC = () => {
                     )}
                     <p className='stlabel'>Identitas Pokok</p>
                     <div className='fgrid'>
+                      <Inp label='NISN' value={form.nisn} onChange={v=>setForm(f=>({...f,nisn:v}))} placeholder='10 digit NISN' hint='Nomor Induk Siswa Nasional'/>
                       <Inp label='NIK' value={form.nik} onChange={v=>setForm(f=>({...f,nik:v}))} placeholder='16 digit NIK' hint='Nomor Induk Kependudukan'/>
                       <Inp label='No. KK' value={form.noKk} onChange={v=>setForm(f=>({...f,noKk:v}))} placeholder='16 digit No KK'/>
                       <Inp label='Tempat Lahir' value={form.birthPlace} onChange={v=>setForm(f=>({...f,birthPlace:v}))} placeholder='Kota/Kabupaten'/>
@@ -449,7 +448,7 @@ export const PublicSelfUpdatePage:React.FC = () => {
                 {activeTab==='jasmani'&&(
                   <div>
                     <p style={{color:'#94a3b8',fontSize:'.85rem',marginBottom:'1.25rem'}}>
-                      Isi data jasmani per semester. Kosongkan semester yang belum ada data.
+                      Isi data jasmani untuk Semester 1 Kelas X.
                     </p>
                     {physical.map((p,i)=>(
                       <div key={p.semester} className='physcard'>
