@@ -9,7 +9,7 @@ import { SettingsService } from "../settings/service";
 // All available menu keys
 const ALL_MENU_KEYS = [
   "overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "classes", "employees", "nis",
-  "gallery", "contacts", "pages", "menus", "settings", "users", "updates", "e-office", "ptsp", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm", "subjects", "alumni", "mutasi", "announcements", "downloads"
+  "gallery", "contacts", "pages", "menus", "settings", "users", "updates", "e-office", "ptsp", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm", "subjects", "alumni", "mutasi", "announcements", "downloads", "integrations"
 ];
 
 const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
