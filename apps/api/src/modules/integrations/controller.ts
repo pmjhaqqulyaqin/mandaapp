@@ -43,22 +43,23 @@ export const getClassesStudentsSync = async (req: Request, res: Response) => {
     // Get all classes
     const allClasses = await db.select().from(classes);
     
-    // Get students, optionally filtered by updated_at
-    let studentsQuery = db.select().from(studentProfiles).where(eq(studentProfiles.status, 'active'));
-    
+    // Build where condition for students
+    let whereCondition;
     if (lastSync) {
       const syncDate = new Date(lastSync);
       if (!isNaN(syncDate.getTime())) {
-        studentsQuery = studentsQuery.where(
-          and(
-            eq(studentProfiles.status, 'active'),
-            gte(studentProfiles.updatedAt, syncDate)
-          )
-        ) as any;
+        whereCondition = and(
+          eq(studentProfiles.status, 'active'),
+          gte(studentProfiles.updatedAt, syncDate)
+        );
+      } else {
+        whereCondition = eq(studentProfiles.status, 'active');
       }
+    } else {
+      whereCondition = eq(studentProfiles.status, 'active');
     }
 
-    const students = await studentsQuery;
+    const students = await db.select().from(studentProfiles).where(whereCondition);
 
     res.json({
       success: true,
