@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../utils/api';
+import { apiClient, API_BASE_URL } from '../../lib/api';
 import { toast } from 'sonner';
 import { Plus, Trash2, Key, CheckCircle, XCircle, Copy } from 'lucide-react';
 import { Button } from '@mandaapp/ui/src/components/Button';
@@ -27,8 +27,8 @@ export function IntegrationsPage() {
   const fetchApps = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/integrations/admin/apps');
-      setApps(res.data);
+      const data = await apiClient<IntegrationApp[]>('/integrations/admin/apps');
+      setApps(data);
     } catch (error) {
       toast.error('Gagal mengambil data aplikasi integrasi');
     } finally {
@@ -42,8 +42,8 @@ export function IntegrationsPage() {
     
     try {
       setIsCreating(true);
-      const res = await api.post('/integrations/admin/apps', { name: newAppName });
-      setApps([...apps, res.data]);
+      const data = await apiClient<IntegrationApp>('/integrations/admin/apps', { method: 'POST', data: { name: newAppName } });
+      setApps([...apps, data]);
       setNewAppName('');
       toast.success('Aplikasi integrasi berhasil dibuat');
     } catch (error) {
@@ -55,8 +55,8 @@ export function IntegrationsPage() {
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     try {
-      const res = await api.put(`/integrations/admin/apps/${id}`, { isActive: !currentStatus });
-      setApps(apps.map(app => app.id === id ? res.data : app));
+      const data = await apiClient<IntegrationApp>(`/integrations/admin/apps/${id}`, { method: 'PUT', data: { isActive: !currentStatus } });
+      setApps(apps.map(app => app.id === id ? data : app));
       toast.success(`Aplikasi berhasil di${!currentStatus ? 'aktifkan' : 'nonaktifkan'}`);
     } catch (error) {
       toast.error('Gagal mengubah status aplikasi');
@@ -67,7 +67,7 @@ export function IntegrationsPage() {
     if (!confirm('Apakah Anda yakin ingin menghapus aplikasi integrasi ini? API Key-nya tidak akan bisa digunakan lagi.')) return;
     
     try {
-      await api.delete(`/integrations/admin/apps/${id}`);
+      await apiClient(`/integrations/admin/apps/${id}`, { method: 'DELETE' });
       setApps(apps.filter(app => app.id !== id));
       toast.success('Aplikasi berhasil dihapus');
     } catch (error) {
