@@ -43,6 +43,12 @@ export const getClassesStudentsSync = async (req: Request, res: Response) => {
     // Get all classes
     const allClasses = await db.select().from(classes);
     
+    // Build a classId -> className lookup map from the classes table
+    const classMap = new Map<string, string>();
+    for (const cls of allClasses) {
+      classMap.set(cls.id, cls.name);
+    }
+    
     // Build where condition for students
     let whereCondition;
     if (lastSync) {
@@ -61,11 +67,19 @@ export const getClassesStudentsSync = async (req: Request, res: Response) => {
 
     const students = await db.select().from(studentProfiles).where(whereCondition);
 
+    // Resolve className from classes table (classId -> classes.name)
+    // This ensures the sync output matches the MandaApp dashboard,
+    // since studentProfiles.className is a legacy field that may be stale.
+    const resolvedStudents = students.map(s => ({
+      ...s,
+      className: (s.classId && classMap.get(s.classId)) || s.className || null,
+    }));
+
     res.json({
       success: true,
       data: {
         classes: allClasses,
-        students: students
+        students: resolvedStudents
       }
     });
   } catch (error) {
