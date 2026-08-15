@@ -2,17 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../utils/api';
 import { toast } from 'sonner';
 import { Plus, Trash2, Key, CheckCircle, XCircle, Copy } from 'lucide-react';
-import { Button } from '@mandaapp/ui/src/components/ui/button';
-import { Input } from '@mandaapp/ui/src/components/ui/input';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@mandaapp/ui/src/components/ui/table';
-import { Badge } from '@mandaapp/ui/src/components/ui/badge';
+import { Button } from '@mandaapp/ui/src/components/Button';
+import { Input } from '@mandaapp/ui/src/components/Input';
+import { Badge } from '@mandaapp/ui/src/components/Badge';
 
 interface IntegrationApp {
   id: string;
@@ -130,66 +122,68 @@ export function IntegrationsPage() {
             Belum ada aplikasi yang terdaftar. Silakan buat baru di atas.
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama Aplikasi</TableHead>
-                <TableHead>API Key</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Dibuat Tanggal</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {apps.map((app) => (
-                <TableRow key={app.id}>
-                  <TableCell className="font-medium text-gray-900">
-                    {app.name}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <code className="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-700 select-all">
-                        {app.apiKey}
-                      </code>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-500" onClick={() => copyToClipboard(app.apiKey)}>
-                        <Copy className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={app.isActive ? 'default' : 'secondary'} className={app.isActive ? 'bg-green-100 text-green-800 hover:bg-green-100' : ''}>
-                      {app.isActive ? 'Aktif' : 'Nonaktif'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-gray-500">
-                    {new Date(app.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className={app.isActive ? "text-orange-500 hover:text-orange-700" : "text-green-500 hover:text-green-700"}
-                        onClick={() => handleToggleStatus(app.id, app.isActive)}
-                        title={app.isActive ? "Nonaktifkan" : "Aktifkan"}
-                      >
-                        {app.isActive ? <XCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleDelete(app.id)}
-                        title="Hapus Aplikasi"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50/50">
+                  <th className="text-left px-6 py-3 font-medium text-gray-600">Nama Aplikasi</th>
+                  <th className="text-left px-6 py-3 font-medium text-gray-600">API Key</th>
+                  <th className="text-left px-6 py-3 font-medium text-gray-600">Status</th>
+                  <th className="text-left px-6 py-3 font-medium text-gray-600">Dibuat Tanggal</th>
+                  <th className="text-right px-6 py-3 font-medium text-gray-600">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {apps.map((app) => (
+                  <tr key={app.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-gray-900">
+                      {app.name}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <code className="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-700 select-all">
+                          {app.apiKey}
+                        </code>
+                        <button
+                          className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                          onClick={() => copyToClipboard(app.apiKey)}
+                          title="Salin API Key"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant={app.isActive ? 'success' : 'default'}>
+                        {app.isActive ? 'Aktif' : 'Nonaktif'}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-gray-500">
+                      {new Date(app.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          className={`p-1.5 rounded-md transition-colors ${app.isActive ? 'text-orange-500 hover:text-orange-700 hover:bg-orange-50' : 'text-green-500 hover:text-green-700 hover:bg-green-50'}`}
+                          onClick={() => handleToggleStatus(app.id, app.isActive)}
+                          title={app.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                        >
+                          {app.isActive ? <XCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                        </button>
+                        <button
+                          className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+                          onClick={() => handleDelete(app.id)}
+                          title="Hapus Aplikasi"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -200,7 +194,7 @@ export function IntegrationsPage() {
           <div>
             <h4 className="text-blue-900 font-medium">Panduan Integrasi (Untuk Programmer)</h4>
             <p className="text-sm text-blue-800 mt-1 mb-3">
-              Gunakan API Key di atas pada header <code>x-api-key</code> saat melakukan request ke endpoint MandaApp.
+              Gunakan API Key di atas pada header <code className="bg-blue-100 px-1 rounded">x-api-key</code> saat melakukan request ke endpoint MandaApp.
             </p>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white p-4 rounded-lg border border-blue-100 shadow-sm">
