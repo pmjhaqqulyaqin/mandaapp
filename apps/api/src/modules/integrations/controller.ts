@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../../db';
 import { integrationApps, employees, classes, studentProfiles, attendanceRecords } from '../../db/schema';
-import { eq, gte, and, or, ilike, isNotNull } from 'drizzle-orm';
+import { eq, gte, and, or, ilike, isNotNull, isNull } from 'drizzle-orm';
 import crypto from 'crypto';
 
 function generateApiKey(): string {
@@ -50,11 +50,12 @@ export const getClassesStudentsSync = async (req: Request, res: Response) => {
     }
     
     // Build where condition for students
-    // Match both 'active' and 'aktif' (case-insensitive) to be consistent
-    // with MandaApp dashboard which treats both as active students
+    // Match 'active', 'aktif' (case-insensitive), AND NULL status to be consistent
+    // with MandaApp dashboard which treats null/undefined as active: (s.status || 'active')
     const activeCondition = or(
       ilike(studentProfiles.status, 'active'),
-      ilike(studentProfiles.status, 'aktif')
+      ilike(studentProfiles.status, 'aktif'),
+      isNull(studentProfiles.status)
     );
 
     let whereCondition;
