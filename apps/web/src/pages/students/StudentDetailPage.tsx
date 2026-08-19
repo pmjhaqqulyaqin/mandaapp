@@ -201,6 +201,8 @@ const TabIdentitas = ({ s, isEditing, formData, onChange, classesList }: { s: an
         <div>
           <InfoRow label="Nama Lengkap" value={s.fullName} isEditing={isEditing} 
             editInput={<Input value={formData.fullName} onChange={e => onChange('fullName', e.target.value)} />} />
+          <InfoRow label="NISN" value={s.nisn} isEditing={isEditing} 
+            editInput={<Input value={formData.nisn} onChange={e => onChange('nisn', e.target.value)} placeholder="10 digit NISN" />} />
           <InfoRow label="Jenis Kelamin" value={s.gender} isEditing={isEditing} 
             editInput={
               <select className="flex h-10 w-full rounded-md border border-gray-200 bg-transparent px-3 py-2 text-sm" value={formData.gender} onChange={e => onChange('gender', e.target.value)}>
