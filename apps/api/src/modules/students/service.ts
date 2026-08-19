@@ -368,8 +368,17 @@ export class StudentService {
       // 1. Update student profile — whitelist only safe fields
       if (payload.student) {
         const raw = payload.student;
+
+        // Validate NISN: must be exactly 10 digits
+        if (raw.nisn !== undefined) {
+          const nisnTrimmed = (raw.nisn || '').trim();
+          if (!nisnTrimmed || !/^\d{10}$/.test(nisnTrimmed)) {
+            throw new Error('NISN harus tepat 10 digit angka.');
+          }
+        }
+
         const ALLOWED_STUDENT_FIELDS = [
-          'nik', 'noKk', 'birthPlace', 'birthDate', 'gender', 'agama',
+          'nisn', 'nik', 'noKk', 'birthPlace', 'birthDate', 'gender', 'agama',
           'kewarganegaraan', 'anakKe', 'jumlahSaudara', 'bahasaSehariHari',
           'golonganDarah', 'tempatTinggal', 'jarakSekolahKm', 'address',
         ];

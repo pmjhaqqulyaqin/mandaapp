@@ -196,6 +196,12 @@ export const PublicSelfUpdatePage:React.FC = () => {
     setSaveError('');
     // ── Validasi Tab 1: Data Pribadi (semua wajib) ──
     const e1:string[]=[];
+    // Validasi NISN: harus tepat 10 digit angka
+    if(!form.nisn.trim()) {
+      e1.push('NISN (wajib diisi)');
+    } else if(!/^\d{10}$/.test(form.nisn.trim())) {
+      e1.push('NISN (harus 10 digit angka, contoh: 0108990887)');
+    }
     if(!form.nik.trim()) e1.push('NIK');
     if(!form.noKk.trim()) e1.push('No. KK');
     if(!form.birthPlace.trim()) e1.push('Tempat Lahir');
