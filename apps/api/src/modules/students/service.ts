@@ -381,8 +381,17 @@ export class StudentService {
         }
         if (Object.keys(studentData).length > 0) {
           studentData.updatedAt = new Date();
+          studentData.selfUpdateCompleted = true;
+          studentData.selfUpdateAt = new Date();
           await tx.update(studentProfiles).set(studentData).where(eq(studentProfiles.id, id));
         }
+      } else {
+        // Even if no student fields provided, mark self-update as completed
+        await tx.update(studentProfiles).set({
+          selfUpdateCompleted: true,
+          selfUpdateAt: new Date(),
+          updatedAt: new Date(),
+        }).where(eq(studentProfiles.id, id));
       }
 
       // 2. Overwrite parents

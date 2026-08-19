@@ -132,6 +132,8 @@ export const studentProfiles = pgTable("student_profiles", {
   photoUrl: varchar("photo_url", { length: 255 }),
   status: varchar("status", { length: 20 }).default("active"),
   isNotable: boolean("is_notable").default(false), // Ditambahkan untuk Alumni Berprestasi
+  selfUpdateCompleted: boolean("self_update_completed").default(false), // Penanda siswa sudah mengisi data mandiri
+  selfUpdateAt: timestamp("self_update_at"), // Waktu terakhir mengisi data mandiri
   createdSource: varchar("created_source", { length: 50 }).default("student_module"), // student_module or nis_module
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()

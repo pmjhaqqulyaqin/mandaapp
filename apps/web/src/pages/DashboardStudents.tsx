@@ -8,7 +8,8 @@ import * as XLSX from 'xlsx';
 import {
   Users, Search, Settings2, RefreshCw, FileSpreadsheet, Download,
   UserPlus, Edit2, Trash2, ChevronLeft, ChevronRight, Loader2,
-  CheckCircle2, GraduationCap, AlertCircle, UserCog, ArrowUpRight, X, QrCode, Printer, Eye
+  CheckCircle2, GraduationCap, AlertCircle, UserCog, ArrowUpRight, X, QrCode, Printer, Eye,
+  ClipboardCheck
 } from 'lucide-react';
 import { DataTableToolbar } from '../components/DataTableToolbar';
 
@@ -315,11 +316,13 @@ export const DashboardStudents = () => {
           <DataTableToolbar
             data={filtered}
             columns={[
-              { header: 'NIS', key: 'nis', transform: (v, row) => v || row.nisn || '-' },
+              { header: 'NIS', key: 'nis', transform: (v) => v || '-' },
+              { header: 'NISN', key: 'nisn', transform: (v) => v || '-' },
               { header: 'Nama Siswa', key: 'fullName', transform: (v) => v || '-' },
               { header: 'Kelas', key: 'classId', transform: (_, row) => getClassLabel(row) },
               { header: 'Jenis Kelamin', key: 'gender', transform: (v) => v || '-' },
               { header: 'Status', key: 'status', transform: (v) => v || 'Aktif' },
+              { header: 'Data Mandiri', key: 'selfUpdateCompleted', transform: (v) => v ? '✔ Sudah' : '✘ Belum' },
             ]}
             fileName="Data_Siswa"
             title="Data Siswa"
@@ -345,8 +348,10 @@ export const DashboardStudents = () => {
                     </th>
                     <th className="py-2.5 px-3 font-semibold w-10">No</th>
                     <th className="py-2.5 px-3 font-semibold">NIS</th>
+                    <th className="py-2.5 px-3 font-semibold">NISN</th>
                     <th className="py-2.5 px-3 font-semibold">Nama Siswa</th>
                     <th className="py-2.5 px-3 font-semibold">Kelas</th>
+                    <th className="py-2.5 px-3 font-semibold text-center">Data Mandiri</th>
                     <th className="py-2.5 px-3 font-semibold">Status</th>
                     <th className="py-2.5 px-3 font-semibold text-center">Actions</th>
                   </tr>
@@ -364,7 +369,8 @@ export const DashboardStudents = () => {
                         />
                       </td>
                       <td className="py-2 px-3 text-[11px] text-text-secondary font-medium">{(page - 1) * entriesPerPage + idx + 1}</td>
-                      <td className="py-2 px-3 text-[11px] font-mono text-text-secondary">{s.nis || s.nisn || '-'}</td>
+                      <td className="py-2 px-3 text-[11px] font-mono text-text-secondary">{s.nis || '-'}</td>
+                      <td className="py-2 px-3 text-[11px] font-mono text-text-secondary">{s.nisn && !s.nisn.startsWith('TEMP') ? s.nisn : '-'}</td>
                       <td className="py-2 px-3">
                         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/dashboard/students/${s.id}`)}>
                           <div className={`w-6 h-6 rounded-full ${avatarColor(s.fullName || '')} text-white text-[9px] font-bold flex items-center justify-center shrink-0`}>
@@ -374,6 +380,19 @@ export const DashboardStudents = () => {
                         </div>
                       </td>
                       <td className="py-2 px-3 text-[11px] text-text-primary dark:text-text-darkPrimary">{getClassLabel(s)}</td>
+                      <td className="py-2 px-3 text-center">
+                        {s.selfUpdateCompleted ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400" title={s.selfUpdateAt ? `Diisi pada: ${new Date(s.selfUpdateAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : 'Sudah mengisi data mandiri'}>
+                            <ClipboardCheck size={12} />
+                            Sudah
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400">
+                            <AlertCircle size={11} />
+                            Belum
+                          </span>
+                        )}
+                      </td>
                       <td className="py-2 px-3"><StatusBadge status={s.status} /></td>
                       <td className="py-2 px-3 text-center">
                         <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -387,7 +406,7 @@ export const DashboardStudents = () => {
                     </tr>
                   ))}
                   {paginated.length === 0 && (
-                    <tr><td colSpan={7} className="py-12 text-center text-gray-400 text-sm">
+                    <tr><td colSpan={9} className="py-12 text-center text-gray-400 text-sm">
                       {searchQuery || filterClass ? 'Tidak ada siswa yang sesuai filter.' : 'Belum ada data siswa.'}
                     </td></tr>
                   )}
