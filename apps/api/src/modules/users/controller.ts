@@ -24,6 +24,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
   kepala_tu: ["overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm", "subjects", "alumni", "mutasi", "announcements", "downloads"],
   pegawai_tu: ["overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "employees", "e-office", "ppdb", "penilaian-pmb", "ijazah", "attendance", "kbm", "subjects", "alumni", "mutasi", "announcements", "downloads"],
   operator: ["overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "employees", "gallery", "e-office", "ppdb", "penilaian-pmb", "ijazah", "attendance", "kbm", "subjects", "alumni", "mutasi", "announcements", "downloads"],
+  orang_tua: ["overview", "calendar", "student-card"],
 };
 
 export async function getAuditLogsHandler(req: Request, res: Response) {

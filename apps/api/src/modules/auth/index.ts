@@ -16,6 +16,7 @@ import {
   pegawaiTURole,
   studentRole,
   operatorRole,
+  orangTuaRole,
 } from "./permissions";
 
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -64,6 +65,8 @@ export const auth = betterAuth({
   },
   trustedOrigins: [
     "https://mandaapp-web-theta.vercel.app",
+    "https://mandualotim.sch.id",
+    "http://mandualotim.sch.id",
     "http://localhost:5173",
     "http://localhost:5174",
     (process.env.FRONTEND_URL || "").replace(/\/$/, ""),
@@ -92,6 +95,7 @@ export const auth = betterAuth({
         pegawai_tu: pegawaiTURole,
         student: studentRole,
         operator: operatorRole,
+        orang_tua: orangTuaRole,
       },
       defaultRole: "student",
       adminRoles: ["admin"],

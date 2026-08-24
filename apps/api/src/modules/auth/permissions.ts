@@ -115,3 +115,9 @@ export const operatorRole = ac.newRole({
   student: ["view", "update", "input"],
   schedule: ["create", "update"],
 });
+
+// ─── Role: Orang Tua / Wali ───
+// Akses terbatas: lihat data anak (siswa), jadwal, pengumuman
+export const orangTuaRole = ac.newRole({
+  student: ["view"],
+});

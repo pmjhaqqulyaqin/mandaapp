@@ -35,6 +35,7 @@ const ROLE_LABELS: Record<string, string> = {
   pegawai_tu: 'Pegawai TU',
   operator: 'Operator',
   student: 'Siswa',
+  orang_tua: 'Orang Tua / Wali',
 };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -49,6 +50,7 @@ const ROLE_COLORS: Record<string, string> = {
   pegawai_tu: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
   operator: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400',
   student: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
+  orang_tua: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400',
 };
 
 const ACTION_LABELS: Record<string, string> = {

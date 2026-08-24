@@ -154,7 +154,7 @@ export function useSetUserRole() {
         userId,
         role,
       });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(error.message || error.statusText || error.code || 'Gagal mengubah role');
       return data;
     } finally {
       setLoading(false);
