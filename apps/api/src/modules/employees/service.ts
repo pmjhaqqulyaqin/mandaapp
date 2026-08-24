@@ -84,6 +84,23 @@ export class EmployeeService {
     return results;
   }
 
+  /** Admin: Reset (unlink) an employee's user link by employee ID */
+  static async resetEmployeeLink(employeeId: string) {
+    const employee = await this.getEmployeeById(employeeId);
+    if (!employee) {
+      throw new Error("EMPLOYEE_NOT_FOUND");
+    }
+    if (!employee.userId) {
+      throw new Error("EMPLOYEE_NOT_LINKED");
+    }
+
+    const results = await db.update(employees)
+      .set({ userId: null, updatedAt: new Date() })
+      .where(eq(employees.id, employeeId))
+      .returning();
+    return results[0];
+  }
+
   /** Update employee photo URL */
   static async updatePhoto(employeeId: string, photoUrl: string) {
     const results = await db.update(employees)

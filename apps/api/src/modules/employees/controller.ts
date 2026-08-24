@@ -89,6 +89,33 @@ export class EmployeeController {
     }
   }
 
+  /** Admin: Reset (unlink) an employee's link to a user account */
+  static async resetLink(req: Request, res: Response) {
+    try {
+      const user = req.authUser;
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+      // Only admin can reset links
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: "Hanya admin yang dapat mereset link pegawai" });
+      }
+
+      const employeeId = req.params.id;
+      if (!employeeId) return res.status(400).json({ error: "ID pegawai diperlukan" });
+
+      const employee = await EmployeeService.resetEmployeeLink(employeeId);
+      res.json({ message: "Link pegawai berhasil direset", data: employee });
+    } catch (error: any) {
+      if (error.message === "EMPLOYEE_NOT_FOUND") {
+        return res.status(404).json({ error: "Pegawai tidak ditemukan" });
+      }
+      if (error.message === "EMPLOYEE_NOT_LINKED") {
+        return res.status(400).json({ error: "Pegawai belum terhubung dengan akun manapun" });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   /** Upload profile photo for the current user's employee record */
   static async uploadPhoto(req: Request, res: Response) {
     try {

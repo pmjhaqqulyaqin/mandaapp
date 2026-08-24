@@ -3,7 +3,7 @@ import { Button } from '@mandaapp/ui/src/components/Button';
 import { Input } from '@mandaapp/ui/src/components/Input';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Upload, Download, Edit2, Trash2, FileSpreadsheet, Image, Eye, Link2, Unlink, ChevronLeft, ChevronRight } from 'lucide-react';
+import { UserPlus, Upload, Download, Edit2, Trash2, FileSpreadsheet, Image, Eye, Link2, Unlink, LinkIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { apiClient, API_BASE_URL } from '../lib/api';
 import { DataTableToolbar } from '../components/DataTableToolbar';
@@ -176,6 +176,20 @@ export const DashboardEmployees = () => {
       fetchEmployees();
     } catch(e: any) {
       alert('Gagal menghapus: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetLink = async (id: string, name: string) => {
+    if(!window.confirm(`Reset link pegawai "${name}"?\n\nIni akan melepas koneksi data pegawai dari akun pengguna yang terhubung. Pegawai dapat menghubungkan ulang akunnya melalui NIP.`)) return;
+    setLoading(true);
+    try {
+      await apiClient(`/employees/${id}/reset-link`, { method: 'POST' });
+      alert('Link pegawai berhasil direset');
+      fetchEmployees();
+    } catch(e: any) {
+      alert('Gagal mereset link: ' + (e.message || 'Terjadi kesalahan'));
     } finally {
       setLoading(false);
     }
@@ -379,6 +393,15 @@ export const DashboardEmployees = () => {
                           >
                             <Eye size={16} />
                           </button>
+                          {emp.userId && (
+                            <button 
+                              onClick={() => handleResetLink(emp.id, emp.name)} 
+                              className="text-amber-500 hover:text-amber-700 transition-colors" 
+                              title="Reset Link Pegawai (lepas koneksi akun)"
+                            >
+                              <Unlink size={16} />
+                            </button>
+                          )}
                           <button onClick={() => handleDelete(emp.id, emp.name)} className="text-red-500 hover:text-red-700" title="Hapus Pegawai"><Trash2 size={16} /></button>
                         </div>
                       </td>

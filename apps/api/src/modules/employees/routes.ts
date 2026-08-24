@@ -25,6 +25,7 @@ router.get("/", requireStaff, EmployeeController.getAll);
 router.get("/template", requireStaff, EmployeeController.downloadTemplate);
 router.get("/:id", requireStaff, EmployeeController.getById);
 router.post("/", requireStaff, EmployeeController.create);
+router.post("/:id/reset-link", requireStaff, EmployeeController.resetLink);
 router.put("/:id", requireStaff, EmployeeController.update);
 router.delete("/:id", requireStaff, EmployeeController.delete);
 router.post("/upload", requireStaff, upload.single("file"), EmployeeController.uploadExcel);
