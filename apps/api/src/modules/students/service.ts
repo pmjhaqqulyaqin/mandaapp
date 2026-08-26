@@ -105,7 +105,12 @@ export class StudentService {
       if (payload.parents && Array.isArray(payload.parents)) {
         await tx.delete(parentProfiles).where(eq(parentProfiles.studentId, id));
         if (payload.parents.length > 0) {
-          const parentsToInsert = payload.parents.map((p: any) => ({ ...p, studentId: id }));
+          const parentsToInsert = payload.parents.map((p: any) => {
+            const { id: _oldId, createdAt, updatedAt, ...rest } = p;
+            // Sanitize empty strings to null for date columns
+            if (rest.birthDate === '') rest.birthDate = null;
+            return { ...rest, studentId: id };
+          });
           await tx.insert(parentProfiles).values(parentsToInsert);
         }
       }
@@ -114,7 +119,12 @@ export class StudentService {
       if (payload.education && Array.isArray(payload.education)) {
         await tx.delete(educationHistory).where(eq(educationHistory.studentId, id));
         if (payload.education.length > 0) {
-          const eduToInsert = payload.education.map((e: any) => ({ ...e, studentId: id }));
+          const eduToInsert = payload.education.map((e: any) => {
+            const { id: _oldId, createdAt, updatedAt, ...rest } = e;
+            if (rest.sttbDate === '') rest.sttbDate = null;
+            if (rest.transferAcceptDate === '') rest.transferAcceptDate = null;
+            return { ...rest, studentId: id };
+          });
           await tx.insert(educationHistory).values(eduToInsert);
         }
       }
@@ -123,7 +133,10 @@ export class StudentService {
       if (payload.physical && Array.isArray(payload.physical)) {
         await tx.delete(physicalData).where(eq(physicalData.studentId, id));
         if (payload.physical.length > 0) {
-          const physicalToInsert = payload.physical.map((p: any) => ({ ...p, studentId: id }));
+          const physicalToInsert = payload.physical.map((p: any) => {
+            const { id: _oldId, createdAt, updatedAt, ...rest } = p;
+            return { ...rest, studentId: id };
+          });
           await tx.insert(physicalData).values(physicalToInsert);
         }
       }
@@ -409,7 +422,11 @@ export class StudentService {
         if (payload.parents.length > 0) {
           const toInsert = payload.parents
             .filter((p: any) => p.name && p.name.trim() !== '')
-            .map((p: any) => ({ ...p, studentId: id }));
+            .map((p: any) => {
+              const { id: _oldId, createdAt, updatedAt, ...rest } = p;
+              if (rest.birthDate === '') rest.birthDate = null;
+              return { ...rest, studentId: id };
+            });
           if (toInsert.length > 0) await tx.insert(parentProfiles).values(toInsert);
         }
       }

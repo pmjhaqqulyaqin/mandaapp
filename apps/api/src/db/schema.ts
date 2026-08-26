@@ -145,9 +145,14 @@ export const parentProfiles = pgTable("parent_profiles", {
   type: varchar("type", { length: 20 }).notNull(), // ayah, ibu, wali
   name: varchar("name", { length: 255 }).notNull(),
   relationship: varchar("relationship", { length: 100 }), // for wali
+  birthPlace: varchar("birth_place", { length: 100 }),
+  birthDate: date("birth_date"),
+  pendidikan: varchar("pendidikan", { length: 100 }),
+  pekerjaan: varchar("pekerjaan", { length: 150 }),
   educationLevel: varchar("education_level", { length: 100 }),
   occupation: varchar("occupation", { length: 150 }),
   phone: varchar("phone", { length: 50 }),
+  address: text("address"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
