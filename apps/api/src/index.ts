@@ -113,6 +113,24 @@ const authLimiter = rateLimit({
 });
 app.use('/api/auth', authLimiter);
 
+// Rate limit for self-update endpoints (public, modifies student data)
+const selfUpdateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Terlalu banyak percobaan update data. Silakan coba lagi dalam 15 menit.' },
+  validate: { trustProxy: false },
+});
+app.use('/api/students/self-update', selfUpdateLimiter);
+
+// Rate limit for integration sync endpoints (heavy DB queries)
+const syncLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: 'Too many sync requests. Please try again later.' },
+  validate: { trustProxy: false },
+});
+app.use('/api/integrations/v1', syncLimiter);
+
 app.use(cors({
   origin: (origin, callback) => {
     const allowedOrigins = [
@@ -137,19 +155,36 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: '5mb' }));
-// On-the-fly thumbnail generator for gallery images (reduces ~900KB → ~40KB per image)
+// On-the-fly thumbnail generator with disk cache (reduces ~900KB → ~40KB per image)
+const thumbCacheDir = path.join(process.cwd(), 'uploads', 'thumbs');
+if (!fs.existsSync(thumbCacheDir)) fs.mkdirSync(thumbCacheDir, { recursive: true });
+
 app.get('/uploads/thumb/:filename', async (req, res) => {
   try {
+    const width = Math.min(parseInt(req.query.w as string) || 400, 800);
+    const cacheKey = `${width}_${req.params.filename.replace(/\.[^.]+$/, '')}.webp`;
+    const cachePath = path.join(thumbCacheDir, cacheKey);
+
+    // Serve from disk cache if available
+    if (fs.existsSync(cachePath)) {
+      res.setHeader('Content-Type', 'image/webp');
+      res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+      return res.sendFile(cachePath);
+    }
+
     const sharp = (await import('sharp')).default;
     const filePath = path.join(process.cwd(), 'uploads', req.params.filename);
     if (!fs.existsSync(filePath)) {
       return res.status(404).send('Not found');
     }
-    const width = Math.min(parseInt(req.query.w as string) || 400, 800);
     const buffer = await sharp(filePath)
       .resize(width, undefined, { withoutEnlargement: true })
       .webp({ quality: 75 })
       .toBuffer();
+
+    // Save to disk cache (fire-and-forget)
+    fs.writeFile(cachePath, buffer, () => {});
+
     res.setHeader('Content-Type', 'image/webp');
     res.setHeader('Cache-Control', 'public, max-age=2592000, immutable'); // 30 days
     res.send(buffer);

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireApiKey } from '../../middlewares/apiKey';
+import { requireAuth } from '../auth/middleware';
 import * as Controller from './controller';
 
 export const integrationsRoutes = Router();
@@ -9,11 +10,8 @@ integrationsRoutes.get('/v1/employees', requireApiKey, Controller.getEmployeesSy
 integrationsRoutes.get('/v1/classes-students', requireApiKey, Controller.getClassesStudentsSync);
 integrationsRoutes.get('/v1/attendances', requireApiKey, Controller.getAttendancesSync);
 
-// Admin endpoints (secured by normal Auth, for dashboard)
-// We will add authHandler middleware in the controller or main router if needed, 
-// but for simplicity we'll assume they are handled by standard session or just protected routes.
-// Note: You should protect these with admin auth middleware later.
-integrationsRoutes.get('/admin/apps', Controller.getApps);
-integrationsRoutes.post('/admin/apps', Controller.createApp);
-integrationsRoutes.put('/admin/apps/:id', Controller.updateAppStatus);
-integrationsRoutes.delete('/admin/apps/:id', Controller.deleteApp);
+// Admin endpoints (secured by session auth — admin only)
+integrationsRoutes.get('/admin/apps', requireAuth(['admin']), Controller.getApps);
+integrationsRoutes.post('/admin/apps', requireAuth(['admin']), Controller.createApp);
+integrationsRoutes.put('/admin/apps/:id', requireAuth(['admin']), Controller.updateAppStatus);
+integrationsRoutes.delete('/admin/apps/:id', requireAuth(['admin']), Controller.deleteApp);

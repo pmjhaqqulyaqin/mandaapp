@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient, API_BASE_URL } from '../../lib/api';
 import { Input } from '@mandaapp/ui/src/components/Input';
@@ -699,13 +700,24 @@ export default function StudentDetailPage() {
       }
     } catch (err: any) {
       console.error(err);
-      alert("Error detail: " + (err?.message || err?.error || JSON.stringify(err)));
+      toast.error("Error detail: " + (err?.message || err?.error || JSON.stringify(err)));
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => { fetchData(); }, [id]);
+
+  // Warn user about unsaved changes when leaving page in edit mode
+  useEffect(() => {
+    if (!isEditing) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'Anda memiliki perubahan yang belum disimpan. Yakin ingin meninggalkan halaman?';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isEditing]);
 
   // ── Photo Handlers ──
   const getFullPhotoUrl = (url: string | undefined | null) => {
@@ -726,7 +738,7 @@ export default function StudentDetailPage() {
       setPhotoPreview(getFullPhotoUrl(uploaded.url));
       setStudentForm((prev: any) => ({ ...prev, photoUrl: uploaded.url }));
     } catch (err: any) {
-      alert('Gagal mengunggah foto: ' + (err.message || 'Error'));
+      toast.error('Gagal mengunggah foto: ' + (err.message || 'Error'));
     } finally {
       setIsUploadingPhoto(false);
       if (photoInputRef.current) photoInputRef.current.value = '';
@@ -743,7 +755,7 @@ export default function StudentDetailPage() {
       setPhotoPreview(getFullPhotoUrl(uploaded.url));
       setStudentForm((prev: any) => ({ ...prev, photoUrl: uploaded.url }));
     } catch (err: any) {
-      alert('Gagal mengunggah foto kamera: ' + (err.message || 'Error'));
+      toast.error('Gagal mengunggah foto kamera: ' + (err.message || 'Error'));
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -769,7 +781,7 @@ export default function StudentDetailPage() {
       await apiClient(`/students/${id}`, { method: 'PUT', data: { student: { photoUrl: uploaded.url } } });
       fetchData();
     } catch (err: any) {
-      alert('Gagal mengunggah foto: ' + (err.message || 'Error'));
+      toast.error('Gagal mengunggah foto: ' + (err.message || 'Error'));
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -889,7 +901,7 @@ export default function StudentDetailPage() {
       setIsEditing(false);
       fetchData();
     } catch (err: any) {
-      alert("Gagal menyimpan data: " + (err.message || 'Error'));
+      toast.error("Gagal menyimpan data: " + (err.message || 'Error'));
     } finally {
       setSaving(false);
     }
@@ -1040,7 +1052,7 @@ export default function StudentDetailPage() {
                         const newNotable = !data.isNotable;
                         await apiClient(`/students/${id}`, { method: 'PUT', data: { student: { isNotable: newNotable } } });
                         fetchData();
-                      } catch(e) { alert('Gagal mengupdate status prestasi'); }
+                      } catch(e) { toast.error('Gagal mengupdate status prestasi'); }
                     }}
                     className={`flex items-center justify-center gap-1.5 h-9 rounded-lg text-xs font-semibold transition-colors ${
                       data.isNotable 

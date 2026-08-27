@@ -1,6 +1,6 @@
 import { db } from "../../db";
 import { studentProfiles, identityRevisions, parentProfiles, educationHistory, physicalData, bukuIndukGrades, bukuIndukAttendance, bukuIndukExtracurriculars, bukuIndukP5, bukuIndukFinalStatus, bukuIndukClassMapels } from "../../db/schema";
-import { eq, ilike, or, and } from "drizzle-orm";
+import { eq, ilike, or, and, inArray } from "drizzle-orm";
 
 export class StudentService {
   static async getAllStudents(classFilter?: string, classIdFilter?: string, statusFilter?: string) {
@@ -24,14 +24,17 @@ export class StudentService {
     const student = await this.getStudentById(id);
     if (!student) return null;
 
-    const parents = await db.select().from(parentProfiles).where(eq(parentProfiles.studentId, id));
-    const education = await db.select().from(educationHistory).where(eq(educationHistory.studentId, id));
-    const physical = await db.select().from(physicalData).where(eq(physicalData.studentId, id));
-    const grades = await db.select().from(bukuIndukGrades).where(eq(bukuIndukGrades.studentId, id));
-    const attendance = await db.select().from(bukuIndukAttendance).where(eq(bukuIndukAttendance.studentId, id));
-    const extracurriculars = await db.select().from(bukuIndukExtracurriculars).where(eq(bukuIndukExtracurriculars.studentId, id));
-    const p5 = await db.select().from(bukuIndukP5).where(eq(bukuIndukP5.studentId, id));
-    const finalStatus = await db.select().from(bukuIndukFinalStatus).where(eq(bukuIndukFinalStatus.studentId, id));
+    // Run all sub-queries in parallel for better performance
+    const [parents, education, physical, grades, attendance, extracurriculars, p5, finalStatus] = await Promise.all([
+      db.select().from(parentProfiles).where(eq(parentProfiles.studentId, id)),
+      db.select().from(educationHistory).where(eq(educationHistory.studentId, id)),
+      db.select().from(physicalData).where(eq(physicalData.studentId, id)),
+      db.select().from(bukuIndukGrades).where(eq(bukuIndukGrades.studentId, id)),
+      db.select().from(bukuIndukAttendance).where(eq(bukuIndukAttendance.studentId, id)),
+      db.select().from(bukuIndukExtracurriculars).where(eq(bukuIndukExtracurriculars.studentId, id)),
+      db.select().from(bukuIndukP5).where(eq(bukuIndukP5.studentId, id)),
+      db.select().from(bukuIndukFinalStatus).where(eq(bukuIndukFinalStatus.studentId, id)),
+    ]);
 
     return {
       ...student,
@@ -69,6 +72,16 @@ export class StudentService {
   static async updateStudent(id: string, data: any) {
     const results = await db.update(studentProfiles).set(data).where(eq(studentProfiles.id, id)).returning();
     return results[0];
+  }
+
+  /** Bulk update multiple students with the same data in a single query */
+  static async bulkUpdateStudents(ids: string[], data: any) {
+    if (!ids.length) return [];
+    const updateData = { ...data, updatedAt: new Date() };
+    return db.update(studentProfiles)
+      .set(updateData)
+      .where(inArray(studentProfiles.id, ids))
+      .returning();
   }
 
   static async saveStudentCompleteData(id: string, payload: any) {

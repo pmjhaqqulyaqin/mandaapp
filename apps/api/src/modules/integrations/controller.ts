@@ -8,6 +8,11 @@ function generateApiKey(): string {
   return 'sk_live_' + crypto.randomBytes(24).toString('hex');
 }
 
+/** Hash an API key with SHA-256 for secure storage */
+export function hashApiKey(key: string): string {
+  return crypto.createHash('sha256').update(key).digest('hex');
+}
+
 // -------------------------------------------------------------
 // Public Sync Endpoints (Protected by API Key)
 // -------------------------------------------------------------
@@ -39,6 +44,9 @@ export const getEmployeesSync = async (req: Request, res: Response) => {
 export const getClassesStudentsSync = async (req: Request, res: Response) => {
   try {
     const lastSync = req.query.last_sync as string;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit as string) || 500));
+    const offset = (page - 1) * limit;
     
     // Get all classes
     const allClasses = await db.select().from(classes);
@@ -50,8 +58,6 @@ export const getClassesStudentsSync = async (req: Request, res: Response) => {
     }
     
     // Build where condition for students
-    // Match 'active', 'aktif' (case-insensitive), AND NULL status to be consistent
-    // with MandaApp dashboard which treats null/undefined as active: (s.status || 'active')
     const activeCondition = or(
       ilike(studentProfiles.status, 'active'),
       ilike(studentProfiles.status, 'aktif'),
@@ -73,11 +79,12 @@ export const getClassesStudentsSync = async (req: Request, res: Response) => {
       whereCondition = activeCondition;
     }
 
-    const students = await db.select().from(studentProfiles).where(whereCondition);
+    const students = await db.select().from(studentProfiles)
+      .where(whereCondition)
+      .limit(limit)
+      .offset(offset);
 
-    // Resolve className from classes table (classId -> classes.name)
-    // This ensures the sync output matches the MandaApp dashboard,
-    // since studentProfiles.className is a legacy field that may be stale.
+    // Resolve className from classes table
     const resolvedStudents = students.map(s => ({
       ...s,
       className: (s.classId && classMap.get(s.classId)) || s.className || null,
@@ -85,6 +92,9 @@ export const getClassesStudentsSync = async (req: Request, res: Response) => {
 
     res.json({
       success: true,
+      page,
+      limit,
+      count: resolvedStudents.length,
       data: {
         classes: allClasses,
         students: resolvedStudents
@@ -138,15 +148,21 @@ export const createApp = async (req: Request, res: Response) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ message: 'Name is required' });
 
-    const apiKey = generateApiKey();
+    const rawApiKey = generateApiKey();
+    const hashedKey = hashApiKey(rawApiKey);
     const newApp = await db.insert(integrationApps).values({
       name,
-      apiKey,
+      apiKey: hashedKey,
       isActive: true,
-      createdBy: (req as any).user?.id // Assuming auth middleware sets this
+      createdBy: req.authUser?.id || null
     }).returning();
 
-    res.json(newApp[0]);
+    // Return raw key ONCE — it cannot be retrieved again
+    res.json({
+      ...newApp[0],
+      apiKey: rawApiKey,
+      _notice: 'Simpan API Key ini sekarang. Key tidak dapat ditampilkan lagi setelah halaman ini ditutup.'
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Failed to create integration app' });

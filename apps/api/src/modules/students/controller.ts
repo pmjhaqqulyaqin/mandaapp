@@ -29,11 +29,7 @@ export class StudentController {
       if (classId !== undefined) updateData.classId = classId;
       if (status !== undefined) updateData.status = status;
 
-      const results = [];
-      for (const id of studentIds) {
-        const updated = await StudentService.updateStudent(id, updateData);
-        if (updated) results.push(updated);
-      }
+      const results = await StudentService.bulkUpdateStudents(studentIds, updateData);
       res.json({ message: "Bulk update successful", count: results.length, data: results });
     } catch (error: any) {
       res.status(500).json({ error: error.message || "Failed to perform bulk update" });

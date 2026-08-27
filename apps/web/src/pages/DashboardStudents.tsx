@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { toast } from 'sonner';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
@@ -133,14 +134,19 @@ export const DashboardStudents = () => {
         return name === filterClass;
       })();
       const status = (s.status || 'active').toLowerCase();
-      const matchStatus = status === 'aktif' || status === 'active';
+      const filterLower = (filterStatus || '').toLowerCase();
+      const matchStatus = !filterLower
+        || (filterLower === 'aktif' && (status === 'aktif' || status === 'active'))
+        || (filterLower === 'lulus' && status === 'lulus')
+        || (filterLower === 'mutasi' && ['pindah', 'keluar', 'do', 'mutasi'].includes(status))
+        || (filterLower === status);
       return matchSearch && matchClass && matchStatus;
     });
-  }, [students, searchQuery, filterClass, classesList]);
+  }, [students, searchQuery, filterClass, filterStatus, classesList]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / entriesPerPage));
   const paginated = filtered.slice((page - 1) * entriesPerPage, page * entriesPerPage);
-  useEffect(() => { setPage(1); }, [searchQuery, filterClass, entriesPerPage]);
+  useEffect(() => { setPage(1); }, [searchQuery, filterClass, filterStatus, entriesPerPage]);
 
   // Stats
   const stats = useMemo(() => ({
@@ -153,12 +159,12 @@ export const DashboardStudents = () => {
   // Handlers
   const handleDelete = async (id: string, name: string) => {
     if (!isAdmin) {
-      alert('Fitur hapus dinonaktifkan untuk role Anda.');
+      toast.error('Fitur hapus dinonaktifkan untuk role Anda.');
       return;
     }
     if (!window.confirm(`Yakin hapus data siswa "${name}"?`)) return;
     try { await apiClient(`/students/${id}`, { method: 'DELETE' }); fetchAll(); }
-    catch (err: any) { alert('Gagal: ' + err.message); }
+    catch (err: any) { toast.error('Gagal: ' + err.message); }
   };
 
   const handlePrintBukuInduk = async (s: any) => {
@@ -181,7 +187,7 @@ export const DashboardStudents = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error: any) {
-      alert('Gagal mencetak Buku Induk: ' + (error.message || 'Error'));
+      toast.error('Gagal mencetak Buku Induk: ' + (error.message || 'Error'));
     }
   };
 
