@@ -7,6 +7,15 @@ import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useSiteSettings } from '../hooks/api/useSettings';
 import { NetworkStatusBanner } from '../components/NetworkStatusBanner';
 import {
+  ALL_MENU_ITEMS,
+  MENU_ICON_COLORS,
+  ROUTE_TO_MENU_KEY,
+  SIDEBAR_CATEGORIES,
+  MENU_CATEGORY_MAP,
+  SUB_APP_CONFIGS,
+  MOBILE_MENU_SECTIONS,
+} from './menuConfig';
+import {
   Home,
   Newspaper,
   Calendar,
@@ -107,17 +116,6 @@ const NetworkStatusIcon = () => {
 
   return null;
 };
-
-// Menu configuration — extracted to menuConfig.tsx for maintainability
-import {
-  ALL_MENU_ITEMS,
-  MENU_ICON_COLORS,
-  ROUTE_TO_MENU_KEY,
-  SIDEBAR_CATEGORIES,
-  MENU_CATEGORY_MAP,
-  SUB_APP_CONFIGS,
-  MOBILE_MENU_SECTIONS,
-} from './menuConfig';
 
 const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
 
