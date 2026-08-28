@@ -395,8 +395,7 @@ export const DashboardLayout = () => {
   const getMenuItemsByKeys = (keys: string[]) =>
     keys.map(k => mainMenuItems.find(i => i.key === k)).filter(Boolean) as typeof mainMenuItems;
 
-  // Items not in any category (catch-all)
-  const categorizedKeys = new Set([...frequentKeys, ...infoKeys, ...siswaKeys, ...layananKeys, 'overview']);
+  const categorizedKeys = new Set([...MOBILE_MENU_SECTIONS.flatMap(s => s.keys), 'overview']);
   const uncategorizedItems = mainMenuItems.filter(i => !categorizedKeys.has(i.key));
 
   return (
