@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { ThemeToggle } from '@mandaapp/ui';
 import { useAuth } from '../contexts/AuthContext';
@@ -108,466 +108,16 @@ const NetworkStatusIcon = () => {
   return null;
 };
 
-// All menu items definition with their route paths and icons
-const ALL_MENU_ITEMS = [
-  {
-    key: 'overview',
-    label: 'Overview',
-    href: '/dashboard',
-    exact: true,
-    icon: <Home size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'identity',
-    label: 'Identitas Sekolah',
-    href: '/dashboard/settings',
-    exact: true,
-    icon: <Home size={16} />,
-    group: 'master',
-  },
-  {
-    key: 'classes',
-    label: 'Kelas & Rombel',
-    href: '/dashboard/students/classes',
-    icon: <LayoutGrid size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'news',
-    label: 'Manajemen Berita',
-    href: '/dashboard/news',
-    icon: <Newspaper size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'gallery',
-    label: 'Galeri Sekolah',
-    href: '/dashboard/gallery',
-    icon: <ImageIcon size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'calendar',
-    label: 'Jadwal Kegiatan Madrasah',
-    href: '/dashboard/calendar',
-    icon: <Calendar size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'teacher-duties',
-    label: 'Jadwal Tugas Guru',
-    href: '/dashboard/teacher-duties',
-    icon: <ClipboardList size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'student-card',
-    label: 'Kartu Pelajar',
-    href: '/dashboard/student-card',
-    icon: <CreditCard size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'employees',
-    label: 'Data Pegawai',
-    href: '/dashboard/employees',
-    icon: <UserSquare2 size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'subjects',
-    label: 'Mata Pelajaran',
-    href: '/dashboard/subjects',
-    icon: <BookOpen size={16} />,
-    group: 'master',
-  },
-  {
-    key: 'attendance',
-    label: 'Presensi Siswa',
-    href: '/dashboard/attendance',
-    icon: <QrCode size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'jurnal',
-    label: 'Jurnal Mengajar',
-    href: '/dashboard/jurnal',
-    icon: <NotebookPen size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'kbm',
-    label: 'Pembagian Tugas KBM',
-    href: '/dashboard/kbm',
-    icon: <ClipboardList size={16} />,
-    group: 'main',
-    subItems: [
-      { key: 'dashboard', label: 'Dashboard', href: '/dashboard/kbm', exact: true, icon: <BarChart3 size={16} /> },
-      { key: 'distribusi', label: 'Distribusi Jam', href: '/dashboard/kbm/distribusi', icon: <BookOpen size={16} /> },
-      { key: 'tugas', label: 'Tugas Tambahan', href: '/dashboard/kbm/tugas', icon: <Users size={16} /> },
-      { key: 'jadwal', label: 'Jadwal', href: '/dashboard/kbm/jadwal', icon: <Calendar size={16} /> },
-      { key: 'settings', label: 'Pengaturan', href: '/dashboard/kbm/settings', icon: <SettingsIcon size={16} /> },
-    ],
-  },
-  {
-    key: 'nis',
-    label: 'Manajemen NIS',
-    href: '/dashboard/nis',
-    icon: <Hash size={16} />,
-    group: 'main',
-    subItems: [
-      { key: 'records', label: 'Bank Data NIS', href: '/dashboard/nis', exact: true, icon: <Hash size={16} /> },
-      { key: 'batch', label: 'Generate Batch', href: '/dashboard/nis/batch', icon: <Users size={16} /> },
-      { key: 'single', label: 'Entri Satuan', href: '/dashboard/nis/single', icon: <UserIcon size={16} /> },
-    ],
-  },
-  {
-    key: 'students',
-    label: 'Manajemen Siswa & Buku Induk',
-    href: '/dashboard/students',
-    exact: true,
-    icon: <Users size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'alumni',
-    label: 'Data Alumni',
-    href: '/dashboard/alumni',
-    icon: <GraduationCap size={16} />,
-    group: 'main',
-    subItems: [
-      { key: 'overview', label: 'Overview', href: '/dashboard/alumni', exact: true, icon: <LayoutDashboard size={16} /> },
-      { key: 'directory', label: 'Daftar Alumni', href: '/dashboard/alumni/directory', icon: <Users size={16} /> },
-      { key: 'tracer-study', label: 'Tracer Study', href: '/dashboard/alumni/tracer-study', icon: <ClipboardList size={16} /> },
-      { key: 'settings', label: 'Pengaturan', href: '/dashboard/alumni/settings', icon: <SettingsIcon size={16} /> },
-    ],
-  },
-  {
-    key: 'mutasi',
-    label: 'Data Mutasi',
-    href: '/dashboard/mutasi',
-    icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.828l-6.536-6.536"/><path d="M12 13.7a4 4 0 0 1 1.172-2.828l6.536-6.536"/></svg>,
-    group: 'main',
-    subItems: [
-      { key: 'overview', label: 'Overview', href: '/dashboard/mutasi', exact: true, icon: <LayoutDashboard size={16} /> },
-      { key: 'directory', label: 'Daftar Siswa', href: '/dashboard/mutasi/directory', icon: <Users size={16} /> },
-      { key: 'masuk', label: 'Mutasi Masuk', href: '/dashboard/mutasi/masuk', icon: <ArrowDownToLine size={16} /> },
-      { key: 'keluar', label: 'Mutasi Keluar', href: '/dashboard/mutasi/keluar', icon: <ArrowUpFromLine size={16} /> },
-      { key: 'internal', label: 'Mutasi Internal', href: '/dashboard/mutasi/internal', icon: <RefreshCw size={16} /> },
-      { key: 'laporan', label: 'Laporan', href: '/dashboard/mutasi/laporan', icon: <FileText size={16} /> },
-    ],
-  },
-
-  {
-    key: 'e-office',
-    label: 'Korespondensi Dinas',
-    href: '/dashboard/e-office',
-    icon: <FileText size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'exams',
-    label: 'Manajemen Ujian',
-    href: '/dashboard/exams',
-    icon: <ClipboardCheck size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'ppdb',
-    label: 'PMB / SIMPMB',
-    href: '/dashboard/ppdb',
-    icon: <GraduationCap size={16} />,
-    group: 'main',
-    subItems: [
-      { key: 'overview', label: 'Overview', href: '/dashboard/ppdb', exact: true, icon: <BarChart3 size={16} /> },
-      { key: 'pendaftar', label: 'Data Pendaftar', href: '/dashboard/ppdb/pendaftar', icon: <Users size={16} /> },
-      { key: 'daftar_ulang', label: 'Daftar Ulang', href: '/dashboard/ppdb/daftar_ulang', icon: <ClipboardList size={16} /> },
-      { key: 'seleksi', label: 'Seleksi & Pengumuman', href: '/dashboard/ppdb/seleksi', icon: <Trophy size={16} /> },
-      { key: 'konfigurasi', label: 'Konfigurasi', href: '/dashboard/ppdb/konfigurasi', icon: <SettingsIcon size={16} /> },
-    ],
-  },
-  {
-    key: 'penilaian-pmb',
-    label: 'Penilaian PMB',
-    href: '/dashboard/ppdb/penilaian',
-    icon: <Star size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'ijazah',
-    label: 'Pengolahan Ijazah',
-    href: '/dashboard/ijazah',
-    icon: <BookOpen size={16} />,
-    group: 'main',
-    subItems: [
-      { key: 'students', label: 'Data Siswa XII', href: '/dashboard/ijazah', exact: true, icon: <Users size={16} /> },
-      { key: 'settings', label: 'Pengaturan & Mapel', href: '/dashboard/ijazah/settings', icon: <SettingsIcon size={16} /> },
-      { key: 'global', label: 'Semester 1-2', href: '/dashboard/ijazah/global', icon: <BookOpen size={16} /> },
-      { key: 'rombel', label: 'Per Rombel', href: '/dashboard/ijazah/rombel', icon: <FileSpreadsheet size={16} /> },
-      { key: 'export', label: 'Ekspor Leger', href: '/dashboard/ijazah/export', icon: <FileText size={16} /> },
-    ],
-  },
-  {
-    key: 'ptsp',
-    label: 'Pusat Layanan',
-    href: '/dashboard/services',
-    icon: <MessageSquare size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'contacts',
-    label: 'Pesan Kontak',
-    href: '/dashboard/contacts',
-    icon: <MessageSquare size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'announcements',
-    label: 'Popup Pengumuman',
-    href: '/dashboard/announcements',
-    icon: <Megaphone size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'downloads',
-    label: 'Unduhan',
-    href: '/dashboard/downloads',
-    icon: <Download size={16} />,
-    group: 'main',
-  },
-  {
-    key: 'pages',
-    label: 'Manajemen Halaman',
-    href: '/dashboard/pages',
-    icon: <FileText size={16} />,
-    group: 'system',
-  },
-  {
-    key: 'menus',
-    label: 'Manajemen Menu',
-    href: '/dashboard/menus',
-    icon: <ListTree size={16} />,
-    group: 'system',
-  },
-  {
-    key: 'settings',
-    label: 'Pengaturan Sistem',
-    href: '/dashboard/settings',
-    icon: <SettingsIcon size={16} />,
-    group: 'system',
-    subItems: [
-      { key: 'logo', label: 'Logo & Kop Dokumen', href: '/dashboard/settings/logo', icon: <ImageIcon size={16} /> },
-      { key: 'social', label: 'Media Sosial', href: '/dashboard/settings/social', icon: <Globe size={16} /> },
-      { key: 'map', label: 'Lokasi & Peta', href: '/dashboard/settings/map', icon: <MapPin size={16} /> },
-      { key: 'links', label: 'Website Terkait', href: '/dashboard/settings/links', icon: <Link size={16} /> },
-      { key: 'system', label: 'Pengaturan Sistem', href: '/dashboard/settings/system', icon: <Wrench size={16} /> },
-    ],
-  },
-  {
-    key: 'users',
-    label: 'Manajemen Users',
-    href: '/dashboard/users',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    ),
-    group: 'system',
-    subItems: [
-      { key: 'list', label: 'Daftar Pengguna', href: '/dashboard/users', exact: true, icon: <Users size={16} /> },
-      { key: 'permissions', label: 'Hak Akses Menu', href: '/dashboard/users/permissions', icon: <Lock size={16} /> },
-      { key: 'audit', label: 'Audit Log', href: '/dashboard/users/audit', icon: <ScrollText size={16} /> },
-      { key: 'sessions', label: 'Sessions Aktif', href: '/dashboard/users/sessions', icon: <Monitor size={16} /> },
-    ],
-  },
-  {
-    key: 'updates',
-    label: 'Pusat Update',
-    href: '/dashboard/updates',
-    icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
-    group: 'system',
-  },
-  {
-    key: 'integrations',
-    label: 'Integrasi API',
-    href: '/dashboard/integrations',
-    icon: <Plug size={16} />,
-    group: 'system',
-  },
-];
-
-// ── Colorful icon backgrounds for mobile bottom-sheet grid ──
-const MENU_ICON_COLORS: Record<string, { bg: string; text: string }> = {
-  'overview':      { bg: 'bg-gradient-to-br from-blue-500 to-blue-600',       text: 'text-white' },
-  'news':          { bg: 'bg-gradient-to-br from-orange-400 to-orange-500',    text: 'text-white' },
-  'gallery':       { bg: 'bg-gradient-to-br from-pink-400 to-rose-500',       text: 'text-white' },
-  'calendar':      { bg: 'bg-gradient-to-br from-red-400 to-red-500',         text: 'text-white' },
-  'student-card':  { bg: 'bg-gradient-to-br from-cyan-400 to-cyan-500',       text: 'text-white' },
-  'employees':     { bg: 'bg-gradient-to-br from-teal-400 to-teal-500',       text: 'text-white' },
-  'attendance':    { bg: 'bg-gradient-to-br from-emerald-400 to-emerald-500', text: 'text-white' },
-  'jurnal':        { bg: 'bg-gradient-to-br from-lime-500 to-green-500',      text: 'text-white' },
-  'kbm':           { bg: 'bg-gradient-to-br from-amber-500 to-orange-500',    text: 'text-white' },
-  'subjects':      { bg: 'bg-gradient-to-br from-red-500 to-rose-600',        text: 'text-white' },
-  'nis':           { bg: 'bg-gradient-to-br from-violet-400 to-violet-500',   text: 'text-white' },
-  'students':      { bg: 'bg-gradient-to-br from-indigo-400 to-indigo-500',   text: 'text-white' },
-  'buku-induk':    { bg: 'bg-gradient-to-br from-blue-400 to-cyan-500',       text: 'text-white' },
-  'classes':       { bg: 'bg-gradient-to-br from-purple-400 to-indigo-500',   text: 'text-white' },
-  'e-office':      { bg: 'bg-gradient-to-br from-amber-400 to-amber-500',     text: 'text-white' },
-  'exams':         { bg: 'bg-gradient-to-br from-purple-500 to-purple-600',   text: 'text-white' },
-  'ppdb':          { bg: 'bg-gradient-to-br from-sky-400 to-sky-500',         text: 'text-white' },
-  'penilaian-pmb': { bg: 'bg-gradient-to-br from-yellow-400 to-amber-500',    text: 'text-white' },
-  'ijazah':        { bg: 'bg-gradient-to-br from-fuchsia-400 to-fuchsia-500', text: 'text-white' },
-  'ptsp':          { bg: 'bg-gradient-to-br from-blue-400 to-indigo-500',     text: 'text-white' },
-  'contacts':      { bg: 'bg-gradient-to-br from-green-400 to-emerald-500',   text: 'text-white' },
-  'announcements': { bg: 'bg-gradient-to-br from-amber-400 to-orange-500',    text: 'text-white' },
-  'alumni':        { bg: 'bg-gradient-to-br from-blue-400 to-indigo-500',     text: 'text-white' },
-  'mutasi':        { bg: 'bg-gradient-to-br from-rose-400 to-red-500',        text: 'text-white' },
-  // Data Master
-  'identity':      { bg: 'bg-gradient-to-br from-sky-400 to-blue-500',        text: 'text-white' },
-  // System
-  'pages':         { bg: 'bg-gradient-to-br from-slate-400 to-slate-500',     text: 'text-white' },
-  'menus':         { bg: 'bg-gradient-to-br from-stone-400 to-stone-500',     text: 'text-white' },
-  'settings':      { bg: 'bg-gradient-to-br from-gray-500 to-gray-600',       text: 'text-white' },
-  'users':         { bg: 'bg-gradient-to-br from-blue-500 to-indigo-600',     text: 'text-white' },
-  'updates':       { bg: 'bg-gradient-to-br from-emerald-500 to-teal-600',    text: 'text-white' },
-  'downloads':     { bg: 'bg-gradient-to-br from-sky-500 to-blue-600',         text: 'text-white' },
-  'integrations':  { bg: 'bg-gradient-to-br from-purple-500 to-indigo-600',   text: 'text-white' },
-};
-
-// Map route segments to menu keys for route protection
-const ROUTE_TO_MENU_KEY: Record<string, string> = {
-  '': 'overview',
-  'news': 'news',
-  'calendar': 'calendar',
-  'teacher-duties': 'teacher-duties',
-  'student-card': 'student-card',
-  'gallery': 'gallery',
-  'contacts': 'contacts',
-  'pages': 'pages',
-  'services': 'ptsp',
-  'menus': 'menus',
-  'e-office': 'e-office',
-  'settings': 'settings',
-  'users': 'users',
-  'updates': 'updates',
-  'students': 'students',
-  'buku-induk': 'buku-induk',
-  'ijazah': 'ijazah',
-  'nis': 'nis',
-  'subjects': 'subjects',
-  'employees': 'employees',
-  'attendance': 'attendance',
-  'jurnal': 'jurnal',
-  'kbm': 'kbm',
-  'alumni': 'alumni',
-  'mutasi': 'mutasi',
-  'exams': 'exams',
-  'ppdb': 'ppdb',
-  'ppdb/penilaian': 'penilaian-pmb',
-  'announcements': 'announcements',
-  'downloads': 'downloads',
-  'integrations': 'integrations',
-};
-
-// ── Sidebar category system ──
-type MenuCategory = 'app-master' | 'data-master' | 'mutasi-pmb' | 'alumni' | 'app-dashboard' | 'administrator';
-
-interface SidebarCategoryDef {
-  key: MenuCategory;
-  label: string;
-  icon: React.ReactNode;
-}
-
-const SIDEBAR_CATEGORIES: SidebarCategoryDef[] = [
-  { key: 'app-master', label: 'APP MASTER', icon: <Home size={18} /> },
-  { key: 'data-master', label: 'DATA MASTER', icon: <Database size={18} /> },
-  { key: 'mutasi-pmb', label: 'MUTASI DAN PMB', icon: <ArrowLeftRight size={18} /> },
-  { key: 'alumni', label: 'ALUMNI', icon: <GraduationCap size={18} /> },
-  { key: 'app-dashboard', label: 'APP DASHBOARD', icon: <LayoutGrid size={18} /> },
-  { key: 'administrator', label: 'ADMINISTRATOR', icon: <Shield size={18} /> },
-];
-
-const MENU_CATEGORY_MAP: Record<string, MenuCategory> = {
-  'overview': 'app-master',
-  'identity': 'data-master',
-  'classes': 'data-master',
-  'news': 'app-dashboard',
-  'gallery': 'app-dashboard',
-  'calendar': 'app-dashboard',
-  'teacher-duties': 'data-master',
-  'student-card': 'app-dashboard',
-  'employees': 'data-master',
-  'attendance': 'app-dashboard',
-  'jurnal': 'app-dashboard',
-  'kbm': 'data-master',
-  'subjects': 'data-master',
-  'nis': 'data-master',
-  'students': 'data-master',
-  'alumni': 'alumni',
-  'mutasi': 'mutasi-pmb',
-  'e-office': 'app-dashboard',
-  'exams': 'app-dashboard',
-  'ppdb': 'mutasi-pmb',
-  'penilaian-pmb': 'mutasi-pmb',
-  'ijazah': 'app-dashboard',
-  'ptsp': 'app-dashboard',
-  'contacts': 'app-dashboard',
-  'announcements': 'app-dashboard',
-  'pages': 'administrator',
-  'menus': 'administrator',
-  'settings': 'administrator',
-  'users': 'administrator',
-  'updates': 'administrator',
-  'downloads': 'app-dashboard',
-  'integrations': 'administrator',
-};
-
-// ── Sub-App Configurations for Contextual Sidebar ──
-interface SubAppItem {
-  key: string;
-  label: string;
-  path: string;
-  exact?: boolean;
-  icon: React.ReactNode;
-  roles?: string[];
-}
-
-interface SubAppConfig {
-  label: string;
-  icon: React.ReactNode;
-  basePath: string;
-  items: SubAppItem[];
-}
-
-const SUB_APP_CONFIGS: SubAppConfig[] = [
-  {
-    label: 'KARTU PELAJAR',
-    icon: <CreditCard size={18} />,
-    basePath: '/dashboard/student-card',
-    items: [
-      { key: 'preview', label: 'Preview Kartu', path: '/dashboard/student-card', exact: true, icon: <Eye size={16} /> },
-      { key: 'edit', label: 'Edit Identitas', path: '/dashboard/student-card/edit', icon: <Pencil size={16} /> },
-      { key: 'settings', label: 'Pengaturan Layout', path: '/dashboard/student-card/settings', icon: <SettingsIcon size={16} />, roles: ['admin'] },
-      { key: 'batch', label: 'Cetak Batch', path: '/dashboard/student-card/batch', icon: <Printer size={16} />, roles: ['admin', 'guru'] },
-      { key: 'history', label: 'Riwayat Cetak', path: '/dashboard/student-card/history', icon: <History size={16} />, roles: ['admin', 'guru'] },
-      { key: 'templates', label: 'Template Kartu', path: '/dashboard/student-card/templates', icon: <Palette size={16} />, roles: ['admin'] },
-    ],
-  },
-  {
-    label: 'MANAJEMEN UJIAN',
-    icon: <ClipboardCheck size={18} />,
-    basePath: '/dashboard/exams',
-    items: [
-      { key: 'master', label: 'Master Ujian', path: '/dashboard/exams', exact: true, icon: <ClipboardCheck size={16} /> },
-      { key: 'jadwal', label: 'Jadwal Ujian', path: '/dashboard/exams/jadwal', icon: <Calendar size={16} /> },
-      { key: 'pengawas', label: 'Pengawas', path: '/dashboard/exams/pengawas', icon: <Users size={16} /> },
-      { key: 'ruang', label: 'Ruang & Peserta', path: '/dashboard/exams/ruang', icon: <DoorOpen size={16} /> },
-      { key: 'kartu', label: 'Kartu & ID', path: '/dashboard/exams/kartu', icon: <CreditCard size={16} /> },
-      { key: 'ba', label: 'Berita Acara', path: '/dashboard/exams/ba', icon: <FileText size={16} /> },
-      { key: 'dh', label: 'Daftar Hadir', path: '/dashboard/exams/dh', icon: <ListChecks size={16} /> },
-      { key: 'nilai', label: 'Format Nilai', path: '/dashboard/exams/nilai', icon: <FileSpreadsheet size={16} /> },
-    ],
-  },
-];
+// Menu configuration — extracted to menuConfig.tsx for maintainability
+import {
+  ALL_MENU_ITEMS,
+  MENU_ICON_COLORS,
+  ROUTE_TO_MENU_KEY,
+  SIDEBAR_CATEGORIES,
+  MENU_CATEGORY_MAP,
+  SUB_APP_CONFIGS,
+  MOBILE_MENU_SECTIONS,
+} from './menuConfig';
 
 const SERVER_BASE = API_BASE_URL.replace(/\/api$/, '');
 
@@ -624,7 +174,31 @@ export const DashboardLayout = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const roleLabel = user?.role === 'admin' ? 'System Administrator'
+  // Focus trap for profile dropdown
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isProfileDropdownOpen || !dropdownRef.current) return;
+    const focusableEls = dropdownRef.current.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const firstEl = focusableEls[0];
+    const lastEl = focusableEls[focusableEls.length - 1];
+    firstEl?.focus();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setIsProfileDropdownOpen(false); return; }
+      if (e.key === 'Tab') {
+        if (e.shiftKey && document.activeElement === firstEl) {
+          e.preventDefault(); lastEl?.focus();
+        } else if (!e.shiftKey && document.activeElement === lastEl) {
+          e.preventDefault(); firstEl?.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isProfileDropdownOpen]);
+
+  const roleLabel = user?.role === 'admin' ? 'Admin Sistem'
       : user?.role === 'kepala_madrasah' ? 'Kepala Madrasah'
       : user?.role === 'wakil_kepala' ? 'Wakil Kepala'
       : user?.role === 'kepala_unit' ? 'Kepala Unit'
@@ -816,17 +390,7 @@ export const DashboardLayout = () => {
     : [];
 
   // ── Categorized menu sections for unified grid ──
-  const frequentKeys = ['jurnal', 'kbm', 'attendance', 'employees', 'e-office'];
-  const infoKeys = ['news', 'gallery', 'contacts', 'calendar'];
-  const siswaKeys = ['students', 'buku-induk', 'student-card', 'nis', 'classes', 'alumni', 'mutasi', 'ppdb', 'penilaian-pmb'];
-  const layananKeys = ['ptsp', 'exams', 'ijazah'];
-
-  const menuSections = [
-    { title: 'Sering Diakses', keys: frequentKeys },
-    { title: 'Informasi', keys: infoKeys },
-    { title: 'Kesiswaan', keys: siswaKeys },
-    { title: 'Layanan', keys: layananKeys },
-  ];
+  const menuSections = MOBILE_MENU_SECTIONS;
 
   const getMenuItemsByKeys = (keys: string[]) =>
     keys.map(k => mainMenuItems.find(i => i.key === k)).filter(Boolean) as typeof mainMenuItems;
@@ -837,6 +401,13 @@ export const DashboardLayout = () => {
 
   return (
     <div className="flex h-[100dvh] print:h-auto print:min-h-0 w-screen print:w-full overflow-hidden print:overflow-visible print:block bg-gray-50 dark:bg-[#050505] relative">
+      {/* Skip Navigation — visible only on keyboard focus */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary focus:text-white focus:rounded-lg focus:text-sm focus:font-medium focus:shadow-lg"
+      >
+        Langsung ke konten utama
+      </a>
       
       <aside 
         className={`hidden md:flex fixed inset-y-0 left-0 z-50 ${isSidebarCollapsed ? 'w-[68px]' : 'w-60'} border-r border-border-light dark:border-border-dark bg-white dark:bg-background-dark flex-col md:relative print:hidden transition-all duration-300 ease-in-out`}
@@ -867,7 +438,7 @@ export const DashboardLayout = () => {
         </div>
 
         {/* Navigation — Grouped Categories */}
-        <nav className={`flex-1 py-2 flex flex-col gap-0.5 overflow-y-auto custom-scrollbar ${isSidebarCollapsed ? 'px-1.5' : 'px-2'}`}>
+        <nav className={`flex-1 py-2 flex flex-col gap-0.5 overflow-y-auto custom-scrollbar ${isSidebarCollapsed ? 'px-1.5' : 'px-2'}`} aria-label="Navigasi sidebar">
           {/* ── Contextual Sub-App Section (when inside a sub-app) ── */}
           {activeSubApp && (
             <>
@@ -1138,7 +709,7 @@ export const DashboardLayout = () => {
         </div>
       </aside>
       
-      <main className="flex-1 flex flex-col min-w-0 w-full overflow-hidden print:overflow-visible print:block">
+      <main className="flex-1 flex flex-col min-w-0 w-full overflow-hidden print:overflow-visible print:block" aria-hidden={activeBottomSheet !== null ? 'true' : undefined}>
         <header className="h-14 md:h-12 border-b border-border-light dark:border-border-dark bg-white dark:bg-background-dark flex items-center justify-between px-4 sm:px-5 shrink-0 z-50 print:hidden relative md:sticky top-0">
           <div className="flex items-center gap-3">
             <div className="md:hidden flex items-center gap-2.5 min-w-0">
@@ -1160,6 +731,7 @@ export const DashboardLayout = () => {
               onClick={toggleSidebarCollapse}
               className="hidden md:flex items-center justify-center w-8 h-8 rounded-lg text-text-secondary hover:text-primary hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
               title={isSidebarCollapsed ? 'Perluas Sidebar' : 'Kecilkan Sidebar'}
+              aria-label={isSidebarCollapsed ? 'Perluas sidebar navigasi' : 'Kecilkan sidebar navigasi'}
             >
               {isSidebarCollapsed ? <PanelLeft size={16} /> : <PanelLeftClose size={16} />}
             </button>
@@ -1186,6 +758,7 @@ export const DashboardLayout = () => {
             <button
               onClick={() => setIsProfileModalOpen(true)}
               className="md:hidden w-9 h-9 rounded-full overflow-hidden shadow-sm active:scale-95 transition-transform shrink-0"
+              aria-label="Buka profil pengguna"
             >
               {user?.image ? (
                 <img src={user.image.startsWith('http') ? user.image : `${SERVER_BASE}${user.image}`} alt="" className="w-full h-full object-cover" />
@@ -1200,12 +773,15 @@ export const DashboardLayout = () => {
               <button 
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                 className="h-8 w-8 rounded-full bg-gray-100 dark:bg-[#1a1a1a] flex items-center justify-center text-text-secondary hover:text-primary transition-colors border border-border-light dark:border-border-dark"
+                aria-label="Menu profil"
+                aria-expanded={isProfileDropdownOpen}
+                aria-haspopup="true"
               >
                 <ChevronDown size={14} />
               </button>
               
               {isProfileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#111111] border border-border-light dark:border-border-dark rounded-lg shadow-lg py-1 z-[100] overflow-hidden">
+                <div ref={dropdownRef} className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#111111] border border-border-light dark:border-border-dark rounded-lg shadow-lg py-1 z-[100] overflow-hidden" role="menu">
                   <button 
                     onClick={() => {
                       setIsProfileDropdownOpen(false);
@@ -1230,19 +806,19 @@ export const DashboardLayout = () => {
           </div>
         </header>
         <NetworkStatusBanner />
-        <div className="flex-1 px-3 pt-1 pb-24 md:p-5 md:pb-5 print:p-0 overflow-auto print:overflow-visible print:block custom-scrollbar">
+        <div id="main-content" tabIndex={-1} className="flex-1 px-3 pt-1 pb-24 md:p-5 md:pb-5 print:p-0 overflow-auto print:overflow-visible print:block custom-scrollbar">
           <Outlet />
         </div>
       </main>
 
       {/* --- MOBILE UI COMPONENTS --- */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-[#0a0a0a] border-t border-border-light dark:border-border-dark z-50 flex items-center justify-evenly px-1 pb-safe shadow-[0_-8px_30px_rgba(0,0,0,0.08)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.4)]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-[#0a0a0a] border-t border-border-light dark:border-border-dark z-50 flex items-center justify-evenly px-1 pb-safe shadow-[0_-8px_30px_rgba(0,0,0,0.08)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.4)]" aria-label="Navigasi utama mobile">
         
         {/* Beranda */}
         {(() => {
           const isActive = location.pathname === '/dashboard' && activeBottomSheet === null;
           return (
-            <button onClick={() => { setActiveBottomSheet(null); navigate('/dashboard'); }} className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-200 active:scale-95 ${isActive ? 'text-primary' : 'text-text-secondary'}`}>
+            <button onClick={() => { setActiveBottomSheet(null); navigate('/dashboard'); }} className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-200 active:scale-95 ${isActive ? 'text-primary' : 'text-text-secondary'}`} aria-label="Beranda dashboard">
               <div className={`[&>svg]:w-[22px] [&>svg]:h-[22px] flex items-center justify-center ${isActive ? '[&>svg]:stroke-[2.5]' : ''}`}><Home /></div>
               <span className="text-[11px] font-semibold leading-none">Beranda</span>
               <div className={`w-1 h-1 rounded-full transition-all duration-300 ${isActive ? 'bg-primary scale-100' : 'bg-transparent scale-0'}`} />
@@ -1254,7 +830,7 @@ export const DashboardLayout = () => {
         {(() => {
           const isActive = location.pathname.startsWith('/dashboard/jurnal') && activeBottomSheet === null;
           return (
-            <button onClick={() => { setActiveBottomSheet(null); navigate('/dashboard/jurnal'); }} className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-200 active:scale-95 ${isActive ? 'text-primary' : 'text-text-secondary'}`}>
+            <button onClick={() => { setActiveBottomSheet(null); navigate('/dashboard/jurnal'); }} className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-200 active:scale-95 ${isActive ? 'text-primary' : 'text-text-secondary'}`} aria-label="Jurnal mengajar">
               <div className={`[&>svg]:w-[22px] [&>svg]:h-[22px] flex items-center justify-center ${isActive ? '[&>svg]:stroke-[2.5]' : ''}`}><NotebookPen /></div>
               <span className="text-[11px] font-semibold leading-none">Jurnal</span>
               <div className={`w-1 h-1 rounded-full transition-all duration-300 ${isActive ? 'bg-primary scale-100' : 'bg-transparent scale-0'}`} />
@@ -1271,6 +847,8 @@ export const DashboardLayout = () => {
                 ? 'bg-primary text-white scale-95 shadow-inner' 
                 : 'bg-primary text-white shadow-primary/30'
             }`}
+            aria-label={activeBottomSheet === 'menu' ? 'Tutup menu' : 'Buka menu'}
+            aria-expanded={activeBottomSheet === 'menu'}
           >
             <div className={`[&>svg]:w-[26px] [&>svg]:h-[26px] transition-transform duration-300 ${activeBottomSheet === 'menu' ? 'rotate-90 scale-110' : 'rotate-0'}`}>
               <LayoutGrid />
@@ -1283,7 +861,7 @@ export const DashboardLayout = () => {
         {(() => {
           const isActive = location.pathname.startsWith('/dashboard/attendance') && activeBottomSheet === null;
           return (
-            <button onClick={() => { setActiveBottomSheet(null); navigate('/dashboard/attendance'); }} className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-200 active:scale-95 ${isActive ? 'text-primary' : 'text-text-secondary'}`}>
+            <button onClick={() => { setActiveBottomSheet(null); navigate('/dashboard/attendance'); }} className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-200 active:scale-95 ${isActive ? 'text-primary' : 'text-text-secondary'}`} aria-label="Presensi siswa">
               <div className={`[&>svg]:w-[22px] [&>svg]:h-[22px] flex items-center justify-center ${isActive ? '[&>svg]:stroke-[2.5]' : ''}`}><QrCode /></div>
               <span className="text-[11px] font-semibold leading-none">Presensi</span>
               <div className={`w-1 h-1 rounded-full transition-all duration-300 ${isActive ? 'bg-primary scale-100' : 'bg-transparent scale-0'}`} />
@@ -1295,7 +873,7 @@ export const DashboardLayout = () => {
         {(() => {
           const isActive = location.pathname.startsWith('/dashboard/calendar') && activeBottomSheet === null;
           return (
-            <button onClick={() => { setActiveBottomSheet(null); navigate('/dashboard/calendar'); }} className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-200 active:scale-95 ${isActive ? 'text-primary' : 'text-text-secondary'}`}>
+            <button onClick={() => { setActiveBottomSheet(null); navigate('/dashboard/calendar'); }} className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-200 active:scale-95 ${isActive ? 'text-primary' : 'text-text-secondary'}`} aria-label="Kalender kegiatan">
               <div className={`[&>svg]:w-[22px] [&>svg]:h-[22px] flex items-center justify-center ${isActive ? '[&>svg]:stroke-[2.5]' : ''}`}><CalendarDays /></div>
               <span className="text-[11px] font-semibold leading-none">Kalender</span>
               <div className={`w-1 h-1 rounded-full transition-all duration-300 ${isActive ? 'bg-primary scale-100' : 'bg-transparent scale-0'}`} />
@@ -1309,6 +887,9 @@ export const DashboardLayout = () => {
         className={`md:hidden fixed inset-x-0 bottom-16 top-14 z-40 bg-gray-50 dark:bg-[#050505] transform transition-all duration-300 ease-out flex flex-col overflow-hidden ${
           activeBottomSheet ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
         }`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu navigasi"
       >
         <div className="flex-1 overflow-y-auto p-5 custom-scrollbar pb-10">
           

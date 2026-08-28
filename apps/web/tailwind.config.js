@@ -23,15 +23,22 @@ export default {
         background: {
           light: '#FFFFFF',
           dark: '#0A0A0A',
+          'dark-elevated': '#111111',
+          'dark-surface': '#1A1A1A',
         },
         text: {
           primary: '#111827',
           secondary: '#6B7280',
           darkPrimary: '#F9FAFB',
+          darkSecondary: '#9CA3AF',
         },
         border: {
           light: '#E5E7EB',
           dark: '#374151',
+        },
+        brand: {
+          DEFAULT: '#188e63',
+          hover: '#157a56',
         },
         success: '#10B981',
         warning: '#F59E0B',

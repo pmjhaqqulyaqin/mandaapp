@@ -178,7 +178,7 @@ main .gap-4 { gap: 0.75rem !important; }
 
 /* ── Tables ── */
 main table { font-size: 0.8125rem !important; }
-main th { font-size: 0.6875rem !important; padding: 0.5rem 0.75rem !important; }
+main th { font-size: 0.75rem !important; padding: 0.5rem 0.75rem !important; }
 main td { padding: 0.5rem 0.75rem !important; }
 
 /* ── Buttons in dashboard ── */
@@ -222,7 +222,7 @@ main label {
 /* ── Badges / Pills ── */
 main .rounded-full[class*="text-xs"],
 main .rounded-full[class*="text-\\[10px\\]"] {
-  font-size: 0.625rem !important;
+  font-size: 0.6875rem !important;
   padding: 0.125rem 0.5rem !important;
 }
 
@@ -268,7 +268,7 @@ main button[title] svg {
 }
 
 /* ── Pagination ── */
-main .text-xs { font-size: 0.6875rem !important; }
+main .text-xs { font-size: 0.75rem !important; }
 
 /* ── Responsive compact tweaks ── */
 @media (max-width: 768px) {

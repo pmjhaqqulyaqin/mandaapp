@@ -14,6 +14,8 @@ export const LoginPage = () => {
   const [isLoadingState, setIsLoadingState] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [hasOfflineLogin, setHasOfflineLogin] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [showForgotInfo, setShowForgotInfo] = useState(false);
   
   const { login, isLoading: authLoading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -127,12 +129,12 @@ export const LoginPage = () => {
 
       <div className="w-full max-w-md p-6 sm:p-10 bg-[#188e63] rounded-xl shadow-2xl relative z-10 mx-4">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold tracking-tight text-white mb-2">Login</h1>
+          <h1 className="text-4xl font-bold tracking-tight text-white mb-2">Masuk</h1>
           {isOffline && (
             <div className="mt-2 px-3 py-1.5 bg-amber-500/20 border border-amber-400/30 rounded-lg inline-flex items-center gap-2">
               <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
               <span className="text-xs text-amber-200 font-medium">
-                {hasOfflineLogin ? 'Mode Offline — gunakan password untuk login' : 'Anda sedang offline'}
+                {hasOfflineLogin ? 'Mode Offline — gunakan password untuk masuk' : 'Anda sedang offline'}
               </span>
             </div>
           )}
@@ -152,13 +154,16 @@ export const LoginPage = () => {
               </svg>
             </div>
             <div className="flex-1 border-b border-white border-opacity-50">
+              <label htmlFor="login-email" className="sr-only">Email</label>
               <input 
+                id="login-email"
                 type="email" 
                 placeholder="Email" 
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full bg-transparent border-none text-white placeholder-white placeholder-opacity-90 focus:ring-0 px-0 py-2 text-lg font-medium outline-none"
+                className="w-full bg-transparent border-none text-white placeholder-emerald-100/70 focus:ring-0 px-0 py-2 text-lg font-medium outline-none"
               />
             </div>
           </div>
@@ -170,23 +175,43 @@ export const LoginPage = () => {
               </svg>
             </div>
             <div className="flex-1 border-b border-white border-opacity-50">
+              <label htmlFor="login-password" className="sr-only">Password</label>
               <input 
+                id="login-password"
                 type="password" 
                 placeholder="Password" 
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full bg-transparent border-none text-white placeholder-white placeholder-opacity-90 focus:ring-0 px-0 py-2 text-lg font-medium outline-none"
+                className="w-full bg-transparent border-none text-white placeholder-emerald-100/70 focus:ring-0 px-0 py-2 text-lg font-medium outline-none"
               />
             </div>
           </div>
 
           <div className="flex flex-col items-center gap-2 mt-2">
-            <label className="flex items-center gap-2 cursor-pointer text-white">
-              <input type="checkbox" className="rounded border-white bg-transparent text-[#188e63] focus:ring-white h-4 w-4" />
-              <span className="text-sm font-medium">Remember Me</span>
+            <label htmlFor="login-remember" className="flex items-center gap-2 cursor-pointer text-white">
+              <input 
+                id="login-remember"
+                type="checkbox" 
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="rounded border-white bg-transparent text-[#188e63] focus:ring-white h-4 w-4" 
+              />
+              <span className="text-sm font-medium">Ingat Saya</span>
             </label>
-            <a href="#" className="text-sm font-medium text-white underline hover:text-gray-200 transition-colors">Forgot Password</a>
+            <button 
+              type="button" 
+              onClick={() => setShowForgotInfo(!showForgotInfo)}
+              className="text-sm font-medium text-white underline hover:text-gray-200 transition-colors"
+            >
+              Lupa Password?
+            </button>
+            {showForgotInfo && (
+              <div className="mt-1 px-4 py-2.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-xs text-white/90 text-center leading-relaxed">
+                Silakan hubungi <strong>Admin/Operator</strong> madrasah untuk mereset password akun Anda.
+              </div>
+            )}
           </div>
           
           <button
@@ -215,7 +240,7 @@ export const LoginPage = () => {
                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="currentColor"/>
                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="currentColor"/>
             </svg>
-            {isOffline ? 'Google (perlu internet)' : 'Login with Google'}
+            {isOffline ? 'Google (perlu internet)' : 'Masuk dengan Google'}
           </button>
 
           <div className="flex justify-center mt-2">
@@ -224,21 +249,21 @@ export const LoginPage = () => {
               disabled={isLoading}
               className="px-10 py-3 bg-white text-[#188e63] font-bold text-lg rounded-full hover:bg-gray-100 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Loading...' : 'Kirim'}
+              {isLoading ? 'Memproses...' : 'Masuk'}
             </button>
           </div>
         </form>
 
         <div className="absolute top-4 left-4">
-           <Link to="/" className="text-white opacity-80 hover:opacity-100 transition-opacity">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+           <Link to="/" className="text-white opacity-80 hover:opacity-100 transition-opacity" aria-label="Kembali ke beranda">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </Link>
         </div>
 
         {/* Version & offline status indicator */}
-        <div className="absolute bottom-2 right-3 text-[9px] text-white/30 font-mono select-all">
+        <div className="absolute bottom-2 right-3 text-[11px] text-white/50 font-mono select-all">
           v7 | {isOffline ? '⚫ offline' : '🟢 online'} | cache: {hasOfflineLogin ? '✅' : '❌'}
         </div>
       </div>

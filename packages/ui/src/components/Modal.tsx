@@ -30,6 +30,10 @@ export function Modal({
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
       document.body.style.overflow = 'hidden';
+      // Auto-focus modal container for keyboard users
+      requestAnimationFrame(() => {
+        modalRef.current?.focus();
+      });
     }
 
     return () => {
@@ -55,6 +59,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className={cn(
           'relative z-[2002] w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl bg-white dark:bg-background-dark p-4 sm:p-5 text-left shadow-2xl transition-all sm:my-8 border border-border-light dark:border-border-dark',

@@ -41,11 +41,13 @@ export const DashboardOverview = () => {
   const [ikm, setIkm] = useState<any>(null);
   const [ikmReady, setIkmReady] = useState(false);
 
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
   // Progressive fetch — fire all requests, update UI as each resolves
   useEffect(() => {
     // Priority 1: Summary cards (fastest, most visible)
     apiClient<any>('/analytics/summary')
-      .then(d => { setSummary(d); setSummaryReady(true); })
+      .then(d => { setSummary(d); setSummaryReady(true); setLastUpdated(new Date()); })
       .catch(() => setSummaryReady(true));
 
     // Priority 2: Classroom monitor
@@ -79,7 +81,7 @@ export const DashboardOverview = () => {
 
     // Auto-refresh every 5 minutes (full refresh is fine after initial load)
     const interval = setInterval(() => {
-      apiClient<any>('/analytics/summary').then(setSummary).catch(() => {});
+      apiClient<any>('/analytics/summary').then(d => { setSummary(d); setLastUpdated(new Date()); }).catch(() => {});
       apiClient<any>('/analytics/classroom-monitor').then(setClassroom).catch(() => {});
       apiClient<any[]>('/attendance/weekly-stats').then(d => setWeeklyStats((d || []).reverse())).catch(() => {});
       apiClient<any>('/attendance/today/stats').then(setTodayStats).catch(() => {});
@@ -133,6 +135,7 @@ export const DashboardOverview = () => {
         <p className="text-sm text-white/80 mt-1">
           {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           {classroom ? ` • ${classroom.dayName}` : ''}
+          <span className="ml-2 text-xs text-white/50">• Diperbarui {lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
         </p>
       </div>
 

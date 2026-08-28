@@ -90,12 +90,14 @@ const DashboardAnnouncements = React.lazy(() => import('./pages/DashboardAnnounc
 const DashboardDownloads = React.lazy(() => import('./pages/DashboardDownloads').then(m => ({ default: m.DashboardDownloads })));
 const PublicSelfUpdatePage = React.lazy(() => import('./pages/PublicSelfUpdatePage').then(m => ({ default: m.PublicSelfUpdatePage || m.default })));
 const IntegrationsPage = React.lazy(() => import('./pages/integrations/IntegrationsPage').then(m => ({ default: m.IntegrationsPage })));
+const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 
 // Loading fallback component
 const PageSpinner = () => (
-  <div className="flex h-screen w-full items-center justify-center bg-gray-50/50">
-    <div className="flex flex-col items-center gap-2">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-green-600 border-t-transparent"></div>
+  <div className="flex h-screen w-full items-center justify-center bg-gray-50 dark:bg-[#0a0a0a]">
+    <div className="flex flex-col items-center gap-3">
+      <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-primary/20 border-t-primary"></div>
+      <p className="text-sm text-text-secondary font-medium animate-pulse">Memuat halaman...</p>
     </div>
   </div>
 );
@@ -263,6 +265,7 @@ function App() {
               <Route path="ppdb/penilaian" element={<PPDBPenilaianPage />} />
               <Route path="ppdb/*" element={<PPDBAdminPage />} />
             </Route>
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
         <ConditionalFAB />
