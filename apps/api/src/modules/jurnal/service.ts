@@ -5,7 +5,7 @@ import {
   studentProfiles, attendanceRecords, jurnalTimeSlots, teachingMethods, siteSettings, masterSubjects,
   academicYears
 } from "../../db/schema";
-import { eq, and, desc, count, sql } from "drizzle-orm";
+import { eq, and, desc, count, sql, inArray } from "drizzle-orm";
 
 export class JurnalService {
 
@@ -505,7 +505,7 @@ export class JurnalService {
     if (uniqueDays.length > 0) {
       const tsConds: any[] = [
         eq(teachingSubjects.isActive, true),
-        sql`${teachingSubjects.dayOfWeek} IN (${sql.raw(uniqueDays.join(','))})`,
+        inArray(teachingSubjects.dayOfWeek, uniqueDays),
       ];
       if (activeAY?.tahunAjaran) {
         tsConds.push(eq(teachingSubjects.tahunAjaran, activeAY.tahunAjaran));

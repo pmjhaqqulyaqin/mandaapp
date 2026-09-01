@@ -4,11 +4,34 @@ import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
 import { AuditLogger } from '../../utils/auditLogger';
+import { sanitizeFilename, isPathWithinDir } from '../../middlewares/sanitize';
+import logger from '../../lib/logger';
+
+// Allowed origins for CORS on file serving (mirrors main CORS config)
+const ALLOWED_FILE_ORIGINS = [
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'https://mandualotim.sch.id',
+  'http://mandualotim.sch.id',
+].filter(Boolean) as string[];
 
 export const serveFileHandler = async (req: Request, res: Response) => {
   try {
-    const filename = req.params.filename;
-    const filePath = path.join(process.cwd(), 'uploads', filename);
+    // Use sanitized filename from middleware, or sanitize here as fallback
+    const filename = (req as any).sanitizedFilename || sanitizeFilename(req.params.filename);
+
+    if (!filename) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    const filePath = path.resolve(uploadsDir, filename);
+
+    // Double-check resolved path stays within uploads directory
+    if (!isPathWithinDir(filePath, uploadsDir)) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
 
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'File not found' });
@@ -17,16 +40,20 @@ export const serveFileHandler = async (req: Request, res: Response) => {
     if (filename.toLowerCase().endsWith('.pdf')) {
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
-      // Allow the frontend to fetch this file as a blob
-      res.setHeader('Access-Control-Allow-Origin', '*');
+      // Use specific origin instead of wildcard CORS
+      const requestOrigin = req.get('Origin') || '';
+      if (ALLOWED_FILE_ORIGINS.includes(requestOrigin)) {
+        res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+      }
       res.setHeader('Access-Control-Allow-Methods', 'GET');
       res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-      res.setHeader('Content-Security-Policy', "frame-ancestors 'self' *");
+      res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
     }
 
     res.sendFile(filePath);
   } catch (error: any) {
-    res.status(500).json({ error: 'Failed to serve file', details: error.message });
+    logger.error({ err: error }, 'Failed to serve file');
+    res.status(500).json({ error: 'Failed to serve file' });
   }
 };
 

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { JurnalController } from "./controller";
+import { requireStaff } from "../auth/middleware";
 import multer from "multer";
 import path from "path";
 import { randomUUID } from "crypto";
@@ -17,7 +18,8 @@ const memoryUpload = multer({ storage: multer.memoryStorage(), limits: { fileSiz
 
 const router = Router();
 
-// All routes require staff auth (applied at index.ts level via requireStaff or per-route)
+// SEC-06: All jurnal routes require staff authentication
+router.use(requireStaff);
 
 // Teaching Subjects (Jadwal Mengajar)
 router.get("/schedule-today", JurnalController.getScheduleToday);

@@ -4,6 +4,8 @@ import { requireStaff } from "../auth/middleware";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import rateLimit from "express-rate-limit";
+import { validate, selfUpdateSaveSchema } from "../../lib/validation";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -32,7 +34,25 @@ const photoUpload = multer({
   },
 });
 
+
+
 const router = Router();
+
+// SEC-02: Rate limiters for public self-update endpoints (prevent abuse)
+const selfUpdateReadLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 10, // 10 requests per minute per IP
+  message: { error: "Terlalu banyak permintaan. Coba lagi dalam 1 menit." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const selfUpdateWriteLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 5, // 5 writes per minute per IP
+  message: { error: "Terlalu banyak permintaan simpan. Coba lagi dalam 1 menit." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Public endpoints (no auth needed)
 router.post("/public-search", StudentController.publicSearch);
@@ -40,11 +60,12 @@ router.post("/public-verify-nisn", StudentController.publicVerifyNisn);
 router.get("/search-autocomplete", StudentController.autocompleteSearch);
 router.get("/public-alumni", StudentController.getPublicAlumni);
 
-// Self-service data update (public — no auth)
-router.post("/self-update/search", StudentController.selfUpdateSearch);
-router.post("/self-update/get-data", StudentController.selfUpdateGetData);
-router.post("/self-update/save", StudentController.selfUpdateSave);
-router.post("/self-update/upload-photo", photoUpload.single("photo"), StudentController.selfUpdateUploadPhoto);
+
+// Self-service data update (public — SEC-02: rate limited, SEC-10: validated)
+router.post("/self-update/search", selfUpdateReadLimiter, StudentController.selfUpdateSearch);
+router.post("/self-update/get-data", selfUpdateReadLimiter, StudentController.selfUpdateGetData);
+router.post("/self-update/save", selfUpdateWriteLimiter, validate(selfUpdateSaveSchema), StudentController.selfUpdateSave);
+router.post("/self-update/upload-photo", selfUpdateWriteLimiter, photoUpload.single("photo"), StudentController.selfUpdateUploadPhoto);
 
 // Protected endpoints (staff only)
 router.get("/", requireStaff, StudentController.getAll);

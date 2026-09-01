@@ -19,6 +19,7 @@ import { PublicCetakKartu } from './PublicCetakKartu';
 import { PublicDownloadsPage } from './PublicDownloadsPage';
 import { ServiceForm, SERVICES } from './layanan/ServiceForm';
 import { LayananPage } from './layanan/LayananPage';
+import SafeHtml from '../components/SafeHtml';
 
 interface LayoutSection {
   type: 'Hero' | 'Features' | 'Gallery' | 'News' | 'Stats' | 'QuickLinks' | 'Contact' | 'HTML';
@@ -134,13 +135,14 @@ export const DynamicPage = () => {
 
       {/* HTML CONTENT */}
       <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 pt-5">
-        <article 
+        <SafeHtml 
+          content={page.content}
+          as="article"
           className="prose prose-emerald prose-sm md:prose-base dark:prose-invert max-w-none 
             prose-img:rounded-2xl prose-img:shadow-xl prose-img:mx-auto
             prose-headings:font-bold prose-headings:tracking-tight
             prose-a:text-emerald-600 dark:prose-a:text-emerald-400 prose-a:no-underline hover:prose-a:underline
             prose-blockquote:border-emerald-500 prose-blockquote:bg-emerald-50/50 dark:prose-blockquote:bg-emerald-900/10 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-xl"
-          dangerouslySetInnerHTML={{ __html: page.content }}
         />
       </div>
     </main>
@@ -179,9 +181,9 @@ export const DynamicPage = () => {
           case 'HTML':
             return (
               <div key={idx} className="w-full max-w-4xl mx-auto px-4 py-16">
-                <div 
+                <SafeHtml 
+                  content={props?.content || ''}
                   className="prose prose-emerald prose-lg dark:prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{ __html: props?.content || '' }}
                 />
               </div>
             );

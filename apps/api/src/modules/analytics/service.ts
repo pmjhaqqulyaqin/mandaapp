@@ -8,14 +8,8 @@ export class AnalyticsService {
     const today = new Intl.DateTimeFormat('en-CA', { ...witaOpts, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); // WITA date
     const monthStart = new Date(today.slice(0, 7) + "-01");
 
-    const [
-      studentsResult,
-      employeesResult,
-      attendanceTodayResult,
-      suratMasukResult,
-      suratKeluarResult,
-      ticketPendingResult,
-    ] = await Promise.all([
+    // PERF-05: Use Promise.allSettled so one failing query doesn't crash all analytics
+    const results = await Promise.allSettled([
       db.select({ count: count() }).from(studentProfiles).where(eq(studentProfiles.status, "active")),
       db.select({ count: count() }).from(employees),
       db.select({ count: count() }).from(attendanceRecords).where(eq(attendanceRecords.date, today)),
@@ -24,18 +18,21 @@ export class AnalyticsService {
       db.select({ count: count() }).from(serviceRequests).where(eq(serviceRequests.status, "pending")),
     ]);
 
-    const totalStudents = studentsResult[0]?.count || 0;
-    const attendanceToday = attendanceTodayResult[0]?.count || 0;
+    const getCount = (result: PromiseSettledResult<any[]>) =>
+      result.status === 'fulfilled' ? (result.value[0]?.count || 0) : 0;
+
+    const totalStudents = getCount(results[0]);
+    const attendanceToday = getCount(results[2]);
 
     return {
       totalSiswa: totalStudents,
-      totalGTK: employeesResult[0]?.count || 0,
+      totalGTK: getCount(results[1]),
       kehadiranHariIni: attendanceToday,
       totalSiswaAll: totalStudents,
       persenKehadiran: totalStudents > 0 ? Math.round((attendanceToday / totalStudents) * 100) : 0,
-      suratMasuk: suratMasukResult[0]?.count || 0,
-      suratKeluar: suratKeluarResult[0]?.count || 0,
-      tiketPending: ticketPendingResult[0]?.count || 0,
+      suratMasuk: getCount(results[3]),
+      suratKeluar: getCount(results[4]),
+      tiketPending: getCount(results[5]),
     };
   }
 

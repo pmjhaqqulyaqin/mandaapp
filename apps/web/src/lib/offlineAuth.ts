@@ -18,17 +18,20 @@ interface CachedCredential {
   cachedAt: number;
 }
 
-async function hashPassword(password: string): Promise<string> {
+async function hashPassword(password: string, email: string): Promise<string> {
   try {
     const encoder = new TextEncoder();
-    const data = encoder.encode(password + 'simanda-salt-2026');
+    // SEC-07: Use dynamic salt derived from email instead of hardcoded salt
+    const dynamicSalt = `simanda-${email.toLowerCase().trim()}-v2`;
+    const data = encoder.encode(password + dynamicSalt);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   } catch {
     // Fallback for non-secure contexts: simple hash
     let hash = 0;
-    const str = password + 'simanda-salt-2026';
+    const dynamicSalt = `simanda-${email.toLowerCase().trim()}-v2`;
+    const str = password + dynamicSalt;
     for (let i = 0; i < str.length; i++) {
       const chr = str.charCodeAt(i);
       hash = ((hash << 5) - hash) + chr;
@@ -48,7 +51,7 @@ function getLSKey(email: string): string {
  */
 export async function cacheCredentials(email: string, password: string, userData: any): Promise<void> {
   try {
-    const passwordHash = await hashPassword(password);
+    const passwordHash = await hashPassword(password, email);
     const credential: CachedCredential = {
       email: email.toLowerCase().trim(),
       passwordHash,
@@ -93,7 +96,7 @@ export async function offlineLogin(email: string, password: string): Promise<Off
     }
 
     // Verify password
-    const inputHash = await hashPassword(password);
+    const inputHash = await hashPassword(password, email);
     if (inputHash !== cached.passwordHash) {
       console.log('[OfflineAuth] Password mismatch');
       return { success: false, reason: 'wrong_password' };

@@ -22,6 +22,7 @@
     "@zxing/library": "^0.23.0",
     "axios": "^1.13.6",
     "better-auth": "^1.5.4",
+    "dompurify": "^3.4.14",
     "html2canvas": "^1.4.1",
     "jodit-react": "^5.3.21",
     "jspdf": "^4.2.1",
@@ -40,6 +41,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/dompurify": "^3.0.5",
     "@types/react": "^18.2.64",
     "@types/react-dom": "^18.2.21",
     "@vitejs/plugin-react": "^4.2.1",

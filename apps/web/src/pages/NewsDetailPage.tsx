@@ -5,6 +5,7 @@ import { useNews } from '../hooks/api/useNews';
 import { FooterWithSettings } from '../components/FooterWithSettings';
 import { HeaderWithSettings } from '../components/HeaderWithSettings';
 import { SEO } from '../components/SEO';
+import SafeHtml from '../components/SafeHtml';
 
 export const NewsDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -338,7 +339,7 @@ export const NewsDetailPage = () => {
                       color: #94a3b8 !important;
                     }
                   `}</style>
-                  <div dangerouslySetInnerHTML={{ __html: article.content }} />
+                  <SafeHtml content={article.content} />
                 </div>
               </article>
 

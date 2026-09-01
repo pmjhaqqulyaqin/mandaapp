@@ -161,8 +161,18 @@ if (!fs.existsSync(thumbCacheDir)) fs.mkdirSync(thumbCacheDir, { recursive: true
 
 app.get('/uploads/thumb/:filename', async (req, res) => {
   try {
+    // SEC-01: Sanitize filename to prevent path traversal
+    const rawFilename = req.params.filename;
+    if (!rawFilename || rawFilename.includes('..') || rawFilename.includes('/') || rawFilename.includes('\\') || rawFilename.includes('\0')) {
+      return res.status(400).send('Invalid filename');
+    }
+    // Only allow image extensions
+    if (!/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(rawFilename)) {
+      return res.status(400).send('Invalid file type');
+    }
+
     const width = Math.min(parseInt(req.query.w as string) || 400, 800);
-    const cacheKey = `${width}_${req.params.filename.replace(/\.[^.]+$/, '')}.webp`;
+    const cacheKey = `${width}_${rawFilename.replace(/\.[^.]+$/, '')}.webp`;
     const cachePath = path.join(thumbCacheDir, cacheKey);
 
     // Serve from disk cache if available
@@ -173,7 +183,14 @@ app.get('/uploads/thumb/:filename', async (req, res) => {
     }
 
     const sharp = (await import('sharp')).default;
-    const filePath = path.join(process.cwd(), 'uploads', req.params.filename);
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    const filePath = path.resolve(uploadsDir, rawFilename);
+
+    // Double-check: resolved path must stay within uploads directory
+    if (!filePath.startsWith(uploadsDir + path.sep) && filePath !== uploadsDir) {
+      return res.status(400).send('Invalid filename');
+    }
+
     if (!fs.existsSync(filePath)) {
       return res.status(404).send('Not found');
     }
@@ -189,7 +206,7 @@ app.get('/uploads/thumb/:filename', async (req, res) => {
     res.setHeader('Cache-Control', 'public, max-age=2592000, immutable'); // 30 days
     res.send(buffer);
   } catch (err) {
-    console.error('Thumbnail error:', err);
+    logger.error({ err }, 'Thumbnail generation failed');
     res.status(500).send('Thumbnail generation failed');
   }
 });
@@ -910,6 +927,24 @@ async function runAutoMigration() {
       );
     `);
     logger.info("Integration Apps table ready.");
+
+    // ═══ PERF-03: Database Indexes for frequently-queried columns ═════════════
+    // Using IF NOT EXISTS so they're safe to run repeatedly on every startup.
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_student_status ON student_profiles(status);`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_student_class_id ON student_profiles(class_id);`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_student_class_name ON student_profiles(class_name);`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_student_nisn ON student_profiles(nisn);`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance_records(date);`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_attendance_student ON attendance_records(student_id);`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_jurnal_teaching_subject ON jurnal_entries(teaching_subject_id);`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_jurnal_date ON jurnal_entries(date);`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_parent_links_user ON parent_links(user_id);`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_parent_links_student ON parent_links(student_id);`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_teaching_subjects_employee ON teaching_subjects(employee_id);`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_teaching_subjects_class ON teaching_subjects(class_id);`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_employees_status ON employees(status);`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_session_user ON session(user_id);`);
+    logger.info("Database indexes verified.");
 
   } catch (err) {
     logger.error({ err }, "Auto-migration failed");

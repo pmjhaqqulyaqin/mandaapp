@@ -1,16 +1,46 @@
 import { db } from "../../db";
 import { studentProfiles, identityRevisions, parentProfiles, educationHistory, physicalData, bukuIndukGrades, bukuIndukAttendance, bukuIndukExtracurriculars, bukuIndukP5, bukuIndukFinalStatus, bukuIndukClassMapels } from "../../db/schema";
-import { eq, ilike, or, and, inArray } from "drizzle-orm";
+import { eq, ilike, or, and, inArray, count } from "drizzle-orm";
 
 export class StudentService {
-  static async getAllStudents(classFilter?: string, classIdFilter?: string, statusFilter?: string) {
+  // PERF-04: Optional pagination — if page/limit not provided, returns ALL (backward compatible)
+  static async getAllStudents(classFilter?: string, classIdFilter?: string, statusFilter?: string, page?: number, limit?: number) {
     const conditions = [];
     if (classIdFilter) conditions.push(eq(studentProfiles.classId, classIdFilter));
     if (classFilter) conditions.push(eq(studentProfiles.className, classFilter));
     if (statusFilter) conditions.push(eq(studentProfiles.status, statusFilter));
 
-    if (conditions.length > 0) {
-      return db.select().from(studentProfiles).where(and(...conditions));
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // If pagination params provided, return paginated response
+    if (page && limit) {
+      const safePage = Math.max(1, page);
+      const safeLimit = Math.min(200, Math.max(1, limit));
+      const offset = (safePage - 1) * safeLimit;
+
+      const [data, totalResult] = await Promise.all([
+        whereClause
+          ? db.select().from(studentProfiles).where(whereClause).limit(safeLimit).offset(offset)
+          : db.select().from(studentProfiles).limit(safeLimit).offset(offset),
+        whereClause
+          ? db.select({ count: count() }).from(studentProfiles).where(whereClause)
+          : db.select({ count: count() }).from(studentProfiles),
+      ]);
+
+      return {
+        data,
+        pagination: {
+          page: safePage,
+          limit: safeLimit,
+          total: totalResult[0]?.count || 0,
+          totalPages: Math.ceil((totalResult[0]?.count || 0) / safeLimit),
+        }
+      };
+    }
+
+    // No pagination → return all (backward compatible)
+    if (whereClause) {
+      return db.select().from(studentProfiles).where(whereClause);
     }
     return db.select().from(studentProfiles);
   }

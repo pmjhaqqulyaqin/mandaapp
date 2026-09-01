@@ -18,17 +18,18 @@ import {
   operatorRole,
   orangTuaRole,
 } from "./permissions";
+import logger from "../../lib/logger";
 
 if (!process.env.BETTER_AUTH_SECRET) {
-  console.error("[AUTH ERROR] BETTER_AUTH_SECRET is not set! Authentication will fail.");
+  logger.error("[AUTH] BETTER_AUTH_SECRET is not set! Authentication will fail.");
 } else {
-  console.log("[AUTH CONFIG] BETTER_AUTH_SECRET is configured.");
+  logger.info("[AUTH] BETTER_AUTH_SECRET is configured.");
 }
 
 if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-  console.error("[AUTH ERROR] Google OAuth credentials (ID or SECRET) are missing!");
+  logger.error("[AUTH] Google OAuth credentials (ID or SECRET) are missing!");
 } else {
-  console.log(`[AUTH CONFIG] Google Client ID: ${process.env.GOOGLE_CLIENT_ID.substring(0, 10)}... (Present)`);
+  logger.info("[AUTH] Google OAuth credentials are configured.");
 }
 
 export const auth = betterAuth({

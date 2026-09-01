@@ -3,6 +3,7 @@ import { db } from '../../db';
 import { integrationApps, employees, classes, studentProfiles, attendanceRecords } from '../../db/schema';
 import { eq, gte, and, or, ilike, isNotNull, isNull } from 'drizzle-orm';
 import crypto from 'crypto';
+import logger from '../../lib/logger';
 
 function generateApiKey(): string {
   return 'sk_live_' + crypto.randomBytes(24).toString('hex');
@@ -20,7 +21,23 @@ export function hashApiKey(key: string): string {
 export const getEmployeesSync = async (req: Request, res: Response) => {
   try {
     const lastSync = req.query.last_sync as string;
-    let query = db.select().from(employees);
+    // PERF-02: Add pagination to prevent unbounded queries
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit as string) || 500));
+    const offset = (page - 1) * limit;
+
+    // SEC-13: Explicit column selection instead of select() all
+    let query = db.select({
+      id: employees.id,
+      name: employees.name,
+      nip: employees.nip,
+      type: employees.type,
+      position: employees.position,
+      gender: employees.gender,
+      status: employees.status,
+      kodeGuru: employees.kodeGuru,
+      updatedAt: employees.updatedAt,
+    }).from(employees);
     
     if (lastSync) {
       const syncDate = new Date(lastSync);
@@ -29,14 +46,16 @@ export const getEmployeesSync = async (req: Request, res: Response) => {
       }
     }
 
-    const data = await query;
+    const data = await (query as any).limit(limit).offset(offset);
     res.json({
       success: true,
+      page,
+      limit,
       count: data.length,
       data
     });
   } catch (error) {
-    console.error('Error in getEmployeesSync:', error);
+    logger.error({ err: error }, 'Error in getEmployeesSync');
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
@@ -109,6 +128,11 @@ export const getClassesStudentsSync = async (req: Request, res: Response) => {
 export const getAttendancesSync = async (req: Request, res: Response) => {
   try {
     const lastSync = req.query.last_sync as string;
+    // PERF-02: Add pagination to prevent unbounded queries
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit as string) || 500));
+    const offset = (page - 1) * limit;
+
     let query = db.select().from(attendanceRecords);
     
     if (lastSync) {
@@ -118,14 +142,16 @@ export const getAttendancesSync = async (req: Request, res: Response) => {
       }
     }
 
-    const data = await query;
+    const data = await (query as any).limit(limit).offset(offset);
     res.json({
       success: true,
+      page,
+      limit,
       count: data.length,
       data
     });
   } catch (error) {
-    console.error('Error in getAttendancesSync:', error);
+    logger.error({ err: error }, 'Error in getAttendancesSync');
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

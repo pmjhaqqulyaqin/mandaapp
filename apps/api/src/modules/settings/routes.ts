@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import { SettingsController } from "./controller";
 import { requireStaff } from "../auth/middleware";
+import { apiCache, invalidateCache } from "../../middlewares/cache";
 
 const router = Router();
 
@@ -34,10 +35,10 @@ const upload = multer({
   },
 });
 
-// Public (frontend needs settings to render)
-router.get("/", SettingsController.getAll);
+// Public (frontend needs settings to render) — PERF-07: cached 5 minutes
+router.get("/", apiCache(300, 'settings'), SettingsController.getAll);
 router.get("/serve-favicon", SettingsController.serveFavicon);
-router.get("/:group", SettingsController.getByGroup);
+router.get("/:group", apiCache(300, 'settings'), SettingsController.getByGroup);
 
 // Protected (staff only)
 router.put("/", requireStaff, SettingsController.bulkUpdate);

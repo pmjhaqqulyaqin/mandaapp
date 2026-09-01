@@ -2,9 +2,23 @@ import { Router } from 'express';
 import { PPDBController } from './controller';
 import { requireStaff } from '../auth/middleware';
 import multer from 'multer';
+import path from 'path';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // SEC-05: Max 10MB
+  fileFilter: (_req, file, cb) => {
+    // SEC-05: Only allow images and PDF
+    const allowed = /\.(jpg|jpeg|png|webp|gif|pdf)$/i;
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
+    if (allowed.test(path.extname(file.originalname)) && allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Hanya file gambar (JPG, PNG, WebP) dan PDF yang diizinkan'));
+    }
+  },
+});
 
 // ============ PUBLIC ENDPOINTS (no auth required) ============
 router.get('/config', PPDBController.getConfig);

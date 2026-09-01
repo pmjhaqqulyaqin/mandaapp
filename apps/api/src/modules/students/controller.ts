@@ -11,7 +11,10 @@ export class StudentController {
       const classFilter = req.query.class as string;
       const classIdFilter = req.query.classId as string;
       const statusFilter = req.query.status as string;
-      const students = await StudentService.getAllStudents(classFilter, classIdFilter, statusFilter);
+      // PERF-04: Optional pagination — backward compatible (no params = return all)
+      const page = req.query.page ? parseInt(req.query.page as string) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const students = await StudentService.getAllStudents(classFilter, classIdFilter, statusFilter, page, limit);
       res.json(students);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch students" });

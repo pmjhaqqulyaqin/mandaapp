@@ -36,7 +36,8 @@
     "puppeteer": "^25.0.4",
     "sharp": "^0.34.5",
     "uuid": "^13.0.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/compression": "^1.8.1",
