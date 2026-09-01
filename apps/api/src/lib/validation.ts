@@ -105,7 +105,7 @@ export function validate<T extends ZodSchema>(schema: T) {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const messages = error.errors.map(e => ({
+        const messages = error.issues.map((e: z.ZodIssue) => ({
           field: e.path.join('.'),
           message: e.message,
         }));
@@ -130,7 +130,7 @@ export function validateQuery<T extends ZodSchema>(schema: T) {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const messages = error.errors.map(e => ({
+        const messages = error.issues.map((e: z.ZodIssue) => ({
           field: e.path.join('.'),
           message: e.message,
         }));
@@ -156,7 +156,7 @@ export function validateParams<T extends ZodSchema>(schema: T) {
       if (error instanceof ZodError) {
         return res.status(400).json({
           error: 'Parameter tidak valid',
-          details: error.errors.map(e => ({ field: e.path.join('.'), message: e.message })),
+          details: error.issues.map((e: z.ZodIssue) => ({ field: e.path.join('.'), message: e.message })),
         });
       }
       return res.status(400).json({ error: 'Parameter tidak valid' });
