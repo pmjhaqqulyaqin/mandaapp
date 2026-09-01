@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { Input } from '@mandaapp/ui/src/components/Input';
-import { User, GraduationCap, MapPin, Info, Loader2, Users, BookOpen, Activity, Plus, Trash2, Award, ClipboardList } from 'lucide-react';
+import { User, GraduationCap, MapPin, Info, Loader2, Users, BookOpen, Activity, Plus, Trash2, Award, ClipboardList, Search, Lock, ChevronDown, X } from 'lucide-react';
 import type { ClassItem } from './types';
 
 interface Props {
@@ -74,6 +74,37 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, api
   const [saving, setSaving] = useState(false);
   const [loadingComplete, setLoadingComplete] = useState(false);
   const [newSubject, setNewSubject] = useState('');
+
+  // NIS dropdown state
+  const [nisRecords, setNisRecords] = useState<{ id: string; nis: string; fullName: string }[]>([]);
+  const [nisDropdownOpen, setNisDropdownOpen] = useState(false);
+  const [nisSearchQuery, setNisSearchQuery] = useState('');
+  const nisDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close NIS dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (nisDropdownRef.current && !nisDropdownRef.current.contains(e.target as Node)) {
+        setNisDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Fetch NIS records for the dropdown (only for add mode)
+  const fetchNisRecords = useCallback(async () => {
+    try {
+      const res = await apiClient<any>('/nis/records?page=1&limit=9999');
+      setNisRecords((res.records || []).map((r: any) => ({ id: r.id, nis: r.nis, fullName: r.fullName })));
+    } catch (e) { console.error('Failed to fetch NIS records', e); }
+  }, [apiClient]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchNisRecords();
+    }
+  }, [isOpen, fetchNisRecords]);
 
   // Initialize gradesMatrix from subjects
   useEffect(() => {
@@ -342,8 +373,134 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, api
                 <Input placeholder="10 digit NISN" maxLength={10} value={studentForm.nisn} onChange={e => setStudentForm({ ...studentForm, nisn: e.target.value.replace(/\D/g, '') })} />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-text-secondary">NIS</label>
-                <Input placeholder="Input NIS/ Dihasilkan" value={studentForm.nis} onChange={e => setStudentForm({ ...studentForm, nis: e.target.value })} />
+                <label className="text-xs font-medium text-text-secondary flex items-center gap-1.5">
+                  NIS
+                  {isEditing && studentForm.nis && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                      <Lock size={10} /> Dari Menu NIS
+                    </span>
+                  )}
+                </label>
+                {isEditing ? (
+                  /* Edit mode: NIS is read-only / disabled */
+                  <div className="relative">
+                    <Input
+                      value={studentForm.nis || '-'}
+                      disabled
+                      className="!bg-gray-100 dark:!bg-[#1a1a1a] !text-text-secondary !cursor-not-allowed !opacity-80 pr-8"
+                      readOnly
+                    />
+                    <Lock size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  </div>
+                ) : (
+                  /* Add mode: Searchable NIS dropdown */
+                  <div className="relative" ref={nisDropdownRef}>
+                    <div
+                      className={`flex items-center h-10 rounded-lg border ${nisDropdownOpen ? 'border-primary ring-2 ring-primary/30' : 'border-gray-200 dark:border-[#333]'} bg-white dark:bg-[#1a1a1a] cursor-pointer transition-all`}
+                      onClick={() => setNisDropdownOpen(!nisDropdownOpen)}
+                    >
+                      <div className="flex-1 px-3 text-sm truncate">
+                        {studentForm.nis ? (
+                          <span className="font-medium text-text-primary dark:text-text-darkPrimary">
+                            {studentForm.nis}
+                            {(() => {
+                              const matched = nisRecords.find(r => r.nis === studentForm.nis);
+                              return matched ? <span className="text-text-secondary ml-1.5 text-xs">— {matched.fullName}</span> : null;
+                            })()}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Pilih NIS dari daftar atau ketik manual...</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 pr-2">
+                        {studentForm.nis && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setStudentForm({ ...studentForm, nis: '' }); setNisSearchQuery(''); }}
+                            className="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-[#333] text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                        <ChevronDown size={14} className={`text-gray-400 transition-transform ${nisDropdownOpen ? 'rotate-180' : ''}`} />
+                      </div>
+                    </div>
+
+                    {nisDropdownOpen && (
+                      <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg shadow-lg overflow-hidden">
+                        {/* Search input */}
+                        <div className="p-2 border-b border-gray-100 dark:border-[#333]">
+                          <div className="relative">
+                            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Cari NIS atau nama siswa..."
+                              value={nisSearchQuery}
+                              onChange={(e) => setNisSearchQuery(e.target.value)}
+                              className="w-full h-8 pl-8 pr-3 rounded-md border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#111] text-xs outline-none focus:ring-2 focus:ring-primary/30"
+                              autoFocus
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        </div>
+                        {/* Options list */}
+                        <div className="max-h-48 overflow-y-auto">
+                          {/* Manual input option */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const val = nisSearchQuery.trim();
+                              if (val) {
+                                setStudentForm({ ...studentForm, nis: val });
+                                setNisDropdownOpen(false);
+                                setNisSearchQuery('');
+                              }
+                            }}
+                            className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-[#222] transition-colors border-b border-gray-50 dark:border-[#333] flex items-center gap-2"
+                          >
+                            <Plus size={12} className="text-primary shrink-0" />
+                            <span className="text-text-secondary">
+                              {nisSearchQuery.trim() ? (
+                                <>Input manual: <strong className="text-text-primary dark:text-text-darkPrimary">{nisSearchQuery.trim()}</strong></>
+                              ) : (
+                                'Ketik NIS di atas untuk input manual'
+                              )}
+                            </span>
+                          </button>
+                          {/* NIS records from menu */}
+                          {nisRecords
+                            .filter(r => {
+                              const q = nisSearchQuery.toLowerCase();
+                              return !q || (r.nis || '').toLowerCase().includes(q) || (r.fullName || '').toLowerCase().includes(q);
+                            })
+                            .map(r => (
+                              <button
+                                type="button"
+                                key={r.id}
+                                onClick={() => {
+                                  setStudentForm({ ...studentForm, nis: r.nis });
+                                  setNisDropdownOpen(false);
+                                  setNisSearchQuery('');
+                                }}
+                                className={`w-full px-3 py-2 text-left hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors flex items-center justify-between gap-2 ${studentForm.nis === r.nis ? 'bg-primary/10' : ''}`}
+                              >
+                                <div className="min-w-0">
+                                  <p className="text-xs font-medium text-text-primary dark:text-text-darkPrimary truncate">{r.fullName}</p>
+                                </div>
+                                <span className="text-xs font-mono font-semibold text-primary shrink-0">#{r.nis}</span>
+                              </button>
+                            ))}
+                          {nisRecords.filter(r => {
+                            const q = nisSearchQuery.toLowerCase();
+                            return !q || (r.nis || '').toLowerCase().includes(q) || (r.fullName || '').toLowerCase().includes(q);
+                          }).length === 0 && (
+                            <p className="py-4 text-center text-xs text-gray-400">Tidak ada data NIS yang cocok</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-text-secondary">NIK</label>
