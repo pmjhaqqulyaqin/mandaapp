@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../../db';
 import { integrationApps, employees, classes, studentProfiles, attendanceRecords } from '../../db/schema';
-import { eq, gte, and, or, ilike, isNotNull, isNull } from 'drizzle-orm';
+import { eq, gte, and, or, ilike, notIlike, isNotNull, isNull, not, sql, count } from 'drizzle-orm';
 import crypto from 'crypto';
 import logger from '../../lib/logger';
 
@@ -64,7 +64,9 @@ export const getClassesStudentsSync = async (req: Request, res: Response) => {
   try {
     const lastSync = req.query.last_sync as string;
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit as string) || 500));
+    // Increased default from 500 → 10000 to prevent silent data loss for typical school sizes.
+    // Consumer PHP scripts typically don't paginate, so a single request must return all students.
+    const limit = Math.min(10000, Math.max(1, parseInt(req.query.limit as string) || 10000));
     const offset = (page - 1) * limit;
     
     // Get all classes
@@ -76,11 +78,21 @@ export const getClassesStudentsSync = async (req: Request, res: Response) => {
       classMap.set(cls.id, cls.name);
     }
     
-    // Build where condition for students
+    // Build where condition for students — use exclusion list (blacklist) instead of whitelist.
+    // Previously only matched 'active'/'aktif'/null which missed students with empty string
+    // status or other non-standard values (e.g. imported from NIS module).
+    // Now we include ALL students EXCEPT those with explicitly inactive statuses.
+    const notExcluded = and(
+      notIlike(studentProfiles.status, 'lulus'),
+      notIlike(studentProfiles.status, 'pindah'),
+      notIlike(studentProfiles.status, 'keluar'),
+      notIlike(studentProfiles.status, 'tidak aktif')
+    );
+    // Also include students with null or empty status
     const activeCondition = or(
-      ilike(studentProfiles.status, 'active'),
-      ilike(studentProfiles.status, 'aktif'),
-      isNull(studentProfiles.status)
+      isNull(studentProfiles.status),
+      eq(studentProfiles.status, ''),
+      notExcluded
     );
 
     let whereCondition;
@@ -98,10 +110,17 @@ export const getClassesStudentsSync = async (req: Request, res: Response) => {
       whereCondition = activeCondition;
     }
 
-    const students = await db.select().from(studentProfiles)
-      .where(whereCondition)
-      .limit(limit)
-      .offset(offset);
+    // Run data query + total count in parallel
+    const [students, totalResult] = await Promise.all([
+      db.select().from(studentProfiles)
+        .where(whereCondition)
+        .limit(limit)
+        .offset(offset),
+      db.select({ count: count() }).from(studentProfiles)
+        .where(whereCondition),
+    ]);
+
+    const total = totalResult[0]?.count || 0;
 
     // Resolve className from classes table
     const resolvedStudents = students.map(s => ({
@@ -114,6 +133,8 @@ export const getClassesStudentsSync = async (req: Request, res: Response) => {
       page,
       limit,
       count: resolvedStudents.length,
+      total,         // Total active students across all pages
+      totalPages: Math.ceil(total / limit),
       data: {
         classes: allClasses,
         students: resolvedStudents
