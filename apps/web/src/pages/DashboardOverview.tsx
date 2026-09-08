@@ -1,11 +1,12 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, useCallback } from 'react';
 import { apiClient } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Breadcrumbs } from '@mandaapp/ui';
 import { 
   Users, GraduationCap, UserCheck, Mail, MailOpen, Ticket,
   TrendingUp, AlertTriangle, Clock, BookOpen, CalendarDays,
-  CheckCircle2, XCircle, FileText, Scan, Activity
+  CheckCircle2, XCircle, FileText, Scan, Activity,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import {
   SkeletonSummaryCards, SkeletonChart, SkeletonPieChart,
@@ -31,6 +32,7 @@ export const DashboardOverview = () => {
   const [classroom, setClassroom] = useState<any>(null);
   const [classroomReady, setClassroomReady] = useState(false);
   const [monitorFilter, setMonitorFilter] = useState<'terisi' | 'kosong' | null>(null);
+  const [selectedJamKe, setSelectedJamKe] = useState<number | null>(null);
 
   const [activities, setActivities] = useState<any[]>([]);
   const [activitiesReady, setActivitiesReady] = useState(false);
@@ -43,6 +45,12 @@ export const DashboardOverview = () => {
 
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
+  // Fetch classroom monitor with optional jamKe override
+  const fetchClassroom = useCallback((jamKe?: number | null) => {
+    const url = jamKe ? `/analytics/classroom-monitor?jamKe=${jamKe}` : '/analytics/classroom-monitor';
+    return apiClient<any>(url).then(d => { setClassroom(d); setClassroomReady(true); }).catch(() => setClassroomReady(true));
+  }, []);
+
   // Progressive fetch — fire all requests, update UI as each resolves
   useEffect(() => {
     // Priority 1: Summary cards (fastest, most visible)
@@ -51,9 +59,7 @@ export const DashboardOverview = () => {
       .catch(() => setSummaryReady(true));
 
     // Priority 2: Classroom monitor
-    apiClient<any>('/analytics/classroom-monitor')
-      .then(d => { setClassroom(d); setClassroomReady(true); })
-      .catch(() => setClassroomReady(true));
+    fetchClassroom(selectedJamKe);
 
     // Priority 3: Charts (heavier to render)
     Promise.allSettled([
@@ -82,7 +88,7 @@ export const DashboardOverview = () => {
     // Auto-refresh every 5 minutes (full refresh is fine after initial load)
     const interval = setInterval(() => {
       apiClient<any>('/analytics/summary').then(d => { setSummary(d); setLastUpdated(new Date()); }).catch(() => {});
-      apiClient<any>('/analytics/classroom-monitor').then(setClassroom).catch(() => {});
+      fetchClassroom(selectedJamKe);
       apiClient<any[]>('/attendance/weekly-stats').then(d => setWeeklyStats((d || []).reverse())).catch(() => {});
       apiClient<any>('/attendance/today/stats').then(setTodayStats).catch(() => {});
       apiClient<any[]>('/analytics/recent-activity?limit=10').then(d => setActivities(d || [])).catch(() => {});
@@ -91,6 +97,14 @@ export const DashboardOverview = () => {
     }, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Re-fetch classroom monitor when user changes selectedJamKe
+  useEffect(() => {
+    if (selectedJamKe !== null) {
+      setMonitorFilter(null); // Reset filter when switching jam
+      fetchClassroom(selectedJamKe);
+    }
+  }, [selectedJamKe, fetchClassroom]);
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -155,12 +169,60 @@ export const DashboardOverview = () => {
                   <Clock size={12} />
                   Real-Time{classroom ? ` (${classroom.dayName})` : ''}
                 </p>
-                {classroom?.currentJamKe && (
-                  <div className="flex items-center bg-violet-50 dark:bg-violet-900/20 px-2.5 py-1 rounded-lg border border-violet-100 dark:border-violet-800/30 shrink-0">
-                    <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 mr-1">Jam ke-</span>
-                    <span className="text-sm font-bold text-violet-700 dark:text-violet-300">{classroom.currentJamKe}</span>
-                  </div>
-                )}
+                {classroom?.currentJamKe && (() => {
+                  const available = classroom.availableJamKe || [];
+                  const currentIdx = available.indexOf(classroom.currentJamKe);
+                  const isOverride = classroom.autoJamKe && classroom.currentJamKe !== classroom.autoJamKe;
+                  const canPrev = currentIdx > 0;
+                  const canNext = currentIdx < available.length - 1;
+                  return (
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      <button
+                        onClick={() => {
+                          if (canPrev) setSelectedJamKe(available[currentIdx - 1]);
+                        }}
+                        disabled={!canPrev}
+                        className={`w-6 h-6 flex items-center justify-center rounded-lg transition-all ${
+                          canPrev
+                            ? 'text-violet-600 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/30 active:scale-90 cursor-pointer'
+                            : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                        }`}
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (isOverride) {
+                            setSelectedJamKe(null);
+                            fetchClassroom(null);
+                          }
+                        }}
+                        className={`flex items-center px-2.5 py-1 rounded-lg border transition-all ${
+                          isOverride
+                            ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30'
+                            : 'bg-violet-50 dark:bg-violet-900/20 border-violet-100 dark:border-violet-800/30'
+                        }`}
+                        title={isOverride ? 'Klik untuk kembali ke jam saat ini' : ''}
+                      >
+                        <span className={`text-[10px] font-bold mr-1 ${isOverride ? 'text-amber-600 dark:text-amber-400' : 'text-violet-600 dark:text-violet-400'}`}>Jam ke-</span>
+                        <span className={`text-sm font-bold ${isOverride ? 'text-amber-700 dark:text-amber-300' : 'text-violet-700 dark:text-violet-300'}`}>{classroom.currentJamKe}</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (canNext) setSelectedJamKe(available[currentIdx + 1]);
+                        }}
+                        disabled={!canNext}
+                        className={`w-6 h-6 flex items-center justify-center rounded-lg transition-all ${
+                          canNext
+                            ? 'text-violet-600 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/30 active:scale-90 cursor-pointer'
+                            : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                        }`}
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>

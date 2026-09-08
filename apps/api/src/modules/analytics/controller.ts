@@ -14,7 +14,8 @@ export class AnalyticsController {
 
   static async getClassroomMonitor(req: Request, res: Response) {
     try {
-      const data = await AnalyticsService.getClassroomMonitor();
+      const jamKe = req.query.jamKe ? parseInt(req.query.jamKe as string) : undefined;
+      const data = await AnalyticsService.getClassroomMonitor(jamKe);
       return res.json(data);
     } catch (error: any) {
       console.error("[ANALYTICS] Classroom monitor error:", error);

@@ -24,8 +24,8 @@ export const useTeachingSubjects = (params?: Record<string, string>) => {
   return { query, createMut, updateMut, deleteMut, bulkMut, importMut };
 };
 
-export const useScheduleToday = (employeeId: string) =>
-  useQuery({ queryKey: KEYS.scheduleToday(employeeId), queryFn: () => jurnalService.getScheduleToday(employeeId), enabled: !!employeeId });
+export const useScheduleToday = (employeeId: string, date?: string) =>
+  useQuery({ queryKey: [...KEYS.scheduleToday(employeeId), date], queryFn: () => jurnalService.getScheduleToday(employeeId, date), enabled: !!employeeId });
 
 export const useJurnalEntries = (filters?: Record<string, string>) =>
   useQuery({ queryKey: KEYS.entries(filters), queryFn: () => jurnalService.getEntries(filters) });

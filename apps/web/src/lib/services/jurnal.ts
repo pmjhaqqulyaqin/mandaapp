@@ -5,8 +5,8 @@ const BASE = '/jurnal';
 export const jurnalService = {
   // Teaching Subjects
   getTeachingSubjects: (params?: Record<string, string>) => apiClient<any[]>(`${BASE}/teaching-subjects${params ? '?' + new URLSearchParams(params).toString() : ''}`),
-  getScheduleToday: (employeeId: string) => {
-    const localDate = new Date().toLocaleDateString('sv-SE'); // "YYYY-MM-DD" in client timezone
+  getScheduleToday: (employeeId: string, date?: string) => {
+    const localDate = date || new Date().toLocaleDateString('sv-SE'); // "YYYY-MM-DD" in client timezone
     return apiClient<{ schedule: any[]; deadlineMode: string; deadlineTime: string }>(`${BASE}/schedule-today?employeeId=${employeeId}&date=${localDate}`);
   },
   createTeachingSubject: (data: any) => apiClient<any>(`${BASE}/teaching-subjects`, { method: 'POST', data }),

@@ -1,9 +1,9 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { useScheduleToday, useJurnalEntries } from '../../hooks/api/useJurnal';
 import { apiClient } from '../../lib/api';
-import { Clock, CheckCircle2, AlertCircle, PenLine, History, BarChart3, Settings, Plus, BookOpen, Lock, Zap } from 'lucide-react';
+import { Clock, CheckCircle2, AlertCircle, PenLine, History, BarChart3, Settings, Plus, BookOpen, Lock, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const DAYS_SHORT = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
@@ -31,12 +31,12 @@ interface Props {
   onAdminSettings?: () => void;
 }
 
-// Compute week date range once (for filtering entries to current week only)
-function getWeekRange() {
-  const today = new Date();
-  const day = today.getDay();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+// Compute week date range for a given date
+function getWeekRange(baseDate?: Date) {
+  const ref = baseDate || new Date();
+  const day = ref.getDay();
+  const monday = new Date(ref);
+  monday.setDate(ref.getDate() - (day === 0 ? 6 : day - 1));
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
   return {
@@ -64,9 +64,13 @@ function getScheduleStatus(
   currentMinutes: number,
   deadlineMode: string,
   deadlineTime: string,
-  allItems: any[]
+  allItems: any[],
+  isToday: boolean
 ): ScheduleStatus {
   if (item.alreadyFilled) return 'tersimpan';
+
+  // For past dates, always show as bisa_diisi (allow retroactive fill)
+  if (!isToday) return 'bisa_diisi';
 
   const start = timeToMinutes(item.waktuMulai);
   const end = timeToMinutes(item.waktuSelesai);
@@ -150,6 +154,32 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
   const [quote] = useState(() => QUOTES[Math.floor(Math.random() * QUOTES.length)]);
   const [currentTime, setCurrentTime] = useState(() => nowMinutes());
 
+  // Date navigation state
+  const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const isToday = selectedDate === todayStr;
+
+  // Touch/swipe support
+  const stripRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef(0);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) {
+        // Swipe left = next week (but cap at current week)
+        if (weekOffset < 0) setWeekOffset(prev => prev + 1);
+      } else {
+        // Swipe right = prev week
+        setWeekOffset(prev => prev - 1);
+      }
+    }
+  }, [weekOffset]);
+
   // Auto-refresh time every 30 seconds to update status indicators
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(nowMinutes()), 30_000);
@@ -166,10 +196,15 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
   const employeeId = empQuery.data?.id || '';
   const employeeName = empQuery.data?.name || user?.name || '';
 
-  const schedule = useScheduleToday(employeeId);
+  const schedule = useScheduleToday(employeeId, selectedDate);
 
-  // Only fetch entries for current week, not ALL entries
-  const weekRange = useMemo(() => getWeekRange(), [todayStr]);
+  // Fetch entries for the displayed week
+  const weekRange = useMemo(() => {
+    const ref = new Date(today);
+    ref.setDate(ref.getDate() + weekOffset * 7);
+    return getWeekRange(ref);
+  }, [todayStr, weekOffset]);
+
   const entriesQuery = useJurnalEntries(
     employeeId ? { teacherId: employeeId, dateFrom: weekRange.from, dateTo: weekRange.to } : undefined
   );
@@ -180,27 +215,36 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
   const deadlineMode = scheduleData?.deadlineMode || 'waktu_tertentu';
   const deadlineTime = scheduleData?.deadlineTime || '17:00';
 
-  // Compute stats
-  const todayEntries = (entriesQuery.data || []).filter((e: any) => e.date === todayStr);
+  // Compute stats (based on selected date's schedule)
   const filledCount = todaySchedule.filter((s: any) => s.alreadyFilled).length;
   const pendingCount = todaySchedule.length - filledCount;
 
-  // Week calendar
+  // Week calendar — responsive to weekOffset
   const weekDays = useMemo(() => {
-    const d = new Date(today);
-    const day = d.getDay();
-    const monday = new Date(d);
-    monday.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+    const ref = new Date(today);
+    ref.setDate(ref.getDate() + weekOffset * 7);
+    const day = ref.getDay();
+    const monday = new Date(ref);
+    monday.setDate(ref.getDate() - (day === 0 ? 6 : day - 1));
     return Array.from({ length: 7 }, (_, i) => {
       const dd = new Date(monday);
       dd.setDate(monday.getDate() + i);
       const dateStr = dd.toLocaleDateString('sv-SE');
-      const isToday = dateStr === todayStr;
+      const isTodayDate = dateStr === todayStr;
+      const isSelected = dateStr === selectedDate;
       const hasFilled = (entriesQuery.data || []).some((e: any) => e.date === dateStr);
       const isWeekend = dd.getDay() === 0 || dd.getDay() === 6;
-      return { date: dd.getDate(), dayLabel: DAYS_SHORT[dd.getDay()], isToday, hasFilled, isWeekend, dateStr };
+      const isFuture = dateStr > todayStr;
+      return { date: dd.getDate(), dayLabel: DAYS_SHORT[dd.getDay()], isToday: isTodayDate, isSelected, hasFilled, isWeekend, dateStr, isFuture };
     });
-  }, [todayStr, entriesQuery.data]);
+  }, [todayStr, weekOffset, entriesQuery.data, selectedDate]);
+
+  // Compute displayed month/year from the week being shown
+  const displayedMonthYear = useMemo(() => {
+    const ref = new Date(today);
+    ref.setDate(ref.getDate() + weekOffset * 7);
+    return ref.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  }, [todayStr, weekOffset]);
 
   const initials = (employeeName || user?.name || '?').split(' ').map(w => w.charAt(0)).join('').slice(0, 2).toUpperCase();
 
@@ -241,24 +285,68 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
         </div>
       </div>
 
-      {/* Mini Calendar */}
+      {/* Mini Calendar — Interactive */}
       <div className="px-4 mt-4">
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-semibold text-sm text-gray-800 dark:text-white">
-              {today.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+              {displayedMonthYear}
             </h3>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setWeekOffset(prev => prev - 1)}
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300 active:scale-90 transition-all cursor-pointer"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              {weekOffset !== 0 && (
+                <button
+                  onClick={() => { setWeekOffset(0); setSelectedDate(todayStr); }}
+                  className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-all cursor-pointer"
+                >
+                  Hari Ini
+                </button>
+              )}
+              <button
+                onClick={() => { if (weekOffset < 0) setWeekOffset(prev => prev + 1); }}
+                disabled={weekOffset >= 0}
+                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${
+                  weekOffset >= 0
+                    ? 'text-gray-200 dark:text-gray-700 cursor-not-allowed'
+                    : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300 active:scale-90 cursor-pointer'
+                }`}
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
-          <div className="flex justify-between text-center">
+          <div
+            ref={stripRef}
+            className="flex justify-between text-center"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
             {weekDays.map((d, i) => (
-              <div key={i} className="flex flex-col items-center gap-1">
-                <span className={`text-xs ${d.isWeekend ? 'text-gray-300 dark:text-gray-600' : 'text-gray-400 dark:text-gray-500'}`}>{d.dayLabel}</span>
+              <button
+                key={i}
+                onClick={() => { if (!d.isFuture) setSelectedDate(d.dateStr); }}
+                disabled={d.isFuture}
+                className={`flex flex-col items-center gap-1 py-1 px-1 rounded-lg transition-all ${
+                  d.isFuture ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 active:scale-95'
+                }`}
+              >
+                <span className={`text-xs ${
+                  d.isSelected ? 'text-emerald-600 dark:text-emerald-400 font-bold' :
+                  d.isWeekend ? 'text-gray-300 dark:text-gray-600' : 'text-gray-400 dark:text-gray-500'
+                }`}>{d.dayLabel}</span>
                 <span className={`text-sm w-8 h-8 flex items-center justify-center rounded-full font-medium transition-all ${
-                  d.isToday ? 'bg-emerald-600 text-white shadow-sm' :
+                  d.isSelected && d.isToday ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-300 dark:ring-emerald-700' :
+                  d.isSelected ? 'bg-emerald-600 text-white shadow-md' :
+                  d.isToday ? 'ring-2 ring-emerald-400 dark:ring-emerald-600 text-emerald-600 dark:text-emerald-400 font-bold' :
                   d.hasFilled ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400' :
                   d.isWeekend ? 'text-gray-300 dark:text-gray-600' : 'text-gray-600 dark:text-gray-400'
                 }`}>{d.date}</span>
-              </div>
+              </button>
             ))}
           </div>
           <div className="flex justify-center gap-4 mt-2 text-xs">
@@ -269,16 +357,18 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
         </div>
       </div>
 
-      {/* Jadwal Hari Ini */}
+      {/* Jadwal */}
       <div className="px-4 mt-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-sm text-gray-800 dark:text-white">Jadwal Hari Ini</h3>
-          {deadlineMode === 'waktu_tertentu' && (
+          <h3 className="font-semibold text-sm text-gray-800 dark:text-white">
+            {isToday ? 'Jadwal Hari Ini' : `Jadwal ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}`}
+          </h3>
+          {isToday && deadlineMode === 'waktu_tertentu' && (
             <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
               Batas: {deadlineTime} WITA
             </span>
           )}
-          {deadlineMode === 'sesuai_waktu_belajar' && (
+          {isToday && deadlineMode === 'sesuai_waktu_belajar' && (
             <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
               Batas: Akhir Jadwal
             </span>
@@ -292,12 +382,14 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
         {!schedule.isLoading && todaySchedule.length === 0 && (
           <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-6 text-center border border-gray-100 dark:border-gray-800">
             <BookOpen size={32} className="text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-            <p className="text-sm text-gray-400 dark:text-gray-500">Tidak ada jadwal mengajar hari ini</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              {isToday ? 'Tidak ada jadwal mengajar hari ini' : 'Tidak ada jadwal mengajar pada tanggal ini'}
+            </p>
           </div>
         )}
         <div className="space-y-3">
           {todaySchedule.map((item: any) => {
-            const status = getScheduleStatus(item, currentTime, deadlineMode, deadlineTime, todaySchedule);
+            const status = getScheduleStatus(item, currentTime, deadlineMode, deadlineTime, todaySchedule, isToday);
             const config = STATUS_CONFIG[status];
             const StatusIcon = config.icon;
             const canClick = !config.disabled;

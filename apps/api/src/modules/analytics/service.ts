@@ -36,7 +36,7 @@ export class AnalyticsService {
     };
   }
 
-  static async getClassroomMonitor() {
+  static async getClassroomMonitor(overrideJamKe?: number) {
     const now = new Date();
 
     // Use WITA (Asia/Makassar, UTC+8) timezone to ensure correct date/time
@@ -61,6 +61,7 @@ export class AnalyticsService {
         totalKelas: 0,
         totalTerisi: 0,
         totalKosong: 0,
+        availableJamKe: [] as number[],
         schedules: [],
       };
     }
@@ -74,33 +75,47 @@ export class AnalyticsService {
       ))
       .orderBy(jurnalTimeSlots.jamKe);
 
-    // 2. Determine current jam ke based on current time
-    let currentJamKe: number | null = null;
-    let currentSlotInfo: { waktuMulai: string; waktuSelesai: string } | null = null;
+    // Build list of available jam ke values for the day
+    const availableJamKe = timeSlots.map(s => s.jamKe);
+
+    // 2. Determine current jam ke based on current time (auto-detect)
+    let autoJamKe: number | null = null;
+    let autoSlotInfo: { waktuMulai: string; waktuSelesai: string } | null = null;
 
     for (const slot of timeSlots) {
       if (currentTime >= slot.waktuMulai && currentTime < slot.waktuSelesai) {
-        currentJamKe = slot.jamKe;
-        currentSlotInfo = { waktuMulai: slot.waktuMulai, waktuSelesai: slot.waktuSelesai };
+        autoJamKe = slot.jamKe;
+        autoSlotInfo = { waktuMulai: slot.waktuMulai, waktuSelesai: slot.waktuSelesai };
         break;
       }
     }
 
     // If no exact match, find the most recent completed or upcoming slot
-    if (currentJamKe === null && timeSlots.length > 0) {
+    if (autoJamKe === null && timeSlots.length > 0) {
       // If before first slot, use jam ke 1
       if (currentTime < timeSlots[0].waktuMulai) {
-        currentJamKe = timeSlots[0].jamKe;
-        currentSlotInfo = { waktuMulai: timeSlots[0].waktuMulai, waktuSelesai: timeSlots[0].waktuSelesai };
+        autoJamKe = timeSlots[0].jamKe;
+        autoSlotInfo = { waktuMulai: timeSlots[0].waktuMulai, waktuSelesai: timeSlots[0].waktuSelesai };
       } else {
         // Use the last slot that has started (most recent)
         for (let i = timeSlots.length - 1; i >= 0; i--) {
           if (currentTime >= timeSlots[i].waktuMulai) {
-            currentJamKe = timeSlots[i].jamKe;
-            currentSlotInfo = { waktuMulai: timeSlots[i].waktuMulai, waktuSelesai: timeSlots[i].waktuSelesai };
+            autoJamKe = timeSlots[i].jamKe;
+            autoSlotInfo = { waktuMulai: timeSlots[i].waktuMulai, waktuSelesai: timeSlots[i].waktuSelesai };
             break;
           }
         }
+      }
+    }
+
+    // Use override if provided and valid, otherwise use auto-detected
+    let currentJamKe = autoJamKe;
+    let currentSlotInfo = autoSlotInfo;
+    if (overrideJamKe && availableJamKe.includes(overrideJamKe)) {
+      currentJamKe = overrideJamKe;
+      const overrideSlot = timeSlots.find(s => s.jamKe === overrideJamKe);
+      if (overrideSlot) {
+        currentSlotInfo = { waktuMulai: overrideSlot.waktuMulai, waktuSelesai: overrideSlot.waktuSelesai };
       }
     }
 
@@ -115,10 +130,12 @@ export class AnalyticsService {
         dayOfWeek: jsDayOfWeek,
         dayName: dayNames[jsDayOfWeek],
         currentJamKe,
+        autoJamKe,
         currentTimeSlot: currentSlotInfo,
         totalKelas: 0,
         totalTerisi: 0,
         totalKosong: 0,
+        availableJamKe,
         schedules: [],
       };
     }
@@ -210,10 +227,12 @@ export class AnalyticsService {
       dayOfWeek: jsDayOfWeek,
       dayName: dayNames[jsDayOfWeek],
       currentJamKe,
+      autoJamKe,
       currentTimeSlot: currentSlotInfo,
       totalKelas: schedules.length,
       totalTerisi: schedules.filter(r => r.isFilled).length,
       totalKosong: schedules.filter(r => !r.isFilled).length,
+      availableJamKe,
       schedules,
     };
   }
