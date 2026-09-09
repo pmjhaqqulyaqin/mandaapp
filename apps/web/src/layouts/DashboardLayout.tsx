@@ -157,6 +157,7 @@ export const DashboardLayout = () => {
     if (location.pathname.startsWith('/dashboard/kbm')) return 'kbm';
     if (location.pathname.startsWith('/dashboard/nis')) return 'nis';
     if (location.pathname.startsWith('/dashboard/ijazah')) return 'ijazah';
+    if (location.pathname.startsWith('/dashboard/rapor')) return 'rapor';
     return null;
   });
 

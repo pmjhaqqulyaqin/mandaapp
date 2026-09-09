@@ -9,7 +9,7 @@ import { SettingsService } from "../settings/service";
 // All available menu keys
 const ALL_MENU_KEYS = [
   "overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "classes", "employees", "nis",
-  "gallery", "contacts", "pages", "menus", "settings", "users", "updates", "e-office", "ptsp", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm", "subjects", "alumni", "mutasi", "announcements", "downloads", "integrations"
+  "gallery", "contacts", "pages", "menus", "settings", "users", "updates", "e-office", "ptsp", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm", "subjects", "alumni", "mutasi", "announcements", "downloads", "integrations", "rapor"
 ];
 
 const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
@@ -17,9 +17,9 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
   kepala_madrasah: ["overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm", "subjects", "alumni", "mutasi", "announcements", "downloads"],
   wakil_kepala: ["overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm", "subjects", "alumni", "mutasi", "announcements", "downloads"],
   kepala_unit: ["overview", "news", "calendar", "teacher-duties", "student-card", "gallery", "contacts", "exams", "penilaian-pmb", "attendance", "downloads"],
-  wali_kelas: ["overview", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "gallery", "penilaian-pmb", "ijazah", "attendance", "jurnal", "downloads"],
+  wali_kelas: ["overview", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "gallery", "penilaian-pmb", "ijazah", "attendance", "jurnal", "rapor", "downloads"],
   pembina_ekstra: ["overview", "news", "calendar", "teacher-duties", "student-card", "gallery", "penilaian-pmb", "downloads"],
-  guru: ["overview", "news", "calendar", "teacher-duties", "student-card", "exams", "penilaian-pmb", "attendance", "jurnal", "downloads"],
+  guru: ["overview", "news", "calendar", "teacher-duties", "student-card", "exams", "penilaian-pmb", "attendance", "jurnal", "rapor", "downloads"],
   student: ["overview", "calendar", "student-card"],
   kepala_tu: ["overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "classes", "employees", "gallery", "contacts", "e-office", "exams", "ppdb", "penilaian-pmb", "ijazah", "attendance", "jurnal", "kbm", "subjects", "alumni", "mutasi", "announcements", "downloads"],
   pegawai_tu: ["overview", "identity", "news", "calendar", "teacher-duties", "student-card", "students", "buku-induk", "employees", "e-office", "ppdb", "penilaian-pmb", "ijazah", "attendance", "kbm", "subjects", "alumni", "mutasi", "announcements", "downloads"],
