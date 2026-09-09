@@ -90,6 +90,7 @@ const DashboardAnnouncements = React.lazy(() => import('./pages/DashboardAnnounc
 const DashboardDownloads = React.lazy(() => import('./pages/DashboardDownloads').then(m => ({ default: m.DashboardDownloads })));
 const PublicSelfUpdatePage = React.lazy(() => import('./pages/PublicSelfUpdatePage').then(m => ({ default: m.PublicSelfUpdatePage || m.default })));
 const IntegrationsPage = React.lazy(() => import('./pages/integrations/IntegrationsPage').then(m => ({ default: m.IntegrationsPage })));
+const DashboardRapor = React.lazy(() => import('./pages/rapor/DashboardRapor').then(m => ({ default: m.DashboardRapor })));
 const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 
 // Loading fallback component
@@ -256,6 +257,7 @@ function App() {
               <Route path="attendance" element={<DashboardAttendance />} />
               <Route path="jurnal" element={<DashboardJurnal />} />
               <Route path="kbm/*" element={<DashboardKBM />} />
+              <Route path="rapor/*" element={<DashboardRapor />} />
               <Route path="updates" element={<ProtectedRoute allowedRoles={['admin']}><SystemUpdateCenter /></ProtectedRoute>} />
               <Route path="services" element={<DashboardServices />} />
               <Route path="announcements" element={<DashboardAnnouncements />} />

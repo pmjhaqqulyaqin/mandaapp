@@ -43,6 +43,7 @@ import { subjectRoutes } from './modules/subjects';
 import { announcementsRoutes } from './modules/announcements/routes';
 import { downloadsRoutes } from './modules/downloads/routes';
 import { integrationsRoutes } from './modules/integrations/routes';
+import { raporRoutes } from './modules/rapor/routes';
 
 dotenv.config();
 
@@ -260,6 +261,7 @@ app.use("/api/subjects", subjectRoutes);
 app.use("/api/announcements", announcementsRoutes);
 app.use("/api/downloads", downloadsRoutes);
 app.use("/api/integrations", integrationsRoutes);
+app.use("/api/rapor", raporRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

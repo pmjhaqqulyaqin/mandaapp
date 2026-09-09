@@ -1301,3 +1301,63 @@ export const integrationApps = pgTable("integration_apps", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// ═══════════════════════════════════════════════════════════════
+// e-Rapor: Konfigurasi Bobot Penilaian per Kelas/Mapel/Semester
+// KMA 450/2024 — Formula NA = (Rerata TP × bobot%) + (SAS × bobot%)
+// ═══════════════════════════════════════════════════════════════
+
+export const raporConfig = pgTable("rapor_config", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  academicYearId: uuid("academic_year_id").references(() => academicYears.id).notNull(),
+  semester: varchar("semester", { length: 10 }).notNull(),         // 'ganjil' | 'genap'
+  classId: uuid("class_id").references(() => classes.id),          // nullable = global default
+  subjectId: uuid("subject_id").references(() => kbmSubjects.id),  // nullable = global default
+  bobotTp: integer("bobot_tp").notNull().default(60),              // Bobot rerata TP (%)
+  bobotSas: integer("bobot_sas").notNull().default(40),            // Bobot SAS (%)
+  kktp: integer("kktp").notNull().default(75),                     // Kriteria Ketercapaian TP
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ═══════════════════════════════════════════════════════════════
+// e-Rapor: Tujuan Pembelajaran (TP) Master — Jumlah TP dinamis
+// ═══════════════════════════════════════════════════════════════
+
+export const raporTp = pgTable("rapor_tp", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  academicYearId: uuid("academic_year_id").references(() => academicYears.id).notNull(),
+  semester: varchar("semester", { length: 10 }).notNull(),
+  subjectId: uuid("subject_id").references(() => kbmSubjects.id).notNull(),
+  nomorTp: integer("nomor_tp").notNull(),                         // 1, 2, 3, ... (dinamis)
+  judul: varchar("judul", { length: 255 }).notNull(),             // "Fikih Muamalah Kontemporer"
+  deskripsi: text("deskripsi"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ═══════════════════════════════════════════════════════════════
+// e-Rapor: Nilai Siswa per TP + SAS
+// nilaiTp disimpan sebagai JSONB agar jumlah TP bisa dinamis
+// ═══════════════════════════════════════════════════════════════
+
+export const raporNilai = pgTable("rapor_nilai", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  academicYearId: uuid("academic_year_id").references(() => academicYears.id).notNull(),
+  semester: varchar("semester", { length: 10 }).notNull(),
+  classId: uuid("class_id").references(() => classes.id).notNull(),
+  subjectId: uuid("subject_id").references(() => kbmSubjects.id).notNull(),
+  studentId: uuid("student_id").references(() => studentProfiles.id, { onDelete: "cascade" }).notNull(),
+  guruId: uuid("guru_id").references(() => employees.id),
+  // Nilai per TP (JSONB untuk fleksibilitas jumlah TP dinamis)
+  nilaiTp: jsonb("nilai_tp"),              // { "1": 88, "2": 92, "3": 85, "4": 90 }
+  nilaiSas: integer("nilai_sas"),          // Nilai Sumatif Akhir Semester
+  rerataTp: varchar("rerata_tp", { length: 10 }),
+  nilaiAkhir: varchar("nilai_akhir", { length: 10 }),
+  predikat: varchar("predikat", { length: 30 }),       // Sangat Baik / Baik / Cukup / Perlu Bimbingan
+  catatanFormatif: text("catatan_formatif"),            // Catatan asesmen formatif (non-rapor)
+  deskripsiCapaian: text("deskripsi_capaian"),          // Narasi deskripsi rapor
+  isLocked: boolean("is_locked").default(false),        // Setelah di-finalize
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
