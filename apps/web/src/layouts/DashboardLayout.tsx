@@ -867,13 +867,13 @@ export const DashboardLayout = () => {
           );
         })()}
 
-        {/* Kalender */}
+        {/* e-Nilai */}
         {(() => {
-          const isActive = location.pathname.startsWith('/dashboard/calendar') && activeBottomSheet === null;
+          const isActive = location.pathname.startsWith('/dashboard/rapor') && activeBottomSheet === null;
           return (
-            <button onClick={() => { setActiveBottomSheet(null); navigate('/dashboard/calendar'); }} className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-200 active:scale-95 ${isActive ? 'text-primary' : 'text-text-secondary'}`} aria-label="Kalender kegiatan">
-              <div className={`[&>svg]:w-[22px] [&>svg]:h-[22px] flex items-center justify-center ${isActive ? '[&>svg]:stroke-[2.5]' : ''}`}><CalendarDays /></div>
-              <span className="text-[11px] font-semibold leading-none">Kalender</span>
+            <button onClick={() => { setActiveBottomSheet(null); navigate('/dashboard/rapor'); }} className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-200 active:scale-95 ${isActive ? 'text-primary' : 'text-text-secondary'}`} aria-label="e-Nilai">
+              <div className={`[&>svg]:w-[22px] [&>svg]:h-[22px] flex items-center justify-center ${isActive ? '[&>svg]:stroke-[2.5]' : ''}`}><FileSpreadsheet /></div>
+              <span className="text-[11px] font-semibold leading-none">e-Nilai</span>
               <div className={`w-1 h-1 rounded-full transition-all duration-300 ${isActive ? 'bg-primary scale-100' : 'bg-transparent scale-0'}`} />
             </button>
           );
