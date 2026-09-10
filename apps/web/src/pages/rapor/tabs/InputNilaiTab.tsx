@@ -445,7 +445,7 @@ export const InputNilaiTab = ({ academicYearId, semester, classId, subjectId, su
             <thead className="sticky top-0 z-20 bg-gray-800 dark:bg-[#1a1a1a] text-white text-[11px] font-semibold">
               <tr>
                 <th className="py-2.5 px-2 text-center w-10 sticky left-0 z-30 bg-gray-800 dark:bg-[#1a1a1a]">No</th>
-                <th className="py-2.5 px-3 sticky left-10 z-30 bg-gray-800 dark:bg-[#1a1a1a] min-w-[180px]">Identitas Santri</th>
+                <th className="py-2.5 px-2 bg-gray-800 dark:bg-[#1a1a1a] min-w-[120px] max-w-[140px]">Identitas Santri</th>
                 {tpList.map(tp => (
                   <th key={tp.id} className="py-2.5 px-1.5 text-center w-14" title={tp.judul}>TP {tp.nomorTp}</th>
                 ))}
@@ -475,9 +475,9 @@ export const InputNilaiTab = ({ academicYearId, semester, classId, subjectId, su
                       <td className="py-2 px-2 text-center sticky left-0 z-10 bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#0d0d0d] font-medium text-gray-400">
                         {idx + 1}
                       </td>
-                      <td className="py-2 px-3 sticky left-10 z-10 bg-white dark:bg-[#111] group-hover:bg-gray-50 dark:group-hover:bg-[#0d0d0d]">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-[#222] text-gray-600 dark:text-gray-400 font-bold flex items-center justify-center text-[10px] shrink-0">
+                      <td className="py-2 px-2">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-[#222] text-gray-600 dark:text-gray-400 font-bold flex items-center justify-center text-[9px] shrink-0">
                             {initials}
                           </div>
                           <div className="flex flex-col min-w-0">
