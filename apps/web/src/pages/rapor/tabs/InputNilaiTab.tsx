@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import {
   Search, Download, Save, Sparkles, Upload, Filter,
   ChevronRight, X, Edit3, Check, Info, AlertTriangle,
-  TrendingUp, Users, Target, Award, Loader2, Lock
+  TrendingUp, Users, Target, Award, Loader2, Lock, Settings
 } from 'lucide-react';
 import { MetrikRingkasan } from '../components/MetrikRingkasan';
 import { StudentDrawer } from '../components/StudentDrawer';
