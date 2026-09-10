@@ -414,6 +414,14 @@ export const InputNilaiTab = ({ academicYearId, semester, classId, subjectId, su
         {/* Action buttons */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
           <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-1.5 px-4 py-2 text-[11px] font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition whitespace-nowrap disabled:opacity-50"
+          >
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            {saving ? 'Menyimpan...' : 'Simpan Nilai'}
+          </button>
+          <button
             onClick={handleExport}
             className="flex items-center gap-1.5 px-3 py-2 text-[11px] font-medium rounded-lg bg-gray-100 dark:bg-[#1a1a1a] hover:bg-gray-200 dark:hover:bg-[#222] text-gray-700 dark:text-gray-300 transition whitespace-nowrap"
           >
@@ -426,14 +434,6 @@ export const InputNilaiTab = ({ academicYearId, semester, classId, subjectId, su
           >
             <Sparkles size={14} />
             Generate Deskripsi
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-2 text-[11px] font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition whitespace-nowrap disabled:opacity-50"
-          >
-            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            {saving ? 'Menyimpan...' : 'Simpan Nilai'}
           </button>
         </div>
       </div>
