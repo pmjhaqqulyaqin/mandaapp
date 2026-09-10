@@ -216,20 +216,35 @@ export async function getNilai(params: {
     ))
     .orderBy(asc(schema.studentProfiles.fullName));
 
-  // Get existing grades
-  const grades = await db.select().from(schema.raporNilai)
-    .where(and(
-      eq(schema.raporNilai.academicYearId, params.academicYearId),
-      eq(schema.raporNilai.semester, params.semester),
-      eq(schema.raporNilai.classId, params.classId),
-      eq(schema.raporNilai.subjectId, params.subjectId),
-    ));
+  // Get existing grades (may fail if table doesn't exist yet)
+  let grades: any[] = [];
+  try {
+    grades = await db.select().from(schema.raporNilai)
+      .where(and(
+        eq(schema.raporNilai.academicYearId, params.academicYearId),
+        eq(schema.raporNilai.semester, params.semester),
+        eq(schema.raporNilai.classId, params.classId),
+        eq(schema.raporNilai.subjectId, params.subjectId),
+      ));
+  } catch (e) {
+    console.warn("[Rapor] rapor_nilai table may not exist yet:", (e as any).message);
+  }
 
-  // Get TP definitions
-  const tpList = await getTujuanPembelajaran(params.academicYearId, params.semester, params.subjectId);
+  // Get TP definitions (may fail if table doesn't exist yet)
+  let tpList: any[] = [];
+  try {
+    tpList = await getTujuanPembelajaran(params.academicYearId, params.semester, params.subjectId);
+  } catch (e) {
+    console.warn("[Rapor] rapor_tp table may not exist yet:", (e as any).message);
+  }
 
-  // Get config
-  const config = await getConfig(params.academicYearId, params.semester, params.classId, params.subjectId);
+  // Get config (may fail if table doesn't exist yet)
+  let config: any = { bobotTp: 60, bobotSas: 40, kktp: 75 };
+  try {
+    config = await getConfig(params.academicYearId, params.semester, params.classId, params.subjectId);
+  } catch (e) {
+    console.warn("[Rapor] rapor_config table may not exist yet:", (e as any).message);
+  }
 
   // Merge: for each student, attach their grade data if exists
   const gradeMap = new Map(grades.map(g => [g.studentId, g]));
@@ -260,9 +275,9 @@ export async function getNilai(params: {
     students: merged,
     tpList,
     config: {
-      bobotTp: (config as any).bobotTp ?? 60,
-      bobotSas: (config as any).bobotSas ?? 40,
-      kktp: (config as any).kktp ?? 75,
+      bobotTp: config.bobotTp ?? 60,
+      bobotSas: config.bobotSas ?? 40,
+      kktp: config.kktp ?? 75,
     },
   };
 }
