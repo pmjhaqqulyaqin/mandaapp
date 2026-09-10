@@ -36,13 +36,17 @@ export const DashboardRapor = () => {
   const [academicYearId, setAcademicYearId] = useState('');
   const [semester, setSemester] = useState('ganjil');
   const [academicYears, setAcademicYears] = useState<any[]>([]);
-  const [classId, setClassId] = useState('');
   const [subjectId, setSubjectId] = useState('');
-  const [classList, setClassList] = useState<any[]>([]);
-  const [subjectList, setSubjectList] = useState<any[]>([]);
-  // Filtered subjects based on selected class (from assignments)
+  const [classId, setClassId] = useState('');
+
+  // Data from teaching assignments
   const [assignments, setAssignments] = useState<any[]>([]);
-  const [filteredSubjects, setFilteredSubjects] = useState<any[]>([]);
+  const [mySubjects, setMySubjects] = useState<any[]>([]); // Unique subjects for this teacher
+  const [filteredClasses, setFilteredClasses] = useState<any[]>([]); // Classes filtered by selected subject
+
+  // For admin: all classes and subjects
+  const [allClasses, setAllClasses] = useState<any[]>([]);
+  const [allSubjects, setAllSubjects] = useState<any[]>([]);
 
   // Load academic years
   useEffect(() => {
@@ -53,7 +57,7 @@ export const DashboardRapor = () => {
     }).catch(() => {});
   }, []);
 
-  // Load classes & subjects from teaching assignments (guru), or all (admin)
+  // Load teaching assignments (guru) or all data (admin)
   useEffect(() => {
     if (isAdmin) {
       // Admin sees all classes and subjects
@@ -61,38 +65,60 @@ export const DashboardRapor = () => {
         apiClient<any[]>('/classes'),
         apiClient<any[]>('/kbm/subjects?active=true'),
       ]).then(([cls, subj]) => {
-        setClassList(cls.sort((a: any, b: any) => a.name.localeCompare(b.name)));
-        setSubjectList(subj.sort((a: any, b: any) => a.nama.localeCompare(b.nama)));
+        setAllClasses(cls.sort((a: any, b: any) => a.name.localeCompare(b.name)));
+        setAllSubjects(subj.sort((a: any, b: any) => a.nama.localeCompare(b.nama)));
         setAssignments([]);
       }).catch(() => {});
     } else if (employeeId) {
-      // Guru/Wali Kelas: only their assigned classes and subjects
+      // Guru/Wali Kelas: fetch their assignments from jadwal mengajar
       apiClient<any>(`/rapor/my-assignments?employeeId=${employeeId}&semester=${semester}`)
         .then(data => {
-          setClassList(data.classes || []);
-          setSubjectList(data.subjects || []);
-          setAssignments(data.assignments || []);
+          const asgn = data.assignments || [];
+          setAssignments(asgn);
+          setMySubjects(data.subjects || []);
+          // Auto-select if only 1 subject
+          if (data.subjects?.length === 1) {
+            setSubjectId(data.subjects[0].id);
+          }
         })
         .catch(() => {});
     }
   }, [employeeId, semester, isAdmin]);
 
-  // When class changes, filter subjects to only those assigned to this teacher for this class
+  // When subject changes, filter classes based on assignments
   useEffect(() => {
-    if (!classId || isAdmin || assignments.length === 0) {
-      setFilteredSubjects(subjectList);
+    if (isAdmin) {
+      // Admin: show all classes, no filtering
+      setFilteredClasses(allClasses);
       return;
     }
-    // Filter subjects by class from assignments
-    const matchingSubjectIds = new Set(
-      assignments.filter(a => a.classId === classId).map(a => a.subjectId)
-    );
-    setFilteredSubjects(subjectList.filter(s => matchingSubjectIds.has(s.id)));
-    // Reset subjectId if no longer valid
-    if (subjectId && !matchingSubjectIds.has(subjectId)) {
-      setSubjectId('');
+    if (!subjectId || assignments.length === 0) {
+      setFilteredClasses([]);
+      return;
     }
-  }, [classId, assignments, subjectList, isAdmin]);
+    // Get classes where this teacher teaches the selected subject
+    const classIdsForSubject = new Set(
+      assignments.filter(a => a.subjectId === subjectId).map(a => a.classId)
+    );
+    const classes = assignments
+      .filter(a => classIdsForSubject.has(a.classId))
+      .reduce((acc: any[], a) => {
+        if (!acc.find(c => c.id === a.classId)) {
+          acc.push({ id: a.classId, name: a.className });
+        }
+        return acc;
+      }, [])
+      .sort((a: any, b: any) => a.name.localeCompare(b.name));
+    setFilteredClasses(classes);
+    // Reset classId if no longer valid
+    if (classId && !classIdsForSubject.has(classId)) {
+      setClassId('');
+    }
+  }, [subjectId, assignments, isAdmin, allClasses]);
+
+  // Determine which lists to use for dropdowns
+  const subjectOptions = isAdmin ? allSubjects : mySubjects;
+  const classOptions = isAdmin ? allClasses : filteredClasses;
 
   const tabs: { key: TabKey; icon: React.ReactNode; label: string }[] = [
     { key: 'input-nilai', icon: <FileSpreadsheet size={15} />, label: 'Input Nilai Sumatif' },
@@ -117,7 +143,7 @@ export const DashboardRapor = () => {
           </p>
         </div>
 
-        {/* Selectors row */}
+        {/* Selectors row: TA → Semester → MAPEL dulu → Kelas */}
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={academicYearId}
@@ -139,24 +165,27 @@ export const DashboardRapor = () => {
             <option value="ganjil">Ganjil</option>
             <option value="genap">Genap</option>
           </select>
-          <select
-            value={classId}
-            onChange={e => { setClassId(e.target.value); setSubjectId(''); }}
-            className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#111] text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-emerald-500"
-          >
-            <option value="">Pilih Kelas</option>
-            {classList.map((c: any) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+          {/* MAPEL dropdown (pilih dulu) */}
           <select
             value={subjectId}
-            onChange={e => setSubjectId(e.target.value)}
+            onChange={e => { setSubjectId(e.target.value); setClassId(''); }}
             className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#111] text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-emerald-500"
           >
             <option value="">Pilih Mata Pelajaran</option>
-            {filteredSubjects.map((s: any) => (
+            {subjectOptions.map((s: any) => (
               <option key={s.id} value={s.id}>{s.kode ? `${s.kode} — ` : ''}{s.nama}</option>
+            ))}
+          </select>
+          {/* KELAS dropdown (filter berdasarkan mapel terpilih) */}
+          <select
+            value={classId}
+            onChange={e => setClassId(e.target.value)}
+            disabled={!subjectId && !isAdmin}
+            className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#111] text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
+          >
+            <option value="">{!subjectId && !isAdmin ? 'Pilih Mapel dulu' : 'Pilih Kelas'}</option>
+            {classOptions.map((c: any) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
         </div>
@@ -190,8 +219,8 @@ export const DashboardRapor = () => {
               semester={semester}
               classId={classId}
               subjectId={subjectId}
-              subjectList={filteredSubjects}
-              classList={classList}
+              subjectList={subjectOptions}
+              classList={classOptions}
             />
           )}
           {activeTab === 'tp' && (
@@ -199,7 +228,7 @@ export const DashboardRapor = () => {
               academicYearId={academicYearId}
               semester={semester}
               subjectId={subjectId}
-              subjectList={filteredSubjects}
+              subjectList={subjectOptions}
             />
           )}
           {activeTab === 'config' && (
