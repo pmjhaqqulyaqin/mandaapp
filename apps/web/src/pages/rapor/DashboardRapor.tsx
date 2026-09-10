@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
-import { BookOpen, Settings, FileSpreadsheet } from 'lucide-react';
+import { BookOpen, Settings, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMyEmployee } from '../../hooks/api/useEmployeeProfile';
 import { apiClient } from '../../lib/api';
@@ -18,11 +18,9 @@ export const DashboardRapor = () => {
   const role = user?.role || '';
   const isAdmin = role === 'admin';
 
-  // Get logged-in teacher's employee profile
-  const { data: myEmployee } = useMyEmployee();
+  const { data: myEmployee, isLoading: empLoading } = useMyEmployee();
   const employeeId = myEmployee?.id || '';
 
-  // Derive active tab from URL path segment
   const tabSegment = location.pathname.split('/').filter(Boolean).pop();
   const activeTab: TabKey = (['tp', 'config'].includes(tabSegment || ''))
     ? tabSegment as TabKey
@@ -32,19 +30,18 @@ export const DashboardRapor = () => {
     navigate(tab === 'input-nilai' ? '/dashboard/rapor' : `/dashboard/rapor/${tab}`);
   };
 
-  // Shared state for selectors
+  // State
   const [academicYearId, setAcademicYearId] = useState('');
   const [semester, setSemester] = useState('ganjil');
   const [academicYears, setAcademicYears] = useState<any[]>([]);
   const [subjectId, setSubjectId] = useState('');
   const [classId, setClassId] = useState('');
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
 
-  // Data from teaching assignments
+  // Data
   const [assignments, setAssignments] = useState<any[]>([]);
-  const [mySubjects, setMySubjects] = useState<any[]>([]); // Unique subjects for this teacher
-  const [filteredClasses, setFilteredClasses] = useState<any[]>([]); // Classes filtered by selected subject
-
-  // For admin: all classes and subjects
+  const [mySubjects, setMySubjects] = useState<any[]>([]);
+  const [filteredClasses, setFilteredClasses] = useState<any[]>([]);
   const [allClasses, setAllClasses] = useState<any[]>([]);
   const [allSubjects, setAllSubjects] = useState<any[]>([]);
 
@@ -60,35 +57,43 @@ export const DashboardRapor = () => {
   // Load teaching assignments (guru) or all data (admin)
   useEffect(() => {
     if (isAdmin) {
-      // Admin sees all classes and subjects
       Promise.all([
         apiClient<any[]>('/classes'),
         apiClient<any[]>('/kbm/subjects?active=true'),
       ]).then(([cls, subj]) => {
         setAllClasses(cls.sort((a: any, b: any) => a.name.localeCompare(b.name)));
         setAllSubjects(subj.sort((a: any, b: any) => a.nama.localeCompare(b.nama)));
-        setAssignments([]);
       }).catch(() => {});
-    } else if (employeeId) {
-      // Guru/Wali Kelas: fetch their assignments from jadwal mengajar
-      apiClient<any>(`/rapor/my-assignments?employeeId=${employeeId}&semester=${semester}`)
-        .then(data => {
-          const asgn = data.assignments || [];
-          setAssignments(asgn);
-          setMySubjects(data.subjects || []);
-          // Auto-select if only 1 subject
-          if (data.subjects?.length === 1) {
-            setSubjectId(data.subjects[0].id);
-          }
-        })
-        .catch(() => {});
+      return;
     }
+
+    // Guru: wait for employeeId
+    if (!employeeId) return;
+
+    setLoadingAssignments(true);
+    apiClient<any>(`/rapor/my-assignments?employeeId=${employeeId}&semester=${semester}`)
+      .then(data => {
+        const asgn = data.assignments || [];
+        const subjs = data.subjects || [];
+        setAssignments(asgn);
+        setMySubjects(subjs);
+        // Auto-select if only 1 subject
+        if (subjs.length === 1) {
+          setSubjectId(subjs[0].id);
+        } else {
+          setSubjectId('');
+        }
+        setClassId('');
+      })
+      .catch((err) => {
+        console.error('[Rapor] Failed to load assignments:', err);
+      })
+      .finally(() => setLoadingAssignments(false));
   }, [employeeId, semester, isAdmin]);
 
-  // When subject changes, filter classes based on assignments
+  // When subject changes → filter classes
   useEffect(() => {
     if (isAdmin) {
-      // Admin: show all classes, no filtering
       setFilteredClasses(allClasses);
       return;
     }
@@ -96,29 +101,27 @@ export const DashboardRapor = () => {
       setFilteredClasses([]);
       return;
     }
-    // Get classes where this teacher teaches the selected subject
     const classIdsForSubject = new Set(
       assignments.filter(a => a.subjectId === subjectId).map(a => a.classId)
     );
-    const classes = assignments
-      .filter(a => classIdsForSubject.has(a.classId))
-      .reduce((acc: any[], a) => {
-        if (!acc.find(c => c.id === a.classId)) {
-          acc.push({ id: a.classId, name: a.className });
-        }
-        return acc;
-      }, [])
-      .sort((a: any, b: any) => a.name.localeCompare(b.name));
+    const classes: any[] = [];
+    const seen = new Set<string>();
+    for (const a of assignments) {
+      if (classIdsForSubject.has(a.classId) && !seen.has(a.classId)) {
+        seen.add(a.classId);
+        classes.push({ id: a.classId, name: a.className });
+      }
+    }
+    classes.sort((a, b) => a.name.localeCompare(b.name));
     setFilteredClasses(classes);
-    // Reset classId if no longer valid
     if (classId && !classIdsForSubject.has(classId)) {
       setClassId('');
     }
   }, [subjectId, assignments, isAdmin, allClasses]);
 
-  // Determine which lists to use for dropdowns
   const subjectOptions = isAdmin ? allSubjects : mySubjects;
   const classOptions = isAdmin ? allClasses : filteredClasses;
+  const selectedSubjectName = subjectOptions.find(s => s.id === subjectId)?.nama || '';
 
   const tabs: { key: TabKey; icon: React.ReactNode; label: string }[] = [
     { key: 'input-nilai', icon: <FileSpreadsheet size={15} />, label: 'Input Nilai Sumatif' },
@@ -143,8 +146,9 @@ export const DashboardRapor = () => {
           </p>
         </div>
 
-        {/* Selectors row: TA → Semester → MAPEL dulu → Kelas */}
+        {/* Selectors: TA → Semester → Mapel → Kelas */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Tahun Ajaran */}
           <select
             value={academicYearId}
             onChange={e => setAcademicYearId(e.target.value)}
@@ -157,6 +161,8 @@ export const DashboardRapor = () => {
               </option>
             ))}
           </select>
+
+          {/* Semester */}
           <select
             value={semester}
             onChange={e => setSemester(e.target.value)}
@@ -165,18 +171,32 @@ export const DashboardRapor = () => {
             <option value="ganjil">Ganjil</option>
             <option value="genap">Genap</option>
           </select>
-          {/* MAPEL dropdown (pilih dulu) */}
-          <select
-            value={subjectId}
-            onChange={e => { setSubjectId(e.target.value); setClassId(''); }}
-            className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#111] text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-emerald-500"
-          >
-            <option value="">Pilih Mata Pelajaran</option>
-            {subjectOptions.map((s: any) => (
-              <option key={s.id} value={s.id}>{s.kode ? `${s.kode} — ` : ''}{s.nama}</option>
-            ))}
-          </select>
-          {/* KELAS dropdown (filter berdasarkan mapel terpilih) */}
+
+          {/* Mata Pelajaran */}
+          {loadingAssignments ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400">
+              <Loader2 size={12} className="animate-spin" /> Memuat mapel...
+            </div>
+          ) : !isAdmin && mySubjects.length === 1 ? (
+            // Hanya 1 mapel: tampil sebagai label, otomatis terpilih
+            <div className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400">
+              {mySubjects[0].kode ? `${mySubjects[0].kode} — ` : ''}{mySubjects[0].nama}
+            </div>
+          ) : (
+            // Multiple mapel atau admin: tampil dropdown
+            <select
+              value={subjectId}
+              onChange={e => { setSubjectId(e.target.value); setClassId(''); }}
+              className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#111] text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-emerald-500"
+            >
+              <option value="">Pilih Mata Pelajaran</option>
+              {subjectOptions.map((s: any) => (
+                <option key={s.id} value={s.id}>{s.kode ? `${s.kode} — ` : ''}{s.nama}</option>
+              ))}
+            </select>
+          )}
+
+          {/* Kelas */}
           <select
             value={classId}
             onChange={e => setClassId(e.target.value)}
@@ -193,7 +213,6 @@ export const DashboardRapor = () => {
 
       {/* Tab Container */}
       <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl overflow-hidden shadow-sm">
-        {/* Tabs */}
         <div className="flex items-center gap-1 px-3 pt-3 overflow-x-auto no-scrollbar">
           {tabs.map(tab => (
             <button
@@ -211,7 +230,6 @@ export const DashboardRapor = () => {
           ))}
         </div>
 
-        {/* Tab Content */}
         <div className="p-3 md:p-4 min-h-[400px]">
           {activeTab === 'input-nilai' && (
             <InputNilaiTab
