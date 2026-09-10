@@ -3,7 +3,7 @@ import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
 import {
   Search, Download, Save, Sparkles, Upload, Filter,
-  ChevronRight, X, Edit3, Check, Info, AlertTriangle,
+  ChevronRight, ChevronDown, ChevronUp, X, Edit3, Check, Info, AlertTriangle,
   TrendingUp, Users, Target, Award, Loader2, Lock, Settings
 } from 'lucide-react';
 import { MetrikRingkasan } from '../components/MetrikRingkasan';
@@ -59,6 +59,7 @@ export const InputNilaiTab = ({ academicYearId, semester, classId, subjectId, su
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'TUNTAS' | 'REMEDIAL'>('ALL');
   const [drawerStudent, setDrawerStudent] = useState<StudentRow | null>(null);
   const [drawerIndex, setDrawerIndex] = useState<number>(-1);
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
 
   // ── Load Data ──
   const loadData = useCallback(() => {
@@ -284,95 +285,110 @@ export const InputNilaiTab = ({ academicYearId, semester, classId, subjectId, su
 
   return (
     <div className="space-y-4">
-      {/* ── Banner KMA 450/2024 ── */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl p-4 text-white shadow-sm">
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
-            <Award size={18} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-1">
-              <span className="text-sm font-semibold">Standar Penilaian Kurikulum Merdeka</span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-white/15 uppercase tracking-wider">
-                KMA 450/2024 • Permendikbudristek No. 12/2024
-              </span>
+      {/* ── Mobile Toggle for Detail Panels ── */}
+      <button
+        onClick={() => setDetailsExpanded(!detailsExpanded)}
+        className="md:hidden w-full flex items-center justify-between px-4 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800 active:scale-[0.98] transition-transform"
+      >
+        <div className="flex items-center gap-2">
+          <Award size={16} className="text-emerald-600 dark:text-emerald-400" />
+          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Info Penilaian & Konfigurasi</span>
+        </div>
+        {detailsExpanded ? <ChevronUp size={16} className="text-emerald-600" /> : <ChevronDown size={16} className="text-emerald-600" />}
+      </button>
+
+      {/* ── Collapsible Detail Panels (hidden on mobile by default, always visible on desktop) ── */}
+      <div className={`space-y-4 ${detailsExpanded ? '' : 'hidden md:block'}`}>
+        {/* ── Banner KMA 450/2024 ── */}
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl p-4 text-white shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+              <Award size={18} />
             </div>
-            <p className="text-xs text-emerald-100 leading-relaxed">
-              <strong className="text-white">Prinsip Asesmen:</strong> Asesmen formatif berfungsi sebagai pemantauan proses belajar dan{' '}
-              <strong className="text-white">TIDAK dirata-rata ke dalam nilai akhir rapor</strong>. NA murni dikalkulasi dari Sumatif Lingkup Materi & SAS.
-            </p>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className="text-sm font-semibold">Standar Penilaian Kurikulum Merdeka</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-white/15 uppercase tracking-wider">
+                  KMA 450/2024 • Permendikbudristek No. 12/2024
+                </span>
+              </div>
+              <p className="text-xs text-emerald-100 leading-relaxed">
+                <strong className="text-white">Prinsip Asesmen:</strong> Asesmen formatif berfungsi sebagai pemantauan proses belajar dan{' '}
+                <strong className="text-white">TIDAK dirata-rata ke dalam nilai akhir rapor</strong>. NA murni dikalkulasi dari Sumatif Lingkup Materi & SAS.
+              </p>
+            </div>
           </div>
         </div>
+
+        {/* ── Metrik Ringkasan + Config Bobot ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* Metrik */}
+          <div className="lg:col-span-8">
+            <MetrikRingkasan
+              subjectName={subjectName}
+              className={className}
+              stats={stats}
+              kktp={config.kktp}
+            />
+          </div>
+
+          {/* Config Bobot */}
+          <div className="lg:col-span-4 bg-gray-50 dark:bg-[#0d0d0d] rounded-xl p-4 border border-gray-200 dark:border-[#222]">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Konfigurasi Bobot</span>
+              <Settings size={16} className="text-gray-400" />
+            </div>
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                  <span>Bobot Rerata Sumatif Materi (TP)</span>
+                  <span className="font-bold text-gray-800 dark:text-gray-200">{config.bobotTp}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={30}
+                  max={90}
+                  step={5}
+                  value={config.bobotTp}
+                  onChange={e => updateBobotTp(parseInt(e.target.value))}
+                  className="w-full accent-emerald-600 cursor-pointer"
+                />
+              </div>
+              <div>
+                <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                  <span>Bobot Sumatif Akhir Semester (SAS)</span>
+                  <span className="font-bold text-gray-800 dark:text-gray-200">{config.bobotSas}%</span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-[#222] h-2 rounded-full overflow-hidden">
+                  <div className="bg-amber-500 h-full transition-all" style={{ width: `${config.bobotSas}%` }} />
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 p-2.5 bg-white dark:bg-[#111] rounded-lg border border-gray-100 dark:border-[#222] flex items-start gap-2">
+              <Info size={14} className="text-gray-400 shrink-0 mt-0.5" />
+              <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                Formula: NA = (Rerata TP × {config.bobotTp}%) + (SAS × {config.bobotSas}%)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── TP Legend ── */}
+        {tpList.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 bg-gray-50 dark:bg-[#0d0d0d] p-3 rounded-xl border border-gray-200 dark:border-[#222]">
+            {tpList.map(tp => (
+              <div key={tp.id} className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                  {tp.nomorTp}
+                </span>
+                <span className="text-[11px] text-gray-700 dark:text-gray-300 line-clamp-1" title={tp.judul}>
+                  <strong>TP {tp.nomorTp}:</strong> {tp.judul}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-
-      {/* ── Metrik Ringkasan + Config Bobot ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Metrik */}
-        <div className="lg:col-span-8">
-          <MetrikRingkasan
-            subjectName={subjectName}
-            className={className}
-            stats={stats}
-            kktp={config.kktp}
-          />
-        </div>
-
-        {/* Config Bobot */}
-        <div className="lg:col-span-4 bg-gray-50 dark:bg-[#0d0d0d] rounded-xl p-4 border border-gray-200 dark:border-[#222]">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Konfigurasi Bobot</span>
-            <Settings size={16} className="text-gray-400" />
-          </div>
-          <div className="space-y-3">
-            <div>
-              <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
-                <span>Bobot Rerata Sumatif Materi (TP)</span>
-                <span className="font-bold text-gray-800 dark:text-gray-200">{config.bobotTp}%</span>
-              </div>
-              <input
-                type="range"
-                min={30}
-                max={90}
-                step={5}
-                value={config.bobotTp}
-                onChange={e => updateBobotTp(parseInt(e.target.value))}
-                className="w-full accent-emerald-600 cursor-pointer"
-              />
-            </div>
-            <div>
-              <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
-                <span>Bobot Sumatif Akhir Semester (SAS)</span>
-                <span className="font-bold text-gray-800 dark:text-gray-200">{config.bobotSas}%</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-[#222] h-2 rounded-full overflow-hidden">
-                <div className="bg-amber-500 h-full transition-all" style={{ width: `${config.bobotSas}%` }} />
-              </div>
-            </div>
-          </div>
-          <div className="mt-3 p-2.5 bg-white dark:bg-[#111] rounded-lg border border-gray-100 dark:border-[#222] flex items-start gap-2">
-            <Info size={14} className="text-gray-400 shrink-0 mt-0.5" />
-            <span className="text-[10px] text-gray-500 dark:text-gray-400">
-              Formula: NA = (Rerata TP × {config.bobotTp}%) + (SAS × {config.bobotSas}%)
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── TP Legend ── */}
-      {tpList.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 bg-gray-50 dark:bg-[#0d0d0d] p-3 rounded-xl border border-gray-200 dark:border-[#222]">
-          {tpList.map(tp => (
-            <div key={tp.id} className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-                {tp.nomorTp}
-              </span>
-              <span className="text-[11px] text-gray-700 dark:text-gray-300 line-clamp-1" title={tp.judul}>
-                <strong>TP {tp.nomorTp}:</strong> {tp.judul}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* ── Toolbar ── */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white dark:bg-[#111] rounded-xl p-3 border border-gray-200 dark:border-[#222] shadow-sm">
