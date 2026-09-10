@@ -132,14 +132,14 @@ export const DashboardRapor = () => {
   return (
     <div className="flex flex-col gap-3 md:gap-4">
       <div className="hidden md:block">
-        <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'e-Rapor / Input Nilai' }]} />
+        <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'e-Nilai' }]} />
       </div>
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-lg md:text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
-            e-Rapor / Input Nilai
+            e-Nilai
           </h1>
           <p className="text-[11px] md:text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             Input Nilai Sumatif Kurikulum Merdeka — KMA 450/2024

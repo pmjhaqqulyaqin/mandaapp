@@ -162,7 +162,7 @@ export const ALL_MENU_ITEMS = [
   },
   {
     key: 'rapor',
-    label: 'e-Rapor / Input Nilai',
+    label: 'e-Nilai',
     href: '/dashboard/rapor',
     icon: <FileSpreadsheet size={16} />,
     group: 'main',
