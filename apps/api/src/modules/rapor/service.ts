@@ -4,14 +4,13 @@ import { eq, and, sql, desc, asc, inArray } from "drizzle-orm";
 
 // ── Guru Teaching Assignments (dari teachingSubjects / jadwal) ──
 
-export async function getMyTeachingAssignments(employeeId: string, semester?: string) {
+export async function getMyTeachingAssignments(employeeId: string, _semester?: string) {
+  // Note: We do NOT filter by semester because teacher assignments are the same
+  // across semesters. The semester field in teachingSubjects may be null or inconsistent.
   const conditions: any[] = [
     eq(schema.teachingSubjects.employeeId, employeeId),
     eq(schema.teachingSubjects.isActive, true),
   ];
-  if (semester) {
-    conditions.push(eq(schema.teachingSubjects.semester, semester));
-  }
 
   const rows = await db.select({
     classId: schema.teachingSubjects.classId,
