@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
-import { BarChart3, BookOpen, Settings, FileSpreadsheet, ClipboardList } from 'lucide-react';
+import { BookOpen, Settings, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useMyEmployee } from '../../hooks/api/useEmployeeProfile';
 import { apiClient } from '../../lib/api';
 import { InputNilaiTab } from './tabs/InputNilaiTab';
 import { TujuanPembelajaranTab } from './tabs/TujuanPembelajaranTab';
@@ -15,6 +16,11 @@ export const DashboardRapor = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const role = user?.role || '';
+  const isAdmin = role === 'admin';
+
+  // Get logged-in teacher's employee profile
+  const { data: myEmployee } = useMyEmployee();
+  const employeeId = myEmployee?.id || '';
 
   // Derive active tab from URL path segment
   const tabSegment = location.pathname.split('/').filter(Boolean).pop();
@@ -34,6 +40,9 @@ export const DashboardRapor = () => {
   const [subjectId, setSubjectId] = useState('');
   const [classList, setClassList] = useState<any[]>([]);
   const [subjectList, setSubjectList] = useState<any[]>([]);
+  // Filtered subjects based on selected class (from assignments)
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [filteredSubjects, setFilteredSubjects] = useState<any[]>([]);
 
   // Load academic years
   useEffect(() => {
@@ -44,19 +53,46 @@ export const DashboardRapor = () => {
     }).catch(() => {});
   }, []);
 
-  // Load classes
+  // Load classes & subjects from teaching assignments (guru), or all (admin)
   useEffect(() => {
-    apiClient<any[]>('/classes').then(data => {
-      setClassList(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
-    }).catch(() => {});
-  }, []);
+    if (isAdmin) {
+      // Admin sees all classes and subjects
+      Promise.all([
+        apiClient<any[]>('/classes'),
+        apiClient<any[]>('/kbm/subjects?active=true'),
+      ]).then(([cls, subj]) => {
+        setClassList(cls.sort((a: any, b: any) => a.name.localeCompare(b.name)));
+        setSubjectList(subj.sort((a: any, b: any) => a.nama.localeCompare(b.nama)));
+        setAssignments([]);
+      }).catch(() => {});
+    } else if (employeeId) {
+      // Guru/Wali Kelas: only their assigned classes and subjects
+      apiClient<any>(`/rapor/my-assignments?employeeId=${employeeId}&semester=${semester}`)
+        .then(data => {
+          setClassList(data.classes || []);
+          setSubjectList(data.subjects || []);
+          setAssignments(data.assignments || []);
+        })
+        .catch(() => {});
+    }
+  }, [employeeId, semester, isAdmin]);
 
-  // Load subjects (from KBM subjects)
+  // When class changes, filter subjects to only those assigned to this teacher for this class
   useEffect(() => {
-    apiClient<any[]>('/kbm/subjects?active=true').then(data => {
-      setSubjectList(data.sort((a: any, b: any) => a.nama.localeCompare(b.nama)));
-    }).catch(() => {});
-  }, []);
+    if (!classId || isAdmin || assignments.length === 0) {
+      setFilteredSubjects(subjectList);
+      return;
+    }
+    // Filter subjects by class from assignments
+    const matchingSubjectIds = new Set(
+      assignments.filter(a => a.classId === classId).map(a => a.subjectId)
+    );
+    setFilteredSubjects(subjectList.filter(s => matchingSubjectIds.has(s.id)));
+    // Reset subjectId if no longer valid
+    if (subjectId && !matchingSubjectIds.has(subjectId)) {
+      setSubjectId('');
+    }
+  }, [classId, assignments, subjectList, isAdmin]);
 
   const tabs: { key: TabKey; icon: React.ReactNode; label: string }[] = [
     { key: 'input-nilai', icon: <FileSpreadsheet size={15} />, label: 'Input Nilai Sumatif' },
@@ -105,7 +141,7 @@ export const DashboardRapor = () => {
           </select>
           <select
             value={classId}
-            onChange={e => setClassId(e.target.value)}
+            onChange={e => { setClassId(e.target.value); setSubjectId(''); }}
             className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#111] text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-emerald-500"
           >
             <option value="">Pilih Kelas</option>
@@ -119,8 +155,8 @@ export const DashboardRapor = () => {
             className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#111] text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-emerald-500"
           >
             <option value="">Pilih Mata Pelajaran</option>
-            {subjectList.map((s: any) => (
-              <option key={s.id} value={s.id}>{s.kode} — {s.nama}</option>
+            {filteredSubjects.map((s: any) => (
+              <option key={s.id} value={s.id}>{s.kode ? `${s.kode} — ` : ''}{s.nama}</option>
             ))}
           </select>
         </div>
@@ -154,7 +190,7 @@ export const DashboardRapor = () => {
               semester={semester}
               classId={classId}
               subjectId={subjectId}
-              subjectList={subjectList}
+              subjectList={filteredSubjects}
               classList={classList}
             />
           )}
@@ -163,7 +199,7 @@ export const DashboardRapor = () => {
               academicYearId={academicYearId}
               semester={semester}
               subjectId={subjectId}
-              subjectList={subjectList}
+              subjectList={filteredSubjects}
             />
           )}
           {activeTab === 'config' && (

@@ -7,6 +7,25 @@ import * as raporService from "./service";
 
 export class RaporController {
 
+  // ── My Assignments (kelas/mapel dari jadwal mengajar) ──────
+
+  static async getMyAssignments(req: Request, res: Response) {
+    try {
+      const { employeeId, semester } = req.query;
+      if (!employeeId) {
+        return res.status(400).json({ error: "employeeId wajib diisi" });
+      }
+      const result = await raporService.getMyTeachingAssignments(
+        employeeId as string,
+        semester as string | undefined,
+      );
+      res.json(result);
+    } catch (error: any) {
+      console.error("[Rapor] getMyAssignments error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   // ── Config ─────────────────────────────────────────────────
 
   static async getConfig(req: Request, res: Response) {

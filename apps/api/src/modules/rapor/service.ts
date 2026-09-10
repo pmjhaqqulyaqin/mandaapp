@@ -2,6 +2,57 @@ import { db } from "../../db";
 import * as schema from "../../db/schema";
 import { eq, and, sql, desc, asc, inArray } from "drizzle-orm";
 
+// ── Guru Teaching Assignments (dari teachingSubjects / jadwal) ──
+
+export async function getMyTeachingAssignments(employeeId: string, semester?: string) {
+  const conditions: any[] = [
+    eq(schema.teachingSubjects.employeeId, employeeId),
+    eq(schema.teachingSubjects.isActive, true),
+  ];
+  if (semester) {
+    conditions.push(eq(schema.teachingSubjects.semester, semester));
+  }
+
+  const rows = await db.select({
+    classId: schema.teachingSubjects.classId,
+    className: schema.classes.name,
+    subjectId: schema.teachingSubjects.subjectId,
+    subjectName: schema.masterSubjects.nama,
+    subjectKode: schema.masterSubjects.kode,
+    semester: schema.teachingSubjects.semester,
+    tahunAjaran: schema.teachingSubjects.tahunAjaran,
+  })
+    .from(schema.teachingSubjects)
+    .leftJoin(schema.classes, eq(schema.teachingSubjects.classId, schema.classes.id))
+    .leftJoin(schema.masterSubjects, eq(schema.teachingSubjects.subjectId, schema.masterSubjects.id))
+    .where(and(...conditions));
+
+  // Deduplicate: unique class+subject combos
+  const seen = new Set<string>();
+  const unique: any[] = [];
+  for (const row of rows) {
+    const key = `${row.classId}::${row.subjectId}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(row);
+    }
+  }
+
+  // Also extract unique classes and subjects for dropdown population
+  const classMap = new Map<string, string>();
+  const subjectMap = new Map<string, { nama: string; kode: string | null }>();
+  for (const r of unique) {
+    if (r.classId && r.className) classMap.set(r.classId, r.className);
+    if (r.subjectId && r.subjectName) subjectMap.set(r.subjectId, { nama: r.subjectName, kode: r.subjectKode });
+  }
+
+  return {
+    assignments: unique,
+    classes: Array.from(classMap.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name)),
+    subjects: Array.from(subjectMap.entries()).map(([id, s]) => ({ id, nama: s.nama, kode: s.kode })).sort((a, b) => a.nama.localeCompare(b.nama)),
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════
 // e-Rapor Service — Nilai Sumatif Kurikulum Merdeka (KMA 450/2024)
 // ═══════════════════════════════════════════════════════════════

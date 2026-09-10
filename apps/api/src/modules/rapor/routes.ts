@@ -6,6 +6,9 @@ const router = Router();
 
 // All rapor routes require staff authentication (guru / wali_kelas / admin)
 
+// My Assignments (kelas & mapel dari jadwal mengajar guru)
+router.get("/my-assignments", requireStaff, RaporController.getMyAssignments);
+
 // Config (Bobot & KKTP)
 router.get("/config", requireStaff, RaporController.getConfig);
 router.post("/config", requireStaff, RaporController.upsertConfig);
