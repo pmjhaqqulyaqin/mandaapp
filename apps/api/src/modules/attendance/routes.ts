@@ -17,11 +17,14 @@ router.get("/weekly-stats", requireStaff, AttendanceController.getWeeklyStats);
 router.get("/recap/daily", requireStaff, AttendanceController.getRecapDaily);
 router.get("/recap/monthly", requireStaff, AttendanceController.getRecapMonthly);
 router.get("/student/:id", requireStaff, AttendanceController.getStudentHistory);
-router.put("/:id", requireStaff, AttendanceController.updateRecord);
-router.delete("/:id", requireStaff, AttendanceController.deleteRecord);
 
 // ─── Settings (admin only) ───────────────────────────────────────────────
+// NOTE: Settings routes MUST be defined BEFORE /:id to prevent Express
+// from matching "/settings" as a parameter value for /:id
 router.get("/settings", requireStaff, AttendanceController.getSettings);
 router.put("/settings", requireAdmin, AttendanceController.updateSettings);
+
+router.put("/:id", requireStaff, AttendanceController.updateRecord);
+router.delete("/:id", requireStaff, AttendanceController.deleteRecord);
 
 export const attendanceRoutes = router;
