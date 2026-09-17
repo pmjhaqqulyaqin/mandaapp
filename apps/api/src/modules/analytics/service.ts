@@ -12,7 +12,13 @@ export class AnalyticsService {
     const results = await Promise.allSettled([
       db.select({ count: count() }).from(studentProfiles).where(eq(studentProfiles.status, "active")),
       db.select({ count: count() }).from(employees),
-      db.select({ count: count() }).from(attendanceRecords).where(eq(attendanceRecords.date, today)),
+      // Count only Hadir + Terlambat for attendance percentage (not Alpa/Sakit/Izin/Bolos)
+      db.select({ count: count() }).from(attendanceRecords).where(
+        and(
+          eq(attendanceRecords.date, today),
+          sql`${attendanceRecords.status} IN ('Hadir', 'Terlambat')`
+        )
+      ),
       db.select({ count: count() }).from(suratMasuks).where(gte(suratMasuks.tanggalDiterima, monthStart)),
       db.select({ count: count() }).from(suratKeluars).where(gte(suratKeluars.tanggalGenerate, monthStart)),
       db.select({ count: count() }).from(serviceRequests).where(eq(serviceRequests.status, "pending")),
