@@ -357,6 +357,7 @@ export const PublicCetakKartu = () => {
              <PrintableStudentCard 
                 student={{
                   name: studentData.fullName,
+                  nis: studentData.nis,
                   nisn: studentData.nisn,
                   className: studentData.className,
                   birthPlace: studentData.birthPlace,

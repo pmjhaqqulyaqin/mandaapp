@@ -3,14 +3,31 @@ import QRCode from 'qrcode';
 
 const LocalQRCode = ({ data, size = 150, style }: { data: string, size?: number, style?: React.CSSProperties }) => {
   const [url, setUrl] = useState('');
+  const [error, setError] = useState(false);
   useEffect(() => {
-    if (data) {
+    if (data && data.trim()) {
+      setError(false);
       QRCode.toDataURL(data, { width: size, margin: 0 })
         .then(setUrl)
-        .catch(console.error);
+        .catch((err) => {
+          console.error('QR Code generation failed:', err);
+          setError(true);
+        });
+    } else {
+      setUrl('');
+      setError(true);
     }
   }, [data, size]);
-  return url ? <img src={url} alt="QR Code" style={{ width: size, height: size, ...style }} /> : <div style={{ width: size, height: size, ...style }} />;
+  if (url) return <img src={url} alt="QR Code" style={{ width: size, height: size, ...style }} />;
+  if (error || !data?.trim()) {
+    return (
+      <div style={{ width: size, height: size, ...style, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6', border: '1px dashed #d1d5db', borderRadius: style?.borderRadius || '4px', flexDirection: 'column', gap: '2px' }}>
+        <div style={{ fontSize: Math.max(8, size * 0.08), fontWeight: 700, color: '#9ca3af', textAlign: 'center' }}>QR Code</div>
+        <div style={{ fontSize: Math.max(6, size * 0.06), color: '#9ca3af', textAlign: 'center' }}>Data Kosong</div>
+      </div>
+    );
+  }
+  return <div style={{ width: size, height: size, ...style }} />;
 };
 
 export type CardOrientation = 'horizontal' | 'vertical';
@@ -27,6 +44,7 @@ export interface PrintableCardTemplate {
 
 export interface PrintableCardStudent {
   name: string;
+  nis?: string;
   nisn: string;
   className: string;
   birthPlace: string;
@@ -111,7 +129,9 @@ export const PrintableStudentCard = ({
   scale = 1,
   side = 'both',
 }: PrintableStudentCardProps) => {
-  const qrData = `NISN: ${student.nisn}\nNama: ${student.name}\nTTL: ${student.birthPlace}, ${formatDate(student.birthDate)}\nSekolah: ${settings.schoolName}`;
+  // Use NISN as primary QR data; fallback to NIS, then student name
+  const qrIdentifier = (student.nisn && student.nisn.trim()) || (student.nis && student.nis.trim()) || student.name;
+  const qrData = `NISN: ${student.nisn || student.nis || '-'}\nNama: ${student.name}\nTTL: ${student.birthPlace}, ${formatDate(student.birthDate)}\nSekolah: ${settings.schoolName}`;
 
   // KTP dimensions in mm: 85.6 x 54mm
   // Typical ID Card in pixels at 300 DPI is approx 1011 x 638.
@@ -213,10 +233,12 @@ export const PrintableStudentCard = ({
             </div>
 
             {/* Right Column: Large QR Code for Presensi */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginLeft: '5px', marginTop: '8px', flexShrink: 0 }}>
-              <LocalQRCode data={student.nisn} size={140} style={{ width: '140px', height: '140px', borderRadius: '8px' }} />
-              <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.5px', color: textColor, marginTop: '4px', textAlign: 'center' }}>SCAN PRESENSI</div>
-            </div>
+            {settings.showQrCode !== false && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginLeft: '5px', marginTop: '8px', flexShrink: 0, position: 'relative', zIndex: 5 }}>
+                <LocalQRCode data={qrIdentifier} size={140} style={{ width: '140px', height: '140px', borderRadius: '8px' }} />
+                <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.5px', color: textColor, marginTop: '4px', textAlign: 'center' }}>SCAN PRESENSI</div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -240,8 +262,8 @@ export const PrintableStudentCard = ({
     const termsTextRaw = settings.termsText || "Kartu pelajar ini hanya dikeluarkan kepada siswa yang terdaftar di sekolah.\nKartu pelajar bersifat pribadi dan tidak boleh digunakan oleh orang lain.\nPemegang kartu bertanggung jawab untuk menjaga kebersihan dan keutuhan kartu.\nKartu Pelajar ini berlaku selama masa studi aktif di sekolah yang terdaftar.";
     const termsLines = termsTextRaw.split('\n');
 
-    // QR payload: NIS only for fast attendance scanning
-    const qrPayload = student.nisn;
+    // QR payload: NISN (primary) or NIS (fallback) for fast attendance scanning
+    const qrPayload = (student.nisn && student.nisn.trim()) || (student.nis && student.nis.trim()) || student.name;
 
     const bgUrl = settings.customTemplateBackUrl;
 
@@ -446,9 +468,11 @@ export const PrintableStudentCard = ({
           </div>
 
           {/* 8. QR CODE - centered at bottom */}
-          <div style={{ marginTop: 'auto', marginBottom: '35px', display: 'flex', justifyContent: 'center' }}>
-            <LocalQRCode data={student.nisn} size={75} style={{ borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
-          </div>
+          {settings.showQrCode !== false && (
+            <div style={{ marginTop: 'auto', marginBottom: '35px', display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 5 }}>
+              <LocalQRCode data={qrIdentifier} size={75} style={{ borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
+            </div>
+          )}
         </div>
 
         {/* FOOTER DECORATIONS (only when no custom template) */}

@@ -325,6 +325,7 @@ export const DashboardStudentCard = () => {
       students: activeStudentsToPrint.map(s => ({
         id: s.id,
         name: s.fullName || s.name,
+        nis: (s as any).nis,
         nisn: s.nisn,
         className: s.className,
         birthPlace: s.birthPlace,
@@ -714,6 +715,7 @@ export const DashboardStudentCard = () => {
                               <PrintableStudentCard
                                 student={{
                                   name: selectedStudent.fullName || selectedStudent.name,
+                                  nis: (selectedStudent as any).nis,
                                   nisn: selectedStudent.nisn,
                                   className: selectedStudent.className,
                                   birthPlace: selectedStudent.birthPlace,
@@ -1026,11 +1028,13 @@ export const DashboardStudentCard = () => {
             <PrintableStudentCard
               student={{
                 name: selectedStudent.fullName || selectedStudent.name,
+                nis: (selectedStudent as any).nis,
                 nisn: selectedStudent.nisn,
                 className: selectedStudent.className,
                 birthPlace: selectedStudent.birthPlace,
                 birthDate: selectedStudent.birthDate,
                 gender: selectedStudent.gender,
+                address: selectedStudent.address,
                 photoUrl: selectedStudent.photoUrl,
               }}
               template={template}
@@ -1059,11 +1063,13 @@ export const DashboardStudentCard = () => {
             <PrintableStudentCard
               student={{
                 name: selectedStudent.fullName || selectedStudent.name,
+                nis: (selectedStudent as any).nis,
                 nisn: selectedStudent.nisn,
                 className: selectedStudent.className,
                 birthPlace: selectedStudent.birthPlace,
                 birthDate: selectedStudent.birthDate,
                 gender: selectedStudent.gender,
+                address: selectedStudent.address,
                 photoUrl: selectedStudent.photoUrl,
               }}
               template={template}
@@ -1105,11 +1111,13 @@ export const DashboardStudentCard = () => {
                           key={`front-${s.id}`}
                           student={{
                             name: s.fullName || s.name,
+                            nis: (s as any).nis,
                             nisn: s.nisn,
                             className: s.className,
                             birthPlace: s.birthPlace,
                             birthDate: s.birthDate,
                             gender: s.gender,
+                            address: s.address,
                             photoUrl: s.photoUrl,
                           }}
                           template={template}
@@ -1151,11 +1159,13 @@ export const DashboardStudentCard = () => {
                           key={`back-${s.id}`}
                           student={{
                             name: s.fullName || s.name,
+                            nis: (s as any).nis,
                             nisn: s.nisn,
                             className: s.className,
                             birthPlace: s.birthPlace,
                             birthDate: s.birthDate,
                             gender: s.gender,
+                            address: s.address,
                             photoUrl: s.photoUrl,
                           }}
                           template={template}
@@ -1335,7 +1345,7 @@ export const DashboardStudentCard = () => {
                           <div style={{ width: `${(orientation === 'horizontal' ? 856 : 408) * 0.4}px`, height: `${(orientation === 'horizontal' ? 540 : 646) * 0.4}px`, overflow: 'hidden' }}>
                             <div style={{ transform: 'scale(0.4)', transformOrigin: 'top left', width: `${orientation === 'horizontal' ? 856 : 408}px`, height: `${orientation === 'horizontal' ? 540 : 646}px` }}>
                               <PrintableStudentCard
-                                student={{ name: selectedStudent.fullName || selectedStudent.name, nisn: selectedStudent.nisn, className: selectedStudent.className, birthPlace: selectedStudent.birthPlace, birthDate: selectedStudent.birthDate, gender: selectedStudent.gender, address: selectedStudent.address, photoUrl: selectedStudent.photoUrl }}
+                                student={{ name: selectedStudent.fullName || selectedStudent.name, nis: (selectedStudent as any).nis, nisn: selectedStudent.nisn, className: selectedStudent.className, birthPlace: selectedStudent.birthPlace, birthDate: selectedStudent.birthDate, gender: selectedStudent.gender, address: selectedStudent.address, photoUrl: selectedStudent.photoUrl }}
                                 template={template}
                                 settings={{ schoolName: globalSchoolName || cardSettings.schoolName, schoolSubtitle: cardSettings.schoolSubtitle, schoolAddress: globalSchoolAddress || cardSettings.schoolAddress, schoolPhone: globalSchoolPhone, schoolEmail: globalSchoolEmail, headmasterName: globalHeadmasterName, headmasterNip: globalHeadmasterNip, termsText: cardSettings.termsText, schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl), headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl || cardSettings.headmasterSignatureUrl), kemenagLogoUrl: getFullUrl(globalKemenagLogoUrl || editingSettings.kemenagLogoUrl || cardSettings.kemenagLogoUrl), schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl || cardSettings.schoolStampUrl), academicYear: cardSettings.academicYear, showQrCode: cardSettings.showQrCode, customTemplateFrontUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalFrontUrl : editingSettings.customTemplateVerticalFrontUrl) || undefined, customTemplateBackUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalBackUrl : editingSettings.customTemplateVerticalBackUrl) || undefined }}
                                 orientation={orientation}
@@ -1352,7 +1362,7 @@ export const DashboardStudentCard = () => {
                           <div style={{ width: `${(orientation === 'horizontal' ? 856 : 408) * 0.4}px`, height: `${(orientation === 'horizontal' ? 540 : 646) * 0.4}px`, overflow: 'hidden' }}>
                             <div style={{ transform: 'scale(0.4)', transformOrigin: 'top left', width: `${orientation === 'horizontal' ? 856 : 408}px`, height: `${orientation === 'horizontal' ? 540 : 646}px` }}>
                               <PrintableStudentCard
-                                student={{ name: selectedStudent.fullName || selectedStudent.name, nisn: selectedStudent.nisn, className: selectedStudent.className, birthPlace: selectedStudent.birthPlace, birthDate: selectedStudent.birthDate, gender: selectedStudent.gender, address: selectedStudent.address, photoUrl: selectedStudent.photoUrl }}
+                                student={{ name: selectedStudent.fullName || selectedStudent.name, nis: (selectedStudent as any).nis, nisn: selectedStudent.nisn, className: selectedStudent.className, birthPlace: selectedStudent.birthPlace, birthDate: selectedStudent.birthDate, gender: selectedStudent.gender, address: selectedStudent.address, photoUrl: selectedStudent.photoUrl }}
                                 template={template}
                                 settings={{ schoolName: globalSchoolName || cardSettings.schoolName, schoolSubtitle: cardSettings.schoolSubtitle, schoolAddress: globalSchoolAddress || cardSettings.schoolAddress, schoolPhone: globalSchoolPhone, schoolEmail: globalSchoolEmail, headmasterName: globalHeadmasterName, headmasterNip: globalHeadmasterNip, termsText: cardSettings.termsText, schoolLogoUrl: getFullUrl(globalLogoUrl || cardSettings.schoolLogoUrl), headmasterSignatureUrl: getFullUrl(editingSettings.headmasterSignatureUrl || cardSettings.headmasterSignatureUrl), kemenagLogoUrl: getFullUrl(globalKemenagLogoUrl || editingSettings.kemenagLogoUrl || cardSettings.kemenagLogoUrl), schoolStampUrl: getFullUrl(editingSettings.schoolStampUrl || cardSettings.schoolStampUrl), academicYear: cardSettings.academicYear, showQrCode: cardSettings.showQrCode, customTemplateFrontUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalFrontUrl : editingSettings.customTemplateVerticalFrontUrl) || undefined, customTemplateBackUrl: getFullUrl(orientation === 'horizontal' ? editingSettings.customTemplateHorizontalBackUrl : editingSettings.customTemplateVerticalBackUrl) || undefined }}
                                 orientation={orientation}
@@ -1408,6 +1418,7 @@ export const DashboardStudentCard = () => {
                   <PrintableStudentCard
                     student={{
                       name: selectedStudent.fullName || selectedStudent.name,
+                      nis: (selectedStudent as any).nis,
                       nisn: selectedStudent.nisn,
                       className: selectedStudent.className,
                       birthPlace: selectedStudent.birthPlace,

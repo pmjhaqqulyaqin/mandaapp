@@ -8,6 +8,7 @@ interface BatchPrintData {
   students: Array<{
     id: string;
     name: string;
+    nis?: string;
     nisn: string;
     className: string;
     birthPlace: string;
@@ -310,6 +311,7 @@ export const BatchPrintPage = () => {
             <PrintableStudentCard
               student={{
                 name: students[0].name,
+                nis: students[0].nis,
                 nisn: students[0].nisn,
                 className: students[0].className,
                 birthPlace: students[0].birthPlace,
@@ -341,6 +343,7 @@ export const BatchPrintPage = () => {
                         key={`front-${s.id}`}
                         student={{
                           name: s.name,
+                          nis: s.nis,
                           nisn: s.nisn,
                           className: s.className,
                           birthPlace: s.birthPlace,
@@ -375,6 +378,7 @@ export const BatchPrintPage = () => {
                         key={`back-${s.id}`}
                         student={{
                           name: s.name,
+                          nis: s.nis,
                           nisn: s.nisn,
                           className: s.className,
                           birthPlace: s.birthPlace,
