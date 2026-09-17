@@ -154,7 +154,12 @@ export const KonfigurasiTab = ({ academicYearId, semester, classId, subjectId }:
             min={50}
             max={95}
             value={kktp}
-            onChange={e => setKktp(Math.min(95, Math.max(50, parseInt(e.target.value) || 75)))}
+            onChange={e => {
+              const raw = e.target.value;
+              if (raw === '') { setKktp('' as any); return; }
+              setKktp(parseInt(raw) || 75);
+            }}
+            onBlur={() => setKktp(Math.min(95, Math.max(50, kktp || 75)))}
             className="w-20 px-3 py-2.5 text-center text-sm font-bold text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-[#0d0d0d] rounded-lg border border-gray-200 dark:border-[#333] focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
           <div className="text-xs text-gray-500 dark:text-gray-400">
