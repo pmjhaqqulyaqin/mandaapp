@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { cn } from '../utils/cn';
 
 export interface ModalProps {
@@ -21,16 +21,23 @@ export function Modal({
   className,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  // Use a ref for onClose to avoid re-running effects when the callback reference changes
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  const handleClose = useCallback(() => {
+    onCloseRef.current();
+  }, []);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
 
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
       document.body.style.overflow = 'hidden';
-      // Auto-focus modal container for keyboard users
+      // Auto-focus modal container for keyboard users — only on open
       requestAnimationFrame(() => {
         modalRef.current?.focus();
       });
@@ -40,7 +47,7 @@ export function Modal({
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -49,7 +56,7 @@ export function Modal({
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity z-[2001]"
-        onClick={onClose}
+        onClick={handleClose}
         aria-hidden="true"
       />
       
@@ -67,7 +74,7 @@ export function Modal({
         )}
       >
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute right-3 top-3 rounded-md p-0.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] hover:text-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
         >
           <span className="sr-only">Close</span>
@@ -102,3 +109,4 @@ export function Modal({
     </div>
   );
 }
+
