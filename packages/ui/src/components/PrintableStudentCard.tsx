@@ -222,13 +222,13 @@ export const PrintableStudentCard = ({
             </div>
 
             {/* Middle Column: Identity Data */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '0 10px', marginTop: '8px' }}>
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', padding: '0 10px', marginTop: '8px', overflow: 'hidden' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '110px 12px 1fr', rowGap: '8px', columnGap: '4px', fontSize: '19px', color: textColor, fontWeight: 700 }}>
-                <div>NAMA</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.name}</div>
+                <div>NAMA</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis' }}>{student.name}</div>
                 <div>NIS/NISN</div><div>:</div><div style={{ fontWeight: 500 }}>{student.nisn}</div>
                 <div>T.T.L</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.birthPlace}, {formatDate(student.birthDate)}</div>
                 <div>J.K.</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase' }}>{student.gender || '-'}</div>
-                <div>ALAMAT</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase', lineHeight: 1.3, fontSize: '16px' }}>{student.address || '-'}</div>
+                <div>ALAMAT</div><div>:</div><div style={{ fontWeight: 500, textTransform: 'uppercase', lineHeight: 1.3, fontSize: '16px', wordBreak: 'break-word', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any }}>{student.address || '-'}</div>
               </div>
             </div>
 
