@@ -302,25 +302,12 @@ export const DashboardAttendance = () => {
     }
   };
 
-  // Non-admin: render unified page directly (no tabs)
-  if (!isAdmin) {
-    return (
-      <div className="flex flex-col gap-3 md:gap-4">
-        <Breadcrumbs items={[
-          { label: 'Dashboard', href: '/dashboard' },
-          { label: 'Presensi Siswa' }
-        ]} />
-        <UnifiedScanPage processScan={processScan} isLoading={isLoading} />
-      </div>
-    );
-  }
-
-  // Admin: segmented tabs
-  const adminTabs = [
+  // Build tabs based on role: all users get Scan + Rekap, admin adds Manual + Setting
+  const tabs = [
     { key: 'scan' as const, icon: <UserCheck size={14} />, label: 'Scan' },
-    { key: 'manual' as const, icon: <NotebookPen size={14} />, label: 'Manual' },
+    ...(isAdmin ? [{ key: 'manual' as const, icon: <NotebookPen size={14} />, label: 'Manual' }] : []),
     { key: 'rekap' as const, icon: <Grid size={14} />, label: 'Rekap' },
-    { key: 'settings' as const, icon: <Settings size={14} />, label: 'Setting' },
+    ...(isAdmin ? [{ key: 'settings' as const, icon: <Settings size={14} />, label: 'Setting' }] : []),
   ];
 
   return (
@@ -330,11 +317,11 @@ export const DashboardAttendance = () => {
         { label: 'Presensi Siswa' }
       ]} />
 
-      {/* Admin Segmented Control */}
+      {/* Segmented Control */}
       <div className="bg-white dark:bg-[#111] border border-border-light dark:border-border-dark rounded-xl overflow-hidden">
         <div className="p-2 border-b border-border-light dark:border-border-dark bg-gray-50/80 dark:bg-[#0d0d0d]">
           <div className="inline-flex w-full gap-1 p-0.5 bg-gray-200/70 dark:bg-[#1a1a1a] rounded-xl">
-            {adminTabs.map((tab) => (
+            {tabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
@@ -353,9 +340,9 @@ export const DashboardAttendance = () => {
 
         <div className="p-3 min-h-[300px]">
           {activeTab === 'scan' && <UnifiedScanPage processScan={processScan} isLoading={isLoading} />}
-          {activeTab === 'manual' && <AttendanceManualInputTab />}
+          {activeTab === 'manual' && isAdmin && <AttendanceManualInputTab />}
           {activeTab === 'rekap' && <AttendanceRecapTab />}
-          {activeTab === 'settings' && <AttendanceSettingsTab />}
+          {activeTab === 'settings' && isAdmin && <AttendanceSettingsTab />}
         </div>
       </div>
     </div>
