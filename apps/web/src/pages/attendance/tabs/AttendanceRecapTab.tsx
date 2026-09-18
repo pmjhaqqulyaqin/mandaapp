@@ -256,9 +256,9 @@ export const AttendanceRecapTab = () => {
           </button>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 items-end">
-          {/* Class selector */}
-          <div className="flex-1 min-w-0">
+        <div className="grid grid-cols-2 gap-2">
+          {/* Class selector — full width */}
+          <div className="col-span-2">
             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Pilih Kelas</label>
             <select 
               value={selectedClass} 
@@ -271,13 +271,13 @@ export const AttendanceRecapTab = () => {
           </div>
           
           {mode === 'monthly' ? (
-            <div className="flex gap-2">
+            <>
               <div>
                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Bulan</label>
                 <select 
                   value={selectedMonth} 
                   onChange={e => setSelectedMonth(Number(e.target.value))}
-                  className="w-20 bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
                 >
                   {Array.from({length: 12}, (_, i) => i + 1).map(m => (
                     <option key={m} value={m}>{new Date(2000, m - 1).toLocaleString('id-ID', { month: 'short' })}</option>
@@ -289,23 +289,23 @@ export const AttendanceRecapTab = () => {
                 <select 
                   value={selectedYear} 
                   onChange={e => setSelectedYear(Number(e.target.value))}
-                  className="w-20 bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
                 >
                   {[today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1].map(y => (
                     <option key={y} value={y}>{y}</option>
                   ))}
                 </select>
               </div>
-            </div>
+            </>
           ) : (
-            <div className="flex flex-col sm:flex-row gap-2 items-end">
+            <>
               <div>
                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Dari</label>
                 <input
                   type="date"
                   value={startDate}
                   onChange={e => setStartDate(e.target.value)}
-                  className="bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
               <div>
@@ -314,32 +314,32 @@ export const AttendanceRecapTab = () => {
                   type="date"
                   value={endDate}
                   onChange={e => setEndDate(e.target.value)}
-                  className="bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
-              {/* Quick presets */}
-              <div className="flex gap-1">
-                <button onClick={setThisWeek} className="px-2 py-1.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 rounded-lg text-[10px] font-bold hover:bg-indigo-100 transition">
+              <div className="col-span-2 flex gap-1">
+                <button onClick={setThisWeek} className="flex-1 px-2 py-1.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 rounded-lg text-[10px] font-bold hover:bg-indigo-100 transition">
                   Minggu Ini
                 </button>
-                <button onClick={setLastWeek} className="px-2 py-1.5 bg-gray-100 text-gray-600 dark:bg-[#333] dark:text-gray-300 rounded-lg text-[10px] font-bold hover:bg-gray-200 transition">
+                <button onClick={setLastWeek} className="flex-1 px-2 py-1.5 bg-gray-100 text-gray-600 dark:bg-[#333] dark:text-gray-300 rounded-lg text-[10px] font-bold hover:bg-gray-200 transition">
                   Minggu Lalu
                 </button>
               </div>
-            </div>
+            </>
           )}
 
+          {/* Action buttons — full width row */}
           <button 
             onClick={fetchRecap}
             disabled={isLoading}
-            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
+            className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
           >
             <Search size={14} /> Filter
           </button>
           <button 
             onClick={handleExport}
             disabled={studentsList.length === 0}
-            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 disabled:opacity-50"
+            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
           >
             <Download size={14} /> Excel
           </button>
