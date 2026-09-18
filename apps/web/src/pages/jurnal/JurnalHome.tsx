@@ -395,7 +395,7 @@ export const JurnalHome = ({ onNavigate, isAdmin, onAdminSettings }: Props) => {
             const canClick = !config.disabled;
 
             return (
-              <button key={item.id} onClick={() => canClick && onNavigate('create', item)}
+              <button key={item.id} onClick={() => canClick && onNavigate('create', { ...item, date: selectedDate })}
                 disabled={config.disabled}
                 className={`w-full text-left bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm border-l-4 transition-all border border-gray-100 dark:border-gray-800 ${config.borderColor} ${
                   canClick ? 'hover:shadow-md cursor-pointer active:scale-[0.98]' : 'opacity-70 cursor-not-allowed'

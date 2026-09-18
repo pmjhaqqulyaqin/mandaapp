@@ -142,6 +142,7 @@ export const JurnalInputTab = ({ onBack, selectedSchedule }: Props) => {
         ...f,
         teachingSubjectId: selectedSchedule.id,
         classId: selectedSchedule.classId,
+        date: selectedSchedule.date || new Date().toLocaleDateString('sv-SE'),
         subjectName: selectedSchedule.subjectName,
         className: selectedSchedule.className || '',
         jamKe: selectedSchedule.jamKe || '',
