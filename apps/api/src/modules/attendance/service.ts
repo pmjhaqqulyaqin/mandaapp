@@ -410,13 +410,15 @@ export class AttendanceService {
   }
 
   // ─── Recap Daily ────────────────────────────────────────────────────────
+  // FIX: Use studentProfiles as base table with LEFT JOIN to attendanceRecords
+  // so ALL active students appear in the recap, even those without attendance records.
 
   static async getRecapDaily(date: string, classId?: string) {
-    const conditions = [eq(attendanceRecords.date, date)];
-    if (classId) conditions.push(eq(attendanceRecords.classId, classId));
+    const studentConditions: any[] = [eq(studentProfiles.status, "active")];
+    if (classId) studentConditions.push(eq(studentProfiles.classId, classId));
 
     const results = await db.select({
-      studentId: attendanceRecords.studentId,
+      studentId: studentProfiles.id,
       status: attendanceRecords.status,
       checkIn: attendanceRecords.checkIn,
       checkOut: attendanceRecords.checkOut,
@@ -426,63 +428,71 @@ export class AttendanceService {
       nis: studentProfiles.nis,
       kelas: studentProfiles.className,
     })
-      .from(attendanceRecords)
-      .innerJoin(studentProfiles, eq(attendanceRecords.studentId, studentProfiles.id))
-      .where(and(...conditions));
+      .from(studentProfiles)
+      .leftJoin(attendanceRecords, and(
+        eq(attendanceRecords.studentId, studentProfiles.id),
+        eq(attendanceRecords.date, date)
+      ))
+      .where(and(...studentConditions))
+      .orderBy(studentProfiles.className, studentProfiles.fullName);
 
     return results;
   }
 
   // ─── Recap Monthly (Calendar) ───────────────────────────────────────────
+  // FIX: Use studentProfiles as base table with LEFT JOIN to attendanceRecords.
 
   static async getRecapMonthly(month: number, year: number, classId?: string, studentId?: string) {
     const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
     const endDate = `${year}-${String(month).padStart(2, "0")}-${new Date(year, month, 0).getDate()}`;
 
-    const conditions = [
-      sql`${attendanceRecords.date} >= ${startDate}`,
-      sql`${attendanceRecords.date} <= ${endDate}`,
-    ];
-    if (classId) conditions.push(eq(attendanceRecords.classId, classId));
-    if (studentId) conditions.push(eq(attendanceRecords.studentId, studentId));
+    const studentConditions: any[] = [eq(studentProfiles.status, "active")];
+    if (classId) studentConditions.push(eq(studentProfiles.classId, classId));
+    if (studentId) studentConditions.push(eq(studentProfiles.id, studentId));
 
     const results = await db.select({
-      studentId: attendanceRecords.studentId,
+      studentId: studentProfiles.id,
       date: attendanceRecords.date,
       status: attendanceRecords.status,
       nama: studentProfiles.fullName,
       nis: studentProfiles.nis,
       kelas: studentProfiles.className,
     })
-      .from(attendanceRecords)
-      .innerJoin(studentProfiles, eq(attendanceRecords.studentId, studentProfiles.id))
-      .where(and(...conditions))
+      .from(studentProfiles)
+      .leftJoin(attendanceRecords, and(
+        eq(attendanceRecords.studentId, studentProfiles.id),
+        sql`${attendanceRecords.date} >= ${startDate}`,
+        sql`${attendanceRecords.date} <= ${endDate}`
+      ))
+      .where(and(...studentConditions))
       .orderBy(studentProfiles.fullName, attendanceRecords.date);
 
     return results;
   }
 
   // ─── Recap by Date Range ──────────────────────────────────────────────
+  // FIX: Use studentProfiles as base table with LEFT JOIN to attendanceRecords.
 
   static async getRecapByDateRange(startDate: string, endDate: string, classId?: string, studentId?: string) {
-    const conditions = [
-      sql`${attendanceRecords.date} >= ${startDate}`,
-      sql`${attendanceRecords.date} <= ${endDate}`,
-    ];
-    if (classId) conditions.push(eq(attendanceRecords.classId, classId));
-    if (studentId) conditions.push(eq(attendanceRecords.studentId, studentId));
+    const studentConditions: any[] = [eq(studentProfiles.status, "active")];
+    if (classId) studentConditions.push(eq(studentProfiles.classId, classId));
+    if (studentId) studentConditions.push(eq(studentProfiles.id, studentId));
 
     const results = await db.select({
-      studentId: attendanceRecords.studentId,
+      studentId: studentProfiles.id,
       date: attendanceRecords.date,
       status: attendanceRecords.status,
       nama: studentProfiles.fullName,
       nis: studentProfiles.nis,
       kelas: studentProfiles.className,
     })
-      .from(attendanceRecords)
-      .innerJoin(studentProfiles, eq(attendanceRecords.studentId, studentProfiles.id))
-      .where(and(...conditions))
+      .from(studentProfiles)
+      .leftJoin(attendanceRecords, and(
+        eq(attendanceRecords.studentId, studentProfiles.id),
+        sql`${attendanceRecords.date} >= ${startDate}`,
+        sql`${attendanceRecords.date} <= ${endDate}`
+      ))
+      .where(and(...studentConditions))
       .orderBy(studentProfiles.fullName, attendanceRecords.date);
 
     return results;

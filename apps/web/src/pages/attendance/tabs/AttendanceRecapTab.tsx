@@ -103,6 +103,8 @@ export const AttendanceRecapTab = () => {
         stats: { Hadir: 0, Terlambat: 0, Alpa: 0, Izin: 0, Sakit: 0, Bolos: 0 }
       });
     }
+    // Skip records with null status (students without attendance for this date)
+    if (!record.status || !record.date) return;
     const stu = studentMap.get(record.studentId)!;
     stu.dates[record.date] = record.status;
     const statusKey = record.status === 'Pulang' ? 'Hadir' : record.status;
