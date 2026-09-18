@@ -35,12 +35,15 @@ const UnifiedScanPage = ({ processScan, isLoading: scanLoading }: { processScan:
   const [logHariIni, setLogHariIni] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const nisInputRef = useRef<HTMLInputElement>(null);
+  const [filterStatus, setFilterStatus] = useState<'Hadir' | 'Terlambat' | 'Belum'>('Hadir');
+  const [belumList, setBelumList] = useState<any[]>([]);
+  const [belumLoading, setBelumLoading] = useState(false);
 
   const fetchDashboard = async () => {
     try {
       const [statsRes, logRes] = await Promise.all([
         apiClient<any>('/attendance/today/stats'),
-        apiClient<any[]>('/attendance/today/log?limit=15'),
+        apiClient<any[]>('/attendance/today/log?limit=500'),
       ]);
       setStats(statsRes);
       setLogHariIni(logRes);
@@ -50,6 +53,28 @@ const UnifiedScanPage = ({ processScan, isLoading: scanLoading }: { processScan:
       setDataLoading(false);
     }
   };
+
+  // Fetch belum absen list when filter is 'Belum'
+  const fetchBelumList = async () => {
+    setBelumLoading(true);
+    try {
+      // Get all active students and filter out those who already scanned
+      const allStudents = await apiClient<any[]>('/students?status=active&limit=1000');
+      const scannedNis = new Set(logHariIni.map(l => l.nis));
+      const belum = allStudents.filter(s => !scannedNis.has(s.nis));
+      setBelumList(belum);
+    } catch (err) {
+      console.error('Failed to fetch belum list:', err);
+    } finally {
+      setBelumLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (filterStatus === 'Belum' && belumList.length === 0 && !belumLoading) {
+      fetchBelumList();
+    }
+  }, [filterStatus]);
 
   useEffect(() => {
     fetchDashboard();
@@ -72,6 +97,17 @@ const UnifiedScanPage = ({ processScan, isLoading: scanLoading }: { processScan:
     setNisInput('');
     nisInputRef.current?.focus();
   };
+
+  // Filter log based on selected stat
+  const filteredLog = filterStatus === 'Belum'
+    ? [] // handled separately
+    : logHariIni.filter(log => log.status === filterStatus);
+
+  const statBoxes: { key: 'Hadir' | 'Terlambat' | 'Belum'; value: number | string; color: string; ringColor: string }[] = [
+    { key: 'Hadir', value: dataLoading ? '–' : (stats?.Hadir || 0), color: 'text-emerald-600', ringColor: 'ring-emerald-400' },
+    { key: 'Terlambat', value: dataLoading ? '–' : (stats?.Terlambat || 0), color: 'text-amber-500', ringColor: 'ring-amber-400' },
+    { key: 'Belum', value: dataLoading ? '–' : (stats?.belum_absen || 0), color: 'text-red-500', ringColor: 'ring-red-400' },
+  ];
 
   return (
     <div className="space-y-2">
@@ -125,48 +161,88 @@ const UnifiedScanPage = ({ processScan, isLoading: scanLoading }: { processScan:
         </form>
       </div>
 
-      {/* ── Compact Stats ── */}
+      {/* ── Compact Stats — Tappable ── */}
       <div className="grid grid-cols-4 gap-2">
-        <div className="bg-white dark:bg-[#111] rounded-xl border border-border-light dark:border-border-dark p-2.5 text-center">
-          <div className="text-lg font-bold text-emerald-600">{dataLoading ? '–' : (stats?.Hadir || 0)}</div>
-          <div className="text-[9px] font-semibold text-text-secondary uppercase tracking-wider">Hadir</div>
-        </div>
-        <div className="bg-white dark:bg-[#111] rounded-xl border border-border-light dark:border-border-dark p-2.5 text-center">
-          <div className="text-lg font-bold text-amber-500">{dataLoading ? '–' : (stats?.Terlambat || 0)}</div>
-          <div className="text-[9px] font-semibold text-text-secondary uppercase tracking-wider">Terlambat</div>
-        </div>
-        <div className="bg-white dark:bg-[#111] rounded-xl border border-border-light dark:border-border-dark p-2.5 text-center">
-          <div className="text-lg font-bold text-red-500">{dataLoading ? '–' : (stats?.belum_absen || 0)}</div>
-          <div className="text-[9px] font-semibold text-text-secondary uppercase tracking-wider">Belum</div>
-        </div>
+        {statBoxes.map(box => (
+          <button
+            key={box.key}
+            onClick={() => setFilterStatus(box.key)}
+            className={`bg-white dark:bg-[#111] rounded-xl border p-2.5 text-center transition-all active:scale-95 cursor-pointer ${
+              filterStatus === box.key
+                ? `ring-2 ${box.ringColor} border-transparent shadow-sm`
+                : 'border-border-light dark:border-border-dark'
+            }`}
+          >
+            <div className={`text-lg font-bold ${box.color}`}>{box.value}</div>
+            <div className={`text-[9px] font-semibold uppercase tracking-wider ${
+              filterStatus === box.key ? box.color : 'text-text-secondary'
+            }`}>{box.key}</div>
+          </button>
+        ))}
         <div className="bg-white dark:bg-[#111] rounded-xl border border-border-light dark:border-border-dark p-2.5 text-center">
           <div className="text-lg font-bold text-primary">{dataLoading ? '–' : (stats?.total_siswa || 0)}</div>
           <div className="text-[9px] font-semibold text-text-secondary uppercase tracking-wider">Total</div>
         </div>
       </div>
 
-      {/* ── Log Hari Ini ── */}
+      {/* ── Filtered Student List ── */}
       <div className="bg-white dark:bg-[#111] rounded-xl border border-border-light dark:border-border-dark overflow-hidden">
         <div className="px-3 py-2.5 border-b border-border-light dark:border-border-dark flex items-center justify-between">
           <h3 className="text-xs font-bold text-text-primary dark:text-text-darkPrimary flex items-center gap-1.5">
-            <Clock size={13} className="text-primary" />
-            Log Hari Ini
+            {filterStatus === 'Hadir' && <><UserCheck size={13} className="text-emerald-600" /> Siswa Hadir</>}
+            {filterStatus === 'Terlambat' && <><Clock size={13} className="text-amber-500" /> Siswa Terlambat</>}
+            {filterStatus === 'Belum' && <><Clock size={13} className="text-red-500" /> Belum Absen</>}
           </h3>
-          <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-            {logHariIni.length}
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+            filterStatus === 'Hadir' ? 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/20' :
+            filterStatus === 'Terlambat' ? 'text-amber-600 bg-amber-100 dark:bg-amber-900/20' :
+            'text-red-600 bg-red-100 dark:bg-red-900/20'
+          }`}>
+            {filterStatus === 'Belum' ? belumList.length : filteredLog.length}
           </span>
         </div>
-        <div className="max-h-[280px] overflow-y-auto custom-scrollbar">
-          {logHariIni.length === 0 ? (
+        <div className="max-h-[320px] overflow-y-auto custom-scrollbar">
+          {filterStatus === 'Belum' ? (
+            belumLoading ? (
+              <div className="p-6 text-center text-text-secondary">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-500 mx-auto mb-2"></div>
+                <p className="text-xs">Memuat data...</p>
+              </div>
+            ) : belumList.length === 0 ? (
+              <div className="p-6 text-center text-text-secondary">
+                <CheckCircle2 size={20} className="mx-auto mb-2 text-emerald-500" />
+                <p className="text-xs">Semua siswa sudah absen! 🎉</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border-light dark:divide-border-dark">
+                {belumList.map((stu) => (
+                  <div key={stu.id} className="flex items-center px-3 py-2">
+                    <div className="w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/20 text-red-500 flex items-center justify-center font-bold text-[10px] shrink-0">
+                      {stu.fullName?.charAt(0) || stu.name?.charAt(0) || '?'}
+                    </div>
+                    <div className="ml-2 flex-1 min-w-0">
+                      <p className="text-[11px] font-semibold text-text-primary dark:text-text-darkPrimary truncate">{stu.fullName || stu.name}</p>
+                      <p className="text-[9px] text-text-secondary truncate">{stu.className || stu.nis || '-'}</p>
+                    </div>
+                    <span className="inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                      Belum
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : filteredLog.length === 0 ? (
             <div className="p-6 text-center text-text-secondary">
               <Clock size={20} className="mx-auto mb-2 opacity-40" />
-              <p className="text-xs">Belum ada scan hari ini</p>
+              <p className="text-xs">Belum ada siswa {filterStatus.toLowerCase()}</p>
             </div>
           ) : (
             <div className="divide-y divide-border-light dark:divide-border-dark">
-              {logHariIni.map((log) => (
+              {filteredLog.map((log) => (
                 <div key={log.id} className="flex items-center px-3 py-2">
-                  <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px] shrink-0">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 ${
+                    filterStatus === 'Hadir' ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600' : 'bg-amber-100 dark:bg-amber-900/20 text-amber-600'
+                  }`}>
                     {log.nama?.charAt(0) || '?'}
                   </div>
                   <div className="ml-2 flex-1 min-w-0">
