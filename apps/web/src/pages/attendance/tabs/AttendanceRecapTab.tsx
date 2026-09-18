@@ -38,7 +38,7 @@ export const AttendanceRecapTab = () => {
   const [startDate, setStartDate] = useState(getMonday());
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   
-  const [selectedClass, setSelectedClass] = useState<string>('all');
+  const [selectedClass, setSelectedClass] = useState<string>('');
   const [classes, setClasses] = useState<any[]>([]);
   const [recapData, setRecapData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -68,9 +68,7 @@ export const AttendanceRecapTab = () => {
     }
   };
 
-  useEffect(() => {
-    fetchRecap();
-  }, [selectedMonth, selectedYear, selectedClass, mode, startDate, endDate]);
+  // No auto-fetch on mount — user must click Filter to load data
 
   // Generate date columns based on mode
   const dateColumns: { key: string; label: string }[] = [];
@@ -265,6 +263,7 @@ export const AttendanceRecapTab = () => {
               onChange={e => setSelectedClass(e.target.value)}
               className="w-full bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
             >
+              <option value="">-- Pilih Kelas --</option>
               <option value="all">📋 Semua Kelas</option>
               {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
