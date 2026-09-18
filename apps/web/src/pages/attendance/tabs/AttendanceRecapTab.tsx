@@ -38,7 +38,7 @@ export const AttendanceRecapTab = () => {
   const [startDate, setStartDate] = useState(getMonday());
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   
-  const [selectedClass, setSelectedClass] = useState<string>('');
+  const [selectedClass, setSelectedClass] = useState<string>('all');
   const [classes, setClasses] = useState<any[]>([]);
   const [recapData, setRecapData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,19 +46,18 @@ export const AttendanceRecapTab = () => {
   useEffect(() => {
     apiClient<any[]>('/classes').then(data => {
       setClasses(data);
-      if (data.length > 0) setSelectedClass(data[0].id);
     }).catch(err => console.error(err));
   }, []);
 
   const fetchRecap = async () => {
-    if (!selectedClass) return;
     setIsLoading(true);
     try {
+      const classParam = selectedClass !== 'all' ? `&classId=${selectedClass}` : '';
       let url: string;
       if (mode === 'range') {
-        url = `/attendance/recap/monthly?startDate=${startDate}&endDate=${endDate}&classId=${selectedClass}`;
+        url = `/attendance/recap/monthly?startDate=${startDate}&endDate=${endDate}${classParam}`;
       } else {
-        url = `/attendance/recap/monthly?month=${selectedMonth}&year=${selectedYear}&classId=${selectedClass}`;
+        url = `/attendance/recap/monthly?month=${selectedMonth}&year=${selectedYear}${classParam}`;
       }
       const data = await apiClient<any[]>(url);
       setRecapData(data);
@@ -70,7 +69,7 @@ export const AttendanceRecapTab = () => {
   };
 
   useEffect(() => {
-    if (selectedClass) fetchRecap();
+    fetchRecap();
   }, [selectedMonth, selectedYear, selectedClass, mode, startDate, endDate]);
 
   // Generate date columns based on mode
@@ -137,33 +136,76 @@ export const AttendanceRecapTab = () => {
     }
   };
 
-  const handleExport = () => {
-    const wsData = [];
+  // Build sheet data for a list of students
+  const buildSheetData = (students: typeof studentsList) => {
     const headers = ['No', 'NIS', 'Nama Siswa', ...dateColumns.map(d => d.label.replace('\n', ' ')), 'H', 'T', 'S', 'I', 'A', 'B'];
-    wsData.push(headers);
-    
-    studentsList.forEach((stu, idx) => {
-      const row = [
-        idx + 1,
-        stu.nis,
-        stu.nama,
-        ...dateColumns.map(d => getStatusInitial(stu.dates[d.key])),
-        stu.stats.Hadir,
-        stu.stats.Terlambat,
-        stu.stats.Sakit,
-        stu.stats.Izin,
-        stu.stats.Alpa,
-        stu.stats.Bolos
-      ];
-      wsData.push(row);
-    });
+    const rows = students.map((stu, idx) => [
+      idx + 1,
+      stu.nis,
+      stu.nama,
+      ...dateColumns.map(d => getStatusInitial(stu.dates[d.key])),
+      stu.stats.Hadir,
+      stu.stats.Terlambat,
+      stu.stats.Sakit,
+      stu.stats.Izin,
+      stu.stats.Alpa,
+      stu.stats.Bolos
+    ]);
+    return [headers, ...rows];
+  };
 
+  const handleExport = () => {
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(wb, ws, "Rekap Presensi");
-    const filename = mode === 'monthly' 
-      ? `Rekap_Presensi_${selectedYear}_${selectedMonth}.xlsx`
-      : `Rekap_Presensi_${startDate}_${endDate}.xlsx`;
+    const periodLabel = mode === 'monthly' ? `${selectedYear}_${selectedMonth}` : `${startDate}_${endDate}`;
+
+    if (selectedClass === 'all') {
+      // Multi-sheet: one sheet per class + summary sheet
+      const classGroups = new Map<string, typeof studentsList>();
+      studentsList.forEach(stu => {
+        const kelas = stu.kelas || 'Tanpa Kelas';
+        if (!classGroups.has(kelas)) classGroups.set(kelas, []);
+        classGroups.get(kelas)!.push(stu);
+      });
+
+      // Sort class names naturally
+      const sortedClasses = Array.from(classGroups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+
+      // Summary sheet first
+      const summaryHeaders = ['No', 'Kelas', 'Jumlah Siswa', 'Hadir', 'Terlambat', 'Sakit', 'Izin', 'Alpa', 'Bolos'];
+      const summaryRows = sortedClasses.map(([kelas, students], idx) => {
+        const totals = students.reduce((acc, s) => ({
+          H: acc.H + s.stats.Hadir, T: acc.T + s.stats.Terlambat,
+          S: acc.S + s.stats.Sakit, I: acc.I + s.stats.Izin,
+          A: acc.A + s.stats.Alpa, B: acc.B + s.stats.Bolos,
+        }), { H: 0, T: 0, S: 0, I: 0, A: 0, B: 0 });
+        return [idx + 1, kelas, students.length, totals.H, totals.T, totals.S, totals.I, totals.A, totals.B];
+      });
+      const totalRow = ['', 'TOTAL', studentsList.length,
+        summaryRows.reduce((s, r) => s + (r[3] as number), 0),
+        summaryRows.reduce((s, r) => s + (r[4] as number), 0),
+        summaryRows.reduce((s, r) => s + (r[5] as number), 0),
+        summaryRows.reduce((s, r) => s + (r[6] as number), 0),
+        summaryRows.reduce((s, r) => s + (r[7] as number), 0),
+        summaryRows.reduce((s, r) => s + (r[8] as number), 0),
+      ];
+      const summaryWs = XLSX.utils.aoa_to_sheet([summaryHeaders, ...summaryRows, totalRow]);
+      XLSX.utils.book_append_sheet(wb, summaryWs, 'Ringkasan');
+
+      // Per-class sheets
+      sortedClasses.forEach(([kelas, students]) => {
+        const sheetName = kelas.replace(/[\\\/*?\[\]:]/g, '').slice(0, 31); // Excel sheet name limit
+        const ws = XLSX.utils.aoa_to_sheet(buildSheetData(students));
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      });
+    } else {
+      // Single class sheet
+      const className = classes.find(c => c.id === selectedClass)?.name || 'Kelas';
+      const ws = XLSX.utils.aoa_to_sheet(buildSheetData(studentsList));
+      XLSX.utils.book_append_sheet(wb, ws, className.slice(0, 31));
+    }
+
+    const suffix = selectedClass === 'all' ? 'Semua_Kelas' : (classes.find(c => c.id === selectedClass)?.name || 'Kelas');
+    const filename = `Rekap_Presensi_${suffix}_${periodLabel}.xlsx`;
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     import('@/lib/mobileUtils').then(m => m.downloadOrShareBlob(blob, filename));
@@ -223,6 +265,7 @@ export const AttendanceRecapTab = () => {
               onChange={e => setSelectedClass(e.target.value)}
               className="w-full bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
             >
+              <option value="all">📋 Semua Kelas</option>
               {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
