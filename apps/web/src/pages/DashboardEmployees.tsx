@@ -370,9 +370,27 @@ export const DashboardEmployees = () => {
                       </td>
                       <td className="py-3 px-4">{emp.nip}</td>
                       <td className="py-3 px-4">
-                        <span className={`px-2 py-1 text-xs rounded-full ${emp.type === 'Guru' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'}`}>
-                          {emp.type}
-                        </span>
+                        <select
+                          value={emp.type || 'Guru'}
+                          onChange={async (e) => {
+                            const newType = e.target.value;
+                            try {
+                              await apiClient(`/employees/${emp.id}`, { method: 'PUT', data: { type: newType } });
+                              setEmployees(prev => prev.map(em => em.id === emp.id ? { ...em, type: newType } : em));
+                            } catch (err: any) {
+                              alert('Gagal mengubah jenis pegawai: ' + err.message);
+                            }
+                          }}
+                          className={`px-2 py-1 text-xs rounded-full border-0 cursor-pointer outline-none focus:ring-2 focus:ring-primary/30 ${
+                            emp.type === 'Guru' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                            emp.type === 'Kepala Madrasah' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                            'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          }`}
+                        >
+                          <option value="Guru">Guru</option>
+                          <option value="Tenaga Kependidikan">Tenaga Kependidikan</option>
+                          <option value="Kepala Madrasah">Kepala Madrasah</option>
+                        </select>
                       </td>
                       <td className="py-3 px-4">{emp.task || '-'}</td>
                       <td className="py-3 px-4 text-center">
@@ -462,6 +480,7 @@ export const DashboardEmployees = () => {
               >
                 <option value="Guru">Guru</option>
                 <option value="Tenaga Kependidikan">Tenaga Kependidikan</option>
+                <option value="Kepala Madrasah">Kepala Madrasah</option>
               </select>
             </div>
             <div className="col-span-2 space-y-1">
