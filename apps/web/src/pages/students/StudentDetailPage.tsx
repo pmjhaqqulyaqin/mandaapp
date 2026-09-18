@@ -289,10 +289,10 @@ const TabOrangTua = ({ parents, isEditing, formParents, setFormParents }: { pare
             editInput={<Input value={p?.birthPlace || ''} onChange={e => updateParent(index, 'birthPlace', e.target.value)} />} />
           <InfoRow label="Tanggal Lahir" value={formatDate(p?.birthDate)} isEditing={isEditing} 
             editInput={<Input type="date" value={p?.birthDate ? p.birthDate.split('T')[0] : ''} onChange={e => updateParent(index, 'birthDate', e.target.value)} />} />
-          <InfoRow label="Pendidikan" value={p?.pendidikan} isEditing={isEditing} 
-            editInput={<Input value={p?.pendidikan || ''} onChange={e => updateParent(index, 'pendidikan', e.target.value)} />} />
-          <InfoRow label="Pekerjaan" value={p?.pekerjaan} isEditing={isEditing} 
-            editInput={<Input value={p?.pekerjaan || ''} onChange={e => updateParent(index, 'pekerjaan', e.target.value)} />} />
+          <InfoRow label="Pendidikan" value={p?.pendidikan || p?.educationLevel} isEditing={isEditing} 
+            editInput={<Input value={p?.pendidikan || p?.educationLevel || ''} onChange={e => updateParent(index, 'pendidikan', e.target.value)} />} />
+          <InfoRow label="Pekerjaan" value={p?.pekerjaan || p?.occupation} isEditing={isEditing} 
+            editInput={<Input value={p?.pekerjaan || p?.occupation || ''} onChange={e => updateParent(index, 'pekerjaan', e.target.value)} />} />
           <InfoRow label="No. HP" value={p?.phone} isEditing={isEditing} 
             editInput={<Input value={p?.phone || ''} onChange={e => updateParent(index, 'phone', e.target.value)} />} />
           <InfoRow label="Alamat" value={p?.address} isEditing={isEditing} 
@@ -792,11 +792,19 @@ export default function StudentDetailPage() {
       // Initialize form states
       setStudentForm({ ...data });
       setPhotoPreview(getFullPhotoUrl(data.photoUrl));
-      setParentsForm([
-        (data.parents || []).find((p:any) => p.type === 'ayah') || { type: 'ayah', name: '' },
-        (data.parents || []).find((p:any) => p.type === 'ibu') || { type: 'ibu', name: '' },
-        (data.parents || []).find((p:any) => p.type === 'wali') || { type: 'wali', name: '' }
-      ]);
+      setParentsForm(
+        ['ayah', 'ibu', 'wali'].map(type => {
+          const found = (data.parents || []).find((p:any) => p.type === type);
+          if (!found) return { type, name: '' };
+          const p = { ...found };
+          // Normalize: educationLevel ↔ pendidikan, occupation ↔ pekerjaan
+          if (p.educationLevel && !p.pendidikan) p.pendidikan = p.educationLevel;
+          if (p.pendidikan && !p.educationLevel) p.educationLevel = p.pendidikan;
+          if (p.occupation && !p.pekerjaan) p.pekerjaan = p.occupation;
+          if (p.pekerjaan && !p.occupation) p.occupation = p.pekerjaan;
+          return p;
+        })
+      );
       
       const matrix: any = {};
       const subs = new Set<string>();

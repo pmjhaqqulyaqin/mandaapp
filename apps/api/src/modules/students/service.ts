@@ -152,6 +152,12 @@ export class StudentService {
             const { id: _oldId, createdAt, updatedAt, ...rest } = p;
             // Sanitize empty strings to null for date columns
             if (rest.birthDate === '') rest.birthDate = null;
+            // Normalize pendidikan ↔ educationLevel (keep both columns in sync)
+            if (rest.pendidikan && !rest.educationLevel) rest.educationLevel = rest.pendidikan;
+            if (rest.educationLevel && !rest.pendidikan) rest.pendidikan = rest.educationLevel;
+            // Normalize pekerjaan ↔ occupation (keep both columns in sync)
+            if (rest.pekerjaan && !rest.occupation) rest.occupation = rest.pekerjaan;
+            if (rest.occupation && !rest.pekerjaan) rest.pekerjaan = rest.occupation;
             return { ...rest, studentId: id };
           });
           await tx.insert(parentProfiles).values(parentsToInsert);

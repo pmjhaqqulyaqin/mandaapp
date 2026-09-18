@@ -20,9 +20,9 @@ const INITIAL_STUDENT = {
 };
 
 const INITIAL_PARENTS = [
-  { type: 'ayah', name: '', occupation: '', educationLevel: '', phone: '' },
-  { type: 'ibu', name: '', occupation: '', educationLevel: '', phone: '' },
-  { type: 'wali', name: '', relationship: '', occupation: '', educationLevel: '', phone: '' },
+  { type: 'ayah', name: '', pendidikan: '', pekerjaan: '', phone: '', birthPlace: '', birthDate: '', address: '' },
+  { type: 'ibu', name: '', pendidikan: '', pekerjaan: '', phone: '', birthPlace: '', birthDate: '', address: '' },
+  { type: 'wali', name: '', relationship: '', pendidikan: '', pekerjaan: '', phone: '', birthPlace: '', birthDate: '', address: '' },
 ];
 
 const INITIAL_EDUCATION = [
@@ -148,7 +148,14 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, api
           if (res.parents && res.parents.length > 0) {
             const newParents = [...INITIAL_PARENTS].map(ip => {
               const found = res.parents.find((p:any) => p.type === ip.type);
-              return found ? { ...ip, ...found } : ip;
+              if (!found) return ip;
+              const merged = { ...ip, ...found };
+              // Normalize: educationLevel → pendidikan, occupation → pekerjaan
+              if (merged.educationLevel && !merged.pendidikan) merged.pendidikan = merged.educationLevel;
+              if (merged.pendidikan && !merged.educationLevel) merged.educationLevel = merged.pendidikan;
+              if (merged.occupation && !merged.pekerjaan) merged.pekerjaan = merged.occupation;
+              if (merged.pekerjaan && !merged.occupation) merged.occupation = merged.pekerjaan;
+              return merged;
             });
             setParentsForm(newParents);
           } else {
@@ -617,21 +624,39 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose, classes, api
                   </div>
                 )}
                 <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Tempat Lahir</label>
+                  <Input placeholder="Kota/Kabupaten" value={parent.birthPlace || ''} onChange={e => {
+                    const newP = [...parentsForm]; newP[idx] = { ...newP[idx], birthPlace: e.target.value }; setParentsForm(newP);
+                  }} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Tanggal Lahir</label>
+                  <Input type="date" value={parent.birthDate ? parent.birthDate.split('T')[0] : ''} onChange={e => {
+                    const newP = [...parentsForm]; newP[idx] = { ...newP[idx], birthDate: e.target.value }; setParentsForm(newP);
+                  }} />
+                </div>
+                <div className="space-y-1.5">
                   <label className="text-xs font-medium text-text-secondary">Pendidikan Terakhir</label>
-                  <Input placeholder="SD/SMP/SMA/S1..." value={parent.educationLevel} onChange={e => {
-                    const newP = [...parentsForm]; newP[idx].educationLevel = e.target.value; setParentsForm(newP);
+                  <Input placeholder="SD/SMP/SMA/S1..." value={parent.pendidikan || ''} onChange={e => {
+                    const newP = [...parentsForm]; newP[idx] = { ...newP[idx], pendidikan: e.target.value }; setParentsForm(newP);
                   }} />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-text-secondary">Pekerjaan</label>
-                  <Input placeholder="Pekerjaan" value={parent.occupation} onChange={e => {
-                    const newP = [...parentsForm]; newP[idx].occupation = e.target.value; setParentsForm(newP);
+                  <Input placeholder="Pekerjaan" value={parent.pekerjaan || ''} onChange={e => {
+                    const newP = [...parentsForm]; newP[idx] = { ...newP[idx], pekerjaan: e.target.value }; setParentsForm(newP);
                   }} />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-text-secondary">No. Telepon / WA</label>
                   <Input placeholder="0812xxxxxx" value={parent.phone} onChange={e => {
                     const newP = [...parentsForm]; newP[idx].phone = e.target.value; setParentsForm(newP);
+                  }} />
+                </div>
+                <div className="md:col-span-2 space-y-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Alamat</label>
+                  <Input placeholder="Alamat lengkap" value={parent.address || ''} onChange={e => {
+                    const newP = [...parentsForm]; newP[idx] = { ...newP[idx], address: e.target.value }; setParentsForm(newP);
                   }} />
                 </div>
               </div>
