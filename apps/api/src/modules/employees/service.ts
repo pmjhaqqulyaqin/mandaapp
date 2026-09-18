@@ -149,7 +149,22 @@ export class EmployeeService {
 
   static async updateEmployee(id: string, data: any) {
     const results = await db.update(employees).set(data).where(eq(employees.id, id)).returning();
-    return results[0];
+    const updated = results[0];
+
+    // Sync user role when employee type changes
+    if (data.type && updated?.userId) {
+      const typeToRole: Record<string, string> = {
+        'Guru': 'guru',
+        'Tenaga Kependidikan': 'guru',
+        'Kepala Madrasah': 'kepala_madrasah',
+      };
+      const newRole = typeToRole[data.type];
+      if (newRole) {
+        await db.update(userTable).set({ role: newRole, updatedAt: new Date() }).where(eq(userTable.id, updated.userId));
+      }
+    }
+
+    return updated;
   }
 
   static async deleteEmployee(id: string) {
