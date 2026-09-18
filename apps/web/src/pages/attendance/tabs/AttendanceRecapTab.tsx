@@ -68,7 +68,10 @@ export const AttendanceRecapTab = () => {
     }
   };
 
-  // No auto-fetch on mount — user must click Filter to load data
+  // Auto-fetch when user changes filters — but skip if no class selected (initial state)
+  useEffect(() => {
+    if (selectedClass) fetchRecap();
+  }, [selectedMonth, selectedYear, selectedClass, mode, startDate, endDate]);
 
   // Generate date columns based on mode
   const dateColumns: { key: string; label: string }[] = [];
