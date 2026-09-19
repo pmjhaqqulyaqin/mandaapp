@@ -324,9 +324,25 @@ export class ExamService {
     sheet.columns = cols;
     sheet.getRow(1).font = { bold: true };
 
-    const w = peng.waktuSesi || {
-      normal: [{ mulai: '07:30', selesai: '09:30' }, { mulai: '10:00', selesai: '12:00' }],
-      jumat: [{ mulai: '07:15', selesai: '09:15' }, { mulai: '09:30', selesai: '11:30' }]
+    // Migrate old format to new groups format
+    const rawW = peng.waktuSesi || {};
+    let w: { groups: Array<{ label: string; days: number[]; sessions: Array<{ mulai: string; selesai: string }> }> };
+    if (rawW.groups && Array.isArray(rawW.groups)) {
+      w = rawW;
+    } else {
+      // Old format: { normal: [...], jumat: [...] }
+      const normal = rawW.normal || [{ mulai: '07:30', selesai: '09:30' }, { mulai: '10:00', selesai: '12:00' }];
+      const jumat = rawW.jumat || [{ mulai: '07:15', selesai: '09:15' }, { mulai: '09:30', selesai: '11:30' }];
+      w = {
+        groups: [
+          { label: 'Senin - Kamis & Sabtu', days: [1, 2, 3, 4, 6], sessions: normal },
+          { label: "Jum'at", days: [5], sessions: jumat },
+        ]
+      };
+    }
+
+    const findGroupForDay = (dayOfWeek: number) => {
+      return w.groups.find(g => g.days.includes(dayOfWeek));
     };
 
     const start = new Date(ujianData.tanggalMulai);
@@ -359,15 +375,15 @@ export class ExamService {
       if (d.getDay() === 0) continue; // Skip Sunday
       if (holidayDates.has(dateKey)) continue; // Skip Holiday
 
-      const isJumat = d.getDay() === 5;
-      const sesi = isJumat ? w.jumat : w.normal;
+      const group = findGroupForDay(d.getDay());
+      const sessions = group?.sessions || [];
       const hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
       const dateStr = `${hariNames[d.getDay()]}, ${d.toLocaleDateString('id-ID')}`;
 
-      const row1: any = { no: no++, hariTanggal: dateStr, waktu: `${sesi[0]?.mulai || ''} - ${sesi[0]?.selesai || ''}` };
-      sheet.addRow(row1);
-      const row2: any = { no: no++, hariTanggal: '', waktu: `${sesi[1]?.mulai || ''} - ${sesi[1]?.selesai || ''}` };
-      sheet.addRow(row2);
+      sessions.forEach((s, i) => {
+        const row: any = { no: no++, hariTanggal: i === 0 ? dateStr : '', waktu: `${s.mulai || ''} - ${s.selesai || ''}` };
+        sheet.addRow(row);
+      });
     }
 
     return await workbook.xlsx.writeBuffer();

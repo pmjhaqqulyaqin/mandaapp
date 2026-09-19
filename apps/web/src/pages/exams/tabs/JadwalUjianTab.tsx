@@ -10,6 +10,18 @@ interface Props {
 
 const HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
+/** Find the session group that contains the given day of week */
+function findGroupForDay(waktuSesi: any, dayOfWeek: number): { sessions: any[] } | null {
+  // New format: { groups: [...] }
+  if (waktuSesi?.groups && Array.isArray(waktuSesi.groups)) {
+    const group = waktuSesi.groups.find((g: any) => g.days?.includes(dayOfWeek));
+    return group ? { sessions: group.sessions || [] } : null;
+  }
+  // Old format: { normal: [...], jumat: [...] }
+  if (dayOfWeek === 5) return { sessions: waktuSesi?.jumat || [] };
+  return { sessions: waktuSesi?.normal || [] };
+}
+
 export const JadwalUjianTab = ({ ujianId }: Props) => {
   const [jadwal, setJadwal] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -198,17 +210,22 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
                     return setForm({...form, tanggal: ''});
                   }
                   let wm = form.waktuMulai, ws = form.waktuSelesai;
+                  let newSesiKe = form.sesiKe;
                   if(t && ujianData?.pengaturan?.waktuSesi) {
                     const d = new Date(t);
-                    const isJumat = d.getDay() === 5;
-                    const wcfg = isJumat ? ujianData.pengaturan.waktuSesi.jumat : ujianData.pengaturan.waktuSesi.normal;
-                    const sIdx = form.sesiKe === '2' ? 1 : 0;
-                    if(wcfg && wcfg[sIdx]) {
-                       wm = wcfg[sIdx].mulai;
-                       ws = wcfg[sIdx].selesai;
+                    const group = findGroupForDay(ujianData.pengaturan.waktuSesi, d.getDay());
+                    if (group) {
+                      const sIdx = parseInt(newSesiKe) - 1;
+                      // Reset to sesi 1 if current sesi exceeds available sessions
+                      if (sIdx >= group.sessions.length) newSesiKe = '1';
+                      const finalIdx = parseInt(newSesiKe) - 1;
+                      if(group.sessions[finalIdx]) {
+                        wm = group.sessions[finalIdx].mulai;
+                        ws = group.sessions[finalIdx].selesai;
+                      }
                     }
-                 }
-                 setForm({...form, tanggal: t, waktuMulai: wm, waktuSelesai: ws});
+                  }
+                  setForm({...form, tanggal: t, sesiKe: newSesiKe, waktuMulai: wm, waktuSelesai: ws});
               }} />
             </div>
             <div>
@@ -218,18 +235,28 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
                  let wm = form.waktuMulai, ws = form.waktuSelesai;
                  if(form.tanggal && ujianData?.pengaturan?.waktuSesi) {
                     const d = new Date(form.tanggal);
-                    const isJumat = d.getDay() === 5;
-                    const wcfg = isJumat ? ujianData.pengaturan.waktuSesi.jumat : ujianData.pengaturan.waktuSesi.normal;
-                    const sIdx = sVal === '2' ? 1 : 0;
-                    if(wcfg && wcfg[sIdx]) {
-                       wm = wcfg[sIdx].mulai;
-                       ws = wcfg[sIdx].selesai;
+                    const group = findGroupForDay(ujianData.pengaturan.waktuSesi, d.getDay());
+                    if (group) {
+                      const sIdx = parseInt(sVal) - 1;
+                      if(group.sessions[sIdx]) {
+                        wm = group.sessions[sIdx].mulai;
+                        ws = group.sessions[sIdx].selesai;
+                      }
                     }
                  }
                  setForm({...form, sesiKe: sVal, waktuMulai: wm, waktuSelesai: ws});
               }}>
-                <option value="1">Sesi 1</option>
-                <option value="2">Sesi 2</option>
+                {(() => {
+                  let sessionCount = 2; // default
+                  if (form.tanggal && ujianData?.pengaturan?.waktuSesi) {
+                    const d = new Date(form.tanggal);
+                    const group = findGroupForDay(ujianData.pengaturan.waktuSesi, d.getDay());
+                    if (group) sessionCount = group.sessions.length;
+                  }
+                  return Array.from({ length: sessionCount }, (_, i) => (
+                    <option key={i + 1} value={String(i + 1)}>Sesi {i + 1}</option>
+                  ));
+                })()}
               </select>
             </div>
             <div>

@@ -2,6 +2,22 @@ import { useState, useEffect } from 'react';
 import { Modal } from '@mandaapp/ui/src/components/Modal';
 import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
+import { Plus, Trash2 } from 'lucide-react';
+
+interface SesiItem {
+  mulai: string;
+  selesai: string;
+}
+
+interface SesiGroup {
+  label: string;
+  days: number[]; // 1=Senin, 2=Selasa, ..., 6=Sabtu
+  sessions: SesiItem[];
+}
+
+interface WaktuSesiGroups {
+  groups: SesiGroup[];
+}
 
 interface Props {
   isOpen: boolean;
@@ -10,6 +26,40 @@ interface Props {
   ujian: any;
   onSuccess: (updated: any) => void;
 }
+
+const HARI_OPTIONS = [
+  { value: 1, label: 'Sen' },
+  { value: 2, label: 'Sel' },
+  { value: 3, label: 'Rab' },
+  { value: 4, label: 'Kam' },
+  { value: 5, label: 'Jum' },
+  { value: 6, label: 'Sab' },
+];
+
+const MAX_SESSIONS = 5;
+
+/** Migrate old normal/jumat format to new groups format */
+function migrateWaktuSesi(raw: any): WaktuSesiGroups {
+  if (raw?.groups && Array.isArray(raw.groups)) {
+    return raw as WaktuSesiGroups;
+  }
+  // Old format: { normal: [...], jumat: [...] }
+  const normal = raw?.normal || [{ mulai: '07:30', selesai: '09:30' }, { mulai: '10:00', selesai: '12:00' }];
+  const jumat = raw?.jumat || [{ mulai: '07:15', selesai: '09:15' }, { mulai: '09:30', selesai: '11:30' }];
+  return {
+    groups: [
+      { label: 'Senin - Kamis & Sabtu', days: [1, 2, 3, 4, 6], sessions: normal },
+      { label: "Jum'at", days: [5], sessions: jumat },
+    ]
+  };
+}
+
+const defaultWaktuSesi: WaktuSesiGroups = {
+  groups: [
+    { label: 'Senin - Kamis & Sabtu', days: [1, 2, 3, 4, 6], sessions: [{ mulai: '07:30', selesai: '09:30' }, { mulai: '10:00', selesai: '12:00' }] },
+    { label: "Jum'at", days: [5], sessions: [{ mulai: '07:15', selesai: '09:15' }, { mulai: '09:30', selesai: '11:30' }] },
+  ]
+};
 
 export const PengaturanUjianModal = ({ isOpen, onClose, ujianId, ujian, onSuccess }: Props) => {
   const [form, setForm] = useState({
@@ -28,10 +78,7 @@ export const PengaturanUjianModal = ({ isOpen, onClose, ujianId, ujian, onSucces
       nama: '',
       nip: ''
     },
-    waktuSesi: {
-      normal: [{ mulai: '07:30', selesai: '09:30' }, { mulai: '10:00', selesai: '12:00' }],
-      jumat: [{ mulai: '07:15', selesai: '09:15' }, { mulai: '09:30', selesai: '11:30' }]
-    }
+    waktuSesi: defaultWaktuSesi
   });
   const [saving, setSaving] = useState(false);
 
@@ -40,10 +87,106 @@ export const PengaturanUjianModal = ({ isOpen, onClose, ujianId, ujian, onSucces
       setForm({
         kop: { ...form.kop, ...(ujian.pengaturan.kop || {}) },
         ttd: { ...form.ttd, ...(ujian.pengaturan.ttd || {}) },
-        waktuSesi: { ...form.waktuSesi, ...(ujian.pengaturan.waktuSesi || {}) }
+        waktuSesi: migrateWaktuSesi(ujian.pengaturan.waktuSesi)
       });
     }
   }, [isOpen, ujian]);
+
+  // Get all days already assigned to other groups (for duplicate validation)
+  const getUsedDays = (excludeGroupIndex: number): Set<number> => {
+    const used = new Set<number>();
+    form.waktuSesi.groups.forEach((g, i) => {
+      if (i !== excludeGroupIndex) g.days.forEach(d => used.add(d));
+    });
+    return used;
+  };
+
+  const updateGroup = (groupIndex: number, updater: (group: SesiGroup) => SesiGroup) => {
+    const newGroups = form.waktuSesi.groups.map((g, i) => i === groupIndex ? updater({ ...g }) : g);
+    setForm({ ...form, waktuSesi: { groups: newGroups } });
+  };
+
+  const addGroup = () => {
+    const usedDays = new Set<number>();
+    form.waktuSesi.groups.forEach(g => g.days.forEach(d => usedDays.add(d)));
+    const availableDays = HARI_OPTIONS.map(h => h.value).filter(d => !usedDays.has(d));
+    if (availableDays.length === 0) {
+      toast.error('Semua hari sudah digunakan di grup lain');
+      return;
+    }
+    setForm({
+      ...form,
+      waktuSesi: {
+        groups: [...form.waktuSesi.groups, {
+          label: 'Grup Baru',
+          days: [availableDays[0]],
+          sessions: [{ mulai: '07:00', selesai: '09:00' }]
+        }]
+      }
+    });
+  };
+
+  const removeGroup = (index: number) => {
+    if (form.waktuSesi.groups.length <= 1) {
+      toast.error('Minimal harus ada 1 grup hari');
+      return;
+    }
+    setForm({
+      ...form,
+      waktuSesi: { groups: form.waktuSesi.groups.filter((_, i) => i !== index) }
+    });
+  };
+
+  const addSession = (groupIndex: number) => {
+    updateGroup(groupIndex, g => {
+      if (g.sessions.length >= MAX_SESSIONS) {
+        toast.error(`Maksimal ${MAX_SESSIONS} sesi per grup`);
+        return g;
+      }
+      return { ...g, sessions: [...g.sessions, { mulai: '00:00', selesai: '00:00' }] };
+    });
+  };
+
+  const removeSession = (groupIndex: number, sessionIndex: number) => {
+    updateGroup(groupIndex, g => {
+      if (g.sessions.length <= 1) {
+        toast.error('Minimal harus ada 1 sesi');
+        return g;
+      }
+      return { ...g, sessions: g.sessions.filter((_, i) => i !== sessionIndex) };
+    });
+  };
+
+  const toggleDay = (groupIndex: number, day: number) => {
+    const usedDays = getUsedDays(groupIndex);
+    updateGroup(groupIndex, g => {
+      if (g.days.includes(day)) {
+        if (g.days.length <= 1) {
+          toast.error('Minimal harus ada 1 hari per grup');
+          return g;
+        }
+        return { ...g, days: g.days.filter(d => d !== day) };
+      } else {
+        if (usedDays.has(day)) {
+          const otherGroup = form.waktuSesi.groups.find((og, i) => i !== groupIndex && og.days.includes(day));
+          toast.error(`Hari ${HARI_OPTIONS.find(h => h.value === day)?.label} sudah digunakan di grup "${otherGroup?.label}"`);
+          return g;
+        }
+        return { ...g, days: [...g.days, day].sort((a, b) => a - b) };
+      }
+    });
+  };
+
+  const updateSessionTime = (groupIndex: number, sessionIndex: number, field: 'mulai' | 'selesai', value: string) => {
+    updateGroup(groupIndex, g => {
+      const newSessions = g.sessions.map((s, i) => i === sessionIndex ? { ...s, [field]: value } : s);
+      return { ...g, sessions: newSessions };
+    });
+  };
+
+  const updateGroupLabel = (groupIndex: number, label: string) => {
+    updateGroup(groupIndex, g => ({ ...g, label }));
+  };
 
   const handleSubmit = async () => {
     setSaving(true);
@@ -67,38 +210,113 @@ export const PengaturanUjianModal = ({ isOpen, onClose, ujianId, ujian, onSucces
       <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
         {/* Waktu Sesi */}
         <div className="space-y-3">
-          <h4 className="text-sm font-semibold border-b border-gray-100 dark:border-[#222] pb-1">1. Default Waktu Sesi</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-[#222] p-3 rounded-xl space-y-2">
-              <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Hari Senin - Kamis & Sabtu</p>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-medium w-10">Sesi 1</span>
-                <input type="time" className={inputClass} value={form.waktuSesi.normal[0].mulai} onChange={e => { const w = [...form.waktuSesi.normal]; w[0].mulai = e.target.value; setForm({...form, waktuSesi: {...form.waktuSesi, normal: w}}) }} />
-                <span className="text-[10px]">-</span>
-                <input type="time" className={inputClass} value={form.waktuSesi.normal[0].selesai} onChange={e => { const w = [...form.waktuSesi.normal]; w[0].selesai = e.target.value; setForm({...form, waktuSesi: {...form.waktuSesi, normal: w}}) }} />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-medium w-10">Sesi 2</span>
-                <input type="time" className={inputClass} value={form.waktuSesi.normal[1].mulai} onChange={e => { const w = [...form.waktuSesi.normal]; w[1].mulai = e.target.value; setForm({...form, waktuSesi: {...form.waktuSesi, normal: w}}) }} />
-                <span className="text-[10px]">-</span>
-                <input type="time" className={inputClass} value={form.waktuSesi.normal[1].selesai} onChange={e => { const w = [...form.waktuSesi.normal]; w[1].selesai = e.target.value; setForm({...form, waktuSesi: {...form.waktuSesi, normal: w}}) }} />
-              </div>
-            </div>
-            <div className="bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-[#222] p-3 rounded-xl space-y-2">
-              <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Hari Jum'at</p>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-medium w-10">Sesi 1</span>
-                <input type="time" className={inputClass} value={form.waktuSesi.jumat[0].mulai} onChange={e => { const w = [...form.waktuSesi.jumat]; w[0].mulai = e.target.value; setForm({...form, waktuSesi: {...form.waktuSesi, jumat: w}}) }} />
-                <span className="text-[10px]">-</span>
-                <input type="time" className={inputClass} value={form.waktuSesi.jumat[0].selesai} onChange={e => { const w = [...form.waktuSesi.jumat]; w[0].selesai = e.target.value; setForm({...form, waktuSesi: {...form.waktuSesi, jumat: w}}) }} />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-medium w-10">Sesi 2</span>
-                <input type="time" className={inputClass} value={form.waktuSesi.jumat[1].mulai} onChange={e => { const w = [...form.waktuSesi.jumat]; w[1].mulai = e.target.value; setForm({...form, waktuSesi: {...form.waktuSesi, jumat: w}}) }} />
-                <span className="text-[10px]">-</span>
-                <input type="time" className={inputClass} value={form.waktuSesi.jumat[1].selesai} onChange={e => { const w = [...form.waktuSesi.jumat]; w[1].selesai = e.target.value; setForm({...form, waktuSesi: {...form.waktuSesi, jumat: w}}) }} />
-              </div>
-            </div>
+          <div className="flex items-center justify-between border-b border-gray-100 dark:border-[#222] pb-1">
+            <h4 className="text-sm font-semibold">1. Default Waktu Sesi</h4>
+            <button
+              type="button"
+              onClick={addGroup}
+              className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
+            >
+              <Plus size={12} /> Tambah Grup
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {form.waktuSesi.groups.map((group, gIdx) => {
+              const usedDays = getUsedDays(gIdx);
+              return (
+                <div key={gIdx} className="bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-[#222] p-3 rounded-xl space-y-3">
+                  {/* Group Header */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      className="flex-1 h-7 px-2 rounded-md border border-gray-200 dark:border-[#333] bg-white dark:bg-[#0a0a0a] text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
+                      value={group.label}
+                      onChange={e => updateGroupLabel(gIdx, e.target.value)}
+                      placeholder="Nama grup..."
+                    />
+                    {form.waktuSesi.groups.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeGroup(gIdx)}
+                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 transition-colors"
+                        title="Hapus grup"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Day Checkboxes */}
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <span className="text-[10px] font-semibold text-gray-500 mr-1">Hari:</span>
+                    {HARI_OPTIONS.map(h => {
+                      const isActive = group.days.includes(h.value);
+                      const isUsedElsewhere = usedDays.has(h.value);
+                      return (
+                        <button
+                          key={h.value}
+                          type="button"
+                          onClick={() => toggleDay(gIdx, h.value)}
+                          disabled={isUsedElsewhere && !isActive}
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all border ${
+                            isActive
+                              ? 'bg-indigo-600 text-white border-indigo-600'
+                              : isUsedElsewhere
+                                ? 'bg-gray-100 dark:bg-[#1a1a1a] text-gray-300 dark:text-gray-600 border-gray-200 dark:border-[#333] cursor-not-allowed opacity-50'
+                                : 'bg-white dark:bg-[#0a0a0a] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-[#333] hover:border-indigo-400 hover:text-indigo-600'
+                          }`}
+                        >
+                          {h.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Sessions */}
+                  <div className="space-y-1.5">
+                    {group.sessions.map((sesi, sIdx) => (
+                      <div key={sIdx} className="flex items-center gap-2">
+                        <span className="text-[10px] font-medium w-12 text-gray-500 shrink-0">Sesi {sIdx + 1}</span>
+                        <input
+                          type="time"
+                          className={inputClass}
+                          value={sesi.mulai}
+                          onChange={e => updateSessionTime(gIdx, sIdx, 'mulai', e.target.value)}
+                        />
+                        <span className="text-[10px] text-gray-400 shrink-0">-</span>
+                        <input
+                          type="time"
+                          className={inputClass}
+                          value={sesi.selesai}
+                          onChange={e => updateSessionTime(gIdx, sIdx, 'selesai', e.target.value)}
+                        />
+                        {group.sessions.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeSession(gIdx, sIdx)}
+                            className="p-1 rounded-md text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 transition-colors shrink-0"
+                            title="Hapus sesi"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add Session Button */}
+                  {group.sessions.length < MAX_SESSIONS && (
+                    <button
+                      type="button"
+                      onClick={() => addSession(gIdx)}
+                      className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"
+                    >
+                      <Plus size={11} /> Tambah Sesi ({group.sessions.length}/{MAX_SESSIONS})
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
