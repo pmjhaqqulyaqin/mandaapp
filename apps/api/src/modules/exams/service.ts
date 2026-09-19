@@ -386,6 +386,32 @@ export class ExamService {
       });
     }
 
+    // --- Add reference sheet with available subject names ---
+    const allSubjects = await db.select({ nama: masterSubjects.nama, shortName: masterSubjects.shortName })
+      .from(masterSubjects)
+      .where(eq(masterSubjects.isActive, true))
+      .orderBy(asc(masterSubjects.nama));
+
+    if (allSubjects.length > 0) {
+      const refSheet = workbook.addWorksheet('Daftar Mapel');
+      refSheet.columns = [
+        { header: 'No', key: 'no', width: 5 },
+        { header: 'Nama Mata Pelajaran', key: 'nama', width: 40 },
+        { header: 'Singkatan', key: 'singkatan', width: 20 },
+      ];
+      refSheet.getRow(1).font = { bold: true };
+      allSubjects.forEach((s, i) => {
+        refSheet.addRow({ no: i + 1, nama: s.nama, singkatan: s.shortName || '-' });
+      });
+
+      // Add note at the bottom
+      const noteRow = refSheet.addRow({});
+      noteRow.getCell(1).value = '';
+      const infoRow = refSheet.addRow({});
+      infoRow.getCell(1).value = '* Gunakan nama atau singkatan mapel persis seperti di atas saat mengisi template jadwal';
+      infoRow.getCell(1).font = { italic: true, color: { argb: 'FF888888' } };
+    }
+
     return await workbook.xlsx.writeBuffer();
   }
 
@@ -440,6 +466,19 @@ export class ExamService {
 
     if (parsedRows.length === 0) throw new Error('Tidak ada data valid dalam file');
 
+    // --- Look up subjectId from masterSubjects by name ---
+    const allSubjects = await db.select({ id: masterSubjects.id, nama: masterSubjects.nama, shortName: masterSubjects.shortName })
+      .from(masterSubjects);
+
+    // Build lookup maps: by full name (case-insensitive) and by short name
+    const subjectByName = new Map<string, string>();
+    allSubjects.forEach(s => {
+      subjectByName.set(s.nama.toLowerCase().trim(), s.id);
+      if (s.shortName) {
+        subjectByName.set(s.shortName.toLowerCase().trim(), s.id);
+      }
+    });
+
     const grouped: Record<string, string[]> = {};
     parsedRows.forEach(r => {
       const key = `${r.tanggal}__${r.waktuMulai}__${r.waktuSelesai}__${r.mataPelajaran}`;
@@ -447,18 +486,33 @@ export class ExamService {
       grouped[key].push(r.kelas);
     });
 
-    const finalRows = Object.entries(grouped).map(([key, classes]) => {
+    // Collect unmatched subject names for error reporting
+    const unmatchedSubjects = new Set<string>();
+
+    const finalRows = Object.entries(grouped).map(([key, classNames]) => {
       const [tanggal, waktuMulai, waktuSelesai, mapel] = key.split('__');
+      const subjectId = subjectByName.get(mapel.toLowerCase().trim()) || null;
+      if (!subjectId && mapel) {
+        unmatchedSubjects.add(mapel);
+      }
       return {
         id: uuidv4(),
         ujianId,
         tanggal,
         waktuMulai,
         waktuSelesai,
-        mataPelajaran: mapel,
-        kelas: classes.join(', ')
+        subjectId,
+        kelas: classNames.join(', ')
       };
     });
+
+    if (unmatchedSubjects.size > 0) {
+      const availableNames = allSubjects.map(s => s.nama).join(', ');
+      throw new Error(
+        `Mata pelajaran tidak ditemukan di Master Mapel: ${Array.from(unmatchedSubjects).join(', ')}. ` +
+        `Pastikan nama di Excel sesuai dengan nama di Master Mapel. Mapel tersedia: ${availableNames}`
+      );
+    }
 
     const importHolidays = await db.select().from(schoolEvents).where(
       inArray(schoolEvents.category, ['holiday', 'cuti_bersama', 'semester_ganjil', 'semester_genap'])
@@ -473,11 +527,11 @@ export class ExamService {
     });
 
     for (const row of finalRows) {
-      const d = new Date(row.tanggal);
+      const d = new Date(row.tanggal!);
       if (d.getDay() === 0) {
         throw new Error(`Gagal Import: Tanggal ${row.tanggal} adalah hari Minggu.`);
       }
-      if (holidayDates.has(row.tanggal)) {
+      if (holidayDates.has(row.tanggal!)) {
         throw new Error(`Gagal Import: Tanggal ${row.tanggal} terdeteksi sebagai Hari Libur/Cuti Bersama.`);
       }
     }
@@ -495,7 +549,7 @@ export class ExamService {
       await db.delete(jadwalUjian).where(eq(jadwalUjian.ujianId, ujianId));
     }
 
-    await db.insert(jadwalUjian).values(finalRows);
+    await db.insert(jadwalUjian).values(finalRows as any);
     return { imported: finalRows.length };
   }
 
