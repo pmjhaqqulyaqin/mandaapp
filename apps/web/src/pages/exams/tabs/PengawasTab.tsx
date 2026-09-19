@@ -131,8 +131,10 @@ export const PengawasTab = ({ ujianId }: Props) => {
         <div>
            <p className="text-xs font-bold text-amber-700 dark:text-amber-400">Aturan Rotasi Pengawas</p>
            <p className="text-[10px] text-amber-600/80 dark:text-amber-500/60 leading-relaxed">
-             Sistem membagi 2 pengawas per ruang (1 Angka & 1 Huruf) dengan algoritma rotasi berantai. 
-             Index kelompok bergeser otomatis di setiap sesi untuk mencegah bentrok dan memastikan variasi pasangan.
+             {(ujian?.pengaturan?.jumlahPengawasPerRuang === 1)
+               ? 'Mode 1 Pengawas: Sistem menugaskan 1 pengawas per ruang dengan algoritma rotasi berantai di setiap sesi.'
+               : 'Sistem membagi 2 pengawas per ruang (1 Angka & 1 Huruf) dengan algoritma rotasi berantai. Index kelompok bergeser otomatis di setiap sesi untuk mencegah bentrok dan memastikan variasi pasangan.'
+             }
            </p>
         </div>
       </div>
@@ -211,10 +213,10 @@ export const PengawasTab = ({ ujianId }: Props) => {
       </div>
 
       {/* Footer Info / Legend */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+      <div className={`grid gap-4 mt-6 ${ujian?.pengaturan?.jumlahPengawasPerRuang === 1 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
         <div className="p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/20 bg-indigo-50/30 dark:bg-indigo-900/10">
            <h4 className="text-[10px] font-black uppercase text-indigo-500 mb-3 flex items-center gap-2">
-             <Hash size={12} /> Legenda Kelompok I (Angka)
+             <Hash size={12} /> {ujian?.pengaturan?.jumlahPengawasPerRuang === 1 ? 'Legenda Pengawas (Angka)' : 'Legenda Kelompok I (Angka)'}
            </h4>
            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {(ujian?.pengaturan?.pengawasGroups?.group1 || []).map((id: string, i: number) => {
@@ -229,6 +231,7 @@ export const PengawasTab = ({ ujianId }: Props) => {
            </div>
            {(!ujian?.pengaturan?.pengawasGroups?.group1?.length) && <p className="text-[10px] text-gray-400 italic">Belum diatur</p>}
         </div>
+        {ujian?.pengaturan?.jumlahPengawasPerRuang !== 1 && (
         <div className="p-4 rounded-xl border border-amber-100 dark:border-amber-900/20 bg-amber-50/30 dark:bg-amber-900/10">
            <h4 className="text-[10px] font-black uppercase text-amber-500 mb-3 flex items-center gap-2">
              <Type size={12} /> Legenda Kelompok II (Huruf)
@@ -247,6 +250,7 @@ export const PengawasTab = ({ ujianId }: Props) => {
            </div>
            {(!ujian?.pengaturan?.pengawasGroups?.group2?.length) && <p className="text-[10px] text-gray-400 italic">Belum diatur</p>}
         </div>
+        )}
       </div>
 
       <PengaturanPengawasModal 

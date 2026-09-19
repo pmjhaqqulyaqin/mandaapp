@@ -814,9 +814,13 @@ export class ExamService {
     const config = ujianData.pengaturan as any || {};
     const group1 = config.pengawasGroups?.group1 || [];
     const group2 = config.pengawasGroups?.group2 || [];
+    const jumlahPengawas = config.jumlahPengawasPerRuang === 1 ? 1 : 2;
 
-    if (group1.length === 0 || group2.length === 0) {
-      throw new Error('Daftar Kelompok Pengawas (I & II) belum diatur.');
+    if (group1.length === 0) {
+      throw new Error('Daftar Kelompok Pengawas I belum diatur.');
+    }
+    if (jumlahPengawas === 2 && group2.length === 0) {
+      throw new Error('Daftar Kelompok Pengawas II belum diatur. Atau ubah ke mode 1 Pengawas per Ruang.');
     }
 
     const jadwalList = await this.getJadwal(ujianId);
@@ -880,7 +884,7 @@ export class ExamService {
 
     const assignments: any[] = [];
     const L1 = group1.length;
-    const L2 = group2.length;
+    const L2 = jumlahPengawas === 2 ? group2.length : 0;
 
     sessions.forEach((sess, sIdx) => {
       // Determine which rooms are active for this session
@@ -905,12 +909,9 @@ export class ExamService {
       activeRooms.forEach((ruang, rIdx) => {
         // Algorithm: G1 shifts -1, G2 shifts +1
         const idx1 = (((rIdx - sIdx) % L1) + L1) % L1;
-        const idx2 = (rIdx + sIdx) % L2;
-
         const p1Id = group1[idx1];
-        const p2Id = group2[idx2];
 
-        // Assign both to every jadwal ID in this session
+        // Assign to every jadwal ID in this session
         sess.ids.forEach((jId: string) => {
           // Proctor 1 (Numeric)
           assignments.push({
@@ -920,14 +921,19 @@ export class ExamService {
             pengawasId: p1Id,
             kodeLabel: (idx1 + 1).toString()
           });
-          // Proctor 2 (Alphabetic)
-          assignments.push({
-            id: uuidv4(),
-            jadwalId: jId,
-            ruangId: ruang.id,
-            pengawasId: p2Id,
-            kodeLabel: this.getAlphaCode(idx2)
-          });
+
+          // Proctor 2 (Alphabetic) - only in 2-pengawas mode
+          if (jumlahPengawas === 2) {
+            const idx2 = (rIdx + sIdx) % L2;
+            const p2Id = group2[idx2];
+            assignments.push({
+              id: uuidv4(),
+              jadwalId: jId,
+              ruangId: ruang.id,
+              pengawasId: p2Id,
+              kodeLabel: this.getAlphaCode(idx2)
+            });
+          }
         });
       });
     });
@@ -938,6 +944,7 @@ export class ExamService {
 
     return { generated: assignments.length, sessions: sessions.length };
   }
+
 
   static async exportPengawasExcel(ujianId: string) {
     const ujianData = await this.getUjianById(ujianId);
