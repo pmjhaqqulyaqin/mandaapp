@@ -889,8 +889,8 @@ export class ExamService {
     // Frequency-balanced round-robin: track how many times each supervisor is assigned
     const freq1 = new Map<string, number>(); // group1 supervisor id -> assignment count
     const freq2 = new Map<string, number>(); // group2 supervisor id -> assignment count
-    group1.forEach(id => freq1.set(id, 0));
-    if (jumlahPengawas === 2) group2.forEach(id => freq2.set(id, 0));
+    group1.forEach((id: string) => freq1.set(id, 0));
+    if (jumlahPengawas === 2) group2.forEach((id: string) => freq2.set(id, 0));
 
     // Round-robin offset to break ties and add variety
     let rrOffset1 = 0;
