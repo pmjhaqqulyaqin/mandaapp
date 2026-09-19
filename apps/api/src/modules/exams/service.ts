@@ -886,6 +886,46 @@ export class ExamService {
     const L1 = group1.length;
     const L2 = jumlahPengawas === 2 ? group2.length : 0;
 
+    // Frequency-balanced round-robin: track how many times each supervisor is assigned
+    const freq1 = new Map<string, number>(); // group1 supervisor id -> assignment count
+    const freq2 = new Map<string, number>(); // group2 supervisor id -> assignment count
+    group1.forEach(id => freq1.set(id, 0));
+    if (jumlahPengawas === 2) group2.forEach(id => freq2.set(id, 0));
+
+    // Round-robin offset to break ties and add variety
+    let rrOffset1 = 0;
+    let rrOffset2 = 0;
+
+    /**
+     * Pick the supervisor with the lowest frequency who is NOT already used in this session.
+     * When there's a tie, use round-robin offset for variety.
+     */
+    const pickLeastAssigned = (
+      groupIds: string[],
+      freqMap: Map<string, number>,
+      usedInSession: Set<string>,
+      rrOffset: number
+    ): { chosenId: string; chosenIdx: number } => {
+      // Build candidates: supervisors not yet used in this session
+      let candidates = groupIds
+        .map((id, idx) => ({ id, idx, freq: freqMap.get(id) || 0 }))
+        .filter(c => !usedInSession.has(c.id));
+
+      // If all supervisors are already used in this session (more rooms than supervisors),
+      // allow reuse — pick from all
+      if (candidates.length === 0) {
+        candidates = groupIds.map((id, idx) => ({ id, idx, freq: freqMap.get(id) || 0 }));
+      }
+
+      // Sort by frequency ascending; break ties by round-robin offset
+      const minFreq = Math.min(...candidates.map(c => c.freq));
+      const tiedCandidates = candidates.filter(c => c.freq === minFreq);
+
+      // Use offset to rotate among tied candidates for variety
+      const picked = tiedCandidates[rrOffset % tiedCandidates.length];
+      return { chosenId: picked.id, chosenIdx: picked.idx };
+    };
+
     sessions.forEach((sess, sIdx) => {
       // Determine which rooms are active for this session
       let activeRooms: typeof ruangList;
@@ -906,10 +946,28 @@ export class ExamService {
         activeRooms = ruangList;
       }
 
-      activeRooms.forEach((ruang, rIdx) => {
-        // Algorithm: G1 shifts -1, G2 shifts +1
-        const idx1 = (((rIdx - sIdx) % L1) + L1) % L1;
-        const p1Id = group1[idx1];
+      // Track which supervisors are already assigned in THIS session (prevent same person in 2 rooms)
+      const usedInSessionG1 = new Set<string>();
+      const usedInSessionG2 = new Set<string>();
+
+      activeRooms.forEach((ruang) => {
+        // Pick supervisor from group1 with lowest frequency
+        const { chosenId: p1Id, chosenIdx: idx1 } = pickLeastAssigned(group1, freq1, usedInSessionG1, rrOffset1);
+        usedInSessionG1.add(p1Id);
+        freq1.set(p1Id, (freq1.get(p1Id) || 0) + 1);
+        rrOffset1++;
+
+        // Pick supervisor from group2 (if 2-pengawas mode) — once per room, not per jadwal
+        let p2Id: string | null = null;
+        let idx2 = 0;
+        if (jumlahPengawas === 2) {
+          const picked2 = pickLeastAssigned(group2, freq2, usedInSessionG2, rrOffset2);
+          p2Id = picked2.chosenId;
+          idx2 = picked2.chosenIdx;
+          usedInSessionG2.add(p2Id);
+          freq2.set(p2Id, (freq2.get(p2Id) || 0) + 1);
+          rrOffset2++;
+        }
 
         // Assign to every jadwal ID in this session
         sess.ids.forEach((jId: string) => {
@@ -923,9 +981,7 @@ export class ExamService {
           });
 
           // Proctor 2 (Alphabetic) - only in 2-pengawas mode
-          if (jumlahPengawas === 2) {
-            const idx2 = (rIdx + sIdx) % L2;
-            const p2Id = group2[idx2];
+          if (jumlahPengawas === 2 && p2Id) {
             assignments.push({
               id: uuidv4(),
               jadwalId: jId,
