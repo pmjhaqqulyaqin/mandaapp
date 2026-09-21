@@ -10,7 +10,9 @@ router.post("/scan", AttendanceController.scan);
 // ─── Stats & Log (public read for scanner dashboard) ─────────────────────
 router.get("/today/stats", AttendanceController.getStatsToday);
 router.get("/today/log", AttendanceController.getLogToday);
+router.get("/today/belum", AttendanceController.getBelumList);
 
+router.post("/retroactive-fill", requireAdmin, AttendanceController.retroactiveFillHadir);
 router.post("/manual/bulk", requireStaff, AttendanceController.manualBulkInput);
 router.post("/manual", requireStaff, AttendanceController.manualInput);
 router.get("/weekly-stats", requireStaff, AttendanceController.getWeeklyStats);

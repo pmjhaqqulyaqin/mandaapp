@@ -1,6 +1,6 @@
 import { db } from "../../db";
 import { attendanceRecords, attendanceSettings, studentProfiles, classes, siteSettings } from "../../db/schema";
-import { eq, and, or, sql, desc, count } from "drizzle-orm";
+import { eq, and, or, sql, desc, count, isNotNull, isNull } from "drizzle-orm";
 import { sendParentAttendanceEmail } from "../../lib/mailer";
 import { ParentPortalService } from "../parent-portal/service";
 
@@ -295,11 +295,15 @@ export class AttendanceService {
   static async getStatsToday(classId?: string) {
     const { dateStr: today } = toWITA(new Date());
 
-    // Total active students
-    const totalQuery = classId
-      ? db.select({ count: count() }).from(studentProfiles).where(and(eq(studentProfiles.classId, classId), eq(studentProfiles.status, "active")))
-      : db.select({ count: count() }).from(studentProfiles).where(eq(studentProfiles.status, "active"));
-    const [{ count: totalSiswa }] = await totalQuery;
+    // Total active students WITH a class assignment (exclude unassigned NIS-only records)
+    const totalConditions: any[] = [
+      eq(studentProfiles.status, "active"),
+      isNotNull(studentProfiles.classId),
+    ];
+    if (classId) totalConditions.push(eq(studentProfiles.classId, classId));
+    const [{ count: totalSiswa }] = await db.select({ count: count() })
+      .from(studentProfiles)
+      .where(and(...totalConditions));
 
     // Status breakdown
     const statusBreakdown = await db.select({
@@ -341,11 +345,15 @@ export class AttendanceService {
     const today = new Date();
     const stats: any[] = [];
     
-    // Total active students for percentage calculation
-    const totalQuery = classId
-      ? db.select({ count: count() }).from(studentProfiles).where(and(eq(studentProfiles.classId, classId), eq(studentProfiles.status, "active")))
-      : db.select({ count: count() }).from(studentProfiles).where(eq(studentProfiles.status, "active"));
-    const [{ count: totalSiswa }] = await totalQuery;
+    // Total active students WITH a class assignment
+    const totalConditions: any[] = [
+      eq(studentProfiles.status, "active"),
+      isNotNull(studentProfiles.classId),
+    ];
+    if (classId) totalConditions.push(eq(studentProfiles.classId, classId));
+    const [{ count: totalSiswa }] = await db.select({ count: count() })
+      .from(studentProfiles)
+      .where(and(...totalConditions));
     const total = Number(totalSiswa);
 
     // Get stats for last 7 days including today
@@ -526,5 +534,101 @@ export class AttendanceService {
       .where(eq(attendanceRecords.id, id))
       .returning();
     return results[0] || null;
+  }
+
+  // ─── Belum Absen List (server-side, accurate) ──────────────────────────
+
+  static async getBelumList(classId?: string) {
+    const { dateStr: today } = toWITA(new Date());
+
+    const studentConditions: any[] = [
+      eq(studentProfiles.status, "active"),
+      isNotNull(studentProfiles.classId),
+    ];
+    if (classId) studentConditions.push(eq(studentProfiles.classId, classId));
+
+    const results = await db.select({
+      id: studentProfiles.id,
+      fullName: studentProfiles.fullName,
+      nis: studentProfiles.nis,
+      nisn: studentProfiles.nisn,
+      className: studentProfiles.className,
+      classId: studentProfiles.classId,
+      attendanceId: attendanceRecords.id,
+    })
+      .from(studentProfiles)
+      .leftJoin(attendanceRecords, and(
+        eq(attendanceRecords.studentId, studentProfiles.id),
+        eq(attendanceRecords.date, today)
+      ))
+      .where(and(
+        ...studentConditions,
+        isNull(attendanceRecords.id) // No attendance record for today
+      ))
+      .orderBy(studentProfiles.className, studentProfiles.fullName);
+
+    return results;
+  }
+
+  // ─── Retroactive Fill: Mark remaining un-scanned students as Hadir ─────
+
+  /**
+   * For a given date, find all active students (with class) who do NOT have
+   * an attendance record yet, and insert a record with status = "Hadir".
+   * This is used to fix days when the scanner missed students due to
+   * network issues or other technical problems.
+   *
+   * Returns the count of newly inserted records.
+   */
+  static async retroactiveFillHadir(date: string, recordedBy: string, classId?: string) {
+    const { dateStr: today } = toWITA(new Date());
+    if (date > today) {
+      return { success: false, message: "Tanggal tidak boleh melebihi hari ini", count: 0 };
+    }
+
+    const studentConditions: any[] = [
+      eq(studentProfiles.status, "active"),
+      isNotNull(studentProfiles.classId),
+    ];
+    if (classId) studentConditions.push(eq(studentProfiles.classId, classId));
+
+    // Find students without attendance record on the given date
+    const missing = await db.select({
+      id: studentProfiles.id,
+      classId: studentProfiles.classId,
+    })
+      .from(studentProfiles)
+      .leftJoin(attendanceRecords, and(
+        eq(attendanceRecords.studentId, studentProfiles.id),
+        eq(attendanceRecords.date, date)
+      ))
+      .where(and(
+        ...studentConditions,
+        isNull(attendanceRecords.id)
+      ));
+
+    if (missing.length === 0) {
+      return { success: true, message: "Semua siswa sudah memiliki record absensi", count: 0 };
+    }
+
+    // Batch insert
+    const values = missing.map(s => ({
+      studentId: s.id,
+      classId: s.classId,
+      date,
+      checkIn: "07:00" as string, // Default morning time
+      status: "Hadir" as string,
+      method: "retroactive_fill" as string,
+      note: "Auto-filled: hadir secara faktual namun tidak tercatat oleh sistem",
+      recordedBy,
+    }));
+
+    await db.insert(attendanceRecords).values(values);
+
+    return {
+      success: true,
+      message: `${missing.length} siswa berhasil ditandai Hadir`,
+      count: missing.length,
+    };
   }
 }

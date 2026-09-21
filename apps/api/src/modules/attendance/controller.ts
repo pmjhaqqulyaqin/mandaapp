@@ -220,4 +220,37 @@ export class AttendanceController {
       return res.status(500).json({ error: "Gagal mengupdate pengaturan" });
     }
   }
+
+  // ─── Belum Absen List (server-side, accurate) ──────────────────────────
+
+  static async getBelumList(req: Request, res: Response) {
+    try {
+      const classId = req.query.classId as string | undefined;
+      const list = await AttendanceService.getBelumList(classId);
+      return res.json(list);
+    } catch (error: any) {
+      console.error("[ATTENDANCE] Belum list error:", error);
+      return res.status(500).json({ error: "Gagal mengambil daftar belum absen" });
+    }
+  }
+
+  // ─── Retroactive Fill: Mark un-scanned students as Hadir ──────────────
+
+  static async retroactiveFillHadir(req: Request, res: Response) {
+    try {
+      const { date, classId } = req.body;
+      if (!date) {
+        return res.status(400).json({ success: false, message: "Tanggal wajib diisi" });
+      }
+      const result = await AttendanceService.retroactiveFillHadir(
+        date,
+        req.authUser!.id,
+        classId
+      );
+      return res.json(result);
+    } catch (error: any) {
+      console.error("[ATTENDANCE] Retroactive fill error:", error);
+      return res.status(500).json({ success: false, message: "Error server" });
+    }
+  }
 }

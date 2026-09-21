@@ -5,7 +5,7 @@ import { apiClient } from '../../lib/api';
 import { smartSend, offlineCache } from '../../lib/syncEngine';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
-import { CheckCircle2, Search, Clock, UserCheck, Grid, Settings, NotebookPen, WifiOff } from 'lucide-react';
+import { CheckCircle2, Search, Clock, UserCheck, Grid, Settings, NotebookPen, WifiOff, RefreshCw, ShieldCheck } from 'lucide-react';
 import { AttendanceRecapTab } from './tabs/AttendanceRecapTab';
 import { AttendanceManualInputTab } from './tabs/AttendanceManualInputTab';
 import { AttendanceSettingsTab } from './tabs/AttendanceSettingsTab';
@@ -28,7 +28,7 @@ const formatDate = (d: Date) => `${DAYS_ID[d.getDay()]}, ${d.getDate()} ${MONTHS
 const formatTime = (d: Date) => d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 
 // ── Unified Scan Page Component ──
-const UnifiedScanPage = ({ processScan, isLoading: scanLoading }: { processScan: (code: string, method: string) => Promise<void>; isLoading: boolean }) => {
+const UnifiedScanPage = ({ processScan, isLoading: scanLoading, isAdmin }: { processScan: (code: string, method: string) => Promise<void>; isLoading: boolean; isAdmin: boolean }) => {
   const now = useRunningClock();
   const [nisInput, setNisInput] = useState('');
   const [stats, setStats] = useState<any>(null);
@@ -38,6 +38,7 @@ const UnifiedScanPage = ({ processScan, isLoading: scanLoading }: { processScan:
   const [filterStatus, setFilterStatus] = useState<'Hadir' | 'Terlambat' | 'Belum'>('Hadir');
   const [belumList, setBelumList] = useState<any[]>([]);
   const [belumLoading, setBelumLoading] = useState(false);
+  const [fillLoading, setFillLoading] = useState(false);
 
   const fetchDashboard = async () => {
     try {
@@ -54,15 +55,12 @@ const UnifiedScanPage = ({ processScan, isLoading: scanLoading }: { processScan:
     }
   };
 
-  // Fetch belum absen list when filter is 'Belum'
+  // Fetch belum absen list from server-side endpoint (accurate SQL LEFT JOIN)
   const fetchBelumList = async () => {
     setBelumLoading(true);
     try {
-      // Get all active students and filter out those who already scanned
-      const allStudents = await apiClient<any[]>('/students?status=active&limit=1000');
-      const scannedNis = new Set(logHariIni.map(l => l.nis));
-      const belum = allStudents.filter(s => !scannedNis.has(s.nis));
-      setBelumList(belum);
+      const list = await apiClient<any[]>('/attendance/today/belum');
+      setBelumList(list);
     } catch (err) {
       console.error('Failed to fetch belum list:', err);
     } finally {
@@ -70,8 +68,30 @@ const UnifiedScanPage = ({ processScan, isLoading: scanLoading }: { processScan:
     }
   };
 
+  // Retroactive fill: mark all remaining as Hadir
+  const handleRetroactiveFill = async () => {
+    if (!confirm(`Anda yakin ingin menandai ${belumList.length} siswa yang belum absen sebagai HADIR?\n\nIni akan mengisi otomatis semua siswa yang tidak tercatat oleh sistem scanner.`)) return;
+    setFillLoading(true);
+    try {
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const result = await apiClient<any>('/attendance/retroactive-fill', { method: 'POST', data: { date: dateStr } });
+      if (result.success) {
+        toast.success(`✅ ${result.count} siswa berhasil ditandai Hadir`);
+        fetchBelumList();
+        fetchDashboard();
+      } else {
+        toast.error(result.message || 'Gagal mengisi data');
+      }
+    } catch (err: any) {
+      toast.error('Error: ' + (err.message || 'Gagal'));
+    } finally {
+      setFillLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (filterStatus === 'Belum' && belumList.length === 0 && !belumLoading) {
+    if (filterStatus === 'Belum' && !belumLoading) {
       fetchBelumList();
     }
   }, [filterStatus]);
@@ -214,6 +234,22 @@ const UnifiedScanPage = ({ processScan, isLoading: scanLoading }: { processScan:
                 <p className="text-xs">Semua siswa sudah absen! 🎉</p>
               </div>
             ) : (
+              <>
+              {isAdmin && belumList.length > 0 && (
+                <div className="px-3 py-2 bg-amber-50 dark:bg-amber-900/10 border-b border-border-light dark:border-border-dark">
+                  <button
+                    onClick={handleRetroactiveFill}
+                    disabled={fillLoading}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 active:scale-95"
+                  >
+                    {fillLoading ? <RefreshCw size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+                    {fillLoading ? 'Memproses...' : `Tandai ${belumList.length} Siswa sebagai HADIR`}
+                  </button>
+                  <p className="text-[9px] text-amber-600 dark:text-amber-400 text-center mt-1">
+                    Gunakan jika siswa hadir faktual tapi tidak tercatat oleh scanner
+                  </p>
+                </div>
+              )}
               <div className="divide-y divide-border-light dark:divide-border-dark">
                 {belumList.map((stu) => (
                   <div key={stu.id} className="flex items-center px-3 py-2">
@@ -230,6 +266,7 @@ const UnifiedScanPage = ({ processScan, isLoading: scanLoading }: { processScan:
                   </div>
                 ))}
               </div>
+              </>
             )
           ) : filteredLog.length === 0 ? (
             <div className="p-6 text-center text-text-secondary">
@@ -415,7 +452,7 @@ export const DashboardAttendance = () => {
         </div>
 
         <div className="p-3 min-h-[300px]">
-          {activeTab === 'scan' && <UnifiedScanPage processScan={processScan} isLoading={isLoading} />}
+          {activeTab === 'scan' && <UnifiedScanPage processScan={processScan} isLoading={isLoading} isAdmin={isAdmin} />}
           {activeTab === 'manual' && isAdmin && <AttendanceManualInputTab />}
           {activeTab === 'rekap' && <AttendanceRecapTab />}
           {activeTab === 'settings' && isAdmin && <AttendanceSettingsTab />}

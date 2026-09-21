@@ -91,9 +91,17 @@ export async function smartSend(
       syncQueue.markSynced(queueId).then(() => emit('queue-changed')).catch(() => {});
       return { success: true, result, fromCache: false, queueId };
     } catch (error) {
-      // Failed to send — leave in queue, will retry later
-      console.warn(`[SyncEngine] Immediate sync failed for ${type}, queued for later`, error);
-      return { success: true, result: null, fromCache: true, queueId };
+      // Immediate retry once (handles transient network blips)
+      try {
+        await new Promise(r => setTimeout(r, 500));
+        const retryResult = await sendToServer(type, payload);
+        syncQueue.markSynced(queueId).then(() => emit('queue-changed')).catch(() => {});
+        return { success: true, result: retryResult, fromCache: false, queueId };
+      } catch (retryError) {
+        // Both attempts failed — leave in queue, will retry later
+        console.warn(`[SyncEngine] Immediate sync failed for ${type} (2 attempts), queued for later`, retryError);
+        return { success: true, result: null, fromCache: true, queueId };
+      }
     }
   }
 
@@ -223,7 +231,8 @@ export function initSyncListeners() {
     }
   });
 
-  // Periodic check: try to sync every 5 minutes if online
+  // Periodic check: try to sync every 60 seconds if there are pending items
+  // (reduced from 5 min for more reliable attendance recording)
   setInterval(() => {
     if (navigator.onLine) {
       syncQueue.getPendingCount().then(count => {
@@ -233,7 +242,19 @@ export function initSyncListeners() {
         }
       });
     }
-  }, 5 * 60 * 1000);
+  }, 60 * 1000);
+
+  // Sync when user returns to the tab (catches cases where phone screen was off)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && navigator.onLine) {
+      syncQueue.getPendingCount().then(count => {
+        if (count > 0) {
+          console.log(`[SyncEngine] Tab visible with ${count} pending items, syncing...`);
+          processQueue();
+        }
+      });
+    }
+  });
 
   // Initial sync on page load if there are pending items
   setTimeout(() => {
