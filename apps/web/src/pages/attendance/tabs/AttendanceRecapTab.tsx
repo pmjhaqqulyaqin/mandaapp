@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiClient } from '../../../lib/api';
-import { Download, Calendar, Search, CalendarRange } from 'lucide-react';
+import { Download, Calendar, Search, CalendarRange, ChevronDown, FileSpreadsheet, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 
@@ -42,6 +42,9 @@ export const AttendanceRecapTab = () => {
   const [classes, setClasses] = useState<any[]>([]);
   const [recapData, setRecapData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     apiClient<any[]>('/classes').then(data => {
@@ -73,6 +76,21 @@ export const AttendanceRecapTab = () => {
     if (selectedClass) fetchRecap();
   }, [selectedMonth, selectedYear, selectedClass, mode, startDate, endDate]);
 
+  // Close export menu on click outside (mousedown + touchstart for mobile)
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
+
   // Generate date columns based on mode
   const dateColumns: { key: string; label: string }[] = [];
   if (mode === 'monthly') {
@@ -92,13 +110,14 @@ export const AttendanceRecapTab = () => {
   }
 
   // Map data to grid
-  const studentMap = new Map<string, { nama: string; nis: string; dates: Record<string, string>; stats: Record<string, number> }>();
+  const studentMap = new Map<string, { nama: string; nis: string; kelas: string; dates: Record<string, string>; stats: Record<string, number> }>();
   
   recapData.forEach(record => {
     if (!studentMap.has(record.studentId)) {
       studentMap.set(record.studentId, {
         nama: record.nama,
         nis: record.nis,
+        kelas: record.kelas || 'Tanpa Kelas',
         dates: {},
         stats: { Hadir: 0, Terlambat: 0, Alpa: 0, Izin: 0, Sakit: 0, Bolos: 0 }
       });
@@ -210,6 +229,187 @@ export const AttendanceRecapTab = () => {
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     import('@/lib/mobileUtils').then(m => m.downloadOrShareBlob(blob, filename));
+  };
+
+  const handleExportBelumAbsen = async () => {
+    setShowExportMenu(false);
+    setIsExporting(true);
+    try {
+      // Always fetch ALL classes data (no classId filter)
+      let url: string;
+      if (mode === 'range') {
+        url = `/attendance/recap/monthly?startDate=${startDate}&endDate=${endDate}`;
+      } else {
+        url = `/attendance/recap/monthly?month=${selectedMonth}&year=${selectedYear}`;
+      }
+      const allData = await apiClient<any[]>(url);
+
+      // Generate date columns for the current period
+      const exportDates: { key: string; label: string }[] = [];
+      if (mode === 'monthly') {
+        const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+        for (let d = 1; d <= daysInMonth; d++) {
+          const dateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          exportDates.push({ key: dateStr, label: String(d) });
+        }
+      } else {
+        const dates = getDatesInRange(startDate, endDate);
+        dates.forEach(date => {
+          const d = new Date(date);
+          exportDates.push({ key: date, label: `${d.getDate()} ${d.toLocaleDateString('id-ID', { weekday: 'short' })}` });
+        });
+      }
+
+      // Build student map from ALL classes data
+      const allStudentMap = new Map<string, {
+        nama: string;
+        nis: string;
+        kelas: string;
+        dates: Record<string, string>;
+      }>();
+
+      allData.forEach(record => {
+        if (!allStudentMap.has(record.studentId)) {
+          allStudentMap.set(record.studentId, {
+            nama: record.nama,
+            nis: record.nis,
+            kelas: record.kelas || 'Tanpa Kelas',
+            dates: {},
+          });
+        }
+        if (record.status && record.date) {
+          allStudentMap.get(record.studentId)!.dates[record.date] = record.status;
+        }
+      });
+
+      // For each student, find dates where absent (no record or Alpa)
+      const absentStudents: {
+        nama: string;
+        nis: string;
+        kelas: string;
+        absentDates: Set<string>;
+        totalAbsent: number;
+      }[] = [];
+
+      allStudentMap.forEach(stu => {
+        const absentDates = new Set<string>();
+        exportDates.forEach(d => {
+          const status = stu.dates[d.key];
+          if (!status || status === 'Alpa') {
+            absentDates.add(d.key);
+          }
+        });
+        if (absentDates.size > 0) {
+          absentStudents.push({
+            nama: stu.nama,
+            nis: stu.nis,
+            kelas: stu.kelas,
+            absentDates,
+            totalAbsent: absentDates.size,
+          });
+        }
+      });
+
+      absentStudents.sort((a, b) => a.kelas.localeCompare(b.kelas) || a.nama.localeCompare(b.nama));
+
+      if (absentStudents.length === 0) {
+        toast.info('Semua siswa sudah absen pada periode ini.');
+        return;
+      }
+
+      // Group by class
+      const classGroups = new Map<string, typeof absentStudents>();
+      absentStudents.forEach(stu => {
+        if (!classGroups.has(stu.kelas)) classGroups.set(stu.kelas, []);
+        classGroups.get(stu.kelas)!.push(stu);
+      });
+      const sortedClasses = Array.from(classGroups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+
+      // ── Generate Excel ──
+      const wb = XLSX.utils.book_new();
+      const periodText = mode === 'monthly'
+        ? new Date(selectedYear, selectedMonth - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+        : `${startDate} s/d ${endDate}`;
+
+      // Sheet 1: Ringkasan
+      const summaryHeaders = ['No', 'Kelas', 'Siswa Tidak Hadir', 'Total Ketidakhadiran'];
+      const summaryRows = sortedClasses.map(([kelas, students], idx) => [
+        idx + 1,
+        kelas,
+        students.length,
+        students.reduce((sum, s) => sum + s.totalAbsent, 0),
+      ]);
+      const totalRow = [
+        '',
+        'TOTAL',
+        absentStudents.length,
+        absentStudents.reduce((sum, s) => sum + s.totalAbsent, 0),
+      ];
+      const summaryData = [
+        [`Laporan Siswa Belum Absen / Alpa`],
+        [`Periode: ${periodText}`],
+        [],
+        summaryHeaders,
+        ...summaryRows,
+        [],
+        totalRow,
+      ];
+      const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+      summaryWs['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } },
+      ];
+      summaryWs['!cols'] = [{ wch: 5 }, { wch: 25 }, { wch: 22 }, { wch: 24 }];
+      XLSX.utils.book_append_sheet(wb, summaryWs, 'Ringkasan');
+
+      // Per-class sheets
+      sortedClasses.forEach(([kelas, students]) => {
+        const headers = ['No', 'NIS', 'Nama Siswa', ...exportDates.map(d => d.label), 'Total'];
+        const rows = students.map((stu, idx) => [
+          idx + 1,
+          stu.nis,
+          stu.nama,
+          ...exportDates.map(d => stu.absentDates.has(d.key) ? 'X' : ''),
+          stu.totalAbsent,
+        ]);
+        const sheetData = [
+          [`Siswa Belum Absen / Alpa — ${kelas}`],
+          [`Periode: ${periodText}`],
+          [],
+          headers,
+          ...rows,
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(sheetData);
+        ws['!merges'] = [
+          { s: { r: 0, c: 0 }, e: { r: 0, c: Math.min(headers.length - 1, 5) } },
+          { s: { r: 1, c: 0 }, e: { r: 1, c: Math.min(headers.length - 1, 5) } },
+        ];
+        ws['!cols'] = [
+          { wch: 5 },
+          { wch: 14 },
+          { wch: 30 },
+          ...exportDates.map(() => ({ wch: 4 })),
+          { wch: 6 },
+        ];
+        const sheetName = kelas.replace(/[\\\/*?\[\]:]/g, '').slice(0, 31);
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      });
+
+      // Download
+      const periodLabel = mode === 'monthly'
+        ? `${new Date(selectedYear, selectedMonth - 1).toLocaleDateString('id-ID', { month: 'long' })}_${selectedYear}`
+        : `${startDate}_sd_${endDate}`;
+      const filename = `Belum_Absen_${periodLabel}.xlsx`;
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      import('@/lib/mobileUtils').then(m => m.downloadOrShareBlob(blob, filename));
+      toast.success(`Export berhasil! ${absentStudents.length} siswa dari ${sortedClasses.length} kelas.`);
+    } catch (err) {
+      toast.error('Gagal mengexport data belum absen');
+      console.error(err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Quick range presets
@@ -338,13 +538,59 @@ export const AttendanceRecapTab = () => {
           >
             <Search size={14} /> Filter
           </button>
-          <button 
-            onClick={handleExport}
-            disabled={studentsList.length === 0}
-            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
-          >
-            <Download size={14} /> Excel
-          </button>
+          <div className="relative" ref={exportMenuRef}>
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              disabled={isExporting}
+              className="w-full px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 disabled:opacity-60"
+            >
+              {isExporting ? (
+                <>
+                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white/30 border-t-white" />
+                  Mengexport...
+                </>
+              ) : (
+                <>
+                  <Download size={14} />
+                  Export
+                  <ChevronDown size={12} className={`transition-transform duration-200 ${showExportMenu ? 'rotate-180' : ''}`} />
+                </>
+              )}
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 sm:right-0 left-0 sm:left-auto top-full mt-1.5 min-w-[240px] sm:w-72 bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#333] rounded-xl shadow-2xl z-50 overflow-hidden">
+                <div className="px-3 py-2 bg-gray-50 dark:bg-[#252525] border-b border-gray-100 dark:border-[#333]">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Pilih Jenis Export</span>
+                </div>
+                <button
+                  onClick={() => { setShowExportMenu(false); handleExport(); }}
+                  disabled={studentsList.length === 0}
+                  className="w-full px-3 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors flex items-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+                    <FileSpreadsheet size={15} className="text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-gray-900 dark:text-gray-100">Rekap Lengkap</div>
+                    <div className="text-[10px] text-gray-500 dark:text-gray-400">Semua data kehadiran siswa</div>
+                  </div>
+                </button>
+                <div className="mx-3 border-t border-gray-100 dark:border-[#333]" />
+                <button
+                  onClick={handleExportBelumAbsen}
+                  className="w-full px-3 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors flex items-center gap-3"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                    <UserX size={15} className="text-red-600 dark:text-red-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-gray-900 dark:text-gray-100">Belum Absen / Alpa</div>
+                    <div className="text-[10px] text-gray-500 dark:text-gray-400">Per kelas, semua kelas (otomatis)</div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
