@@ -50,14 +50,20 @@ export function useNetworkStatus(): NetworkStatus {
       setIsSyncing(false);
       setLastSyncResult(data);
       refreshCount();
+      // Second refresh after DB transaction settles
+      setTimeout(refreshCount, 500);
     });
-    const unsub3 = onSyncEvent('queue-changed', () => refreshCount());
+    const unsub3 = onSyncEvent('queue-changed', () => {
+      refreshCount();
+      // Second refresh after DB transaction settles
+      setTimeout(refreshCount, 500);
+    });
 
     // Initial count
     refreshCount();
 
-    // Periodic refresh
-    const interval = setInterval(refreshCount, 30000);
+    // Periodic refresh (5s for responsive UI)
+    const interval = setInterval(refreshCount, 5000);
 
     return () => { unsub1(); unsub2(); unsub3(); clearInterval(interval); };
   }, [refreshCount]);

@@ -87,15 +87,21 @@ export async function smartSend(
   if (navigator.onLine) {
     try {
       const result = await sendToServer(type, payload);
-      // Fire-and-forget: mark synced
-      syncQueue.markSynced(queueId).then(() => emit('queue-changed')).catch(() => {});
+      // CRITICAL: await markSynced to ensure item is cleaned up before UI refreshes count
+      try {
+        await syncQueue.markSynced(queueId);
+      } catch {}
+      emit('queue-changed');
       return { success: true, result, fromCache: false, queueId };
     } catch (error) {
       // Immediate retry once (handles transient network blips)
       try {
         await new Promise(r => setTimeout(r, 500));
         const retryResult = await sendToServer(type, payload);
-        syncQueue.markSynced(queueId).then(() => emit('queue-changed')).catch(() => {});
+        try {
+          await syncQueue.markSynced(queueId);
+        } catch {}
+        emit('queue-changed');
         return { success: true, result: retryResult, fromCache: false, queueId };
       } catch (retryError) {
         // Both attempts failed — leave in queue, will retry later
@@ -156,6 +162,9 @@ export async function processQueue(): Promise<{ synced: number; failed: number }
   let failed = 0;
 
   try {
+    // Reset items stuck in 'syncing' state (from previous interrupted sync)
+    await syncQueue.resetStuckSyncing();
+
     const pending = await syncQueue.getPending();
     const retryable = (await syncQueue.getFailed()).filter(item => item.retryCount < 5);
     const allItems = [...pending, ...retryable].sort((a, b) => a.createdAt - b.createdAt);
@@ -165,13 +174,43 @@ export async function processQueue(): Promise<{ synced: number; failed: number }
 
       try {
         await syncQueue.markSyncing(item.id!);
-        await sendToServer(item.type, item.payload);
+        const result = await sendToServer(item.type, item.payload);
+        
+        // Check if server returned a "duplicate/already exists" response
+        // This happens when smartSend already sent the data inline but markSynced was delayed
+        if (result && result.success === false) {
+          const msg = (result.message || '').toLowerCase();
+          const isDuplicate = msg.includes('sudah absen') 
+            || msg.includes('sudah ada') 
+            || msg.includes('already') 
+            || msg.includes('duplicate');
+          if (isDuplicate) {
+            // Treat as successfully synced — data is already on server
+            await syncQueue.markSynced(item.id!);
+            synced++;
+            emit('sync-progress', { synced, total: allItems.length, current: item });
+            continue;
+          }
+        }
+        
         await syncQueue.markSynced(item.id!);
         synced++;
         emit('sync-progress', { synced, total: allItems.length, current: item });
       } catch (error: any) {
-        await syncQueue.markFailed(item.id!, error.message || 'Unknown error');
-        failed++;
+        // Check if the error response body indicates a duplicate record
+        const errMsg = (error.message || '').toLowerCase();
+        const isDuplicateErr = errMsg.includes('sudah absen') 
+          || errMsg.includes('sudah ada')
+          || errMsg.includes('already')
+          || errMsg.includes('duplicate');
+        if (isDuplicateErr) {
+          // Data already on server — mark as synced
+          await syncQueue.markSynced(item.id!);
+          synced++;
+        } else {
+          await syncQueue.markFailed(item.id!, error.message || 'Unknown error');
+          failed++;
+        }
       }
 
       // Small delay between requests to avoid server overload
@@ -257,11 +296,19 @@ export function initSyncListeners() {
   });
 
   // Initial sync on page load if there are pending items
-  setTimeout(() => {
+  setTimeout(async () => {
+    // Reset any items stuck in 'syncing' from a previous session
+    try {
+      const resetCount = await syncQueue.resetStuckSyncing();
+      if (resetCount > 0) {
+        console.log(`[SyncEngine] Reset ${resetCount} stuck 'syncing' items back to 'pending'`);
+        emit('queue-changed');
+      }
+    } catch {}
+
     if (navigator.onLine) {
-      syncQueue.getPendingCount().then(count => {
-        if (count > 0) processQueue();
-      });
+      const count = await syncQueue.getPendingCount();
+      if (count > 0) processQueue();
     }
   }, 3000);
 }

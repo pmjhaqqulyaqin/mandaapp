@@ -234,7 +234,45 @@ export const syncQueue = {
   async getPendingCount(): Promise<number> {
     const items = await this.getPending();
     const failed = await this.getFailed();
-    return items.length + failed.length;
+    const syncing = await this.getSyncing();
+    return items.length + failed.length + syncing.length;
+  },
+
+  async getSyncing(): Promise<SyncQueueItem[]> {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('syncQueue', 'readonly');
+      const store = tx.objectStore('syncQueue');
+      const index = store.index('status');
+      const request = index.getAll('syncing');
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
+  },
+
+  /** Reset items stuck in 'syncing' state back to 'pending' (e.g. after app crash/reload) */
+  async resetStuckSyncing(): Promise<number> {
+    const syncing = await this.getSyncing();
+    let reset = 0;
+    const db = await openDb();
+    for (const item of syncing) {
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction('syncQueue', 'readwrite');
+        const store = tx.objectStore('syncQueue');
+        const getReq = store.get(item.id!);
+        getReq.onsuccess = () => {
+          const record = getReq.result;
+          if (record && record.status === 'syncing') {
+            record.status = 'pending';
+            store.put(record);
+            reset++;
+          }
+          resolve();
+        };
+        getReq.onerror = () => reject(getReq.error);
+      });
+    }
+    return reset;
   },
 
   async clearSynced(): Promise<void> {
