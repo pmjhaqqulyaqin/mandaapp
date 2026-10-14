@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { apiClient } from '../../../lib/api';
-import { Download, Calendar, Search, CalendarRange, ChevronDown, FileSpreadsheet, UserX } from 'lucide-react';
+import { Download, Calendar, Search, CalendarRange, ChevronDown, FileSpreadsheet, UserX, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 
@@ -46,10 +46,20 @@ export const AttendanceRecapTab = () => {
   const [isExporting, setIsExporting] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
 
+  // Per-class summary for initial view (no class selected)
+  const [classSummary, setClassSummary] = useState<any>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+
   useEffect(() => {
     apiClient<any[]>('/classes').then(data => {
       setClasses(data);
     }).catch(err => console.error(err));
+
+    // Fetch per-class attendance summary for today
+    apiClient<any>('/attendance/today/belum-export')
+      .then(data => setClassSummary(data))
+      .catch(() => {})
+      .finally(() => setSummaryLoading(false));
   }, []);
 
   const fetchRecap = async () => {
@@ -559,6 +569,66 @@ export const AttendanceRecapTab = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
             Memuat data...
           </div>
+        ) : !selectedClass ? (
+          /* ── Per-class attendance summary grid (no class selected) ── */
+          summaryLoading ? (
+            <div className="p-8 text-center text-gray-400">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto mb-3"></div>
+              <p className="text-xs">Memuat ringkasan...</p>
+            </div>
+          ) : classSummary?.classSummary?.length > 0 ? (
+            <div className="p-3">
+              {/* Summary header */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1.5">
+                  <UserCheck size={14} className="text-primary" />
+                  <h3 className="text-xs font-bold text-text-primary dark:text-text-darkPrimary">Kehadiran Hari Ini</h3>
+                </div>
+                <div className="text-[10px] font-semibold text-text-secondary">
+                  <span className="text-emerald-600 dark:text-emerald-400">{classSummary.totalHadir}</span>
+                  <span className="mx-0.5">/</span>
+                  <span>{classSummary.totalStudents}</span>
+                  <span className="ml-1 text-emerald-600 dark:text-emerald-400">
+                    ({classSummary.totalStudents > 0 ? Math.round((classSummary.totalHadir / classSummary.totalStudents) * 100) : 0}%)
+                  </span>
+                </div>
+              </div>
+
+              {/* Compact class cards grid */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5">
+                {classSummary.classSummary.map((cls: any) => {
+                  const pct = cls.totalStudents > 0 ? (cls.hadirCount / cls.totalStudents) * 100 : 0;
+                  const borderColor = pct >= 100 ? 'border-l-emerald-500' : pct >= 80 ? 'border-l-amber-400' : 'border-l-red-500';
+                  const matchedClass = classes.find((c: any) => c.name === cls.className);
+
+                  return (
+                    <button
+                      key={cls.className}
+                      onClick={() => {
+                        if (matchedClass) {
+                          setSelectedClass(matchedClass.id);
+                        }
+                      }}
+                      className={`text-left border border-gray-100 dark:border-[#2a2a2a] border-l-[3px] ${borderColor} rounded-lg px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-[#1f1f1f] active:scale-95 transition-all cursor-pointer`}
+                    >
+                      <p className="text-[10px] font-bold text-text-primary dark:text-text-darkPrimary truncate leading-tight">{cls.className}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">H:{cls.hadirCount}</span>
+                        <span className="text-[9px] font-semibold text-red-500 dark:text-red-400">A:{cls.belumAbsenCount}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <p className="text-center text-[9px] text-text-secondary mt-2.5">Tap kelas untuk melihat rekap detail</p>
+            </div>
+          ) : (
+            <div className="p-8 text-center text-gray-400">
+              <Calendar size={28} className="mx-auto mb-2 opacity-50" />
+              <p className="text-xs">Pilih kelas untuk melihat rekap.</p>
+            </div>
+          )
         ) : studentsList.length === 0 ? (
           <div className="p-12 text-center text-gray-400">
             <Calendar size={32} className="mx-auto mb-3 opacity-50" />
