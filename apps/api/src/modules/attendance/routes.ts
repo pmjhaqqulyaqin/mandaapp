@@ -11,6 +11,7 @@ router.post("/scan", AttendanceController.scan);
 router.get("/today/stats", AttendanceController.getStatsToday);
 router.get("/today/log", AttendanceController.getLogToday);
 router.get("/today/belum", AttendanceController.getBelumList);
+router.get("/today/belum-export", requireStaff, AttendanceController.getBelumAbsenExportData);
 
 router.post("/retroactive-fill", requireAdmin, AttendanceController.retroactiveFillHadir);
 router.post("/manual/bulk", requireStaff, AttendanceController.manualBulkInput);

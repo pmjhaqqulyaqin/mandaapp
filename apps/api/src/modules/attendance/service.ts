@@ -631,4 +631,86 @@ export class AttendanceService {
       count: missing.length,
     };
   }
+
+  // ─── Belum Absen Export Data (per-class summary + absent student list) ──
+
+  /**
+   * Returns per-class attendance summary for today and the list of absent students.
+   * Only includes active students with a class assignment (matching dashboard logic).
+   * Used by the "Export Belum Absen / Alpa" feature.
+   */
+  static async getBelumAbsenExportData() {
+    const { dateStr: today } = toWITA(new Date());
+
+    // 1. Get all active students with class assignment
+    const allStudents = await db.select({
+      id: studentProfiles.id,
+      fullName: studentProfiles.fullName,
+      nis: studentProfiles.nis,
+      className: studentProfiles.className,
+      classId: studentProfiles.classId,
+    })
+      .from(studentProfiles)
+      .where(and(
+        eq(studentProfiles.status, "active"),
+        isNotNull(studentProfiles.classId),
+      ))
+      .orderBy(studentProfiles.className, studentProfiles.fullName);
+
+    // 2. Get today's attendance records
+    const todayRecords = await db.select({
+      studentId: attendanceRecords.studentId,
+    })
+      .from(attendanceRecords)
+      .where(eq(attendanceRecords.date, today));
+
+    const attendedSet = new Set(todayRecords.map(r => r.studentId));
+
+    // 3. Build per-class summary and absent student list
+    const classMap = new Map<string, {
+      className: string;
+      totalStudents: number;
+      hadirCount: number;
+      belumAbsenCount: number;
+      absentStudents: { fullName: string; nis: string; className: string }[];
+    }>();
+
+    for (const student of allStudents) {
+      const kelas = student.className || 'Tanpa Kelas';
+      if (!classMap.has(kelas)) {
+        classMap.set(kelas, {
+          className: kelas,
+          totalStudents: 0,
+          hadirCount: 0,
+          belumAbsenCount: 0,
+          absentStudents: [],
+        });
+      }
+      const entry = classMap.get(kelas)!;
+      entry.totalStudents++;
+      if (attendedSet.has(student.id)) {
+        entry.hadirCount++;
+      } else {
+        entry.belumAbsenCount++;
+        entry.absentStudents.push({
+          fullName: student.fullName || '',
+          nis: student.nis || '',
+          className: kelas,
+        });
+      }
+    }
+
+    const classSummary = Array.from(classMap.values())
+      .sort((a, b) => a.className.localeCompare(b.className));
+
+    const totalBelumAbsen = classSummary.reduce((sum, c) => sum + c.belumAbsenCount, 0);
+
+    return {
+      date: today,
+      totalStudents: allStudents.length,
+      totalHadir: allStudents.length - totalBelumAbsen,
+      totalBelumAbsen,
+      classSummary,
+    };
+  }
 }

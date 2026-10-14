@@ -235,119 +235,73 @@ export const AttendanceRecapTab = () => {
     setShowExportMenu(false);
     setIsExporting(true);
     try {
-      // Always fetch ALL classes data (no classId filter)
-      let url: string;
-      if (mode === 'range') {
-        url = `/attendance/recap/monthly?startDate=${startDate}&endDate=${endDate}`;
-      } else {
-        url = `/attendance/recap/monthly?month=${selectedMonth}&year=${selectedYear}`;
-      }
-      const allData = await apiClient<any[]>(url);
+      // Fetch today's per-class attendance summary from dedicated endpoint
+      const exportData = await apiClient<{
+        date: string;
+        totalStudents: number;
+        totalHadir: number;
+        totalBelumAbsen: number;
+        classSummary: {
+          className: string;
+          totalStudents: number;
+          hadirCount: number;
+          belumAbsenCount: number;
+          absentStudents: { fullName: string; nis: string; className: string }[];
+        }[];
+      }>('/attendance/today/belum-export');
 
-      // Generate date columns for the current period
-      const exportDates: { key: string; label: string }[] = [];
-      if (mode === 'monthly') {
-        const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
-        for (let d = 1; d <= daysInMonth; d++) {
-          const dateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-          exportDates.push({ key: dateStr, label: String(d) });
-        }
-      } else {
-        const dates = getDatesInRange(startDate, endDate);
-        dates.forEach(date => {
-          const d = new Date(date);
-          exportDates.push({ key: date, label: `${d.getDate()} ${d.toLocaleDateString('id-ID', { weekday: 'short' })}` });
-        });
-      }
+      const { classSummary } = exportData;
 
-      // Build student map from ALL classes data
-      const allStudentMap = new Map<string, {
-        nama: string;
-        nis: string;
-        kelas: string;
-        dates: Record<string, string>;
-      }>();
+      // Count total absent students
+      const totalBelumAbsen = classSummary.reduce((sum, c) => sum + c.belumAbsenCount, 0);
 
-      allData.forEach(record => {
-        if (!allStudentMap.has(record.studentId)) {
-          allStudentMap.set(record.studentId, {
-            nama: record.nama,
-            nis: record.nis,
-            kelas: record.kelas || 'Tanpa Kelas',
-            dates: {},
-          });
-        }
-        if (record.status && record.date) {
-          allStudentMap.get(record.studentId)!.dates[record.date] = record.status;
-        }
-      });
-
-      // For each student, find dates where absent (no record or Alpa)
-      const absentStudents: {
-        nama: string;
-        nis: string;
-        kelas: string;
-        absentDates: Set<string>;
-        totalAbsent: number;
-      }[] = [];
-
-      allStudentMap.forEach(stu => {
-        const absentDates = new Set<string>();
-        exportDates.forEach(d => {
-          const status = stu.dates[d.key];
-          if (!status || status === 'Alpa') {
-            absentDates.add(d.key);
-          }
-        });
-        if (absentDates.size > 0) {
-          absentStudents.push({
-            nama: stu.nama,
-            nis: stu.nis,
-            kelas: stu.kelas,
-            absentDates,
-            totalAbsent: absentDates.size,
-          });
-        }
-      });
-
-      absentStudents.sort((a, b) => a.kelas.localeCompare(b.kelas) || a.nama.localeCompare(b.nama));
-
-      if (absentStudents.length === 0) {
-        toast.info('Semua siswa sudah absen pada periode ini.');
+      if (totalBelumAbsen === 0) {
+        toast.info('Semua siswa sudah absen hari ini.');
         return;
       }
 
-      // Group by class
-      const classGroups = new Map<string, typeof absentStudents>();
-      absentStudents.forEach(stu => {
-        if (!classGroups.has(stu.kelas)) classGroups.set(stu.kelas, []);
-        classGroups.get(stu.kelas)!.push(stu);
+      // Format today's date for display
+      const todayDate = new Date();
+      const dateText = todayDate.toLocaleDateString('id-ID', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
       });
-      const sortedClasses = Array.from(classGroups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
 
       // ── Generate Excel ──
       const wb = XLSX.utils.book_new();
-      const periodText = mode === 'monthly'
-        ? new Date(selectedYear, selectedMonth - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
-        : `${startDate} s/d ${endDate}`;
 
-      // Sheet 1: Ringkasan
-      const summaryHeaders = ['No', 'Kelas', 'Siswa Tidak Hadir', 'Total Ketidakhadiran'];
-      const summaryRows = sortedClasses.map(([kelas, students], idx) => [
-        idx + 1,
-        kelas,
-        students.length,
-        students.reduce((sum, s) => sum + s.totalAbsent, 0),
-      ]);
+      // Sheet 1: Ringkasan — ALL classes (15 kelas)
+      const summaryHeaders = ['No', 'Kelas', 'Jumlah Siswa', 'Siswa Hadir', 'Siswa Tidak Hadir', 'Persentase Kehadiran'];
+      const summaryRows = classSummary.map((cls, idx) => {
+        const pct = cls.totalStudents > 0
+          ? `${((cls.hadirCount / cls.totalStudents) * 100).toFixed(1)}%`
+          : '0%';
+        return [
+          idx + 1,
+          cls.className,
+          cls.totalStudents,
+          cls.hadirCount,
+          cls.belumAbsenCount,
+          pct,
+        ];
+      });
+
+      const totalStudents = classSummary.reduce((s, c) => s + c.totalStudents, 0);
+      const totalHadir = classSummary.reduce((s, c) => s + c.hadirCount, 0);
+      const totalPct = totalStudents > 0
+        ? `${((totalHadir / totalStudents) * 100).toFixed(1)}%`
+        : '0%';
       const totalRow = [
         '',
         'TOTAL',
-        absentStudents.length,
-        absentStudents.reduce((sum, s) => sum + s.totalAbsent, 0),
+        totalStudents,
+        totalHadir,
+        totalBelumAbsen,
+        totalPct,
       ];
+
       const summaryData = [
         [`Laporan Siswa Belum Absen / Alpa`],
-        [`Periode: ${periodText}`],
+        [`Tanggal: ${dateText}`],
         [],
         summaryHeaders,
         ...summaryRows,
@@ -356,54 +310,58 @@ export const AttendanceRecapTab = () => {
       ];
       const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
       summaryWs['!merges'] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
-        { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } },
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } },
       ];
-      summaryWs['!cols'] = [{ wch: 5 }, { wch: 25 }, { wch: 22 }, { wch: 24 }];
+      summaryWs['!cols'] = [
+        { wch: 5 },  // No
+        { wch: 20 }, // Kelas
+        { wch: 14 }, // Jumlah Siswa
+        { wch: 14 }, // Siswa Hadir
+        { wch: 18 }, // Siswa Tidak Hadir
+        { wch: 22 }, // Persentase Kehadiran
+      ];
       XLSX.utils.book_append_sheet(wb, summaryWs, 'Ringkasan');
 
-      // Per-class sheets
-      sortedClasses.forEach(([kelas, students]) => {
-        const headers = ['No', 'NIS', 'Nama Siswa', ...exportDates.map(d => d.label), 'Total'];
-        const rows = students.map((stu, idx) => [
+      // Per-class sheets — ONLY for classes that have absent students
+      const classesWithAbsent = classSummary.filter(cls => cls.belumAbsenCount > 0);
+      classesWithAbsent.forEach(cls => {
+        const headers = ['No', 'NIS', 'Nama Siswa'];
+        const rows = cls.absentStudents.map((stu, idx) => [
           idx + 1,
           stu.nis,
-          stu.nama,
-          ...exportDates.map(d => stu.absentDates.has(d.key) ? 'X' : ''),
-          stu.totalAbsent,
+          stu.fullName,
         ]);
         const sheetData = [
-          [`Siswa Belum Absen / Alpa — ${kelas}`],
-          [`Periode: ${periodText}`],
+          [`Siswa Belum Absen — ${cls.className}`],
+          [`Tanggal: ${dateText}`],
+          [`Jumlah siswa: ${cls.totalStudents} | Hadir: ${cls.hadirCount} | Tidak hadir: ${cls.belumAbsenCount}`],
           [],
           headers,
           ...rows,
         ];
         const ws = XLSX.utils.aoa_to_sheet(sheetData);
         ws['!merges'] = [
-          { s: { r: 0, c: 0 }, e: { r: 0, c: Math.min(headers.length - 1, 5) } },
-          { s: { r: 1, c: 0 }, e: { r: 1, c: Math.min(headers.length - 1, 5) } },
+          { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } },
+          { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } },
+          { s: { r: 2, c: 0 }, e: { r: 2, c: 2 } },
         ];
         ws['!cols'] = [
           { wch: 5 },
           { wch: 14 },
-          { wch: 30 },
-          ...exportDates.map(() => ({ wch: 4 })),
-          { wch: 6 },
+          { wch: 35 },
         ];
-        const sheetName = kelas.replace(/[\\\/*?\[\]:]/g, '').slice(0, 31);
+        const sheetName = cls.className.replace(/[\\/*?\[\]:]/g, '').slice(0, 31);
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
       });
 
       // Download
-      const periodLabel = mode === 'monthly'
-        ? `${new Date(selectedYear, selectedMonth - 1).toLocaleDateString('id-ID', { month: 'long' })}_${selectedYear}`
-        : `${startDate}_sd_${endDate}`;
-      const filename = `Belum_Absen_${periodLabel}.xlsx`;
+      const dateLabel = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`;
+      const filename = `Belum_Absen_${dateLabel}.xlsx`;
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       import('@/lib/mobileUtils').then(m => m.downloadOrShareBlob(blob, filename));
-      toast.success(`Export berhasil! ${absentStudents.length} siswa dari ${sortedClasses.length} kelas.`);
+      toast.success(`Export berhasil! ${totalBelumAbsen} siswa belum absen dari ${classesWithAbsent.length} kelas.`);
     } catch (err) {
       toast.error('Gagal mengexport data belum absen');
       console.error(err);

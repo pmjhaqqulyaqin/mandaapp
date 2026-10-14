@@ -253,4 +253,16 @@ export class AttendanceController {
       return res.status(500).json({ success: false, message: "Error server" });
     }
   }
+
+  // ─── Belum Absen Export Data ───────────────────────────────────────────
+
+  static async getBelumAbsenExportData(req: Request, res: Response) {
+    try {
+      const data = await AttendanceService.getBelumAbsenExportData();
+      return res.json(data);
+    } catch (error: any) {
+      console.error("[ATTENDANCE] Belum absen export data error:", error);
+      return res.status(500).json({ error: "Gagal mengambil data export belum absen" });
+    }
+  }
 }
