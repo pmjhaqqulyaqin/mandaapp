@@ -642,20 +642,18 @@ export class AttendanceService {
   static async getBelumAbsenExportData() {
     const { dateStr: today } = toWITA(new Date());
 
-    // 1. Get all active students with class assignment
+    // 1. Get all active students with valid class (INNER JOIN to classes table)
     const allStudents = await db.select({
       id: studentProfiles.id,
       fullName: studentProfiles.fullName,
       nis: studentProfiles.nis,
-      className: studentProfiles.className,
+      className: classes.name, // Use actual class name from classes table
       classId: studentProfiles.classId,
     })
       .from(studentProfiles)
-      .where(and(
-        eq(studentProfiles.status, "active"),
-        isNotNull(studentProfiles.classId),
-      ))
-      .orderBy(studentProfiles.className, studentProfiles.fullName);
+      .innerJoin(classes, eq(studentProfiles.classId, classes.id))
+      .where(eq(studentProfiles.status, "active"))
+      .orderBy(classes.name, studentProfiles.fullName);
 
     // 2. Get today's attendance records
     const todayRecords = await db.select({
