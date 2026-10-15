@@ -314,6 +314,7 @@ export const DashboardAttendance = () => {
   const isAdmin = ['admin', 'wakil_kepala', 'kepala_madrasah'].includes(user?.role || '');
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'rekap' | 'settings'>('scan');
   const [isLoading, setIsLoading] = useState(false);
+  const [rekapKey, setRekapKey] = useState(0);
 
   // Cache student list for offline NIS lookup (runs once on mount)
   useEffect(() => {
@@ -437,7 +438,13 @@ export const DashboardAttendance = () => {
             {tabs.map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => {
+                  if (tab.key === 'rekap' && activeTab === 'rekap') {
+                    // Re-tap Rekap → reset to class summary view
+                    setRekapKey(k => k + 1);
+                  }
+                  setActiveTab(tab.key);
+                }}
                 className={`relative flex items-center justify-center gap-1.5 flex-1 px-3 py-2.5 text-[12px] font-semibold whitespace-nowrap rounded-lg transition-all duration-200 active:scale-95 ${
                   activeTab === tab.key
                     ? 'bg-white dark:bg-[#2a2a2a] text-primary shadow-sm ring-1 ring-black/5 dark:ring-white/10'
@@ -454,7 +461,7 @@ export const DashboardAttendance = () => {
         <div className="p-3 min-h-[300px]">
           {activeTab === 'scan' && <UnifiedScanPage processScan={processScan} isLoading={isLoading} isAdmin={isAdmin} />}
           {activeTab === 'manual' && isAdmin && <AttendanceManualInputTab />}
-          {activeTab === 'rekap' && <AttendanceRecapTab />}
+          {activeTab === 'rekap' && <AttendanceRecapTab key={rekapKey} />}
           {activeTab === 'settings' && isAdmin && <AttendanceSettingsTab />}
         </div>
       </div>
