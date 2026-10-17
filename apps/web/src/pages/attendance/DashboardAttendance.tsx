@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useAttendanceSound } from '../../hooks/useAttendanceSound';
 import { Breadcrumbs } from '@mandaapp/ui/src/components/Breadcrumbs';
 import { ScannerEngine } from './components/ScannerEngine';
 import { apiClient } from '../../lib/api';
@@ -315,6 +316,7 @@ export const DashboardAttendance = () => {
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'rekap' | 'settings'>('scan');
   const [isLoading, setIsLoading] = useState(false);
   const [rekapKey, setRekapKey] = useState(0);
+  const { playSuccess } = useAttendanceSound();
 
   // Cache student list for offline NIS lookup (runs once on mount)
   useEffect(() => {
@@ -390,6 +392,7 @@ export const DashboardAttendance = () => {
         const data = result.result;
         if (data.success) {
           if (navigator.vibrate) navigator.vibrate(100);
+          playSuccess(); // 🔊 Putar suara "Terima Kasih"
           const isAlpa = data.status?.includes('Alpa');
           toast.custom(() => (
             <div className={`bg-white dark:bg-[#1a1a1a] border-l-4 ${isAlpa ? 'border-orange-500' : 'border-green-500'} rounded-lg shadow-lg p-4 flex items-start gap-3 w-80`}>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useAttendanceSound } from '../../hooks/useAttendanceSound';
 import { ScannerEngine } from './components/ScannerEngine';
 import { apiClient } from '../../lib/api';
 import { smartSend, offlineCache } from '../../lib/syncEngine';
@@ -9,6 +10,7 @@ type ScanMode = 'masuk' | 'pulang';
 type InputMode = 'kamera' | 'usb_manual';
 
 export const PublicScannerPage = () => {
+  const { playSuccess } = useAttendanceSound();
   const [scanMode, setScanMode] = useState<ScanMode>('masuk');
   const [inputMode, setInputMode] = useState<InputMode>('kamera');
   const [manualNis, setManualNis] = useState('');
@@ -118,7 +120,7 @@ export const PublicScannerPage = () => {
             </div>
           ), { duration: 3000 });
         }
-        playBeep('success');
+        playSuccess(); // 🔊 Suara "Terima Kasih" (offline cached)
       } else if (result.result) {
         const data = result.result;
         if (data.success) {
@@ -134,7 +136,7 @@ export const PublicScannerPage = () => {
               </div>
             </div>
           ), { duration: 3000 });
-          playBeep('success');
+          playSuccess(); // 🔊 Suara "Terima Kasih"
           fetchStatsAndLog(); // Refresh list
         } else {
           toast.custom(() => (
