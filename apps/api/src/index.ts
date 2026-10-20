@@ -44,6 +44,7 @@ import { announcementsRoutes } from './modules/announcements/routes';
 import { downloadsRoutes } from './modules/downloads/routes';
 import { integrationsRoutes } from './modules/integrations/routes';
 import { raporRoutes } from './modules/rapor/routes';
+import waRoutes from './modules/wa/routes';
 
 dotenv.config();
 
@@ -250,6 +251,7 @@ app.use("/api/exams", examRoutes);
 app.use("/api/ppdb", ppdbRoutes);
 app.use("/api/ijazah", ijazahRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/wa", waRoutes);
 app.use("/api/jurnal", jurnalRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/parent-portal", parentPortalRoutes);

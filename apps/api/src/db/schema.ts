@@ -1006,6 +1006,24 @@ export const parentLinks = pgTable("parent_links", {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// WhatsApp Notification Log
+// ═══════════════════════════════════════════════════════════════
+
+export const waNotificationLog = pgTable("wa_notification_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  studentId: uuid("student_id").references(() => studentProfiles.id, { onDelete: "set null" }),
+  phone: varchar("phone", { length: 50 }).notNull(),
+  parentName: varchar("parent_name", { length: 255 }),
+  messageType: varchar("message_type", { length: 50 }).notNull().default("attendance"),
+  statusSent: varchar("status_sent", { length: 20 }).notNull(),
+  deliveryStatus: varchar("delivery_status", { length: 20 }).notNull().default("pending"),
+  errorMessage: text("error_message"),
+  gatewayMessageId: varchar("gateway_message_id", { length: 255 }),
+  retryCount: integer("retry_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ═══════════════════════════════════════════════════════════════
 // Manajemen Pembagian Tugas KBM Guru
 // ═══════════════════════════════════════════════════════════════
 

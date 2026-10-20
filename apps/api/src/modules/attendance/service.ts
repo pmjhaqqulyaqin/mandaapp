@@ -3,6 +3,7 @@ import { attendanceRecords, attendanceSettings, studentProfiles, classes, siteSe
 import { eq, and, or, sql, desc, count, isNotNull, isNull } from "drizzle-orm";
 import { sendParentAttendanceEmail } from "../../lib/mailer";
 import { ParentPortalService } from "../parent-portal/service";
+import { notifyParentsViaWA } from "./wa-notifier";
 
 const VALID_STATUSES = ["Hadir", "Terlambat", "Alpa", "Sakit", "Izin", "Bolos"] as const;
 type AttendanceStatus = typeof VALID_STATUSES[number];
@@ -126,6 +127,10 @@ export class AttendanceService {
       await db.update(attendanceRecords)
         .set({ checkOut: currentTime, updatedAt: new Date() })
         .where(eq(attendanceRecords.id, existing[0].id));
+
+      // WhatsApp: Notify Pulang
+      notifyParentsViaWA(student.id, student.fullName || '', student.className || '', 'Pulang', today, currentTime.slice(0, 5)).catch(() => {});
+
       return {
         success: true,
         status: "Pulang",
@@ -160,10 +165,12 @@ export class AttendanceService {
       recordedBy: recordedBy || null,
     }).returning();
 
-    // Auto-notify parents if Terlambat (async, non-blocking)
+    // Email: Terlambat only for scan (Alpa is set via manual input, not scan)
     if (status === 'Terlambat') {
       this.notifyParents(student.id, student.fullName || '', student.className || '', status, today, currentTime.slice(0, 5)).catch(() => {});
     }
+    // WhatsApp: ALL statuses — real-time notification to parents
+    notifyParentsViaWA(student.id, student.fullName || '', student.className || '', status, today, currentTime.slice(0, 5)).catch(() => {});
 
     return {
       success: true,
@@ -261,10 +268,12 @@ export class AttendanceService {
       });
     }
 
-    // Auto-notify parents for Terlambat/Alpa (async, non-blocking)
+    // Email: Terlambat/Alpa (existing behavior)
     if (data.status === 'Terlambat' || data.status === 'Alpa') {
       this.notifyParents(data.studentId, student.fullName || '', student.className || '', data.status, data.date, currentTime.slice(0, 5)).catch(() => {});
     }
+    // WhatsApp: ALL statuses — real-time notification to parents
+    notifyParentsViaWA(data.studentId, student.fullName || '', student.className || '', data.status, data.date, currentTime.slice(0, 5)).catch(() => {});
 
     return { success: true, status: data.status, message: "Absensi berhasil disimpan" };
   }

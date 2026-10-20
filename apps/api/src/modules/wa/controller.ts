@@ -1,0 +1,81 @@
+import { Request, Response } from "express";
+import { WaService } from "./service";
+
+export class WaController {
+
+  // GET /api/wa/status
+  static async getStatus(req: Request, res: Response) {
+    try {
+      const status = WaService.getStatus();
+      return res.json(status);
+    } catch (err: any) {
+      console.error("[WA] Status error:", err);
+      return res.status(500).json({ error: "Gagal mengambil status WA" });
+    }
+  }
+
+  // GET /api/wa/stats
+  static async getStats(req: Request, res: Response) {
+    try {
+      const stats = await WaService.getStatsToday();
+      return res.json(stats);
+    } catch (err: any) {
+      console.error("[WA] Stats error:", err);
+      return res.status(500).json({ error: "Gagal mengambil statistik WA" });
+    }
+  }
+
+  // GET /api/wa/logs?page=1&limit=30&status=failed&date=2026-10-20
+  static async getLogs(req: Request, res: Response) {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 30;
+      const deliveryStatus = req.query.status as string | undefined;
+      const date = req.query.date as string | undefined;
+
+      const result = await WaService.getLogs({ page, limit, deliveryStatus, date });
+      return res.json(result);
+    } catch (err: any) {
+      console.error("[WA] Logs error:", err);
+      return res.status(500).json({ error: "Gagal mengambil log WA" });
+    }
+  }
+
+  // POST /api/wa/test { phone: "08123456789" }
+  static async testSend(req: Request, res: Response) {
+    try {
+      const { phone } = req.body;
+      if (!phone) {
+        return res.status(400).json({ error: "Nomor HP wajib diisi" });
+      }
+      const result = await WaService.testSend(phone);
+      return res.json(result);
+    } catch (err: any) {
+      console.error("[WA] Test send error:", err);
+      return res.status(500).json({ error: "Gagal mengirim test WA" });
+    }
+  }
+
+  // POST /api/wa/retry/:logId
+  static async retryFailed(req: Request, res: Response) {
+    try {
+      const { logId } = req.params;
+      const result = await WaService.retryFailed(logId);
+      return res.json(result);
+    } catch (err: any) {
+      console.error("[WA] Retry error:", err);
+      return res.status(500).json({ error: "Gagal retry pesan WA" });
+    }
+  }
+
+  // GET /api/wa/coverage
+  static async getCoverage(req: Request, res: Response) {
+    try {
+      const result = await WaService.getCoverage();
+      return res.json(result);
+    } catch (err: any) {
+      console.error("[WA] Coverage error:", err);
+      return res.status(500).json({ error: "Gagal mengambil data cakupan" });
+    }
+  }
+}
