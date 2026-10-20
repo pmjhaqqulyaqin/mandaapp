@@ -83,7 +83,7 @@ export async function notifyParentsViaWA(
 
     // 3. Send to each parent (fire-and-forget)
     for (const parent of parents) {
-      const message = formatAttendanceWaMessage({
+      const message = await formatAttendanceWaMessage({
         studentName, className, status, date, time,
         parentName: parent.name,
       });

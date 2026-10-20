@@ -2,7 +2,7 @@ import { db } from "../../db";
 import { waNotificationLog, studentProfiles, parentProfiles, siteSettings } from "../../db/schema";
 import { eq, and, or, desc, count, sql, gte, isNotNull, isNull } from "drizzle-orm";
 import { sendWhatsApp, getWaGatewayStatus, normalizePhone, invalidateTokenCache } from "../../lib/whatsapp";
-import { formatAttendanceWaMessage } from "../../lib/wa-message-templates";
+import { formatAttendanceWaMessage, invalidateTemplateCache, DEFAULT_WA_TEMPLATE, STATUS_CONFIG } from "../../lib/wa-message-templates";
 
 /**
  * Convert a Date to WITA date string (Asia/Makassar, UTC+8).
@@ -168,7 +168,7 @@ export class WaService {
 
   // ─── Test Send ──────────────────────────────────────────
   static async testSend(phone: string) {
-    const message = formatAttendanceWaMessage({
+    const message = await formatAttendanceWaMessage({
       studentName: 'Test Siswa',
       className: 'X IPA 1',
       status: 'Hadir',
@@ -201,7 +201,7 @@ export class WaService {
       }
     }
 
-    const message = formatAttendanceWaMessage({
+    const message = await formatAttendanceWaMessage({
       studentName,
       className,
       status: log.statusSent,
@@ -223,6 +223,74 @@ export class WaService {
     }).where(eq(waNotificationLog.id, logId));
 
     return result;
+  }
+
+  // ─── Template Management ────────────────────────────────
+
+  static async getTemplate() {
+    const rows = await db.select({ value: siteSettings.value })
+      .from(siteSettings)
+      .where(eq(siteSettings.key, 'wa_message_template'))
+      .limit(1);
+
+    const customTemplate = rows.length > 0 && rows[0].value && rows[0].value.trim().length > 10
+      ? rows[0].value
+      : null;
+
+    return {
+      template: customTemplate || DEFAULT_WA_TEMPLATE,
+      isCustom: !!customTemplate,
+      defaultTemplate: DEFAULT_WA_TEMPLATE,
+      availableVariables: [
+        { key: '{nama}', desc: 'Nama siswa' },
+        { key: '{kelas}', desc: 'Kelas siswa' },
+        { key: '{tanggal}', desc: 'Tanggal (format: Selasa, 20 Oktober 2026)' },
+        { key: '{waktu}', desc: 'Jam (format: 07:00)' },
+        { key: '{status}', desc: 'Status kehadiran (HADIR, TERLAMBAT, dll)' },
+        { key: '{emoji}', desc: 'Emoji status (✅, ⏰, ❌, dll)' },
+        { key: '{saran}', desc: 'Pesan saran sesuai status' },
+        { key: '{nama_ortu}', desc: 'Nama orang tua' },
+        { key: '{nama_sekolah}', desc: 'Nama sekolah (dari Identitas Sekolah)' },
+      ],
+      statusConfig: STATUS_CONFIG,
+    };
+  }
+
+  static async saveTemplate(template: string) {
+    const existing = await db.select().from(siteSettings).where(eq(siteSettings.key, 'wa_message_template')).limit(1);
+    if (existing.length > 0) {
+      await db.update(siteSettings).set({ value: template, updatedAt: new Date() }).where(eq(siteSettings.key, 'wa_message_template'));
+    } else {
+      await db.insert(siteSettings).values({ key: 'wa_message_template', value: template, group: 'whatsapp' });
+    }
+    invalidateTemplateCache();
+    return { success: true };
+  }
+
+  static async resetTemplate() {
+    const existing = await db.select().from(siteSettings).where(eq(siteSettings.key, 'wa_message_template')).limit(1);
+    if (existing.length > 0) {
+      await db.update(siteSettings).set({ value: DEFAULT_WA_TEMPLATE, updatedAt: new Date() }).where(eq(siteSettings.key, 'wa_message_template'));
+    }
+    invalidateTemplateCache();
+    return { success: true };
+  }
+
+  // ─── Preview Template ───────────────────────────────────
+  static async previewTemplate(template: string) {
+    // Temporarily use the provided template for preview
+    const config = STATUS_CONFIG['Hadir'];
+    const message = template
+      .replace(/\{emoji\}/g, config.emoji)
+      .replace(/\{status\}/g, config.label)
+      .replace(/\{saran\}/g, config.advice)
+      .replace(/\{nama\}/g, 'Ahmad Farid')
+      .replace(/\{kelas\}/g, 'X IPA 1')
+      .replace(/\{tanggal\}/g, 'Selasa, 20 Oktober 2026')
+      .replace(/\{waktu\}/g, '07:00')
+      .replace(/\{nama_ortu\}/g, 'Bapak Muhamad')
+      .replace(/\{nama_sekolah\}/g, 'MAN 2 Lombok Timur');
+    return { preview: message };
   }
 
   // ─── Coverage: Siswa tanpa nomor HP orang tua ───────────

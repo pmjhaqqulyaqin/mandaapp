@@ -101,4 +101,54 @@ export class WaController {
       return res.status(500).json({ error: "Gagal mengambil data cakupan" });
     }
   }
+
+  // GET /api/wa/template
+  static async getTemplate(req: Request, res: Response) {
+    try {
+      const result = await WaService.getTemplate();
+      return res.json(result);
+    } catch (err: any) {
+      console.error("[WA] Template error:", err);
+      return res.status(500).json({ error: "Gagal mengambil template" });
+    }
+  }
+
+  // PUT /api/wa/template { template: "..." }
+  static async saveTemplate(req: Request, res: Response) {
+    try {
+      const { template } = req.body;
+      if (!template || template.trim().length < 10) {
+        return res.status(400).json({ error: "Template terlalu pendek" });
+      }
+      const result = await WaService.saveTemplate(template);
+      return res.json(result);
+    } catch (err: any) {
+      console.error("[WA] Save template error:", err);
+      return res.status(500).json({ error: "Gagal menyimpan template" });
+    }
+  }
+
+  // POST /api/wa/template/reset
+  static async resetTemplate(req: Request, res: Response) {
+    try {
+      const result = await WaService.resetTemplate();
+      return res.json(result);
+    } catch (err: any) {
+      console.error("[WA] Reset template error:", err);
+      return res.status(500).json({ error: "Gagal reset template" });
+    }
+  }
+
+  // POST /api/wa/template/preview { template: "..." }
+  static async previewTemplate(req: Request, res: Response) {
+    try {
+      const { template } = req.body;
+      if (!template) return res.status(400).json({ error: "Template wajib diisi" });
+      const result = await WaService.previewTemplate(template);
+      return res.json(result);
+    } catch (err: any) {
+      console.error("[WA] Preview error:", err);
+      return res.status(500).json({ error: "Gagal preview template" });
+    }
+  }
 }

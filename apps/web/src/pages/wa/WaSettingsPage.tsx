@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '../../lib/api';
 import { toast } from 'sonner';
-import { MessageSquare, Send, RefreshCw, Shield, Eye, EyeOff, CheckCircle, XCircle, Clock, Users, RotateCcw } from 'lucide-react';
+import { MessageSquare, Send, RefreshCw, Shield, Eye, EyeOff, CheckCircle, XCircle, Clock, Users, RotateCcw, FileEdit, Copy } from 'lucide-react';
 import { Button } from '@mandaapp/ui/src/components/Button';
 import { Input } from '@mandaapp/ui/src/components/Input';
 import { Badge } from '@mandaapp/ui/src/components/Badge';
@@ -51,6 +51,13 @@ interface WaCoverage {
   studentsWithoutPhone: Array<{ id: string; fullName: string; nis: string; className: string }>;
 }
 
+interface WaTemplateData {
+  template: string;
+  isCustom: boolean;
+  defaultTemplate: string;
+  availableVariables: Array<{ key: string; desc: string }>;
+}
+
 // ── All attendance statuses ───────────────────────────────
 
 const ALL_STATUSES = ['Hadir', 'Terlambat', 'Alpa', 'Bolos', 'Sakit', 'Izin', 'Pulang'];
@@ -78,7 +85,13 @@ export function WaSettingsPage() {
   const [testPhone, setTestPhone] = useState('');
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'settings' | 'monitoring' | 'coverage'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'template' | 'monitoring' | 'coverage'>('settings');
+
+  // Template state
+  const [templateData, setTemplateData] = useState<WaTemplateData | null>(null);
+  const [editTemplate, setEditTemplate] = useState('');
+  const [templatePreview, setTemplatePreview] = useState('');
+  const [savingTemplate, setSavingTemplate] = useState(false);
 
   useEffect(() => {
     fetchAll();
@@ -176,6 +189,69 @@ export function WaSettingsPage() {
     );
   };
 
+  // Template handlers
+  const fetchTemplate = async () => {
+    try {
+      const data = await apiClient<WaTemplateData>('/wa/template');
+      setTemplateData(data);
+      setEditTemplate(data.template);
+    } catch (err) {
+      toast.error('Gagal mengambil template');
+    }
+  };
+
+  const handlePreviewTemplate = async () => {
+    try {
+      const result = await apiClient<{ preview: string }>('/wa/template/preview', {
+        method: 'POST', data: { template: editTemplate }
+      });
+      setTemplatePreview(result.preview);
+    } catch (err) {
+      toast.error('Gagal preview template');
+    }
+  };
+
+  const handleSaveTemplate = async () => {
+    setSavingTemplate(true);
+    try {
+      await apiClient('/wa/template', { method: 'PUT', data: { template: editTemplate } });
+      toast.success('Template pesan berhasil disimpan');
+      fetchTemplate();
+    } catch (err) {
+      toast.error('Gagal menyimpan template');
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  const handleResetTemplate = async () => {
+    if (!confirm('Reset template ke default? Perubahan kustom akan hilang.')) return;
+    try {
+      await apiClient('/wa/template/reset', { method: 'POST' });
+      toast.success('Template berhasil direset ke default');
+      fetchTemplate();
+      setTemplatePreview('');
+    } catch (err) {
+      toast.error('Gagal reset template');
+    }
+  };
+
+  const insertVariable = (varKey: string) => {
+    const textarea = document.getElementById('wa-template-editor') as HTMLTextAreaElement;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newText = editTemplate.substring(0, start) + varKey + editTemplate.substring(end);
+      setEditTemplate(newText);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + varKey.length, start + varKey.length);
+      }, 0);
+    } else {
+      setEditTemplate(prev => prev + varKey);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -206,6 +282,7 @@ export function WaSettingsPage() {
       <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit">
         {[
           { key: 'settings' as const, label: '⚙️ Pengaturan', onClick: () => setActiveTab('settings') },
+          { key: 'template' as const, label: '✏️ Template Pesan', onClick: () => { setActiveTab('template'); fetchTemplate(); } },
           { key: 'monitoring' as const, label: '📊 Monitoring', onClick: () => { setActiveTab('monitoring'); fetchLogs(); } },
           { key: 'coverage' as const, label: '📋 Cakupan Data', onClick: () => { setActiveTab('coverage'); fetchCoverage(); } },
         ].map(tab => (
@@ -365,6 +442,109 @@ export function WaSettingsPage() {
               {saving ? <RefreshCw size={14} className="animate-spin mr-2" /> : null}
               {saving ? 'Menyimpan...' : '💾 Simpan Pengaturan'}
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Tab: Template Pesan ───────────────────────────── */}
+      {activeTab === 'template' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Editor */}
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <FileEdit size={18} className="text-emerald-500" />
+                  Editor Template
+                </h2>
+                {templateData?.isCustom && (
+                  <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs">Kustom</Badge>
+                )}
+              </div>
+
+              {/* Variable Chips */}
+              <div className="mb-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Klik variabel untuk menyisipkan ke template:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {templateData?.availableVariables.map(v => (
+                    <button
+                      key={v.key}
+                      onClick={() => insertVariable(v.key)}
+                      title={v.desc}
+                      className="px-2 py-1 text-xs bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-md hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors font-mono border border-emerald-200 dark:border-emerald-800"
+                    >
+                      {v.key}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Textarea */}
+              <textarea
+                id="wa-template-editor"
+                value={editTemplate}
+                onChange={(e) => setEditTemplate(e.target.value)}
+                rows={18}
+                className="w-full px-3 py-2 text-sm font-mono bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                placeholder="Tulis template pesan WhatsApp di sini..."
+              />
+
+              <p className="text-xs text-gray-400 mt-2">
+                💡 WhatsApp format: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">*bold*</code> <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">_italic_</code> <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">~strikethrough~</code>
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Button onClick={handleSaveTemplate} disabled={savingTemplate} className="flex-1 bg-emerald-600 hover:bg-emerald-700">
+                {savingTemplate ? <RefreshCw size={14} className="animate-spin mr-2" /> : null}
+                💾 Simpan Template
+              </Button>
+              <Button onClick={handlePreviewTemplate} variant="outline" className="flex-1">
+                <Eye size={14} className="mr-1" /> Preview
+              </Button>
+              <Button onClick={handleResetTemplate} variant="outline" className="text-red-500 hover:text-red-700">
+                <RotateCcw size={14} className="mr-1" /> Reset
+              </Button>
+            </div>
+          </div>
+
+          {/* Preview Panel */}
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Eye size={18} className="text-blue-500" />
+                Preview Pesan
+              </h2>
+              {templatePreview ? (
+                <div className="bg-[#e5ddd5] dark:bg-gray-900 rounded-xl p-4 relative">
+                  <div className="bg-[#dcf8c6] dark:bg-emerald-900/40 rounded-lg p-3 max-w-[90%] ml-auto shadow-sm">
+                    <pre className="text-sm whitespace-pre-wrap font-sans text-gray-800 dark:text-gray-200 leading-relaxed">{templatePreview}</pre>
+                    <div className="text-right mt-1">
+                      <span className="text-[10px] text-gray-500">19:16 ✓✓</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-8 text-center">
+                  <MessageSquare size={40} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                  <p className="text-sm text-gray-400">Klik "Preview" untuk melihat hasil template</p>
+                </div>
+              )}
+            </div>
+
+            {/* Variable Reference */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="text-sm font-semibold mb-3">📖 Referensi Variabel</h3>
+              <div className="space-y-2">
+                {templateData?.availableVariables.map(v => (
+                  <div key={v.key} className="flex items-start gap-2 text-sm">
+                    <code className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-xs font-mono text-emerald-600 dark:text-emerald-400 shrink-0">{v.key}</code>
+                    <span className="text-gray-500 dark:text-gray-400 text-xs">{v.desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
