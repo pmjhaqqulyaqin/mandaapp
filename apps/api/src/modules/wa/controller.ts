@@ -6,11 +6,34 @@ export class WaController {
   // GET /api/wa/status
   static async getStatus(req: Request, res: Response) {
     try {
-      const status = WaService.getStatus();
+      const status = await WaService.getStatus();
       return res.json(status);
     } catch (err: any) {
       console.error("[WA] Status error:", err);
       return res.status(500).json({ error: "Gagal mengambil status WA" });
+    }
+  }
+
+  // GET /api/wa/settings
+  static async getSettings(req: Request, res: Response) {
+    try {
+      const settings = await WaService.getSettings();
+      return res.json(settings);
+    } catch (err: any) {
+      console.error("[WA] Settings error:", err);
+      return res.status(500).json({ error: "Gagal mengambil pengaturan WA" });
+    }
+  }
+
+  // PUT /api/wa/settings
+  static async saveSettings(req: Request, res: Response) {
+    try {
+      const { fonnteToken, waEnabled, notifyStatuses } = req.body;
+      const result = await WaService.saveSettings({ fonnteToken, waEnabled, notifyStatuses });
+      return res.json(result);
+    } catch (err: any) {
+      console.error("[WA] Save settings error:", err);
+      return res.status(500).json({ error: "Gagal menyimpan pengaturan WA" });
     }
   }
 

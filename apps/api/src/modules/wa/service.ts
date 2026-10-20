@@ -1,7 +1,7 @@
 import { db } from "../../db";
-import { waNotificationLog, studentProfiles, parentProfiles } from "../../db/schema";
-import { eq, and, desc, count, sql, gte, isNotNull, isNull } from "drizzle-orm";
-import { sendWhatsApp, getWaGatewayStatus, normalizePhone } from "../../lib/whatsapp";
+import { waNotificationLog, studentProfiles, parentProfiles, siteSettings } from "../../db/schema";
+import { eq, and, or, desc, count, sql, gte, isNotNull, isNull } from "drizzle-orm";
+import { sendWhatsApp, getWaGatewayStatus, normalizePhone, invalidateTokenCache } from "../../lib/whatsapp";
 import { formatAttendanceWaMessage } from "../../lib/wa-message-templates";
 
 /**
@@ -16,8 +16,65 @@ function toWitaDateStr(date: Date): string {
 export class WaService {
 
   // ─── Gateway Status ─────────────────────────────────────
-  static getStatus() {
+  static async getStatus() {
     return getWaGatewayStatus();
+  }
+
+  // ─── WA Settings (token, toggles — stored in site_settings) ───
+
+  static async getSettings() {
+    const keys = ['wa_fonnte_token', 'parent_notif_wa', 'wa_notify_statuses'];
+    const rows = await db.select().from(siteSettings).where(
+      or(...keys.map(k => eq(siteSettings.key, k)))
+    );
+
+    const map: Record<string, string> = {};
+    rows.forEach(r => { map[r.key] = r.value || ''; });
+
+    const token = map['wa_fonnte_token'] || '';
+
+    return {
+      tokenConfigured: token.length > 5,
+      tokenMasked: token.length > 5
+        ? '****' + token.slice(-6)
+        : '',
+      waEnabled: map['parent_notif_wa'] === 'true',
+      notifyStatuses: map['wa_notify_statuses']
+        ? JSON.parse(map['wa_notify_statuses'])
+        : ['Hadir', 'Terlambat', 'Alpa', 'Bolos', 'Sakit', 'Izin', 'Pulang'],
+    };
+  }
+
+  static async saveSettings(data: {
+    fonnteToken?: string;
+    waEnabled?: boolean;
+    notifyStatuses?: string[];
+  }) {
+    const updates: Array<{ key: string; value: string; group: string }> = [];
+
+    if (data.fonnteToken !== undefined && data.fonnteToken.trim().length > 0) {
+      updates.push({ key: 'wa_fonnte_token', value: data.fonnteToken.trim(), group: 'whatsapp' });
+    }
+    if (data.waEnabled !== undefined) {
+      updates.push({ key: 'parent_notif_wa', value: String(data.waEnabled), group: 'parent_portal' });
+    }
+    if (data.notifyStatuses !== undefined) {
+      updates.push({ key: 'wa_notify_statuses', value: JSON.stringify(data.notifyStatuses), group: 'whatsapp' });
+    }
+
+    for (const { key, value, group } of updates) {
+      const existing = await db.select().from(siteSettings).where(eq(siteSettings.key, key)).limit(1);
+      if (existing.length > 0) {
+        await db.update(siteSettings).set({ value, updatedAt: new Date() }).where(eq(siteSettings.key, key));
+      } else {
+        await db.insert(siteSettings).values({ key, value, group });
+      }
+    }
+
+    // Invalidate token cache so new token takes effect immediately
+    invalidateTokenCache();
+
+    return { success: true };
   }
 
   // ─── Stats Today ────────────────────────────────────────

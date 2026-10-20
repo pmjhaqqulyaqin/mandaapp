@@ -355,6 +355,13 @@ export const ALL_MENU_ITEMS = [
     icon: <Plug size={16} />,
     group: 'system',
   },
+  {
+    key: 'wa-settings',
+    label: 'Pengaturan WhatsApp',
+    href: '/dashboard/wa',
+    icon: <MessageSquare size={16} />,
+    group: 'system',
+  },
 ];
 
 // ── Colorful icon backgrounds for mobile bottom-sheet grid ──
@@ -394,6 +401,7 @@ export const MENU_ICON_COLORS: Record<string, { bg: string; text: string }> = {
   'updates':       { bg: 'bg-gradient-to-br from-emerald-500 to-teal-600',    text: 'text-white' },
   'downloads':     { bg: 'bg-gradient-to-br from-sky-500 to-blue-600',         text: 'text-white' },
   'integrations':  { bg: 'bg-gradient-to-br from-purple-500 to-indigo-600',   text: 'text-white' },
+  'wa-settings':   { bg: 'bg-gradient-to-br from-emerald-500 to-green-600',    text: 'text-white' },
 };
 
 // Map route segments to menu keys for route protection
@@ -430,6 +438,7 @@ export const ROUTE_TO_MENU_KEY: Record<string, string> = {
   'announcements': 'announcements',
   'downloads': 'downloads',
   'integrations': 'integrations',
+  'wa': 'wa-settings',
 };
 
 // ── Sidebar category system ──
@@ -484,6 +493,7 @@ export const MENU_CATEGORY_MAP: Record<string, MenuCategory> = {
   'updates': 'administrator',
   'downloads': 'app-dashboard',
   'integrations': 'administrator',
+  'wa-settings': 'administrator',
 };
 
 // ── Sub-App Configurations for Contextual Sidebar ──

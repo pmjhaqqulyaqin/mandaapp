@@ -90,6 +90,7 @@ const DashboardAnnouncements = React.lazy(() => import('./pages/DashboardAnnounc
 const DashboardDownloads = React.lazy(() => import('./pages/DashboardDownloads').then(m => ({ default: m.DashboardDownloads })));
 const PublicSelfUpdatePage = React.lazy(() => import('./pages/PublicSelfUpdatePage').then(m => ({ default: m.PublicSelfUpdatePage || m.default })));
 const IntegrationsPage = React.lazy(() => import('./pages/integrations/IntegrationsPage').then(m => ({ default: m.IntegrationsPage })));
+const WaSettingsPage = React.lazy(() => import('./pages/wa/WaSettingsPage').then(m => ({ default: m.WaSettingsPage })));
 const DashboardRapor = React.lazy(() => import('./pages/rapor/DashboardRapor').then(m => ({ default: m.DashboardRapor })));
 const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 
@@ -263,6 +264,7 @@ function App() {
               <Route path="announcements" element={<DashboardAnnouncements />} />
               <Route path="downloads" element={<DashboardDownloads />} />
               <Route path="integrations" element={<ProtectedRoute allowedRoles={['admin']}><IntegrationsPage /></ProtectedRoute>} />
+              <Route path="wa" element={<ProtectedRoute allowedRoles={['admin']}><WaSettingsPage /></ProtectedRoute>} />
 
               <Route path="ppdb/penilaian" element={<PPDBPenilaianPage />} />
               <Route path="ppdb/*" element={<PPDBAdminPage />} />

@@ -5,6 +5,8 @@ import { requireAdmin } from "../auth/middleware";
 const router = Router();
 
 // All WA admin routes require admin authentication
+router.get("/settings",      requireAdmin, WaController.getSettings);
+router.put("/settings",      requireAdmin, WaController.saveSettings);
 router.get("/status",        requireAdmin, WaController.getStatus);
 router.get("/stats",         requireAdmin, WaController.getStats);
 router.get("/logs",          requireAdmin, WaController.getLogs);
