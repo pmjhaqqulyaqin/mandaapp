@@ -75,11 +75,19 @@ export async function notifyParentsViaWA(
   try {
     // 1. Global toggle check
     const settings = await ParentPortalService.getNotifSettings();
-    if (!settings.waEnabled) return;
+    if (!settings.waEnabled) {
+      console.log(`[WA-NOTIF] ⚪ WA disabled (toggle off) — skipping ${studentName}`);
+      return;
+    }
 
     // 2. Get parent phones
     const parents = await getParentPhones(studentId);
-    if (parents.length === 0) return;
+    if (parents.length === 0) {
+      console.log(`[WA-NOTIF] ⚠️ No parent phones found for ${studentName} (${studentId})`);
+      return;
+    }
+
+    console.log(`[WA-NOTIF] 📤 Sending ${status} WA for ${studentName} → ${parents.length} parent(s)`);
 
     // 3. Send to each parent (fire-and-forget)
     for (const parent of parents) {

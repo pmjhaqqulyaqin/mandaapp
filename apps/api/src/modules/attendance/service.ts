@@ -168,9 +168,29 @@ export class AttendanceService {
     // Email: Terlambat only for scan (Alpa is set via manual input, not scan)
     if (status === 'Terlambat') {
       this.notifyParents(student.id, student.fullName || '', student.className || '', status, today, currentTime.slice(0, 5)).catch(() => {});
+      // WhatsApp: Terlambat → kirim langsung (sudah lewat batas)
+      notifyParentsViaWA(student.id, student.fullName || '', student.className || '', status, today, currentTime.slice(0, 5)).catch(() => {});
+    } else if (status === 'Hadir') {
+      // WhatsApp: Hadir → kirim setelah batas terlambat (lateTime)
+      // Hitung delay dalam ms sampai lateTime
+      const nowMs = Date.now();
+      const [lH, lM] = settings.lateTime.split(':').map(Number);
+      const lateDate = new Date();
+      // Convert lateTime to UTC (lateTime is WITA/UTC+8)
+      lateDate.setUTCHours(lH - 8, lM, 0, 0);
+      const delayMs = lateDate.getTime() - nowMs;
+
+      if (delayMs > 0) {
+        // Schedule WA setelah batas terlambat
+        setTimeout(() => {
+          notifyParentsViaWA(student.id, student.fullName || '', student.className || '', 'Hadir', today, currentTime.slice(0, 5)).catch(() => {});
+        }, delayMs);
+        console.log(`[WA] ⏳ Hadir WA for ${student.fullName} scheduled in ${Math.round(delayMs / 60000)} menit (setelah ${settings.lateTime})`);
+      } else {
+        // Sudah lewat lateTime → kirim langsung
+        notifyParentsViaWA(student.id, student.fullName || '', student.className || '', 'Hadir', today, currentTime.slice(0, 5)).catch(() => {});
+      }
     }
-    // WhatsApp: ALL statuses — real-time notification to parents
-    notifyParentsViaWA(student.id, student.fullName || '', student.className || '', status, today, currentTime.slice(0, 5)).catch(() => {});
 
     return {
       success: true,
