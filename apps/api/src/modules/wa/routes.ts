@@ -17,5 +17,6 @@ router.get("/template",            requireAdmin, WaController.getTemplate);
 router.put("/template",            requireAdmin, WaController.saveTemplate);
 router.post("/template/reset",     requireAdmin, WaController.resetTemplate);
 router.post("/template/preview",   requireAdmin, WaController.previewTemplate);
+router.get("/diagnose",            requireAdmin, WaController.diagnose);
 
 export default router;

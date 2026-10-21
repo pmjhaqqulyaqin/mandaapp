@@ -342,4 +342,139 @@ export class WaService {
       studentsWithoutPhone: withoutPhone,
     };
   }
+
+  // ─── Diagnostic: Check semua komponen WA ─────────────────
+  static async diagnose(studentName?: string) {
+    const checks: Record<string, { ok: boolean; detail: string }> = {};
+
+    // 1. Token check
+    try {
+      const tokenRows = await db.select({ value: siteSettings.value })
+        .from(siteSettings)
+        .where(eq(siteSettings.key, 'wa_fonnte_token'))
+        .limit(1);
+      const token = tokenRows.length > 0 ? tokenRows[0].value : null;
+      if (token && token.trim().length > 5) {
+        checks['1_token'] = { ok: true, detail: `Token ada (****${token.slice(-6)})` };
+      } else {
+        checks['1_token'] = { ok: false, detail: 'Token Fonnte BELUM diisi di dashboard. Isi di Pengaturan WhatsApp → Token Fonnte.' };
+      }
+    } catch (err: any) {
+      checks['1_token'] = { ok: false, detail: `Error baca token: ${err.message}` };
+    }
+
+    // 2. Toggle WA enabled
+    try {
+      const toggleRows = await db.select({ value: siteSettings.value })
+        .from(siteSettings)
+        .where(eq(siteSettings.key, 'parent_notif_wa'))
+        .limit(1);
+      const val = toggleRows.length > 0 ? toggleRows[0].value : null;
+      if (val === 'true') {
+        checks['2_toggle'] = { ok: true, detail: 'Toggle WA aktif (parent_notif_wa = true)' };
+      } else {
+        checks['2_toggle'] = { ok: false, detail: `Toggle WA NONAKTIF (parent_notif_wa = ${val || 'NULL/tidak ada'}). Aktifkan di Pengaturan WhatsApp.` };
+      }
+    } catch (err: any) {
+      checks['2_toggle'] = { ok: false, detail: `Error baca toggle: ${err.message}` };
+    }
+
+    // 3. Student lookup (if name provided)
+    let foundStudentId: string | null = null;
+    if (studentName) {
+      try {
+        const students = await db.select({
+          id: studentProfiles.id,
+          fullName: studentProfiles.fullName,
+          nis: studentProfiles.nis,
+          className: studentProfiles.className,
+        }).from(studentProfiles)
+          .where(sql`LOWER(${studentProfiles.fullName}) LIKE LOWER(${'%' + studentName + '%'})`)
+          .limit(5);
+
+        if (students.length > 0) {
+          foundStudentId = students[0].id;
+          checks['3_student'] = { ok: true, detail: `Ditemukan ${students.length} siswa: ${students.map(s => `${s.fullName} (${s.nis}, ${s.className})`).join(', ')}` };
+        } else {
+          checks['3_student'] = { ok: false, detail: `Siswa "${studentName}" TIDAK ditemukan di database` };
+        }
+      } catch (err: any) {
+        checks['3_student'] = { ok: false, detail: `Error cari siswa: ${err.message}` };
+      }
+    }
+
+    // 4. Parent phones for that student
+    if (foundStudentId) {
+      try {
+        const profiles = await db.select({
+          name: parentProfiles.name,
+          phone: parentProfiles.phone,
+          type: parentProfiles.type,
+        }).from(parentProfiles)
+          .where(eq(parentProfiles.studentId, foundStudentId));
+
+        if (profiles.length > 0) {
+          const withPhone = profiles.filter(p => p.phone && p.phone.trim().length >= 8);
+          const detail = profiles.map(p => `${p.type}: ${p.name} → ${p.phone || '(KOSONG)'} ${p.phone ? '→ ' + normalizePhone(p.phone) : ''}`).join(' | ');
+          checks['4_parent_phones'] = {
+            ok: withPhone.length > 0,
+            detail: withPhone.length > 0
+              ? `${withPhone.length}/${profiles.length} orang tua punya HP: ${detail}`
+              : `SEMUA ${profiles.length} orang tua TIDAK punya nomor HP: ${detail}`,
+          };
+        } else {
+          checks['4_parent_phones'] = { ok: false, detail: 'TIDAK ada data orang tua di tabel parent_profiles untuk siswa ini' };
+        }
+      } catch (err: any) {
+        checks['4_parent_phones'] = { ok: false, detail: `Error cari parent: ${err.message}` };
+      }
+    }
+
+    // 5. wa_notification_log table exists
+    try {
+      const logCount = await db.select({ total: count() }).from(waNotificationLog);
+      checks['5_log_table'] = { ok: true, detail: `Tabel wa_notification_log OK (${logCount[0].total} record)` };
+    } catch (err: any) {
+      checks['5_log_table'] = { ok: false, detail: `Tabel wa_notification_log ERROR — migrasi 0027 belum jalan? Error: ${err.message}` };
+    }
+
+    // 6. Fonnte API connectivity test (ping)
+    try {
+      const tokenRows = await db.select({ value: siteSettings.value })
+        .from(siteSettings)
+        .where(eq(siteSettings.key, 'wa_fonnte_token'))
+        .limit(1);
+      const token = tokenRows.length > 0 ? tokenRows[0].value?.trim() : null;
+      if (token) {
+        const res = await fetch('https://api.fonnte.com/device', {
+          method: 'POST',
+          headers: { 'Authorization': token },
+        });
+        const data = await res.json();
+        checks['6_fonnte_api'] = {
+          ok: data.status === true,
+          detail: data.status === true
+            ? `Fonnte API OK — Device: ${data.device?.device_name || data.device || 'connected'}`
+            : `Fonnte API ERROR — ${JSON.stringify(data).slice(0, 200)}`,
+        };
+      } else {
+        checks['6_fonnte_api'] = { ok: false, detail: 'Skip — token belum ada' };
+      }
+    } catch (err: any) {
+      checks['6_fonnte_api'] = { ok: false, detail: `Fonnte API unreachable: ${err.message}` };
+    }
+
+    // Summary
+    const allOk = Object.values(checks).every(c => c.ok);
+    const failedChecks = Object.entries(checks).filter(([, c]) => !c.ok).map(([k]) => k);
+
+    return {
+      allOk,
+      failedChecks,
+      checks,
+      hint: allOk
+        ? '✅ Semua komponen OK. WA seharusnya berjalan. Cek log Docker: docker logs api --tail 100'
+        : `❌ Ada ${failedChecks.length} masalah. Perbaiki komponen yang gagal di atas.`,
+    };
+  }
 }

@@ -151,4 +151,15 @@ export class WaController {
       return res.status(500).json({ error: "Gagal preview template" });
     }
   }
+
+  // GET /api/wa/diagnose?studentName=TITIN
+  static async diagnose(req: Request, res: Response) {
+    try {
+      const result = await WaService.diagnose(req.query.studentName as string);
+      return res.json(result);
+    } catch (err: any) {
+      console.error("[WA] Diagnose error:", err);
+      return res.status(500).json({ error: "Gagal diagnosa", detail: err.message });
+    }
+  }
 }
