@@ -76,6 +76,7 @@ const ParentPortal = React.lazy(() => import('./pages/parent/ParentPortal').then
 const BatchPrintPage = React.lazy(() => import('./pages/BatchPrintPage').then(m => ({ default: m.BatchPrintPage })));
 const PrintAcademicCalendar = React.lazy(() => import('./pages/PrintAcademicCalendar').then(m => ({ default: m.PrintAcademicCalendar })));
 const PrintKartuPeserta = React.lazy(() => import('./pages/exams/print/PrintKartuPeserta').then(m => ({ default: m.PrintKartuPeserta })));
+const PrintKartuLogin = React.lazy(() => import('./pages/exams/print/PrintKartuLogin').then(m => ({ default: m.PrintKartuLogin })));
 const PrintIdCardPegawai = React.lazy(() => import('./pages/exams/print/PrintIdCardPegawai').then(m => ({ default: m.PrintIdCardPegawai })));
 const PrintBeritaAcaraMapel = React.lazy(() => import('./pages/exams/print/PrintBeritaAcaraMapel').then(m => ({ default: m.PrintBeritaAcaraMapel })));
 const PrintBeritaAcaraSekolah = React.lazy(() => import('./pages/exams/print/PrintBeritaAcaraSekolah').then(m => ({ default: m.PrintBeritaAcaraSekolah })));
@@ -179,6 +180,11 @@ function App() {
             <Route path="/dashboard/print-kartu-peserta/:ujianId" element={
               <ProtectedRoute>
                 <PrintKartuPeserta />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/print-kartu-login/:ujianId" element={
+              <ProtectedRoute>
+                <PrintKartuLogin />
               </ProtectedRoute>
             } />
             <Route path="/dashboard/print-id-pegawai/:ujianId" element={

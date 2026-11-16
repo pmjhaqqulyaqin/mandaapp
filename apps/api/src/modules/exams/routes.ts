@@ -49,4 +49,9 @@ router.get('/:ujianId/distribusi/export', requireStaff, ExamController.exportDis
 router.get('/:ujianId/daftar-hadir/export', requireStaff, ExamController.exportDaftarHadir);
 router.get('/:ujianId/format-nilai/export', requireStaff, ExamController.exportFormatNilai);
 
+// Kartu Login Peserta
+router.post('/:ujianId/login-cards/generate', requireStaff, ExamController.generateLoginCards);
+router.get('/:ujianId/login-cards', requireStaff, ExamController.getLoginCards);
+router.get('/:ujianId/login-cards/export', requireStaff, ExamController.exportLoginCards);
+
 export const examRoutes = router;

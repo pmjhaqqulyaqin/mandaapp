@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CreditCard, Users, UserCheck, Download, Printer, Settings, Save, Image as ImageIcon, LayoutGrid } from 'lucide-react';
+import { CreditCard, Users, UserCheck, Download, Printer, Settings, Save, Image as ImageIcon, LayoutGrid, KeyRound, RefreshCw, FileSpreadsheet } from 'lucide-react';
 import { PhotoUploader } from '@mandaapp/ui';
 import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
@@ -53,6 +53,7 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
 
   const docTypes = [
     { key: 'kartu-peserta', icon: CreditCard, label: 'Kartu Peserta Ujian', desc: 'Generate kartu peserta dari data siswa yang sudah didistribusikan ke ruang ujian', color: 'indigo' as const },
+    { key: 'kartu-login', icon: KeyRound, label: 'Kartu Login Peserta', desc: 'Generate kartu login (username & password) CBT untuk peserta ujian', color: 'amber' as const },
     { key: 'id-panitia', icon: Users, label: 'ID Card Panitia', desc: 'Generate ID Card untuk seluruh anggota panitia ujian', color: 'violet' as const },
     { key: 'id-pengawas', icon: UserCheck, label: 'ID Card Pengawas', desc: 'Generate ID Card untuk seluruh pengawas yang sudah ditugaskan', color: 'blue' as const },
     { key: 'denah-duduk', icon: LayoutGrid, label: 'Denah Tempat Duduk', desc: 'Generate denah tempat duduk peserta ujian per ruang lengkap dengan ilustrasi pengawas', color: 'emerald' as const },
@@ -60,6 +61,7 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
 
   const colorMap: Record<string, string> = {
     indigo: 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 border-indigo-100 dark:border-indigo-800/30',
+    amber: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-100 dark:border-amber-800/30',
     violet: 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 border-violet-100 dark:border-violet-800/30',
     blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 border-blue-100 dark:border-blue-800/30',
     emerald: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-800/30',
@@ -67,7 +69,9 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
 
   const [rooms, setRooms] = useState<any[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string>('ALL');
+  const [selectedLoginRoomId, setSelectedLoginRoomId] = useState<string>('ALL');
   const [denahCols, setDenahCols] = useState<number>(4);
+  const [generatingLogin, setGeneratingLogin] = useState(false);
 
   useEffect(() => {
     if (ujianId) {
@@ -75,10 +79,47 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
     }
   }, [ujianId]);
 
+  const handleGenerateLogin = async (regenerate: boolean = false) => {
+    setGeneratingLogin(true);
+    try {
+      const res: any = await apiClient(`/exams/${ujianId}/login-cards/generate`, {
+        method: 'POST',
+        data: { regenerate }
+      });
+      if (res.alreadyExists && !regenerate) {
+        if (window.confirm('Kartu login sudah pernah dibuat sebelumnya. Apakah Anda ingin meng-generate ulang password untuk semua peserta?')) {
+          handleGenerateLogin(true);
+          return;
+        }
+      } else {
+        toast.success(res.message || 'Kartu login berhasil dibuat');
+        // Refresh preview if active
+        if (activePreview === 'kartu-login') {
+          setActivePreview('');
+          setTimeout(() => setActivePreview('kartu-login'), 50);
+        }
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal generate kartu login');
+    } finally {
+      setGeneratingLogin(false);
+    }
+  };
+
+  const handleExportLoginExcel = () => {
+    const baseUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? `${window.location.origin}/api` : "http://localhost:3001/api");
+    const url = `${baseUrl}/exams/${ujianId}/login-cards/export`;
+    window.open(url, '_blank');
+  };
+
   const handleCetak = (key: string) => {
     if (key === 'kartu-peserta') {
       let url = `/dashboard/print-kartu-peserta/${ujianId}`;
       if (selectedRoomId !== 'ALL') url += `?ruangId=${selectedRoomId}`;
+      window.open(url, '_blank');
+    } else if (key === 'kartu-login') {
+      let url = `/dashboard/print-kartu-login/${ujianId}`;
+      if (selectedLoginRoomId !== 'ALL') url += `?ruangId=${selectedLoginRoomId}`;
       window.open(url, '_blank');
     } else if (key === 'id-panitia') {
       window.open(`/dashboard/print-id-pegawai/${ujianId}?type=panitia`, '_blank');
@@ -117,7 +158,7 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
         Pilih jenis kartu/ID Card yang ingin di-generate. Pastikan pengaturan kartu sudah disesuaikan.
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         {docTypes.map(doc => {
           const Icon = doc.icon;
           return (
@@ -141,7 +182,22 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
                   <select 
                     value={selectedRoomId}
                     onChange={e => setSelectedRoomId(e.target.value)}
+                    onClick={e => e.stopPropagation()}
                     className="h-7 cursor-pointer text-[10px] font-semibold rounded-lg bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary focus:ring-1 focus:ring-violet-500 outline-none"
+                  >
+                    <option value="ALL">Semua Ruang</option>
+                    {rooms.map((r: any) => (
+                      <option key={r.id} value={r.id}>{r.namaRuang}</option>
+                    ))}
+                  </select>
+                )}
+
+                {doc.key === 'kartu-login' && (
+                  <select 
+                    value={selectedLoginRoomId}
+                    onChange={e => setSelectedLoginRoomId(e.target.value)}
+                    onClick={e => e.stopPropagation()}
+                    className="h-7 cursor-pointer text-[10px] font-semibold rounded-lg bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary focus:ring-1 focus:ring-amber-500 outline-none"
                   >
                     <option value="ALL">Semua Ruang</option>
                     {rooms.map((r: any) => (
@@ -154,6 +210,28 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
                   onClick={(e) => { e.stopPropagation(); handleCetak(doc.key); }}>
                   <Printer size={12} /> Cetak PDF
                 </button>
+
+                {doc.key === 'kartu-login' && (
+                  <>
+                    <button 
+                      className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-semibold bg-white dark:bg-[#111] border border-gray-200 dark:border-[#333] text-text-primary dark:text-text-darkPrimary hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
+                      onClick={(e) => { e.stopPropagation(); handleExportLoginExcel(); }}
+                      title="Export Data Kartu Login ke Excel"
+                    >
+                      <FileSpreadsheet size={12} className="text-emerald-600" /> Export Excel
+                    </button>
+                    <button 
+                      className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-[10px] font-semibold bg-amber-600 text-white hover:bg-amber-700 transition-colors disabled:opacity-50"
+                      onClick={(e) => { e.stopPropagation(); handleGenerateLogin(false); }}
+                      disabled={generatingLogin}
+                      title="Generate Username & Password Peserta"
+                    >
+                      <RefreshCw size={12} className={generatingLogin ? 'animate-spin' : ''} />
+                      {generatingLogin ? 'Proses...' : 'Generate Akun'}
+                    </button>
+                  </>
+                )}
+
                 {doc.key === 'denah-duduk' && (
                   <>
                     <select 
@@ -270,6 +348,12 @@ export const KartuIdTab = ({ ujianId, ujian }: Props) => {
           {activePreview === 'kartu-peserta' && (
             <iframe 
               src={`/dashboard/print-kartu-peserta/${ujianId}?preview=true${selectedRoomId !== 'ALL' ? `&ruangId=${selectedRoomId}` : ''}`}
+              className="w-full h-full"
+            />
+          )}
+          {activePreview === 'kartu-login' && (
+            <iframe 
+              src={`/dashboard/print-kartu-login/${ujianId}?preview=true${selectedLoginRoomId !== 'ALL' ? `&ruangId=${selectedLoginRoomId}` : ''}`}
               className="w-full h-full"
             />
           )}

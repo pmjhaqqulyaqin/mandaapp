@@ -1379,3 +1379,15 @@ export const raporNilai = pgTable("rapor_nilai", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Kartu Login Peserta Ujian (CBT credentials)
+export const examLoginCards = pgTable("exam_login_cards", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ujianId: uuid("ujian_id").references(() => ujian.id, { onDelete: "cascade" }).notNull(),
+  siswaId: uuid("siswa_id").references(() => studentProfiles.id).notNull(),
+  ruangId: uuid("ruang_id").references(() => ruangUjian.id, { onDelete: "set null" }),
+  username: varchar("username", { length: 30 }).notNull(),
+  password: varchar("password", { length: 20 }).notNull(),
+  nomorUrut: integer("nomor_urut").notNull(),
+  createdAt: timestamp("created_at").defaultNow()
+});

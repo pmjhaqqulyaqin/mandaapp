@@ -3,7 +3,7 @@ import {
   ujian, panitiaUjian, jadwalUjian, ruangUjian,
   penugasanPengawas, distribusiPeserta, employees,
   studentProfiles, classes, schoolEvents,
-  cardSettings, siteSettings, masterSubjects
+  cardSettings, siteSettings, masterSubjects, examLoginCards
 } from '../../db/schema';
 import { eq, desc, asc, and, inArray, gte, lte, or } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -3102,6 +3102,217 @@ export class ExamService {
     if (workbook.worksheets.length === 0) {
       throw new Error('Tidak ada data kelas untuk di-export');
     }
+
+    return await workbook.xlsx.writeBuffer();
+  }
+
+  // ============ KARTU LOGIN PESERTA ============
+
+  static async generateLoginCards(ujianId: string, regenerate: boolean = false) {
+    const ujianData = await this.getUjianById(ujianId);
+    if (!ujianData) throw new Error('Ujian tidak ditemukan');
+
+    // Check if already generated
+    const existing = await db.select()
+      .from(examLoginCards)
+      .where(eq(examLoginCards.ujianId, ujianId))
+      .limit(1);
+
+    if (existing.length > 0 && !regenerate) {
+      return { message: 'Kartu login sudah pernah di-generate', count: existing.length, alreadyExists: true };
+    }
+
+    // If regenerating, clear old data
+    if (regenerate) {
+      await db.delete(examLoginCards).where(eq(examLoginCards.ujianId, ujianId));
+    }
+
+    // Get distribusi peserta
+    const distribusi = await this.getDistribusi(ujianId);
+    if (distribusi.length === 0) {
+      throw new Error('Belum ada peserta yang didistribusikan. Lakukan distribusi peserta terlebih dahulu.');
+    }
+
+    // Get NPSN from settings (last 3 digits)
+    const npsnSetting = await db.select()
+      .from(siteSettings)
+      .where(eq(siteSettings.key, 'npsn'))
+      .limit(1);
+    const npsnFull = npsnSetting[0]?.value || '00000000';
+    const npsnSuffix = npsnFull.slice(-3); // Last 3 digits
+
+    // Year: 2 digit terakhir tahun ajaran
+    const tahunAjaran = ujianData.tahunAjaran || new Date().getFullYear().toString();
+    const yearCode = tahunAjaran.replace(/[^0-9]/g, '').slice(0, 4).slice(-2) || '00';
+
+    // Generate cards
+    const cards: any[] = [];
+    distribusi.forEach((item: any, index: number) => {
+      const s = item.siswa || {};
+      const nomorUrut = index + 1;
+      const urutStr = nomorUrut.toString().padStart(5, '0');
+
+      // Username: P + 3 digit NPSN + 2 digit tahun + 5 digit urut
+      const username = `P${npsnSuffix}${yearCode}${urutStr}`;
+
+      // Password: 6 digit random + *
+      const randomDigits = Math.floor(100000 + Math.random() * 900000).toString();
+      const password = `${randomDigits}*`;
+
+      cards.push({
+        ujianId,
+        siswaId: s.id || item.siswaId,
+        ruangId: item.ruangId,
+        username,
+        password,
+        nomorUrut,
+      });
+    });
+
+    // Bulk insert in chunks of 100
+    for (let i = 0; i < cards.length; i += 100) {
+      const chunk = cards.slice(i, i + 100);
+      await db.insert(examLoginCards).values(chunk);
+    }
+
+    return { message: 'Kartu login berhasil di-generate', count: cards.length, alreadyExists: false };
+  }
+
+  static async getLoginCards(ujianId: string, ruangId?: string) {
+    let query = db.select({
+      loginCard: examLoginCards,
+      ruang: ruangUjian,
+      siswa: studentProfiles,
+      className: classes.name
+    })
+      .from(examLoginCards)
+      .leftJoin(ruangUjian, eq(examLoginCards.ruangId, ruangUjian.id))
+      .leftJoin(studentProfiles, eq(examLoginCards.siswaId, studentProfiles.id))
+      .leftJoin(classes, eq(studentProfiles.classId, classes.id))
+      .where(
+        ruangId
+          ? and(eq(examLoginCards.ujianId, ujianId), eq(examLoginCards.ruangId, ruangId))
+          : eq(examLoginCards.ujianId, ujianId)
+      )
+      .orderBy(asc(ruangUjian.namaRuang), asc(examLoginCards.nomorUrut));
+
+    const list = await query;
+
+    return list.map(item => ({
+      ...item.loginCard,
+      ruang: item.ruang,
+      siswa: {
+        ...item.siswa,
+        fullClassName: item.className || item.siswa?.className || '',
+      }
+    }));
+  }
+
+  static async exportLoginCardsExcel(ujianId: string) {
+    const ujianData = await this.getUjianById(ujianId);
+    if (!ujianData) throw new Error('Ujian tidak ditemukan');
+
+    const cards = await this.getLoginCards(ujianId);
+    if (cards.length === 0) {
+      throw new Error('Belum ada kartu login. Silakan generate terlebih dahulu.');
+    }
+
+    const config = (ujianData.pengaturan as any) || {};
+    const kop = config.kop || {};
+
+    const workbook = new ExcelJS.Workbook();
+    const totalCols = 8; // No, Nama, NIS, NISN, TTL, Username, Password, Ruang/Kelas
+    const sheet = workbook.addWorksheet('Kartu Login');
+
+    const thinBorder: any = {
+      top: { style: 'thin' }, left: { style: 'thin' },
+      bottom: { style: 'thin' }, right: { style: 'thin' }
+    };
+
+    // ===== KOP SURAT =====
+    sheet.mergeCells(1, 1, 1, totalCols);
+    sheet.getCell(1, 1).value = kop.kementerian || 'KEMENTERIAN AGAMA REPUBLIK INDONESIA';
+    sheet.getCell(1, 1).font = { bold: true, size: 11 };
+    sheet.getCell(1, 1).alignment = { horizontal: 'center' };
+
+    sheet.mergeCells(2, 1, 2, totalCols);
+    sheet.getCell(2, 1).value = kop.instansi || 'MADRASAH ALIYAH NEGERI 2 LOMBOK TIMUR';
+    sheet.getCell(2, 1).font = { bold: true, size: 13 };
+    sheet.getCell(2, 1).alignment = { horizontal: 'center' };
+
+    sheet.mergeCells(3, 1, 3, totalCols);
+    sheet.getCell(3, 1).value = `KARTU LOGIN PESERTA ${ujianData.namaUjian?.toUpperCase() || 'UJIAN'}`;
+    sheet.getCell(3, 1).font = { bold: true, size: 11 };
+    sheet.getCell(3, 1).alignment = { horizontal: 'center' };
+
+    sheet.mergeCells(4, 1, 4, totalCols);
+    sheet.getCell(4, 1).value = `TAHUN PELAJARAN ${ujianData.tahunAjaran || '-'}`;
+    sheet.getCell(4, 1).font = { bold: true, size: 11 };
+    sheet.getCell(4, 1).alignment = { horizontal: 'center' };
+
+    // Double line under kop
+    for (let c = 1; c <= totalCols; c++) {
+      sheet.getCell(4, c).border = { bottom: { style: 'double' } };
+    }
+
+    // Add logos
+    await this.addLogosToSheet(workbook, sheet, totalCols);
+
+    sheet.addRow([]); // row 5 spacer
+
+    // ===== TABLE HEADER =====
+    const headerRow = 6;
+    const headers = ['No', 'Nama Peserta', 'NIS', 'NISN', 'Tempat, Tanggal Lahir', 'Username', 'Password', 'Ruang / Kelas'];
+    headers.forEach((h, i) => {
+      const cell = sheet.getCell(headerRow, i + 1);
+      cell.value = h;
+      cell.font = { bold: true, size: 10 };
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = thinBorder;
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
+    });
+
+    sheet.getColumn(1).width = 5;   // No
+    sheet.getColumn(2).width = 30;  // Nama
+    sheet.getColumn(3).width = 12;  // NIS
+    sheet.getColumn(4).width = 14;  // NISN
+    sheet.getColumn(5).width = 28;  // TTL
+    sheet.getColumn(6).width = 18;  // Username
+    sheet.getColumn(7).width = 12;  // Password
+    sheet.getColumn(8).width = 22;  // Ruang/Kelas
+
+    // ===== DATA ROWS =====
+    cards.forEach((card: any, idx: number) => {
+      const s = card.siswa || {};
+      const row = headerRow + 1 + idx;
+
+      const birthDate = s.birthDate ? new Date(s.birthDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-';
+      const ttl = `${s.birthPlace || '-'}, ${birthDate}`;
+      const ruangKelas = `${card.ruang?.namaRuang || '-'} / ${s.fullClassName || s.className || '-'}`;
+
+      const rowData = [
+        idx + 1,
+        s.fullName || '-',
+        s.nis || '-',
+        s.nisn || '-',
+        ttl,
+        card.username,
+        card.password,
+        ruangKelas
+      ];
+
+      rowData.forEach((val, i) => {
+        const cell = sheet.getCell(row, i + 1);
+        cell.value = val;
+        cell.font = { size: 10 };
+        cell.border = thinBorder;
+        cell.alignment = {
+          horizontal: i === 0 ? 'center' : 'left',
+          vertical: 'middle',
+          wrapText: true
+        };
+      });
+    });
 
     return await workbook.xlsx.writeBuffer();
   }

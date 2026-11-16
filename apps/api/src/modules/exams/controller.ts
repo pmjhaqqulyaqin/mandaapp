@@ -322,4 +322,37 @@ export class ExamController {
       res.status(500).json({ error: error.message });
     }
   }
+
+  // ============ KARTU LOGIN PESERTA ============
+
+  static async generateLoginCards(req: Request, res: Response) {
+    try {
+      const regenerate = req.body.regenerate === true;
+      const result = await ExamService.generateLoginCards(req.params.ujianId, regenerate);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  static async getLoginCards(req: Request, res: Response) {
+    try {
+      const ruangId = req.query.ruangId as string | undefined;
+      const result = await ExamService.getLoginCards(req.params.ujianId, ruangId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async exportLoginCards(req: Request, res: Response) {
+    try {
+      const buffer = await ExamService.exportLoginCardsExcel(req.params.ujianId);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="Kartu_Login_Peserta.xlsx"');
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
 }
