@@ -180,17 +180,17 @@ export const PrintKartuLogin = () => {
 
     return (
       <div
-        className="relative border-[1.5px] border-black p-2 flex flex-col font-sans box-border overflow-hidden bg-white text-black"
+        className="relative border-[1.5px] border-black px-2.5 py-2 flex flex-col font-sans box-border overflow-hidden bg-white text-black"
         style={{ width: '86mm', height: '54mm' }}
       >
         {/* HEADER KARTU */}
         <div className="flex items-center gap-1.5 pb-1 border-b-[1.5px] border-black">
-          {/* Logo Sekolah (1 logo kanan yang ditaruh di sisi kiri header kartu) */}
-          <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center">
+          {/* Logo Sekolah (1 logo kanan ditaruh di sisi kiri header kartu) */}
+          <div className="w-9 h-9 flex-shrink-0 flex items-center justify-center">
             {logoSekolah ? (
               <img src={logoSekolah} alt="Logo" className="max-w-full max-h-full object-contain" />
             ) : (
-              <div className="w-8 h-8 rounded border border-gray-300 flex items-center justify-center text-[8px] text-gray-400">
+              <div className="w-9 h-9 rounded border border-gray-300 flex items-center justify-center text-[8px] text-gray-400">
                 LOGO
               </div>
             )}
@@ -198,67 +198,67 @@ export const PrintKartuLogin = () => {
 
           {/* Teks Judul */}
           <div className="flex-1 px-1 flex flex-col justify-center text-center leading-tight">
-            <h1 className="text-[10px] font-black tracking-wide uppercase m-0">KARTU LOGIN</h1>
-            <h2 className="text-[8.5px] font-bold uppercase m-0 line-clamp-1">{namaUjian}</h2>
-            <h3 className="text-[8px] font-semibold uppercase text-gray-800 m-0 line-clamp-1">{namaSekolah}</h3>
+            <h1 className="text-[11px] font-black tracking-wider uppercase m-0 leading-tight">KARTU LOGIN</h1>
+            <h2 className="text-[9px] font-bold uppercase m-0 line-clamp-1 leading-tight">{namaUjian}</h2>
+            <h3 className="text-[8.5px] font-bold uppercase text-gray-800 m-0 line-clamp-1 leading-tight">{namaSekolah}</h3>
           </div>
 
           {/* QR Code di kanan atas */}
-          <div className="w-9 h-9 flex-shrink-0 flex items-center justify-center border border-black/30 overflow-hidden bg-white">
+          <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center border border-black/40 overflow-hidden bg-white">
             {qrDataUrl ? (
-              <QrCodeImg dataUrl={qrDataUrl} size={36} />
+              <QrCodeImg dataUrl={qrDataUrl} size={40} />
             ) : (
-              <div className="w-9 h-9" />
+              <div className="w-10 h-10" />
             )}
           </div>
         </div>
 
-        {/* BODY IDENTITAS PESERTA */}
-        <div className="flex-1 pt-1 flex flex-col justify-between">
-          <table className="w-full text-[8px] leading-[1.25] font-medium tracking-tight text-left">
+        {/* BODY IDENTITAS PESERTA (Distribusi vertikal penuh mengisi seluruh ruang kartu) */}
+        <div className="flex-1 flex flex-col justify-center pt-1 overflow-hidden">
+          <table className="w-full h-full text-[9px] font-medium tracking-tight text-left border-collapse">
             <tbody>
               <tr>
-                <td className="w-[84px] py-[1px] align-top text-gray-700 font-semibold">Nama Peserta</td>
-                <td className="w-1.5 py-[1px] align-top font-bold">:</td>
-                <td className="py-[1px] font-bold uppercase truncate max-w-[155px] text-black">
+                <td className="w-[96px] align-middle text-gray-800 font-semibold">Nama Peserta</td>
+                <td className="w-2 align-middle font-bold text-center">:</td>
+                <td className="align-middle font-bold uppercase truncate max-w-[170px] text-black text-[10px]">
                   {s.fullName || '-'}
                 </td>
               </tr>
               <tr>
-                <td className="py-[1px] align-top text-gray-700 font-semibold">NIS / NISN</td>
-                <td className="py-[1px] align-top font-bold">:</td>
-                <td className="py-[1px] font-semibold text-black tracking-wide">{nisNisn}</td>
+                <td className="align-middle text-gray-800 font-semibold">NIS / NISN</td>
+                <td className="align-middle font-bold text-center">:</td>
+                <td className="align-middle font-semibold text-black tracking-wider text-[9.5px]">{nisNisn}</td>
               </tr>
               <tr>
-                <td className="py-[1px] align-top text-gray-700 font-semibold">Tempat, Tanggal Lahir</td>
-                <td className="py-[1px] align-top font-bold">:</td>
-                <td className="py-[1px] uppercase truncate max-w-[155px] text-black">{ttl}</td>
+                <td className="align-middle text-gray-800 font-semibold">Tempat, Tanggal Lahir</td>
+                <td className="align-middle font-bold text-center">:</td>
+                <td className="align-middle uppercase truncate max-w-[170px] text-black text-[9px]">{ttl}</td>
               </tr>
-              <tr className="bg-amber-50/60 print:bg-transparent">
-                <td className="py-[1.5px] align-top text-gray-900 font-bold">Username</td>
-                <td className="py-[1.5px] align-top font-bold">:</td>
-                <td className="py-[1.5px] font-extrabold text-black tracking-wider text-[9px] font-mono">
+              <tr className="bg-amber-50/70 print:bg-transparent">
+                <td className="align-middle text-gray-950 font-bold">Username</td>
+                <td className="align-middle font-bold text-center">:</td>
+                <td className="align-middle font-black text-black tracking-widest text-[10.5px] font-mono">
                   {card.username}
                 </td>
               </tr>
-              <tr className="bg-amber-50/60 print:bg-transparent">
-                <td className="py-[1.5px] align-top text-gray-900 font-bold">Password</td>
-                <td className="py-[1.5px] align-top font-bold">:</td>
-                <td className="py-[1.5px] font-black text-black tracking-widest text-[9.5px] font-mono">
+              <tr className="bg-amber-50/70 print:bg-transparent">
+                <td className="align-middle text-gray-950 font-bold">Password</td>
+                <td className="align-middle font-bold text-center">:</td>
+                <td className="align-middle font-black text-black tracking-widest text-[11px] font-mono">
                   {card.password}
                 </td>
               </tr>
               <tr>
-                <td className="py-[1px] align-top text-gray-700 font-semibold">Ruang / Kelas</td>
-                <td className="py-[1px] align-top font-bold">:</td>
-                <td className="py-[1px] font-bold uppercase text-black">
+                <td className="align-middle text-gray-800 font-semibold">Ruang / Kelas</td>
+                <td className="align-middle font-bold text-center">:</td>
+                <td className="align-middle font-bold uppercase text-black text-[9.5px]">
                   {ruang} / {kelas}
                 </td>
               </tr>
               <tr>
-                <td className="py-[1px] align-top text-gray-700 font-semibold">Jadwal</td>
-                <td className="py-[1px] align-top font-bold">:</td>
-                <td className="py-[1px] text-black font-medium">{jadwalText}</td>
+                <td className="align-middle text-gray-800 font-semibold">Jadwal</td>
+                <td className="align-middle font-bold text-center">:</td>
+                <td className="align-middle text-black font-semibold text-[9px]">{jadwalText}</td>
               </tr>
             </tbody>
           </table>

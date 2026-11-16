@@ -3221,7 +3221,7 @@ export class ExamService {
     const kop = config.kop || {};
 
     const workbook = new ExcelJS.Workbook();
-    const totalCols = 8; // No, Nama, NIS, NISN, TTL, Username, Password, Ruang/Kelas
+    const totalCols = 8; // NO, NISN, NIS, Username, Nama, Password, Kelas, Ruang
     const sheet = workbook.addWorksheet('Kartu Login');
 
     const thinBorder: any = {
@@ -3262,7 +3262,7 @@ export class ExamService {
 
     // ===== TABLE HEADER =====
     const headerRow = 6;
-    const headers = ['No', 'Nama Peserta', 'NIS', 'NISN', 'Tempat, Tanggal Lahir', 'Username', 'Password', 'Ruang / Kelas'];
+    const headers = ['NO', 'NISN', 'NIS', 'Username', 'Nama', 'Password', 'Kelas', 'Ruang'];
     headers.forEach((h, i) => {
       const cell = sheet.getCell(headerRow, i + 1);
       cell.value = h;
@@ -3272,33 +3272,29 @@ export class ExamService {
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
     });
 
-    sheet.getColumn(1).width = 5;   // No
-    sheet.getColumn(2).width = 30;  // Nama
-    sheet.getColumn(3).width = 12;  // NIS
-    sheet.getColumn(4).width = 14;  // NISN
-    sheet.getColumn(5).width = 28;  // TTL
-    sheet.getColumn(6).width = 18;  // Username
-    sheet.getColumn(7).width = 12;  // Password
-    sheet.getColumn(8).width = 22;  // Ruang/Kelas
+    sheet.getColumn(1).width = 6;   // NO
+    sheet.getColumn(2).width = 16;  // NISN
+    sheet.getColumn(3).width = 14;  // NIS
+    sheet.getColumn(4).width = 18;  // Username
+    sheet.getColumn(5).width = 32;  // Nama
+    sheet.getColumn(6).width = 14;  // Password
+    sheet.getColumn(7).width = 16;  // Kelas
+    sheet.getColumn(8).width = 16;  // Ruang
 
     // ===== DATA ROWS =====
     cards.forEach((card: any, idx: number) => {
       const s = card.siswa || {};
       const row = headerRow + 1 + idx;
 
-      const birthDate = s.birthDate ? new Date(s.birthDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-';
-      const ttl = `${s.birthPlace || '-'}, ${birthDate}`;
-      const ruangKelas = `${card.ruang?.namaRuang || '-'} / ${s.fullClassName || s.className || '-'}`;
-
       const rowData = [
         idx + 1,
-        s.fullName || '-',
-        s.nis || '-',
         s.nisn || '-',
-        ttl,
+        s.nis || '-',
         card.username,
+        s.fullName || '-',
         card.password,
-        ruangKelas
+        s.fullClassName || s.className || '-',
+        card.ruang?.namaRuang || '-'
       ];
 
       rowData.forEach((val, i) => {
@@ -3306,8 +3302,11 @@ export class ExamService {
         cell.value = val;
         cell.font = { size: 10 };
         cell.border = thinBorder;
+        // Kolom NO (0), NISN (1), NIS (2), Username (3), Password (5), Kelas (6), Ruang (7) center
+        // Kolom Nama (4) left
+        const isCenter = i !== 4;
         cell.alignment = {
-          horizontal: i === 0 ? 'center' : 'left',
+          horizontal: isCenter ? 'center' : 'left',
           vertical: 'middle',
           wrapText: true
         };
