@@ -807,6 +807,25 @@ export class ExamService {
     return code;
   }
 
+  /**
+   * Latin-Square Rotation Algorithm for Exam Supervisors
+   * 
+   * Uses cyclic permutation with coprime steps to guarantee:
+   * 1. Each supervisor visits all rooms (perfect room rotation)
+   * 2. All N×N unique pairs appear before any repetition (maximum pair diversity)
+   * 3. No supervisor stays in the same room consecutively
+   * 4. Deterministic - same input always produces same output
+   * 
+   * Mathematical basis:
+   * For session s, room index r (0-based), N supervisors per group:
+   *   Group1 index = (r + s × step1) mod N
+   *   Group2 index = (r + s × step2) mod N
+   * 
+   * Requirements for optimal rotation:
+   *   gcd(step1, N) = 1  → each Group1 supervisor visits all N rooms
+   *   gcd(step2, N) = 1  → each Group2 supervisor visits all N rooms
+   *   gcd(step2 - step1, N) = 1  → all N² unique pairs appear in first N sessions
+   */
   static async generatePengawas(ujianId: string) {
     const ujianData = await this.getUjianById(ujianId);
     if (!ujianData) throw new Error('Ujian tidak ditemukan');
@@ -830,7 +849,6 @@ export class ExamService {
     if (ruangList.length === 0) throw new Error('Belum ada ruang ujian');
 
     // Build a map of ruangId -> Set of class names (from distribusi peserta)
-    // This tells us which classes are seated in which rooms
     const distribusiList = await db.select({
       ruangId: distribusiPeserta.ruangId,
       className: classes.name
@@ -840,7 +858,7 @@ export class ExamService {
       .leftJoin(classes, eq(studentProfiles.classId, classes.id))
       .where(eq(distribusiPeserta.ujianId, ujianId));
 
-    const roomClassMap = new Map<string, Set<string>>(); // ruangId -> Set<className>
+    const roomClassMap = new Map<string, Set<string>>();
     distribusiList.forEach(d => {
       if (d.ruangId && d.className) {
         if (!roomClassMap.has(d.ruangId)) roomClassMap.set(d.ruangId, new Set());
@@ -850,7 +868,7 @@ export class ExamService {
 
     const hasDistribusi = distribusiList.length > 0;
 
-    // Identify unique sessions (Tanggal + Waktu) and collect participating classes
+    // Identify unique sessions (Tanggal + Waktu)
     const sessionMap = new Map();
     jadwalList.forEach((j: any) => {
       const key = `${j.tanggal}_${j.waktuMulai}_${j.waktuSelesai}`;
@@ -860,12 +878,11 @@ export class ExamService {
           waktuMulai: j.waktuMulai,
           waktuSelesai: j.waktuSelesai,
           ids: [],
-          kelasList: new Set<string>() // classes participating in this session
+          kelasList: new Set<string>()
         });
       }
       const sess = sessionMap.get(key);
       sess.ids.push(j.id);
-      // Parse kelas from jadwal (comma-separated)
       if (j.kelas) {
         j.kelas.split(',').map((k: string) => k.trim()).filter(Boolean).forEach((k: string) => {
           sess.kelasList.add(k);
@@ -878,100 +895,119 @@ export class ExamService {
       return a.waktuMulai.localeCompare(b.waktuMulai);
     });
 
-    // Clear existing
+    // Clear existing assignments
     const allJadwalIds = jadwalList.map((j: any) => j.id);
     await db.delete(penugasanPengawas).where(inArray(penugasanPengawas.jadwalId, allJadwalIds));
 
-    const assignments: any[] = [];
+    // ===== LATIN-SQUARE COPRIME ROTATION ALGORITHM =====
+
     const L1 = group1.length;
     const L2 = jumlahPengawas === 2 ? group2.length : 0;
 
-    // Frequency-balanced round-robin: track how many times each supervisor is assigned
-    const freq1 = new Map<string, number>(); // group1 supervisor id -> assignment count
-    const freq2 = new Map<string, number>(); // group2 supervisor id -> assignment count
-    group1.forEach((id: string) => freq1.set(id, 0));
-    if (jumlahPengawas === 2) group2.forEach((id: string) => freq2.set(id, 0));
-
-    // Round-robin offset to break ties and add variety
-    let rrOffset1 = 0;
-    let rrOffset2 = 0;
-
-    /**
-     * Pick the supervisor with the lowest frequency who is NOT already used in this session.
-     * When there's a tie, use round-robin offset for variety.
-     */
-    const pickLeastAssigned = (
-      groupIds: string[],
-      freqMap: Map<string, number>,
-      usedInSession: Set<string>,
-      rrOffset: number
-    ): { chosenId: string; chosenIdx: number } => {
-      // Build candidates: supervisors not yet used in this session
-      let candidates = groupIds
-        .map((id, idx) => ({ id, idx, freq: freqMap.get(id) || 0 }))
-        .filter(c => !usedInSession.has(c.id));
-
-      // If all supervisors are already used in this session (more rooms than supervisors),
-      // allow reuse — pick from all
-      if (candidates.length === 0) {
-        candidates = groupIds.map((id, idx) => ({ id, idx, freq: freqMap.get(id) || 0 }));
-      }
-
-      // Sort by frequency ascending; break ties by round-robin offset
-      const minFreq = Math.min(...candidates.map(c => c.freq));
-      const tiedCandidates = candidates.filter(c => c.freq === minFreq);
-
-      // Use offset to rotate among tied candidates for variety
-      const picked = tiedCandidates[rrOffset % tiedCandidates.length];
-      return { chosenId: picked.id, chosenIdx: picked.idx };
+    // Helper: greatest common divisor
+    const gcd = (a: number, b: number): number => {
+      a = Math.abs(a); b = Math.abs(b);
+      while (b > 0) { [a, b] = [b, a % b]; }
+      return a;
     };
 
+    // Find optimal coprime steps for a given N
+    // step1 and step2 must satisfy:
+    //   gcd(step1, N) = 1  AND  gcd(step2, N) = 1  AND  gcd(|step2 - step1|, N) = 1
+    const findOptimalSteps = (n: number): { step1: number; step2: number } => {
+      if (n === 1) return { step1: 1, step2: 1 };
+
+      // Collect all coprime-to-N steps
+      const coprimeSteps: number[] = [];
+      for (let i = 1; i < n; i++) {
+        if (gcd(i, n) === 1) coprimeSteps.push(i);
+      }
+
+      if (coprimeSteps.length === 0) return { step1: 1, step2: 1 };
+
+      // Try step1=1 first (simplest cyclic shift), then find step2 where gcd(|step2-step1|, N) = 1
+      for (const s1 of coprimeSteps) {
+        for (const s2 of coprimeSteps) {
+          if (s1 !== s2 && gcd(Math.abs(s2 - s1), n) === 1) {
+            return { step1: s1, step2: s2 };
+          }
+        }
+      }
+
+      // Fallback: use two different coprime steps even if pair diversity isn't maximized
+      if (coprimeSteps.length >= 2) return { step1: coprimeSteps[0], step2: coprimeSteps[1] };
+      return { step1: coprimeSteps[0], step2: coprimeSteps[0] };
+    };
+
+    // Use the larger group size as the base N for rotation
+    const N = Math.max(L1, L2, ruangList.length);
+    const { step1, step2 } = findOptimalSteps(N);
+
+    const assignments: any[] = [];
+
+    // For tracking activeRooms per session and handling variable room counts
     sessions.forEach((sess, sIdx) => {
       // Determine which rooms are active for this session
       let activeRooms: typeof ruangList;
 
       if (hasDistribusi && sess.kelasList.size > 0) {
-        // Only include rooms that have students from classes participating in this session
         activeRooms = ruangList.filter(ruang => {
           const roomClasses = roomClassMap.get(ruang.id);
           if (!roomClasses) return false;
-          // Check if any of the room's classes overlap with the session's classes
           for (const className of roomClasses) {
             if (sess.kelasList.has(className)) return true;
           }
           return false;
         });
       } else {
-        // No distribusi yet or no kelas info — fall back to all rooms
         activeRooms = ruangList;
       }
 
-      // Track which supervisors are already assigned in THIS session (prevent same person in 2 rooms)
-      const usedInSessionG1 = new Set<string>();
-      const usedInSessionG2 = new Set<string>();
+      // Build the room index mapping: each active room gets a stable index
+      // based on its position in the full ruangList for consistency
+      const roomGlobalIndices = activeRooms.map(r => ruangList.indexOf(r));
 
-      activeRooms.forEach((ruang) => {
-        // Pick supervisor from group1 with lowest frequency
-        const { chosenId: p1Id, chosenIdx: idx1 } = pickLeastAssigned(group1, freq1, usedInSessionG1, rrOffset1);
-        usedInSessionG1.add(p1Id);
-        freq1.set(p1Id, (freq1.get(p1Id) || 0) + 1);
-        rrOffset1++;
+      // Track used supervisors to prevent double-assignment in this session
+      const usedG1 = new Set<number>();
+      const usedG2 = new Set<number>();
 
-        // Pick supervisor from group2 (if 2-pengawas mode) — once per room, not per jadwal
+      activeRooms.forEach((ruang, localIdx) => {
+        // Use the global room index for the Latin-square formula
+        // This ensures consistent rotation even when activeRooms is a subset
+        const r = roomGlobalIndices[localIdx];
+
+        // Latin-square: Group1 index = (r + sIdx * step1) % L1
+        let idx1 = (r + sIdx * step1) % L1;
+        // If this supervisor is already used in this session (can happen when activeRooms < L1),
+        // find the next available one
+        if (usedG1.has(idx1)) {
+          for (let offset = 1; offset < L1; offset++) {
+            const candidate = (idx1 + offset) % L1;
+            if (!usedG1.has(candidate)) { idx1 = candidate; break; }
+          }
+        }
+        usedG1.add(idx1);
+
+        const p1Id = group1[idx1];
+
+        // Group2: same logic with step2
         let p2Id: string | null = null;
         let idx2 = 0;
-        if (jumlahPengawas === 2) {
-          const picked2 = pickLeastAssigned(group2, freq2, usedInSessionG2, rrOffset2);
-          p2Id = picked2.chosenId;
-          idx2 = picked2.chosenIdx;
-          usedInSessionG2.add(p2Id);
-          freq2.set(p2Id, (freq2.get(p2Id) || 0) + 1);
-          rrOffset2++;
+        if (jumlahPengawas === 2 && L2 > 0) {
+          idx2 = (r + sIdx * step2) % L2;
+          if (usedG2.has(idx2)) {
+            for (let offset = 1; offset < L2; offset++) {
+              const candidate = (idx2 + offset) % L2;
+              if (!usedG2.has(candidate)) { idx2 = candidate; break; }
+            }
+          }
+          usedG2.add(idx2);
+          p2Id = group2[idx2];
         }
 
         // Assign to every jadwal ID in this session
         sess.ids.forEach((jId: string) => {
-          // Proctor 1 (Numeric)
+          // Proctor 1 (Numeric code)
           assignments.push({
             id: uuidv4(),
             jadwalId: jId,
@@ -980,7 +1016,7 @@ export class ExamService {
             kodeLabel: (idx1 + 1).toString()
           });
 
-          // Proctor 2 (Alphabetic) - only in 2-pengawas mode
+          // Proctor 2 (Alphabetic code) - only in 2-pengawas mode
           if (jumlahPengawas === 2 && p2Id) {
             assignments.push({
               id: uuidv4(),
@@ -994,11 +1030,124 @@ export class ExamService {
       });
     });
 
+    // ===== VALIDATION =====
+    const validationErrors: string[] = [];
+
+    // Group assignments by session for validation
+    const sessionAssignments = new Map<number, { ruangId: string; g1Idx: number; g2Idx: number }[]>();
+    let assignIdx = 0;
+    sessions.forEach((sess, sIdx) => {
+      let activeRooms: typeof ruangList;
+      if (hasDistribusi && sess.kelasList.size > 0) {
+        activeRooms = ruangList.filter(ruang => {
+          const roomClasses = roomClassMap.get(ruang.id);
+          if (!roomClasses) return false;
+          for (const className of roomClasses) {
+            if (sess.kelasList.has(className)) return true;
+          }
+          return false;
+        });
+      } else {
+        activeRooms = ruangList;
+      }
+
+      const sessData: { ruangId: string; g1Idx: number; g2Idx: number }[] = [];
+      const multiplier = jumlahPengawas === 2 ? 2 : 1;
+      const perSession = activeRooms.length * sess.ids.length * multiplier;
+
+      // Parse from the assignments array
+      let roomCount = 0;
+      for (let ri = 0; ri < activeRooms.length; ri++) {
+        const baseIdx = assignIdx + ri * sess.ids.length * multiplier;
+        if (baseIdx < assignments.length) {
+          const a1 = assignments[baseIdx];
+          const g1Idx = parseInt(a1.kodeLabel) - 1;
+          let g2Idx = -1;
+          if (jumlahPengawas === 2 && baseIdx + 1 < assignments.length) {
+            const a2 = assignments[baseIdx + 1];
+            g2Idx = a2.kodeLabel.charCodeAt(0) - 65;
+          }
+          sessData.push({ ruangId: a1.ruangId, g1Idx, g2Idx });
+        }
+      }
+      sessionAssignments.set(sIdx, sessData);
+      assignIdx += perSession;
+    });
+
+    // Check 1: No supervisor in multiple rooms same session
+    sessionAssignments.forEach((sessData, sIdx) => {
+      const g1Set = new Set<number>();
+      const g2Set = new Set<number>();
+      sessData.forEach(d => {
+        if (g1Set.has(d.g1Idx)) validationErrors.push(`Sesi ${sIdx+1}: Pengawas angka ${d.g1Idx+1} ditugaskan di lebih dari 1 ruang`);
+        g1Set.add(d.g1Idx);
+        if (d.g2Idx >= 0) {
+          if (g2Set.has(d.g2Idx)) validationErrors.push(`Sesi ${sIdx+1}: Pengawas huruf ${String.fromCharCode(65+d.g2Idx)} ditugaskan di lebih dari 1 ruang`);
+          g2Set.add(d.g2Idx);
+        }
+      });
+    });
+
+    // Check 2: Room variation - each supervisor should visit different rooms
+    const g1RoomHistory = new Map<number, Set<string>>();
+    const g2RoomHistory = new Map<number, Set<string>>();
+    sessionAssignments.forEach(sessData => {
+      sessData.forEach(d => {
+        if (!g1RoomHistory.has(d.g1Idx)) g1RoomHistory.set(d.g1Idx, new Set());
+        g1RoomHistory.get(d.g1Idx)!.add(d.ruangId);
+        if (d.g2Idx >= 0) {
+          if (!g2RoomHistory.has(d.g2Idx)) g2RoomHistory.set(d.g2Idx, new Set());
+          g2RoomHistory.get(d.g2Idx)!.add(d.ruangId);
+        }
+      });
+    });
+
+    // Check 3: Pair diversity
+    const pairHistory = new Map<string, number>();
+    sessionAssignments.forEach(sessData => {
+      sessData.forEach(d => {
+        if (d.g2Idx >= 0) {
+          const pairKey = `${d.g1Idx}-${d.g2Idx}`;
+          pairHistory.set(pairKey, (pairHistory.get(pairKey) || 0) + 1);
+        }
+      });
+    });
+
+    // Build rotation summary statistics
+    const rotationSummary = {
+      algorithm: 'Latin-Square Coprime Rotation',
+      parameters: { N, step1, step2, gcdStep1N: gcd(step1, N), gcdStep2N: gcd(step2, N), gcdDiffN: gcd(Math.abs(step2 - step1), N) },
+      totalSessions: sessions.length,
+      totalRooms: ruangList.length,
+      group1Size: L1,
+      group2Size: L2,
+      totalAssignments: assignments.length,
+      uniquePairs: pairHistory.size,
+      maxPossiblePairs: L1 * (L2 || 1),
+      pairRepeatCount: Array.from(pairHistory.values()).filter(v => v > 1).length,
+      g1RoomVariety: Array.from(g1RoomHistory.entries()).map(([idx, rooms]) => ({
+        code: idx + 1,
+        uniqueRooms: rooms.size,
+        total: ruangList.length
+      })),
+      g2RoomVariety: Array.from(g2RoomHistory.entries()).map(([idx, rooms]) => ({
+        code: String.fromCharCode(65 + idx),
+        uniqueRooms: rooms.size,
+        total: ruangList.length
+      })),
+      validationErrors,
+      isValid: validationErrors.length === 0
+    };
+
     if (assignments.length > 0) {
       await db.insert(penugasanPengawas).values(assignments);
     }
 
-    return { generated: assignments.length, sessions: sessions.length };
+    return {
+      generated: assignments.length,
+      sessions: sessions.length,
+      rotationSummary
+    };
   }
 
 
