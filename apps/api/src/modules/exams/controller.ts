@@ -109,6 +109,17 @@ export class ExamController {
     }
   }
 
+  static async updateJadwalCell(req: Request, res: Response) {
+    try {
+      const { ujianId } = req.params;
+      const user = (req as any).user;
+      const result = await ExamService.updateJadwalCell(ujianId, req.body, user);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
   static async deleteJadwal(req: Request, res: Response) {
     try {
       await ExamService.deleteJadwal(req.params.id);

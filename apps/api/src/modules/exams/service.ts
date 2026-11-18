@@ -3,7 +3,8 @@ import {
   ujian, panitiaUjian, jadwalUjian, ruangUjian,
   penugasanPengawas, distribusiPeserta, employees,
   studentProfiles, classes, schoolEvents,
-  cardSettings, siteSettings, masterSubjects, examLoginCards
+  cardSettings, siteSettings, masterSubjects, examLoginCards,
+  auditLogs
 } from '../../db/schema';
 import { eq, desc, asc, and, inArray, gte, lte, or } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -286,6 +287,203 @@ export class ExamService {
 
   static async deleteJadwal(id: string) {
     return await db.delete(jadwalUjian).where(eq(jadwalUjian.id, id));
+  }
+
+  /**
+   * Update a single subject cell for a specific class in an exam schedule slot.
+   * Handles splitting multi-class rows, merging into existing rows with the same subject,
+   * reusing single-class rows, inserting new rows, removing subjects, and preserving proctors.
+   */
+  static async updateJadwalCell(ujianId: string, data: {
+    jadwalId?: string | null;
+    tanggal: string;
+    waktuMulai: string;
+    waktuSelesai: string;
+    className: string;
+    subjectId: string | null;
+  }, user?: any) {
+    const { tanggal, className, subjectId } = data;
+    let { waktuMulai, waktuSelesai } = data;
+
+    if (!ujianId || !tanggal || !waktuMulai || !waktuSelesai || !className) {
+      throw new Error('Data tidak lengkap: tanggal, waktu, dan nama kelas wajib diisi');
+    }
+
+    const trimmedClass = className.trim();
+
+    // Verify exam exists
+    const exam = await this.getUjianById(ujianId);
+    if (!exam) throw new Error('Ujian tidak ditemukan');
+
+    // If subjectId is provided, verify it exists in masterSubjects
+    let targetSubjectName = '';
+    if (subjectId) {
+      const sub = await db.select({ id: masterSubjects.id, nama: masterSubjects.nama })
+        .from(masterSubjects)
+        .where(eq(masterSubjects.id, subjectId))
+        .limit(1);
+      if (!sub.length) throw new Error('Mata pelajaran tidak ditemukan di master data');
+      targetSubjectName = sub[0].nama;
+    }
+
+    // Normalize time for comparison (HH:MM)
+    const normMulai = waktuMulai.slice(0, 5);
+    const normSelesai = waktuSelesai.slice(0, 5);
+
+    // Fetch all jadwal for this exam and date
+    const dayJadwal = await db.select({
+      id: jadwalUjian.id,
+      ujianId: jadwalUjian.ujianId,
+      tanggal: jadwalUjian.tanggal,
+      waktuMulai: jadwalUjian.waktuMulai,
+      waktuSelesai: jadwalUjian.waktuSelesai,
+      subjectId: jadwalUjian.subjectId,
+      kelas: jadwalUjian.kelas,
+    })
+      .from(jadwalUjian)
+      .where(
+        and(
+          eq(jadwalUjian.ujianId, ujianId),
+          eq(jadwalUjian.tanggal, tanggal)
+        )
+      );
+
+    // Filter to this exact session slot
+    const sessionJadwal = dayJadwal.filter(j =>
+      (j.waktuMulai || '').slice(0, 5) === normMulai &&
+      (j.waktuSelesai || '').slice(0, 5) === normSelesai
+    );
+
+    const parseClasses = (str: string | null) =>
+      (str || '').split(',').map(c => c.trim()).filter(Boolean);
+
+    // 1. Find the current row containing this class
+    let currentRow = sessionJadwal.find(j => parseClasses(j.kelas).includes(trimmedClass));
+    if (!currentRow && data.jadwalId) {
+      currentRow = sessionJadwal.find(j => j.id === data.jadwalId);
+    }
+
+    // If subject is unchanged, return early
+    if (currentRow && (currentRow.subjectId || null) === (subjectId || null)) {
+      return { success: true, message: 'Tidak ada perubahan', jadwalId: currentRow.id };
+    }
+
+    let oldSubjectName = '';
+    if (currentRow?.subjectId) {
+      const oldSub = await db.select({ nama: masterSubjects.nama })
+        .from(masterSubjects)
+        .where(eq(masterSubjects.id, currentRow.subjectId))
+        .limit(1);
+      oldSubjectName = oldSub[0]?.nama || '';
+    }
+
+    let affectedJadwalId = currentRow?.id;
+    let reusedCurrentRow = false;
+
+    // 2. Remove className from currentRow
+    if (currentRow) {
+      const currentClasses = parseClasses(currentRow.kelas);
+      const remainingClasses = currentClasses.filter(c => c !== trimmedClass);
+
+      if (remainingClasses.length > 0) {
+        // Other classes remain in currentRow; update its kelas
+        await db.update(jadwalUjian)
+          .set({ kelas: remainingClasses.join(', ') })
+          .where(eq(jadwalUjian.id, currentRow.id));
+      } else {
+        // currentRow only had this class!
+        // Can we reuse it? Yes, if subjectId is given and no other row in this session already has it
+        const existingTargetRow = subjectId ? sessionJadwal.find(j => j.id !== currentRow!.id && j.subjectId === subjectId) : null;
+        if (subjectId && !existingTargetRow) {
+          await db.update(jadwalUjian)
+            .set({
+              subjectId: subjectId,
+              kelas: trimmedClass
+            })
+            .where(eq(jadwalUjian.id, currentRow.id));
+          reusedCurrentRow = true;
+          affectedJadwalId = currentRow.id;
+        } else {
+          // Delete currentRow
+          await db.delete(jadwalUjian).where(eq(jadwalUjian.id, currentRow.id));
+        }
+      }
+    }
+
+    // 3. Assign className to new subject (if subjectId provided and not already reused)
+    if (subjectId && !reusedCurrentRow) {
+      const targetRow = sessionJadwal.find(j => j.id !== currentRow?.id && j.subjectId === subjectId);
+      if (targetRow) {
+        // Add className to targetRow
+        const targetClasses = parseClasses(targetRow.kelas);
+        if (!targetClasses.includes(trimmedClass)) {
+          targetClasses.push(trimmedClass);
+          await db.update(jadwalUjian)
+            .set({ kelas: targetClasses.join(', ') })
+            .where(eq(jadwalUjian.id, targetRow.id));
+        }
+        affectedJadwalId = targetRow.id;
+      } else {
+        // Insert new row
+        const newId = uuidv4();
+        const fullWaktuMulai = waktuMulai.length === 5 ? `${waktuMulai}:00` : waktuMulai;
+        const fullWaktuSelesai = waktuSelesai.length === 5 ? `${waktuSelesai}:00` : waktuSelesai;
+
+        await db.insert(jadwalUjian).values({
+          id: newId,
+          ujianId,
+          tanggal,
+          waktuMulai: fullWaktuMulai,
+          waktuSelesai: fullWaktuSelesai,
+          subjectId,
+          kelas: trimmedClass
+        });
+        affectedJadwalId = newId;
+
+        // Copy proctors from another row in the same session if they exist
+        const anyExistingRow = sessionJadwal.find(j => j.id !== currentRow?.id) || currentRow;
+        if (anyExistingRow) {
+          const proctors = await db.select().from(penugasanPengawas).where(eq(penugasanPengawas.jadwalId, anyExistingRow.id));
+          if (proctors.length > 0) {
+            const proctorInserts = proctors.map(p => ({
+              id: uuidv4(),
+              jadwalId: newId,
+              ruangId: p.ruangId,
+              pengawasId: p.pengawasId,
+              kodeLabel: p.kodeLabel
+            }));
+            await db.insert(penugasanPengawas).values(proctorInserts);
+          }
+        }
+      }
+    }
+
+    // 4. Record audit log
+    try {
+      await db.insert(auditLogs).values({
+        id: uuidv4(),
+        userId: user?.id || null,
+        action: 'update_jadwal_inline',
+        targetType: 'jadwal_ujian',
+        targetId: ujianId,
+        details: JSON.stringify({
+          tanggal,
+          waktu: `${normMulai} - ${normSelesai}`,
+          kelas: trimmedClass,
+          oldSubject: oldSubjectName || '-',
+          newSubject: targetSubjectName || '-',
+          updatedBy: user?.name || user?.email || 'admin'
+        })
+      });
+    } catch {}
+
+    return {
+      success: true,
+      jadwalId: affectedJadwalId,
+      oldSubject: oldSubjectName,
+      newSubject: targetSubjectName,
+      kelas: trimmedClass
+    };
   }
 
   static async downloadJadwalTemplateExcel(ujianId: string) {

@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiClient } from '../../../lib/api';
 import { toast } from 'sonner';
-import { Plus, Trash2, Edit2, Upload, Download, Printer, Search } from 'lucide-react';
+import { Plus, Trash2, Edit2, Upload, Download, Printer, Search, Pencil, Check, X, Loader2, Ban } from 'lucide-react';
 import { DataTableToolbar } from '../../../components/DataTableToolbar';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface Props {
   ujianId: string;
@@ -22,7 +23,22 @@ function findGroupForDay(waktuSesi: any, dayOfWeek: number): { sessions: any[] }
   return { sessions: waktuSesi?.normal || [] };
 }
 
+interface ActiveCell {
+  key: string; // `${tanggal}__${wKey}__${className}`
+  tanggal: string;
+  waktuMulai: string;
+  waktuSelesai: string;
+  className: string;
+  currentSubjectId: string | null;
+  currentSubjectName: string;
+  jadwalId: string | null;
+  cIdx: number;
+}
+
 export const JadwalUjianTab = ({ ujianId }: Props) => {
+  const { user, isStaffRole, isAdmin } = useAuth();
+  const canEdit = isAdmin || isStaffRole || user?.role === 'admin' || user?.role === 'operator';
+
   const [jadwal, setJadwal] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -35,6 +51,15 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
   const [form, setForm] = useState({
     tanggal: '', waktuMulai: '', waktuSelesai: '', subjectId: '', kelas: '', sesiKe: '1'
   });
+
+  // Inline editing states
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [activeCell, setActiveCell] = useState<ActiveCell | null>(null);
+  const [cellSearch, setCellSearch] = useState('');
+  const [highlightIdx, setHighlightIdx] = useState(0);
+  const [savingCellKey, setSavingCellKey] = useState<string | null>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const fetchJadwal = async () => {
     setLoading(true);
@@ -61,6 +86,29 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
   };
 
   useEffect(() => { fetchJadwal(); }, [ujianId]);
+
+  // Click outside listener for active cell popover
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+        setActiveCell(null);
+      }
+    };
+    if (activeCell) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [activeCell]);
+
+  // Auto-focus input when cell opens
+  useEffect(() => {
+    if (activeCell && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [activeCell]);
 
   const resetForm = () => {
     setForm({ tanggal: '', waktuMulai: '', waktuSelesai: '', subjectId: '', kelas: '', sesiKe: '1' });
@@ -133,12 +181,112 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
     toast.success('Mengunduh Template Excel...');
   };
 
-  const handlePrint = () => { window.print(); };
-
   const filtered = jadwal.filter(j =>
     j.mataPelajaran?.toLowerCase().includes(search.toLowerCase()) ||
     j.kelas?.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Discover unique classes across filtered jadwal
+  const uniqueClasses = Array.from(
+    new Set(filtered.flatMap(j => (j.kelas || '').split(',').map((c: string) => c.trim()).filter(Boolean)))
+  ).sort();
+  if (uniqueClasses.length === 0 && filtered.length > 0) uniqueClasses.push('-');
+
+  // Filter subjects for the active cell search
+  const filteredSubjects = subjects.filter(s =>
+    s.nama.toLowerCase().includes(cellSearch.toLowerCase()) ||
+    (s.shortName && s.shortName.toLowerCase().includes(cellSearch.toLowerCase()))
+  );
+
+  // Handle saving an individual cell inline
+  const handleSaveCell = async (
+    targetCell: ActiveCell,
+    newSubjectId: string | null,
+    advanceNextCol = false
+  ) => {
+    const cellKey = targetCell.key;
+    setSavingCellKey(cellKey);
+    setActiveCell(null);
+
+    const targetSubject = subjects.find(s => s.id === newSubjectId);
+    const targetSubjectName = targetSubject?.nama || '';
+
+    try {
+      await apiClient(`/exams/${ujianId}/jadwal/cell`, {
+        method: 'PUT',
+        data: {
+          jadwalId: targetCell.jadwalId,
+          tanggal: targetCell.tanggal,
+          waktuMulai: targetCell.waktuMulai,
+          waktuSelesai: targetCell.waktuSelesai,
+          className: targetCell.className,
+          subjectId: newSubjectId
+        }
+      });
+
+      toast.success(
+        newSubjectId
+          ? `Mata pelajaran ${targetCell.className} diubah ke ${targetSubjectName}`
+          : `Mata pelajaran ${targetCell.className} berhasil dikosongkan`
+      );
+
+      await fetchJadwal();
+
+      // If user pressed Tab to advance to next column
+      if (advanceNextCol) {
+        const nextCIdx = targetCell.cIdx + 1;
+        if (nextCIdx < uniqueClasses.length) {
+          const nextClassName = uniqueClasses[nextCIdx];
+          const nextKey = `${targetCell.tanggal}__${targetCell.waktuMulai} - ${targetCell.waktuSelesai}__${nextClassName}`;
+          setTimeout(() => {
+            setActiveCell({
+              key: nextKey,
+              tanggal: targetCell.tanggal,
+              waktuMulai: targetCell.waktuMulai,
+              waktuSelesai: targetCell.waktuSelesai,
+              className: nextClassName,
+              currentSubjectId: null,
+              currentSubjectName: '',
+              jadwalId: null,
+              cIdx: nextCIdx
+            });
+            setCellSearch('');
+            setHighlightIdx(0);
+          }, 100);
+        }
+      }
+    } catch (err: any) {
+      toast.error('Gagal memperbarui mapel: ' + (err.message || 'Kesalahan jaringan'));
+    } finally {
+      setSavingCellKey(null);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, targetCell: ActiveCell, list: any[]) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setActiveCell(null);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightIdx(prev => Math.min(prev + 1, list.length));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightIdx(prev => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlightIdx === 0) {
+        handleSaveCell(targetCell, null);
+      } else if (list[highlightIdx - 1]) {
+        handleSaveCell(targetCell, list[highlightIdx - 1].id);
+      }
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      const chosenId = highlightIdx === 0
+        ? null
+        : (list[highlightIdx - 1]?.id ?? targetCell.currentSubjectId);
+      handleSaveCell(targetCell, chosenId, true);
+    }
+  };
 
   const inputClass = "w-full h-8 px-3 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] text-xs outline-none focus:ring-2 focus:ring-indigo-500/30";
 
@@ -162,6 +310,23 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-[#333] bg-gray-900 dark:bg-white text-white dark:text-black hover:opacity-90 transition-colors">
           <Printer size={14} /> Export / Cetak Jadwal
         </button>
+
+        {/* Edit Jadwal Mode Toggle */}
+        {canEdit && (
+          <button
+            onClick={() => setIsEditMode(!isEditMode)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all active:scale-95 ${
+              isEditMode
+                ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-sm ring-2 ring-amber-400/30'
+                : 'bg-white dark:bg-[#1a1a1a] hover:bg-gray-50 dark:hover:bg-[#222] text-gray-700 dark:text-gray-200 border-gray-200 dark:border-[#333]'
+            }`}
+            title={isEditMode ? 'Nonaktifkan Mode Edit' : 'Aktifkan Mode Edit Langsung pada Tabel'}
+          >
+            <Pencil size={13} className={isEditMode ? 'animate-bounce' : ''} />
+            {isEditMode ? 'Mode Edit: Aktif' : 'Edit Jadwal'}
+          </button>
+        )}
+
         <div className="flex-1" />
         <div className="relative">
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -169,6 +334,24 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
             placeholder="Cari mapel/kelas..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
+
+      {/* Mode Edit Active Notice */}
+      {isEditMode && (
+        <div className="flex items-center justify-between px-3.5 py-2 text-xs bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-lg text-amber-800 dark:text-amber-300">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+            <span>
+              <strong>Mode Edit Jadwal Aktif:</strong> Klik sel mata pelajaran mana saja pada tabel di bawah untuk langsung mengganti atau mengosongkan mapel.
+            </span>
+          </div>
+          <button
+            onClick={() => setIsEditMode(false)}
+            className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 hover:underline ml-2"
+          >
+            ✕ Tutup
+          </button>
+        </div>
+      )}
 
       {/* DataTable Toolbar */}
       <DataTableToolbar
@@ -216,7 +399,6 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
                     const group = findGroupForDay(ujianData.pengaturan.waktuSesi, d.getDay());
                     if (group) {
                       const sIdx = parseInt(newSesiKe) - 1;
-                      // Reset to sesi 1 if current sesi exceeds available sessions
                       if (sIdx >= group.sessions.length) newSesiKe = '1';
                       const finalIdx = parseInt(newSesiKe) - 1;
                       if(group.sessions[finalIdx]) {
@@ -247,7 +429,7 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
                  setForm({...form, sesiKe: sVal, waktuMulai: wm, waktuSelesai: ws});
               }}>
                 {(() => {
-                  let sessionCount = 2; // default
+                  let sessionCount = 2;
                   if (form.tanggal && ujianData?.pengaturan?.waktuSesi) {
                     const d = new Date(form.tanggal);
                     const group = findGroupForDay(ujianData.pengaturan.waktuSesi, d.getDay());
@@ -309,30 +491,32 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
         </div>
       )}
 
-      {/* Pivot Matrix Implementation */}
+      {/* Pivot Matrix Implementation with Inline Editing */}
       <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#0a0a0a]">
         {(() => {
-          // Discover unique classes and times
-          const uniqueClasses = Array.from(new Set(filtered.flatMap(j => (j.kelas || '').split(',').map((c: string) => c.trim()).filter(Boolean)))).sort();
-          if (uniqueClasses.length === 0 && filtered.length > 0) uniqueClasses.push('-');
-
           const dateMap = new Map();
           filtered.forEach(j => {
-            if (!dateMap.has(j.tanggal)) dateMap.set(j.tanggal, { date: new Date(j.tanggal), sessions: new Map() });
+            if (!dateMap.has(j.tanggal)) dateMap.set(j.tanggal, { date: new Date(j.tanggal), tanggalStr: j.tanggal, sessions: new Map() });
             const dObj = dateMap.get(j.tanggal);
             const wKey = `${j.waktuMulai} - ${j.waktuSelesai}`;
-            if (!dObj.sessions.has(wKey)) dObj.sessions.set(wKey, { waktuMulai: j.waktuMulai, waktuSelesai: j.waktuSelesai, mapels: {} });
+            if (!dObj.sessions.has(wKey)) dObj.sessions.set(wKey, { waktuMulai: j.waktuMulai, waktuSelesai: j.waktuSelesai, mapels: {}, cellDetails: {} });
             const sObj = dObj.sessions.get(wKey);
-            const clArr = (j.kelas || '-').split(',').map((c:string) => c.trim());
-            clArr.forEach((c:string) => {
-              if (c) sObj.mapels[c] = j.mataPelajaran;
+            const clArr = (j.kelas || '-').split(',').map((c: string) => c.trim());
+            clArr.forEach((c: string) => {
+              if (c) {
+                sObj.mapels[c] = j.mataPelajaran;
+                sObj.cellDetails[c] = {
+                  jadwalId: j.id,
+                  subjectId: j.subjectId,
+                  mataPelajaran: j.mataPelajaran
+                };
+              }
             });
-            // Attach random id for manual editing/deletion preview (we take the first one found)
-            if(!sObj.idRef) sObj.idRef = j.id; 
-            if(!sObj.itemRef) sObj.itemRef = j;
+            if (!sObj.idRef) sObj.idRef = j.id; 
+            if (!sObj.itemRef) sObj.itemRef = j;
           });
 
-          const summary = Array.from(dateMap.values()).sort((a,b) => a.date.getTime() - b.date.getTime());
+          const summary = Array.from(dateMap.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
 
           return (
             <table className="w-full text-left text-xs min-w-max">
@@ -356,8 +540,8 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
                     {loading ? 'Memuat data jadwal...' : 'Belum ada jadwal ujian. Silakan klik "Input Manual" atau "Template Excel".'}
                   </td></tr>
                 ) : summary.map((dObj, dIdx) => {
-                  const sessions = Array.from(dObj.sessions.values()).sort((a:any, b:any) => a.waktuMulai.localeCompare(b.waktuMulai));
-                  return sessions.map((sess:any, sIdx: number) => (
+                  const sessions = Array.from(dObj.sessions.values()).sort((a: any, b: any) => a.waktuMulai.localeCompare(b.waktuMulai));
+                  return sessions.map((sess: any, sIdx: number) => (
                     <tr key={`${dIdx}-${sIdx}`} className="hover:bg-gray-50/50 dark:hover:bg-[#111]/50 group transition-colors">
                       {sIdx === 0 && (
                         <>
@@ -370,14 +554,170 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
                       <td className="px-3 py-2 border-r border-gray-100 dark:border-[#222] font-mono text-indigo-600 dark:text-indigo-400">
                         {sess.waktuMulai} - {sess.waktuSelesai}
                       </td>
-                      {uniqueClasses.map((c:string) => (
-                        <td key={c} className="px-3 py-2 border-r border-gray-100 dark:border-[#222] text-center font-semibold text-text-primary dark:text-gray-100">
-                          {sess.mapels[c] || '-'}
-                        </td>
-                      ))}
+
+                      {/* Class Columns with Inline Editing */}
+                      {uniqueClasses.map((c: string, cIdx: number) => {
+                        const cellKey = `${dObj.tanggalStr}__${sess.waktuMulai} - ${sess.waktuSelesai}__${c}`;
+                        const isCellActive = activeCell?.key === cellKey;
+                        const isSaving = savingCellKey === cellKey;
+                        const currentVal = sess.mapels[c] || '-';
+                        const cellDetail = sess.cellDetails?.[c];
+                        const isRightAligned = cIdx >= Math.max(0, uniqueClasses.length - 3);
+
+                        return (
+                          <td
+                            key={c}
+                            onClick={() => {
+                              if (!canEdit || isSaving) return;
+                              if (isCellActive) return;
+                              setActiveCell({
+                                key: cellKey,
+                                tanggal: dObj.tanggalStr,
+                                waktuMulai: sess.waktuMulai,
+                                waktuSelesai: sess.waktuSelesai,
+                                className: c,
+                                currentSubjectId: cellDetail?.subjectId || null,
+                                currentSubjectName: currentVal === '-' ? '' : currentVal,
+                                jadwalId: cellDetail?.jadwalId || null,
+                                cIdx
+                              });
+                              setCellSearch('');
+                              setHighlightIdx(0);
+                            }}
+                            className={`px-3 py-2 border-r border-gray-100 dark:border-[#222] text-center font-semibold text-text-primary dark:text-gray-100 relative select-none transition-colors ${
+                              canEdit ? 'cursor-pointer hover:bg-indigo-50/70 dark:hover:bg-indigo-950/30 group/cell' : ''
+                            } ${isSaving ? 'bg-indigo-50/50 dark:bg-indigo-950/40' : ''} ${
+                              isEditMode && canEdit ? 'bg-amber-50/15' : ''
+                            } ${isCellActive ? 'ring-2 ring-indigo-500 bg-white dark:bg-[#18181b] z-30' : ''}`}
+                            title={canEdit ? `Klik untuk edit mapel ${c}` : undefined}
+                          >
+                            {isSaving ? (
+                              <div className="flex items-center justify-center gap-1 text-[11px] text-indigo-600 dark:text-indigo-400 font-normal">
+                                <Loader2 size={12} className="animate-spin" />
+                                <span>Menyimpan...</span>
+                              </div>
+                            ) : isCellActive && activeCell ? (
+                              <div
+                                ref={popoverRef}
+                                onClick={(e) => e.stopPropagation()}
+                                className={`absolute top-0 ${isRightAligned ? 'right-0' : 'left-0'} z-50 w-64 bg-white dark:bg-[#18181b] border-2 border-indigo-500 rounded-lg shadow-2xl p-2.5 text-left animate-in fade-in zoom-in-95 duration-100`}
+                              >
+                                <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-gray-100 dark:border-[#27272a]">
+                                  <div className="flex items-center gap-1.5">
+                                    <Pencil size={11} className="text-indigo-600 dark:text-indigo-400" />
+                                    <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide">
+                                      Mapel Kelas {c}
+                                    </span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); setActiveCell(null); }}
+                                    className="p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+
+                                <div className="relative mb-1.5">
+                                  <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                  <input
+                                    ref={inputRef}
+                                    type="text"
+                                    value={cellSearch}
+                                    onChange={(e) => {
+                                      setCellSearch(e.target.value);
+                                      setHighlightIdx(0);
+                                    }}
+                                    onKeyDown={(e) => handleKeyDown(e, activeCell, filteredSubjects)}
+                                    placeholder="Cari mata pelajaran..."
+                                    className="w-full h-7 pl-7 pr-2 rounded border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] text-xs outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900 dark:text-gray-100"
+                                  />
+                                </div>
+
+                                <div className="max-h-44 overflow-y-auto space-y-0.5 text-xs pr-0.5">
+                                  {/* Kosongkan Option */}
+                                  <div
+                                    onClick={() => handleSaveCell(activeCell, null)}
+                                    className={`px-2 py-1.5 rounded cursor-pointer flex items-center justify-between text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors ${
+                                      highlightIdx === 0 ? 'bg-rose-50 dark:bg-rose-950/40 font-semibold' : ''
+                                    }`}
+                                  >
+                                    <span className="flex items-center gap-1.5 text-[11px]">
+                                      <Ban size={11} /> (Kosongkan / -)
+                                    </span>
+                                    {!activeCell.currentSubjectId && <Check size={12} className="text-rose-500 shrink-0" />}
+                                  </div>
+
+                                  {filteredSubjects.map((s, idx) => {
+                                    const isCurrent = s.id === activeCell.currentSubjectId;
+                                    const isHl = idx + 1 === highlightIdx;
+                                    return (
+                                      <div
+                                        key={s.id}
+                                        onClick={() => handleSaveCell(activeCell, s.id)}
+                                        className={`px-2 py-1.5 rounded cursor-pointer flex items-center justify-between transition-colors ${
+                                          isCurrent
+                                            ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
+                                            : isHl
+                                            ? 'bg-gray-100 dark:bg-[#27272a] text-gray-900 dark:text-white'
+                                            : 'hover:bg-gray-50 dark:hover:bg-[#222] text-gray-700 dark:text-gray-300'
+                                        }`}
+                                      >
+                                        <div className="truncate pr-1">
+                                          <span className="block truncate text-[11px]">{s.nama}</span>
+                                          {s.shortName && (
+                                            <span className="text-[9px] text-gray-400">{s.shortName}</span>
+                                          )}
+                                        </div>
+                                        {isCurrent && <Check size={12} className="text-indigo-600 dark:text-indigo-400 shrink-0 ml-1" />}
+                                      </div>
+                                    );
+                                  })}
+
+                                  {filteredSubjects.length === 0 && (
+                                    <div className="px-2 py-3 text-center text-[10px] text-gray-400 italic">
+                                      Mapel "{cellSearch}" tidak ditemukan
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="pt-1.5 mt-1 border-t border-gray-100 dark:border-[#27272a] flex items-center justify-between text-[9px] text-gray-400">
+                                  <span>↵ Pilih • Tab Lanjut • Esc Batal</span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); setActiveCell(null); }}
+                                    className="px-1.5 py-0.5 rounded border border-gray-200 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#222] text-[10px]"
+                                  >
+                                    Batal
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center gap-1 group/txt">
+                                <span className={currentVal === '-' ? 'text-gray-400 dark:text-gray-500 font-normal' : ''}>
+                                  {currentVal}
+                                </span>
+                                {canEdit && (
+                                  <Pencil
+                                    size={10}
+                                    className={`text-indigo-500 shrink-0 transition-opacity ${
+                                      isEditMode
+                                        ? 'opacity-60 text-amber-500'
+                                        : 'opacity-0 group-hover/cell:opacity-80'
+                                    }`}
+                                  />
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
+
                       <td className="px-3 py-2 text-center border-l dark:border-[#222]">
                         <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => handleDelete(sess.idRef)} className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"><Trash2 size={12} /></button>
+                          <button onClick={() => handleDelete(sess.idRef)} className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500" title="Hapus sesi ini">
+                            <Trash2 size={12} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -390,7 +730,7 @@ export const JadwalUjianTab = ({ ujianId }: Props) => {
       </div>
 
       <p className="text-[10px] text-gray-400">
-        Total: {jadwal.length} sesi ujian • Gunakan fitur "Template Excel" untuk mempermudah upload massal dengan format yang tepat.
+        Total: {jadwal.length} sesi ujian • Klik sel mata pelajaran pada tabel untuk mengedit langsung • Gunakan "Template Excel" untuk upload massal.
       </p>
     </div>
   );

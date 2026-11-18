@@ -22,6 +22,7 @@ router.delete('/panitia/:id', requireStaff, ExamController.deletePanitia);
 // Jadwal
 router.get('/:ujianId/jadwal', requireStaff, ExamController.getJadwal);
 router.post('/:ujianId/jadwal', requireStaff, ExamController.addJadwal);
+router.put('/:ujianId/jadwal/cell', requireStaff, ExamController.updateJadwalCell);
 router.put('/jadwal/:id', requireStaff, ExamController.updateJadwal);
 router.delete('/jadwal/:id', requireStaff, ExamController.deleteJadwal);
 router.post('/:ujianId/jadwal/upload', requireStaff, upload.single('file'), ExamController.importJadwal);
